@@ -24,7 +24,9 @@ juntada/
 │   │   ├── rooms/                 lifecycle GENÉRICO de salas (crear/unir/kick/reconectar)
 │   │   ├── games/
 │   │   │   ├── registry.js        contrato + registro de motores de juego
-│   │   │   └── impostor/          motor específico de El Impostor
+│   │   │   ├── impostor/          motor específico de El Impostor
+│   │   │   ├── torneo-fifa/       motor específico de Torneo FIFA
+│   │   │   └── tateti/            motor específico de Ta-Te-Ti
 │   │   ├── ws/                    transporte WS, validación, rate limiting
 │   │   ├── state/                 Maps en memoria (rooms, clients, timers)
 │   │   └── http/                  rutas HTTP (health, estáticos del frontend)
@@ -35,7 +37,10 @@ juntada/
 │       ├── App.jsx                shell: elegir juego → elegir modo
 │       ├── games/
 │       │   ├── registry.js        contrato + registro de juegos (frontend)
-│       │   └── impostor/          LocalGame, ConfigPanel, RoundView
+│       │   ├── impostor/          LocalGame, ConfigPanel, RoundView
+│       │   ├── torneo-fifa/       LocalGame, ConfigPanel, RoundView
+│       │   ├── tateti/            LocalGame, ConfigPanel, RoundView
+│       │   └── ruleta/            LocalGame (juego local, sin backend)
 │       ├── features/multiplayer/  shell de sala/lobby genérico + hook de WS
 │       ├── components/            UI reutilizable (Btn, Avatar, Timer, ...)
 │       └── theme/                 estilos
