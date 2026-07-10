@@ -5,9 +5,9 @@ Plataforma de juegos para jugar en grupo — cada juego se puede jugar en **modo
 desde su celular, conectados por código de sala).
 
 Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA**, 🎡 **Ruleta**,
-⭕ **Ta-Te-Ti** y 📡 **Sintonía**. El resto de los juegos del menú (Tutifrutti,
-Trivia, Limón Limón) están registrados pero marcados como "Próximamente" — ver
-[Agregar un juego nuevo](#-agregar-un-juego-nuevo).
+⭕ **Ta-Te-Ti**, 📡 **Sintonía** y 🍋 **Limón Limón**. El resto de los juegos
+del menú (Tutifrutti, Trivia) están registrados pero marcados como
+"Próximamente" — ver [Agregar un juego nuevo](#-agregar-un-juego-nuevo).
 
 ---
 
@@ -27,7 +27,8 @@ juntada/
 │   │   │   ├── impostor/          motor específico de El Impostor
 │   │   │   ├── torneo-fifa/       motor específico de Torneo FIFA
 │   │   │   ├── tateti/            motor específico de Ta-Te-Ti
-│   │   │   └── sintonia/          motor específico de Sintonía
+│   │   │   ├── sintonia/          motor específico de Sintonía
+│   │   │   └── limon-limon/       motor específico de Limón Limón
 │   │   ├── ws/                    transporte WS, validación, rate limiting
 │   │   ├── state/                 Maps en memoria (rooms, clients, timers)
 │   │   └── http/                  rutas HTTP (health, estáticos del frontend)
@@ -42,7 +43,8 @@ juntada/
 │       │   ├── torneo-fifa/       LocalGame, ConfigPanel, RoundView
 │       │   ├── tateti/            LocalGame, ConfigPanel, RoundView
 │       │   ├── ruleta/            LocalGame (juego local, sin backend)
-│       │   └── sintonia/          LocalGame, ConfigPanel, RoundView, Dial
+│       │   ├── sintonia/          LocalGame, ConfigPanel, RoundView, Dial
+│       │   └── limon-limon/       LocalGame, ConfigPanel, RoundView, cartas dibujadas en SVG
 │       ├── features/multiplayer/  shell de sala/lobby genérico + hook de WS
 │       ├── components/            UI reutilizable (Btn, Avatar, Timer, ...)
 │       └── theme/                 estilos
@@ -208,6 +210,33 @@ por turnos para adivinar) como online (`backend/src/games/sintonia/engine.js`).
 
 ---
 
+## 🍋 Limón Limón — cómo se juega
+
+Juego de mazo con baraja española (40 cartas, 4 palos): el mazo queda en el
+centro de la ronda y, por turnos, alguien lo toca para revelar la carta de
+arriba. El grupo decide siempre a mano quién se la queda — el juego nunca
+asigna nada solo, solo muestra como referencia el significado de esa carta
+puntual (número + palo) para recordar la regla. Las 40 cartas comparten las
+mismas reglas entre los 4 palos, con una sola excepción: el 1 de oro duplica
+el castigo, mientras que en copa/espada/basto es un castigo simple. Esos
+significados son editables antes de arrancar (y desde el lobby en modo
+online).
+
+- **Local:** un dispositivo que se pasa por turnos. Se pueden sumar jugadores
+  en cualquier momento, incluso a mitad de partida.
+- **Online:** cada uno desde su celular (`backend/src/games/limon-limon/engine.js`).
+  El anfitrión puede reordenar el turno desde el lobby, y decide si el resto
+  puede espiar el puntaje durante la ronda o si se revela recién al final.
+
+Cualquier jugador puede votar para terminar la partida antes de vaciar el
+mazo — con la mitad de los jugadores online de acuerdo, se corta ahí mismo y
+se muestra la tabla tal como está en ese momento (si quedaba una carta
+revelada sin repartir, se marca aparte como "sin repartir", no se pierde ni
+se le suma a nadie). Al terminar (por mazo vacío o por votación), gana quien
+juntó menos cartas.
+
+---
+
 ## 📝 Notas técnicas
 
 - Sin base de datos: todo el estado vive en memoria del proceso (`Map`s en
@@ -219,4 +248,11 @@ por turnos para adivinar) como online (`backend/src/games/sintonia/engine.js`).
 - Los mensajes WS entrantes se validan con `zod` (`backend/src/ws/validation.js`) y
   hay rate limiting básico por IP en `create_room`/`join_room`
   (`backend/src/ws/rateLimiter.js`) — el servidor es público, no confía ciegamente
-  en el cliente.
+  en el cliente. `update_config`, al ser genérico para cualquier juego, acepta
+  cualquier clave pero solo valores acotados (string/número/boolean, o arrays/objetos
+  de esos primitivos) — así un config con datos libres (como las descripciones de
+  cartas de Limón Limón) no puede colar un valor que rompa el render de otro jugador.
+- Si el servidor rechaza una acción durante la ronda (turno equivocado, jugada
+  inválida, etc.), el error se muestra como un banner arriba del `RoundView` —
+  se maneja una sola vez en `MultiplayerGame.jsx`, ningún juego necesita mostrarlo
+  por su cuenta.
