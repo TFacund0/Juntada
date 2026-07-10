@@ -46,7 +46,8 @@ export function buildDefaultDescriptions() {
 
 export function getDescription(descriptions, card) {
   if (!card) return "";
-  return descriptions?.[cardKey(card.suit, card.value)] || "";
+  const value = descriptions?.[cardKey(card.suit, card.value)];
+  return typeof value === "string" ? value : "";
 }
 
 export function suitInfo(suitId) {

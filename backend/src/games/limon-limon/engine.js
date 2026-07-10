@@ -18,7 +18,7 @@ const VALUES = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
 // propio significado — pero las reglas son las mismas en los 4 palos, con
 // una sola excepción: el 1 de oro duplica el castigo, mientras que el 1 de
 // copa/espada/basto es un castigo simple (todas se pueden editar por
-// separado, ver "edit_descriptions" y frontend/.../DescriptionsEditor.jsx).
+// separado desde el ConfigPanel, vía el "update_config" genérico).
 const BASE_DESCRIPTIONS = {
   1: "Te la comés vos mismo.",
   2: "Come la carta el jugador a la derecha de quien la reveló.",
@@ -85,6 +85,19 @@ function nextTurnId(room, currentId) {
   return order[(idx + 1) % order.length];
 }
 
+// El umbral de "terminar antes" se mide sobre los jugadores online: si se
+// contaran los desconectados, un grupo donde más de la mitad se cayó no
+// podría juntar nunca los votos para cortar la partida. Los votos de
+// jugadores que ya no están en la sala (expulsados) también se descartan acá
+// en vez de guardarse limpios, así el conteo nunca queda desincronizado.
+function endVoteStatus(room) {
+  const activeIds = room.players.map(p => p.id);
+  const votes = (room.round?.endVotes || []).filter(id => activeIds.includes(id));
+  const online = room.players.filter(p => p.online).length;
+  const threshold = Math.max(1, Math.ceil(online / 2));
+  return { votes, threshold };
+}
+
 function startRound(room) {
   if (room.players.length < MIN_PLAYERS) return { error: `Se necesitan al menos ${MIN_PLAYERS} jugadores` };
   room.round = {
@@ -133,22 +146,17 @@ function handleAction(room, playerId, action, payload) {
     }
 
     // Cualquiera puede votar terminar la partida antes de vaciar el mazo —
-    // con la mitad (redondeando para arriba) de los jugadores de la sala,
-    // el fin de la ronda se anuncia usando la mesa tal cual está en ese
-    // momento (mismo camino que "se acabó el mazo").
+    // con la mitad (redondeando para arriba) de los jugadores online, el fin
+    // de la ronda se anuncia usando la mesa tal cual está en ese momento
+    // (mismo camino que "se acabó el mazo"). Si quedaba una carta revelada
+    // sin repartir todavía (round.current), se deja tal cual: la vista de
+    // resultado la muestra aparte, marcada como no repartida, en vez de
+    // perderla en silencio.
     case "vote_end": {
       if (!round || room.phase !== "round") return { handled: false };
       if (!round.endVotes.includes(playerId)) round.endVotes.push(playerId);
-      const threshold = Math.ceil(room.players.length / 2);
-      if (round.endVotes.length >= threshold) room.phase = "result";
-      return { handled: true };
-    }
-
-    case "edit_descriptions": {
-      if (playerId !== room.hostId) return { handled: false };
-      const descriptions = payload?.descriptions;
-      if (!descriptions || typeof descriptions !== "object") return { handled: false };
-      room.config.descriptions = { ...room.config.descriptions, ...descriptions };
+      const { votes, threshold } = endVoteStatus(room);
+      if (votes.length >= threshold) room.phase = "result";
       return { handled: true };
     }
 
@@ -166,6 +174,7 @@ function getPublicRoundView(room) {
   const round = room.round;
   const pileCounts = {};
   room.players.forEach(p => { pileCounts[p.id] = (round.piles[p.id] || []).length; });
+  const { votes, threshold } = endVoteStatus(room);
   return {
     remaining: round.deck.length,
     current: round.current,
@@ -173,8 +182,8 @@ function getPublicRoundView(room) {
     order: getOrder(room),
     pileCounts,
     history: round.history,
-    endVotes: round.endVotes,
-    endVoteThreshold: Math.ceil(room.players.length / 2),
+    endVotes: votes,
+    endVoteThreshold: threshold,
   };
 }
 

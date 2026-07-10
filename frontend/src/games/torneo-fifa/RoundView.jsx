@@ -34,7 +34,7 @@ export function RoundView({ room, myPlayer, isHost, send }) {
   const confirmScore = (roundIdx, matchIdx) => {
     const ga = parseInt(scoreInput.goalsA, 10);
     const gb = parseInt(scoreInput.goalsB, 10);
-    if (Number.isNaN(ga) || Number.isNaN(gb) || ga === gb) return;
+    if (Number.isNaN(ga) || Number.isNaN(gb) || ga < 0 || gb < 0 || ga === gb) return;
     send({ type: "report_result", roundIdx, matchIdx, goalsA: ga, goalsB: gb });
     setEditingMatch(null);
   };

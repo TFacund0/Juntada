@@ -44,6 +44,7 @@ export function useMultiplayerSocket() {
       } else if (msg.type === "state") {
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
+        setError("");
       } else if (msg.type === "private_role") {
         setMyRole(msg);
         setWordReveal(null);

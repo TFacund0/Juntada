@@ -135,6 +135,13 @@ export function RoundView({ room, me, isHost, send }) {
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>
           <p style={S.bigReveal}>{round.remaining > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
         </div>
+        {round.current && (
+          <div style={{ ...S.card, textAlign: "center" }}>
+            <span style={S.label}>Quedó sin repartir</span>
+            <CardView card={round.current} size="small" />
+            <p style={{ ...S.muted, marginTop: 8 }}>Se votó terminar justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.</p>
+          </div>
+        )}
         <Ranking players={room.players} pileCounts={round.pileCounts} />
         {isHost ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>

@@ -138,6 +138,14 @@ function kickPlayer(ws, msg, info) {
   const room = rooms.get(info.roomCode);
   if (!room || room.hostId !== info.playerId) return;
   roomService.kickPlayer(room, msg.targetId);
+
+  // The kick can be exactly what a phase was waiting on (e.g. it was the
+  // last player who hadn't voted/readied) — re-check right away, the same
+  // way markOffline does for disconnects, so the round doesn't stall until
+  // some other action happens to trigger it.
+  const engine = getEngine(room.gameType);
+  engine?.maybeAdvance(room);
+
   broadcastToRoom(room, (ws2, i2) => {
     if (i2.playerId === msg.targetId) {
       sendTo(ws2, { type: "kicked" });
@@ -146,6 +154,8 @@ function kickPlayer(ws, msg, info) {
       sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
     }
   });
+  if (room.phase === "result") broadcastRoundReveal(room);
+  syncPhaseTimer(room);
 }
 
 function ping(ws) {

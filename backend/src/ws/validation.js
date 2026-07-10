@@ -10,6 +10,19 @@ const name = z.string().trim().min(1).max(40).optional();
 const roomCode = z.string().trim().min(1).max(8);
 const uuid = z.string().uuid();
 
+// update_config is generic across every game (see games/registry.js), so its
+// shape can't be pinned to one game's fields — but it must still reject
+// anything that isn't plain, boundable data. Without this, a value like an
+// object or a function would sail through as "valid config", get broadcast
+// to every player in the room, and crash whichever UI tries to render it
+// directly (e.g. a game rendering a config string straight into JSX).
+const configPrimitive = z.union([z.string().max(2000), z.number(), z.boolean()]);
+const configValue = z.union([
+  configPrimitive,
+  z.array(configPrimitive).max(50),
+  z.record(z.string(), configPrimitive),
+]);
+
 const SCHEMAS = {
   create_room: z.object({
     type: z.literal("create_room"),
@@ -29,7 +42,7 @@ const SCHEMAS = {
   }),
   update_config: z.object({
     type: z.literal("update_config"),
-    config: z.record(z.string(), z.any()),
+    config: z.record(z.string(), configValue).refine(cfg => Object.keys(cfg).length <= 50, "Config con demasiadas claves"),
   }),
   start_round: z.object({
     type: z.literal("start_round"),

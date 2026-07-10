@@ -248,6 +248,13 @@ export function LocalGame() {
       <div style={{ ...S.cardHighlight, textAlign: "center" }}>
         <p style={S.bigReveal}>{deck.length > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
       </div>
+      {current && (
+        <div style={{ ...S.card, textAlign: "center" }}>
+          <span style={S.label}>Quedó sin repartir</span>
+          <CardView card={current} size="small" />
+          <p style={{ ...S.muted, marginTop: 8 }}>Se votó terminar justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.</p>
+        </div>
+      )}
       <Ranking players={players} piles={piles} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
         <Btn variant="success" onClick={playAgain}>Jugar de nuevo</Btn>
