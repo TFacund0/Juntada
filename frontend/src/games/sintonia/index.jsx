@@ -1,17 +1,18 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { LocalGame } from "./LocalGame";
+import { ConfigPanel } from "./ConfigPanel";
+import { RoundView } from "./RoundView";
 
-// Wavelength-style game: one player secretly places a needle on a 0-100
-// dial between two opposite concepts (e.g. "Frío" ↔ "Caliente") and gives a
-// clue tied to that point (a movie, a person, anything); the rest try to
-// guess where the needle landed. Menu entry only for now — see ComingSoon.
+// Wavelength-style game: en cada ronda a alguien le toca ver un punto secreto
+// del dial entre dos conceptos opuestos (ej. "Frío" ↔ "Caliente"). En local se
+// da la pista en voz alta; en online se escribe una frase y el resto adivina
+// desde su propio dispositivo, con puntaje competitivo entre todos.
 export const sintoniaGame = {
   id: "sintonia",
   label: "Sintonía",
   icon: "📡",
-  description: "Uno mueve la flecha a un punto secreto entre dos conceptos opuestos y da una pista. Los demás intentan adivinar dónde quedó.",
-  minPlayers: 3,
-  comingSoon: true,
-  LocalGame: () => <ComingSoon label="Sintonía" />,
-  ConfigPanel: () => <ComingSoon label="Sintonía" />,
-  RoundView: () => <ComingSoon label="Sintonía" />,
+  description: "Uno ve un punto secreto entre dos conceptos opuestos y da una pista. Los demás intentan adivinar dónde quedó.",
+  minPlayers: 2,
+  LocalGame,
+  ConfigPanel,
+  RoundView,
 };

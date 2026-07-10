@@ -4,9 +4,9 @@ Plataforma de juegos para jugar en grupo — cada juego se puede jugar en **modo
 (un dispositivo que se pasa por turnos) o en **modo multijugador online** (cada uno
 desde su celular, conectados por código de sala).
 
-Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA**, 🎡 **Ruleta** y
-⭕ **Ta-Te-Ti**. El resto de los juegos del menú (Sintonía, Tutifrutti, Trivia,
-Limón Limón) están registrados pero marcados como "Próximamente" — ver
+Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA**, 🎡 **Ruleta**,
+⭕ **Ta-Te-Ti** y 📡 **Sintonía**. El resto de los juegos del menú (Tutifrutti,
+Trivia, Limón Limón) están registrados pero marcados como "Próximamente" — ver
 [Agregar un juego nuevo](#-agregar-un-juego-nuevo).
 
 ---
@@ -26,7 +26,8 @@ juntada/
 │   │   │   ├── registry.js        contrato + registro de motores de juego
 │   │   │   ├── impostor/          motor específico de El Impostor
 │   │   │   ├── torneo-fifa/       motor específico de Torneo FIFA
-│   │   │   └── tateti/            motor específico de Ta-Te-Ti
+│   │   │   ├── tateti/            motor específico de Ta-Te-Ti
+│   │   │   └── sintonia/          motor específico de Sintonía
 │   │   ├── ws/                    transporte WS, validación, rate limiting
 │   │   ├── state/                 Maps en memoria (rooms, clients, timers)
 │   │   └── http/                  rutas HTTP (health, estáticos del frontend)
@@ -40,14 +41,17 @@ juntada/
 │       │   ├── impostor/          LocalGame, ConfigPanel, RoundView
 │       │   ├── torneo-fifa/       LocalGame, ConfigPanel, RoundView
 │       │   ├── tateti/            LocalGame, ConfigPanel, RoundView
-│       │   └── ruleta/            LocalGame (juego local, sin backend)
+│       │   ├── ruleta/            LocalGame (juego local, sin backend)
+│       │   └── sintonia/          LocalGame, ConfigPanel, RoundView, Dial
 │       ├── features/multiplayer/  shell de sala/lobby genérico + hook de WS
 │       ├── components/            UI reutilizable (Btn, Avatar, Timer, ...)
 │       └── theme/                 estilos
 │
 └── packages/
-    └── impostor-data/           @juntada/impostor-data — categorías/palabras
-                                   compartidas entre backend y frontend (modo local)
+    ├── impostor-data/           @juntada/impostor-data — categorías/palabras
+    │                              compartidas entre backend y frontend (modo local)
+    └── sintonia-data/           @juntada/sintonia-data — pares de conceptos
+                                   opuestos, compartidos entre backend y frontend
 ```
 
 **Por qué está separado así:** el manejo de salas (crear, unirse, reconectar, expulsar,
@@ -129,7 +133,7 @@ juego, solo hay que tenerlas en cuenta.
 
 Mientras se construye, se puede registrar con `comingSoon: true` y componentes
 placeholder (`components/ComingSoon.jsx`) para que aparezca en el menú sin ser
-jugable todavía — así están hoy Sintonía, Tutifrutti y Trivia.
+jugable todavía — así están hoy Tutifrutti y Trivia.
 
 ---
 
@@ -176,6 +180,31 @@ marcador (victorias de cada uno + empates) se mantiene entre revanchas y quién
 arranca alterna en cada partida nueva. En modo online, tanto la revancha como
 el reinicio del marcador necesitan que **ambos** jugadores estén de acuerdo
 (cada uno confirma su lado antes de que el servidor actúe).
+
+---
+
+## 📡 Sintonía — cómo se juega
+
+Estilo *Wavelength*: en cada ronda alguien es el "psíquico" y ve un punto
+secreto en un dial entre dos conceptos opuestos (por ejemplo "Frío" ↔
+"Caliente"). Dice (o escribe) una pista relacionada a ese punto sin nombrarlo
+directamente, y el resto adivina por turnos moviendo la aguja. Al final se
+revela el objetivo con la marca de cada uno y los puntos ganados.
+
+Antes de cada ronda se puede elegir:
+
+- **Quién es el psíquico:** el sugerido por turno, cualquier otro jugador a
+  mano, o al azar.
+- **Qué par de conceptos usar:** uno al azar de la base incluida, o
+  escribirlo uno mismo.
+
+Puntaje: cada jugador que adivina anota según qué tan cerca cayó su marca del
+objetivo (4/3/2/0 puntos según la zona), y el psíquico se lleva la suma de lo
+que ganaron entre todos los que adivinaron — así una buena pista vale tanto
+como acertarla en persona.
+
+Se juega desde 2 jugadores en adelante, tanto local (un dispositivo que se pasa
+por turnos para adivinar) como online (`backend/src/games/sintonia/engine.js`).
 
 ---
 

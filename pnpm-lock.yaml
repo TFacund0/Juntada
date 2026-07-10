@@ -13,6 +13,9 @@ importers:
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
+      '@juntada/sintonia-data':
+        specifier: workspace:*
+        version: link:../packages/sintonia-data
       cors:
         specifier: ^2.8.6
         version: 2.8.6
@@ -34,6 +37,9 @@ importers:
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
+      '@juntada/sintonia-data':
+        specifier: workspace:*
+        version: link:../packages/sintonia-data
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -49,6 +55,8 @@ importers:
         version: 5.4.21
 
   packages/impostor-data: {}
+
+  packages/sintonia-data: {}
 
 packages:
 
