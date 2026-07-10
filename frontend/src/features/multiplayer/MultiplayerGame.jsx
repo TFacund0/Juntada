@@ -64,13 +64,13 @@ export function MultiplayerGame({ gameId }) {
       {connectionPhase === "create" && <div style={S.card}>
         <span style={S.label}>Nombre de la sala</span>
         <input style={S.input} placeholder="Ej: Noche de juegos" value={roomName} onChange={e => setRoomName(e.target.value)} />
-        {selectedGame && <p style={{ ...S.muted, marginTop: 10 }}>Vas a jugar {selectedGame.label}</p>}
-        <Btn onClick={createRoom} style={{ marginTop: 12 }}>Crear sala</Btn>
+        {selectedGame && <p style={{ ...S.muted, marginTop: 10 }}>{selectedGame.icon} Vas a jugar {selectedGame.label}</p>}
+        <Btn onClick={createRoom} style={{ marginTop: 12 }}>🚀 Crear sala</Btn>
       </div>}
       {connectionPhase === "join" && <div style={S.card}>
         <span style={S.label}>Código de sala</span>
         <input style={{ ...S.input, letterSpacing: "0.2em", textTransform: "uppercase", fontSize: 20, fontWeight: 700, textAlign: "center" }} placeholder="XXXXX" maxLength={5} value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
-        <Btn onClick={joinRoom} style={{ marginTop: 12 }}>Unirse</Btn>
+        <Btn onClick={joinRoom} style={{ marginTop: 12 }}>Unirse →</Btn>
       </div>}
     </div>
   );

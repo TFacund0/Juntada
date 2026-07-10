@@ -38,14 +38,21 @@ function createRoom(ws, { playerName, roomName, gameType = "impostor" }) {
   return { room, playerId };
 }
 
+function isNameTaken(room, name) {
+  return room.players.some(p => p.name.toLowerCase() === name.toLowerCase());
+}
+
 function joinRoom(ws, { code, playerName }) {
   const room = rooms.get(code?.toUpperCase());
   if (!room) return { error: "Sala no encontrada" };
   if (room.phase !== "lobby" && room.phase !== "round") return { error: "La partida ya comenzó" };
   if (room.players.length >= MAX_PLAYERS_PER_ROOM) return { error: "La sala está llena" };
 
+  const name = playerName || "Jugador";
+  if (isNameTaken(room, name)) return { error: "Ese nombre ya está en uso en esta sala" };
+
   const playerId = uuidv4();
-  room.players.push({ id: playerId, name: playerName || "Jugador", ready: false, online: true });
+  room.players.push({ id: playerId, name, ready: false, online: true });
   clients.set(ws, { roomCode: room.code, playerId });
   return { room, playerId };
 }

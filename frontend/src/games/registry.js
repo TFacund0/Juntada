@@ -6,7 +6,7 @@
 //
 // Each entry:
 //   id            string, matches backend room.gameType
-//   label, icon, description   shown on the game picker
+//   label, description   shown on the game picker
 //   minPlayers    lobby "start round" is disabled below this
 //   LocalGame     component for the single-device pass-and-play mode
 //   ConfigPanel   component rendered in the multiplayer lobby for the host
@@ -21,6 +21,8 @@ import { sintoniaGame } from "./sintonia";
 import { tutifrutiGame } from "./tutifruti";
 import { tatetiGame } from "./tateti";
 import { triviaGame } from "./trivia";
+import { ruletaGame } from "./ruleta";
+import { torneoFifaGame } from "./torneo-fifa";
 
 export const GAMES = {
   [impostorGame.id]: impostorGame,
@@ -28,6 +30,8 @@ export const GAMES = {
   [tutifrutiGame.id]: tutifrutiGame,
   [tatetiGame.id]: tatetiGame,
   [triviaGame.id]: triviaGame,
+  [ruletaGame.id]: ruletaGame,
+  [torneoFifaGame.id]: torneoFifaGame,
 };
 
 export const GAME_LIST = Object.values(GAMES);

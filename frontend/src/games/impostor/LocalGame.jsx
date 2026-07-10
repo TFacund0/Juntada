@@ -16,6 +16,7 @@ export function LocalGame() {
   const [phase, setPhase] = useState("setup"); // setup|reveal|discussion|vote|result
   const [players, setPlayers] = useState([{ id: 1, name: "Jugador 1" }, { id: 2, name: "Jugador 2" }, { id: 3, name: "Jugador 3" }, { id: 4, name: "Jugador 4" }]);
   const [newName, setNewName] = useState("");
+  const [nameError, setNameError] = useState("");
   const [config, setConfig] = useState({ numImpostors: 1, hintsEnabled: true, clueTime: 90, enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}) });
   const [round, setRound] = useState(null);
   const [revealIdx, setRevealIdx] = useState(0);
@@ -29,6 +30,26 @@ export function LocalGame() {
   const [tab, setTab] = useState("players"); // players|config
 
   const activeCats = Object.keys(config.enabledCategories).filter(k => config.enabledCategories[k]);
+
+  const isDuplicateName = (name, excludeId) => {
+    const norm = name.trim().toLowerCase();
+    return players.some(p => p.id !== excludeId && p.name.trim().toLowerCase() === norm);
+  };
+
+  const renamePlayer = (id, name) => {
+    if (name.trim() && isDuplicateName(name, id)) { setNameError("Ya hay un jugador con ese nombre"); return; }
+    setNameError("");
+    setPlayers(prev => prev.map(x => x.id === id ? { ...x, name } : x));
+  };
+
+  const addPlayer = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    if (isDuplicateName(trimmed, null)) { setNameError("Ya hay un jugador con ese nombre"); return; }
+    setNameError("");
+    setPlayers(p => [...p, { id: Date.now(), name: trimmed }]);
+    setNewName("");
+  };
 
   const startRound = () => {
     const catKey = activeCats[Math.floor(Math.random() * activeCats.length)];
@@ -99,14 +120,15 @@ export function LocalGame() {
           {players.map(p => (
             <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
               <Avatar name={p.name} size={32} />
-              <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => setPlayers(prev => prev.map(x => x.id === p.id ? { ...x, name: e.target.value } : x))} />
+              <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
               <button onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))} style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}>×</button>
             </div>
           ))}
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <input style={{ ...S.input, flex: 1 }} placeholder="Nombre" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newName.trim()) { setPlayers(p => [...p, { id: Date.now(), name: newName.trim() }]); setNewName(""); } }} />
-            <Btn variant="secondary" onClick={() => { if (newName.trim()) { setPlayers(p => [...p, { id: Date.now(), name: newName.trim() }]); setNewName(""); } }} style={{ width: "auto", padding: "11px 18px" }}>Agregar</Btn>
+            <input style={{ ...S.input, flex: 1 }} placeholder="Nombre" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addPlayer(); }} />
+            <Btn variant="secondary" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>Agregar</Btn>
           </div>
+          {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
         </div>
       </>}
 
@@ -128,7 +150,7 @@ export function LocalGame() {
           <span style={S.label}>Categorías</span>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {Object.entries(CATEGORIES).map(([k, cat]) => (
-              <Toggle key={k} label={cat.label} value={config.enabledCategories[k]} onChange={v => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: v } }))} />
+              <Toggle key={k} label={`${cat.icon} ${cat.label}`} value={config.enabledCategories[k]} onChange={v => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: v } }))} />
             ))}
           </div>
         </div>

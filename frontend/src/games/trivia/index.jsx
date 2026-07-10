@@ -6,6 +6,7 @@ import { ComingSoon } from "../../components/ComingSoon";
 export const triviaGame = {
   id: "trivia",
   label: "Trivia",
+  icon: "🧠",
   description: "Preguntas de opción múltiple para todos a la vez. Sumás más puntos cuanto más rápido y correcto respondas.",
   minPlayers: 2,
   comingSoon: true,
