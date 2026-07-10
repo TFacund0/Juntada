@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: juntada
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install && pnpm build:frontend
+    startCommand: pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.11.0

@@ -1,0 +1,171 @@
+import { useState, useEffect } from "react";
+import { S } from "../../theme/styles";
+import { Btn } from "../../components/Btn";
+import { Avatar } from "../../components/Avatar";
+import { Timer } from "../../components/Timer";
+
+// Covers this game's in-progress phases (round/voting/result) inside a
+// multiplayer room. The generic shell (MultiplayerGame.jsx) only knows to
+// render this while room.phase is one of those three — everything about what
+// those phases *mean* for Impostor lives here.
+export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send }) {
+  const [wordVisible, setWordVisible] = useState(false);
+  const [myVote, setMyVote] = useState(null);
+
+  useEffect(() => {
+    setWordVisible(false);
+    setMyVote(null);
+  }, [myRole]);
+
+  if (room.phase === "round") {
+    const myReadyState = myPlayer?.ready;
+    return (
+      <div>
+        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+          <p style={{ fontSize: 11, letterSpacing: "0.1em", color: "#7F77DD", fontWeight: 700 }}>CATEGORÍA</p>
+          <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+            {room.round?.categoryIcon} {room.round?.categoryLabel}
+          </p>
+        </div>
+
+        {room.round?.timerEnd && <Timer timerEnd={room.round.timerEnd} total={room.config.clueTime} />}
+
+        <div style={{ ...S.card, textAlign: "center", cursor: myReadyState ? "default" : "pointer", minHeight: 140, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}
+          onClick={() => !myReadyState && setWordVisible(v => !v)}>
+          {!myRole ? (
+            <p style={{ color: "#6b6490" }}>Cargando tu rol...</p>
+          ) : !wordVisible ? (
+            <>
+              <p style={{ fontSize: 32 }}>👁️</p>
+              <p style={{ color: "#6b6490", fontSize: 14 }}>Tocá para ver tu palabra</p>
+            </>
+          ) : myRole.isImpostor ? (
+            <>
+              <p style={{ fontSize: 40 }}>🕵️</p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#F09595", margin: "8px 0" }}>¡ERES EL IMPOSTOR!</p>
+              {myRole.hint && <p style={{ fontSize: 13, color: "#9089c0" }}>{myRole.hint}</p>}
+              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 6 }}>Tocá para ocultar</p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Tu palabra secreta</p>
+              <p style={S.bigReveal}>{myRole.word}</p>
+              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 6 }}>Tocá para ocultar</p>
+            </>
+          )}
+        </div>
+
+        <div style={{ ...S.card, marginTop: 16 }}>
+          <span style={S.label}>Estado de jugadores</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {room.players.map(p => (
+              <div key={p.id} style={S.pill(p.ready)}>
+                {p.ready ? "✓" : "⏳"} {p.name}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {!myReadyState && <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>✓ Ya vi mi palabra, listo</Btn>}
+        {myReadyState && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#5DCAA5" }}>✓ Marcado como listo — esperando a los demás...</p></div>}
+      </div>
+    );
+  }
+
+  if (room.phase === "voting") {
+    const totalVoted = room.players.filter(p => p.hasVoted).length;
+    return (
+      <div>
+        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
+          <p style={{ fontSize: 12, color: "#7F77DD" }}>{totalVoted}/{room.players.length} votos emitidos</p>
+        </div>
+
+        {!myVote ? (
+          <>
+            <p style={{ fontSize: 14, color: "#9089c0", marginBottom: 12, textAlign: "center" }}>Votá a quien sospechás</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {room.players.filter(p => p.id !== me.playerId).map(p => (
+                <button key={p.id} onClick={() => { setMyVote(p.id); send({ type: "vote", suspectId: p.id }); }}
+                  style={{ ...S.btn("secondary"), display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", textAlign: "left", borderRadius: 12 }}>
+                  <Avatar name={p.name} size={36} />
+                  <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>{p.name}</span>
+                  <span style={{ fontSize: 18 }}>→</span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ ...S.card, textAlign: "center" }}>
+            <p style={{ fontSize: 15, color: "#9089c0" }}>✓ Votaste. Esperando a los demás...</p>
+            <p style={{ fontSize: 13, color: "#5a5280", marginTop: 6 }}>
+              {totalVoted}/{room.players.length} votos emitidos
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (room.phase === "result") {
+    const round = room.round;
+    const lastH = room.roundHistory?.[room.roundHistory.length - 1];
+    const word = wordReveal?.word || lastH?.word;
+    const catLabel = wordReveal?.categoryLabel || lastH?.categoryLabel;
+    const eliminated = room.players.find(p => p.id === round?.eliminated);
+    const wasImpostor = round?.wasImpostor ?? lastH?.wasImpostor;
+    const impostors = round ? room.players.filter(p => round.impostors?.includes(p.id)) : [];
+    const tally = round?.votes || lastH?.tally || {};
+
+    return (
+      <div>
+        <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+          <div style={{ fontSize: 56 }}>{wasImpostor ? "🎉" : "😈"}</div>
+          <p style={{ fontSize: 22, fontWeight: 800, color: wasImpostor ? "#5DCAA5" : "#F09595", marginTop: 8 }}>
+            {wasImpostor ? "¡Impostor atrapado!" : "¡El impostor escapó!"}
+          </p>
+        </div>
+
+        {word && <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+          <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
+          <p style={{ fontSize: 30, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{word}</p>
+          <p style={{ fontSize: 13, color: "#7F77DD" }}>{catLabel}</p>
+        </div>}
+
+        {impostors.length > 0 && <div style={S.card}>
+          <span style={S.label}>Impostores</span>
+          {impostors.map(p => <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}><Avatar name={p.name} size={32} /><span style={{ fontWeight: 700 }}>{p.name}</span></div>)}
+        </div>}
+
+        {eliminated && <div style={S.card}>
+          <span style={S.label}>Eliminado</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Avatar name={eliminated.name} size={36} />
+            <span style={{ fontWeight: 700 }}>{eliminated.name}</span>
+            <span style={S.pill(wasImpostor)}>{wasImpostor ? "✓ Era el impostor" : "✗ Era inocente"}</span>
+          </div>
+        </div>}
+
+        <div style={S.card}>
+          <span style={S.label}>Votos</span>
+          {room.players.map(p => {
+            const pid = p.id;
+            const count = Object.values(tally).filter(v => v === pid).length;
+            const total = room.players.length - 1 || 1;
+            const isImp = round?.impostors?.includes(pid) || lastH?.impostors?.includes(pid);
+            return <div key={pid} style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ fontSize: 13 }}>{p.name}</span><span style={S.muted}>{count} votos</span></div>
+              <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}><div style={{ height: "100%", borderRadius: 3, width: `${Math.round((count / total) * 100)}%`, background: isImp ? "#E24B4A" : "#534AB7", transition: "width 0.6s" }} /></div>
+            </div>;
+          })}
+        </div>
+
+        {isHost && <Btn variant="success" onClick={() => send({ type: "start_round" })}>▶️ Nueva ronda</Btn>}
+        {isHost && <Btn variant="secondary" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>🏠 Volver al lobby</Btn>}
+        {!isHost && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#9089c0", fontSize: 14 }}>⏳ Esperando que el anfitrión inicie otra ronda...</p></div>}
+      </div>
+    );
+  }
+
+  return null;
+}
