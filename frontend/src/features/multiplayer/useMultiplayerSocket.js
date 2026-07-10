@@ -51,6 +51,12 @@ export function useMultiplayerSocket() {
         setWordReveal(msg);
       } else if (msg.type === "error") {
         setError(msg.message);
+        // Failed before ever being part of a room (e.g. wrong room code) —
+        // never leave the UI stuck showing a stale/nonexistent room.
+        if (!meRef.current) {
+          setRoom(null);
+          setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
+        }
       } else if (msg.type === "kicked") {
         setConnectionPhase("menu");
         setMe(null); setRoom(null); setMyRole(null);

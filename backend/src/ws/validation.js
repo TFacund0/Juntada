@@ -77,6 +77,16 @@ const SCHEMAS = {
   back_to_lobby: z.object({
     type: z.literal("back_to_lobby"),
   }),
+  reveal: z.object({
+    type: z.literal("reveal"),
+  }),
+  assign: z.object({
+    type: z.literal("assign"),
+    targetId: uuid,
+  }),
+  vote_end: z.object({
+    type: z.literal("vote_end"),
+  }),
   kick_player: z.object({
     type: z.literal("kick_player"),
     targetId: uuid,

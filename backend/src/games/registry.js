@@ -31,12 +31,14 @@ const impostorEngine = require("./impostor/engine");
 const torneoFifaEngine = require("./torneo-fifa/engine");
 const tatetiEngine = require("./tateti/engine");
 const sintoniaEngine = require("./sintonia/engine");
+const limonLimonEngine = require("./limon-limon/engine");
 
 const GAMES = {
   [impostorEngine.id]: impostorEngine,
   [torneoFifaEngine.id]: torneoFifaEngine,
   [tatetiEngine.id]: tatetiEngine,
   [sintoniaEngine.id]: sintoniaEngine,
+  [limonLimonEngine.id]: limonLimonEngine,
 };
 
 function getEngine(gameType) {
