@@ -48,6 +48,21 @@ const SCHEMAS = {
   skip_word: z.object({
     type: z.literal("skip_word"),
   }),
+  report_result: z.object({
+    type: z.literal("report_result"),
+    roundIdx: z.number().int().min(0),
+    matchIdx: z.number().int().min(0),
+    goalsA: z.union([z.number(), z.string()]).optional(),
+    goalsB: z.union([z.number(), z.string()]).optional(),
+    winnerSide: z.enum(["a", "b"]).optional(),
+  }),
+  mark: z.object({
+    type: z.literal("mark"),
+    index: z.number().int().min(0).max(8),
+  }),
+  reset_score_vote: z.object({
+    type: z.literal("reset_score_vote"),
+  }),
   back_to_lobby: z.object({
     type: z.literal("back_to_lobby"),
   }),
