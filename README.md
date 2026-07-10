@@ -4,9 +4,10 @@ Plataforma de juegos para jugar en grupo — cada juego se puede jugar en **modo
 (un dispositivo que se pasa por turnos) o en **modo multijugador online** (cada uno
 desde su celular, conectados por código de sala).
 
-Actualmente jugable: 🕵️ **El Impostor**. El resto de los juegos del menú
-(Sintonía, Tutifrutti, Ta-Te-Ti, Trivia) están registrados pero marcados como
-"Próximamente" — ver [Agregar un juego nuevo](#-agregar-un-juego-nuevo).
+Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA** y 🎡 **Ruleta**. El
+resto de los juegos del menú (Sintonía, Tutifrutti, Ta-Te-Ti, Trivia, Limón
+Limón) están registrados pero marcados como "Próximamente" — ver
+[Agregar un juego nuevo](#-agregar-un-juego-nuevo).
 
 ---
 
@@ -139,6 +140,21 @@ jugable todavía — así están hoy Sintonía, Tutifrutti, Ta-Te-Ti y Trivia.
 Configuración disponible: cantidad de impostores (1-3), pistas al impostor
 on/off, tiempo límite para dar pistas (0 = sin límite), y qué categorías de
 palabras están habilitadas.
+
+---
+
+## 🎡 Ruleta — cómo se juega
+
+Juego local (`localOnly: true`, sin backend): se cargan entradas con un nombre
+y, opcionalmente, una descripción más larga (por ejemplo el castigo o la
+prenda asociada), y se gira una ruleta real (SVG animado con desaceleración).
+
+Dos modos:
+
+- **Repetir:** se mantienen todas las entradas y se puede girar las veces que
+  se quiera. Hay un panel colapsable para ver cuántas veces salió cada opción.
+- **Eliminación:** la entrada que sale se saca de la ruleta; se muestra el
+  listado con el orden en que fueron eliminadas.
 
 ---
 
