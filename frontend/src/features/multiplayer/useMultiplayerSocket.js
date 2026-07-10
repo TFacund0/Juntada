@@ -10,7 +10,10 @@ const WS_URL = import.meta.env.DEV
 // Encapsulates the WebSocket connection lifecycle (connect, reconnect/rejoin,
 // message dispatch) so the UI component only deals with plain state.
 export function useMultiplayerSocket() {
-  const [connectionPhase, setConnectionPhase] = useState("menu"); // menu|create|join|lobby|round|voting|result
+  // menu|create|join, then mirrors room.phase directly ("lobby" and whatever
+  // in-game phases the active game defines — this hook doesn't know or care
+  // what those are).
+  const [connectionPhase, setConnectionPhase] = useState("menu");
   const [me, setMe] = useState(null); // { playerId, roomCode }
   const [room, setRoom] = useState(null);
   const [myRole, setMyRole] = useState(null); // { isImpostor, word, hint }
@@ -36,11 +39,11 @@ export function useMultiplayerSocket() {
       if (msg.type === "joined") {
         setMe({ playerId: msg.playerId, roomCode: msg.roomCode });
         setRoom(msg.room);
-        setConnectionPhase(phaseFor(msg.room.phase, "lobby"));
+        setConnectionPhase(msg.room.phase);
         setError("");
       } else if (msg.type === "state") {
         setRoom(msg.room);
-        setConnectionPhase(prev => phaseFor(msg.room.phase, prev));
+        setConnectionPhase(msg.room.phase);
       } else if (msg.type === "private_role") {
         setMyRole(msg);
         setWordReveal(null);
@@ -78,12 +81,4 @@ export function useMultiplayerSocket() {
     me, room, myRole, wordReveal, error, setError,
     connect, send,
   };
-}
-
-function phaseFor(roomPhase, fallback) {
-  if (roomPhase === "lobby") return "lobby";
-  if (roomPhase === "round") return "round";
-  if (roomPhase === "voting") return "voting";
-  if (roomPhase === "result") return "result";
-  return fallback;
 }

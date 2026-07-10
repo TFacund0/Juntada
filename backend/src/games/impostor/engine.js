@@ -3,6 +3,10 @@
 // Owns everything specific to "who is the impostor": categories, word
 // assignment, clues, voting and the impostor reveal. Knows nothing about
 // WebSocket transport or generic room/player bookkeeping.
+//
+// Phases: round (see word, optionally write a clue) -> discussion (think,
+// no new info; skippable early if everyone's ready) -> voting -> result.
+// discussionTime = 0 skips the discussion phase entirely.
 
 const { CATEGORIES } = require("@juntada/impostor-data");
 const { shuffle } = require("../../utils/shuffle");
@@ -15,7 +19,9 @@ function createConfig() {
     enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
     numImpostors: 1,
     hintsEnabled: true,
-    clueTime: 90, // seconds, 0 = unlimited
+    clueTime: 90,       // seconds, 0 = unlimited
+    writtenClues: false, // require typing the clue instead of just saying it out loud
+    discussionTime: 30, // seconds, 0 = skip the discussion phase entirely
   };
 }
 
@@ -35,6 +41,11 @@ function pickWord(room, catKey, excludeWord = null) {
   const word = available[Math.floor(Math.random() * available.length)];
   room.usedWords[catKey] = [...used, word];
   return word;
+}
+
+function stopRoomTimer(room) {
+  const t = timers.get(room.code);
+  if (t) { clearTimeout(t); timers.delete(room.code); }
 }
 
 function startRound(room) {
@@ -61,12 +72,13 @@ function startRound(room) {
     categoryLabel: cat.label,
     categoryIcon: cat.icon,
     impostors,
-    clues: {},      // playerId -> clueText
-    votes: {},      // voterId -> suspectId
-    skipVotes: [],  // playerIds that asked for a different word this round
+    clues: {},        // playerId -> clueText
+    votes: {},        // voterId -> suspectId
+    skipVotes: [],     // playerIds that asked for a different word this round
     eliminated: null,
     revealed: false,
     timerEnd,
+    discussionEnd: null,
   };
   room.phase = "round";
   room.players.forEach(p => { p.ready = false; });
@@ -118,16 +130,35 @@ function tallyVotes(room) {
   });
 }
 
-// Re-checks whether the round/voting phase can advance now that a player's
-// ready/vote status or online status changed.
+function enterVoting(room) {
+  room.phase = "voting";
+  room.round.discussionEnd = null;
+}
+
+function enterDiscussionOrVoting(room) {
+  stopRoomTimer(room); // clear the round's clue-timer, we're leaving that phase
+  const discussionTime = Number.isFinite(room.config.discussionTime) ? room.config.discussionTime : 0;
+  if (discussionTime > 0) {
+    room.phase = "discussion";
+    room.round.discussionEnd = Date.now() + discussionTime * 1000;
+    room.players.forEach(p => { p.ready = false; });
+  } else {
+    enterVoting(room);
+  }
+}
+
+// Re-checks whether the round/discussion/voting phase can advance now that a
+// player's ready/vote status or online status changed.
 function maybeAdvance(room) {
   if (!room?.round) return;
   const online = room.players.filter(p => p.online);
   if (online.length === 0) return;
+
   if (room.phase === "round" && online.every(p => p.ready)) {
-    room.phase = "voting";
-    const t = timers.get(room.code);
-    if (t) { clearTimeout(t); timers.delete(room.code); }
+    enterDiscussionOrVoting(room);
+  } else if (room.phase === "discussion" && online.every(p => p.ready)) {
+    stopRoomTimer(room);
+    enterVoting(room);
   } else if (room.phase === "voting") {
     const votedCount = online.filter(p => room.round.votes[p.id] != null).length;
     if (votedCount >= online.length) {
@@ -136,15 +167,27 @@ function maybeAdvance(room) {
   }
 }
 
+// Called by the transport layer when a scheduled phase timer fires: acts as
+// if every online player just pressed "ready", then lets maybeAdvance decide
+// where that leads (discussion, voting, or nothing yet).
+function forceReadyAndAdvance(room) {
+  room.players.forEach(p => { if (p.online) p.ready = true; });
+  maybeAdvance(room);
+}
+
 function handleAction(room, playerId, action, payload) {
   if (!room.round) return { handled: false };
   switch (action) {
     case "submit_clue":
       if (room.phase !== "round") return { handled: false };
-      room.round.clues[playerId] = payload.clue || "";
+      room.round.clues[playerId] = (payload.clue || "").trim();
       return { handled: true };
 
     case "player_ready": {
+      if (room.phase !== "round" && room.phase !== "discussion") return { handled: false };
+      if (room.phase === "round" && room.config.writtenClues && !room.round.clues[playerId]) {
+        return { handled: false };
+      }
       const p = room.players.find(p => p.id === playerId);
       if (p) p.ready = true;
       maybeAdvance(room);
@@ -182,6 +225,7 @@ function getPublicRoundView(room) {
     categoryIcon: room.round.categoryIcon,
     impostorCount: room.round.impostors.length,
     timerEnd: room.round.timerEnd,
+    discussionEnd: room.round.discussionEnd,
     clues: room.round.clues,
     votes: room.round.votes,
     eliminated: room.round.eliminated,
@@ -214,14 +258,24 @@ function getRevealMessage(room) {
   return { type: "word_reveal", word: room.round.word, categoryLabel: room.round.categoryLabel };
 }
 
+// The phase-relevant timestamp the transport layer should schedule an
+// auto-advance for (see forceReadyAndAdvance), or null if none applies.
+function getPhaseTimerEnd(room) {
+  if (room.phase === "round") return room.round?.timerEnd ?? null;
+  if (room.phase === "discussion") return room.round?.discussionEnd ?? null;
+  return null;
+}
+
 module.exports = {
   id: "impostor",
   minPlayers: MIN_PLAYERS,
   createConfig,
   startRound,
   maybeAdvance,
+  forceReadyAndAdvance,
   handleAction,
   getPublicRoundView,
   getPrivateView,
   getRevealMessage,
+  getPhaseTimerEnd,
 };

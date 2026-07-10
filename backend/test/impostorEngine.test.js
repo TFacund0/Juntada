@@ -18,6 +18,10 @@ function makeRoom(overrides = {}) {
   };
 }
 
+function readyAll(room) {
+  room.players.forEach(p => { p.ready = true; });
+}
+
 test("startRound assigns a word, a category and the right number of impostors", () => {
   const room = makeRoom();
   const res = engine.startRound(room);
@@ -73,7 +77,7 @@ test("startRound doesn't crash when enabledCategories is malformed", () => {
   assert.ok(res.error);
 });
 
-test("maybeAdvance moves round -> voting once every online player is ready", () => {
+test("maybeAdvance moves round -> discussion once every online player is ready", () => {
   const room = makeRoom();
   engine.startRound(room);
 
@@ -83,6 +87,28 @@ test("maybeAdvance moves round -> voting once every online player is ready", () 
   assert.equal(room.phase, "round", "should still wait for the third player");
 
   room.players[2].ready = true;
+  engine.maybeAdvance(room);
+  assert.equal(room.phase, "discussion");
+  assert.ok(room.round.discussionEnd, "a discussion timer should be scheduled");
+  assert.ok(room.players.every(p => p.ready === false), "readiness resets for the discussion phase's own consensus");
+});
+
+test("maybeAdvance moves discussion -> voting once every online player is ready again", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  readyAll(room);
+  engine.maybeAdvance(room); // -> discussion
+
+  readyAll(room);
+  engine.maybeAdvance(room);
+  assert.equal(room.phase, "voting");
+  assert.equal(room.round.discussionEnd, null);
+});
+
+test("discussionTime = 0 skips the discussion phase entirely", () => {
+  const room = makeRoom({ config: { ...engine.createConfig(), discussionTime: 0 } });
+  engine.startRound(room);
+  readyAll(room);
   engine.maybeAdvance(room);
   assert.equal(room.phase, "voting");
 });
@@ -96,7 +122,27 @@ test("maybeAdvance ignores offline players when checking readiness", () => {
   room.players[1].ready = true;
   engine.maybeAdvance(room);
 
-  assert.equal(room.phase, "voting");
+  assert.equal(room.phase, "discussion");
+});
+
+test("writtenClues requires a non-empty clue before player_ready is accepted", () => {
+  const room = makeRoom({ config: { ...engine.createConfig(), writtenClues: true } });
+  engine.startRound(room);
+
+  const withoutClue = engine.handleAction(room, "p1", "player_ready", {});
+  assert.equal(withoutClue.handled, false);
+
+  engine.handleAction(room, "p1", "submit_clue", { clue: "algo relacionado" });
+  const withClue = engine.handleAction(room, "p1", "player_ready", {});
+  assert.equal(withClue.handled, true);
+});
+
+test("submit_clue is stored and exposed on the public round view for review during voting", () => {
+  const room = makeRoom({ config: { ...engine.createConfig(), writtenClues: true } });
+  engine.startRound(room);
+  engine.handleAction(room, "p1", "submit_clue", { clue: "  playa  " });
+  assert.equal(room.round.clues.p1, "playa");
+  assert.equal(engine.getPublicRoundView(room).clues.p1, "playa");
 });
 
 test("voting tallies votes and eliminates the most-voted player", () => {
@@ -184,6 +230,25 @@ test("skip_word only counts online players toward the threshold", () => {
 
   const res2 = engine.handleAction(room, "p2", "skip_word", {});
   assert.equal(res2.rerolled, true);
+});
+
+test("getPhaseTimerEnd tracks the clue timer during round and the discussion timer during discussion", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  assert.equal(engine.getPhaseTimerEnd(room), room.round.timerEnd);
+
+  readyAll(room);
+  engine.maybeAdvance(room); // -> discussion
+  assert.equal(engine.getPhaseTimerEnd(room), room.round.discussionEnd);
+});
+
+test("forceReadyAndAdvance acts as if every online player pressed ready", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  room.players[2].online = false;
+
+  engine.forceReadyAndAdvance(room);
+  assert.equal(room.phase, "discussion");
 });
 
 test("getPublicRoundView hides the word but reveals it after the round resolves", () => {

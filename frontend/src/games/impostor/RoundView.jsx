@@ -4,13 +4,43 @@ import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
 
-// Covers this game's in-progress phases (round/voting/result) inside a
-// multiplayer room. The generic shell (MultiplayerGame.jsx) only knows to
-// render this while room.phase is one of those three — everything about what
-// those phases *mean* for Impostor lives here.
+function PlayerReadyPills({ players }) {
+  return (
+    <div style={{ ...S.card, marginTop: 16 }}>
+      <span style={S.label}>Estado de jugadores</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {players.map(p => (
+          <div key={p.id} style={S.pill(p.ready)}>{p.name}{p.ready ? " · listo" : ""}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CluesReview({ clues, players }) {
+  const entries = Object.entries(clues || {}).filter(([, clue]) => clue);
+  if (entries.length === 0) return null;
+  return (
+    <div style={S.card}>
+      <span style={S.label}>Pistas</span>
+      {entries.map(([playerId, clue]) => {
+        const p = players.find(x => x.id === playerId);
+        if (!p) return null;
+        return <p key={playerId} style={{ fontSize: 14, margin: "4px 0", color: "#b8b0d4" }}><strong style={{ color: "#AFA9EC" }}>{p.name}:</strong> {clue}</p>;
+      })}
+    </div>
+  );
+}
+
+// Covers this game's in-progress phases (round/discussion/voting/result)
+// inside a multiplayer room. The generic shell (MultiplayerGame.jsx) only
+// knows to render this while room.phase is one of those — everything about
+// what those phases *mean* for Impostor lives here.
 export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send }) {
   const [wordVisible, setWordVisible] = useState(false);
   const [skipRequested, setSkipRequested] = useState(false);
+  const [clueText, setClueText] = useState("");
+  const [clueSubmitted, setClueSubmitted] = useState(false);
   const [selectedSuspect, setSelectedSuspect] = useState(null);
   const [voteConfirmed, setVoteConfirmed] = useState(false);
 
@@ -19,12 +49,23 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   useEffect(() => {
     setWordVisible(false);
     setSkipRequested(false);
+    setClueText("");
+    setClueSubmitted(false);
     setSelectedSuspect(null);
     setVoteConfirmed(false);
   }, [myRole]);
 
   if (room.phase === "round") {
     const myReadyState = myPlayer?.ready;
+    const requiresWrittenClue = room.config.writtenClues;
+    const canMarkReady = !requiresWrittenClue || clueSubmitted;
+
+    const submitClue = () => {
+      if (!clueText.trim()) return;
+      send({ type: "submit_clue", clue: clueText.trim() });
+      setClueSubmitted(true);
+    };
+
     return (
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
@@ -69,17 +110,45 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           )}
         </div>}
 
-        <div style={{ ...S.card, marginTop: 16 }}>
-          <span style={S.label}>Estado de jugadores</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {room.players.map(p => (
-              <div key={p.id} style={S.pill(p.ready)}>{p.name}{p.ready ? " · listo" : ""}</div>
-            ))}
+        {requiresWrittenClue && !myReadyState && (
+          <div style={S.card}>
+            <span style={S.label}>Tu pista</span>
+            {!clueSubmitted ? (
+              <>
+                <input style={S.input} placeholder="Escribí tu pista..." value={clueText} onChange={e => setClueText(e.target.value)} />
+                <Btn variant="secondary" disabled={!clueText.trim()} onClick={submitClue} style={{ marginTop: 8 }}>Enviar pista</Btn>
+              </>
+            ) : (
+              <p style={{ color: "#5DCAA5", fontSize: 14 }}>Pista enviada: "{clueText}"</p>
+            )}
           </div>
+        )}
+
+        <PlayerReadyPills players={room.players} />
+
+        {!myReadyState && <Btn variant="success" disabled={!canMarkReady} onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>Ya di mi pista, listo</Btn>}
+        {myReadyState && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#5DCAA5" }}>Marcado como listo — esperando a los demás</p></div>}
+      </div>
+    );
+  }
+
+  if (room.phase === "discussion") {
+    const myReadyState = myPlayer?.ready;
+    return (
+      <div>
+        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: "#9089c0" }}>Momento de pensar</p>
+          <p style={{ fontSize: 12, color: "#7F77DD" }}>Analicen las pistas antes de votar</p>
         </div>
 
-        {!myReadyState && <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>Ya vi mi palabra, listo</Btn>}
-        {myReadyState && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#5DCAA5" }}>Marcado como listo — esperando a los demás</p></div>}
+        {room.round?.discussionEnd && <Timer timerEnd={room.round.discussionEnd} total={room.config.discussionTime} />}
+
+        <CluesReview clues={room.round?.clues} players={room.players} />
+
+        <PlayerReadyPills players={room.players} />
+
+        {!myReadyState && <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>Listo para votar</Btn>}
+        {myReadyState && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#5DCAA5" }}>Listo — esperando a los demás para pasar a la votación</p></div>}
       </div>
     );
   }
@@ -100,6 +169,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
           <p style={{ fontSize: 12, color: "#7F77DD" }}>{totalVoted}/{room.players.length} confirmaron su voto</p>
         </div>
+
+        <CluesReview clues={room.round?.clues} players={room.players} />
 
         {!voteConfirmed ? (
           <>

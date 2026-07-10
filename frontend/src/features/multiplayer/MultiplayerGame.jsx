@@ -107,8 +107,9 @@ export function MultiplayerGame({ gameId }) {
     </div>
   );
 
-  // ── EN PARTIDA (ronda/votación/resultado): delega al juego activo ──
-  if (["round", "voting", "result"].includes(connectionPhase) && room && activeGame) {
+  // ── EN PARTIDA: cualquier fase que no sea menú/lobby es propia del juego,
+  // así que se delega entera — este shell no necesita conocer sus nombres.
+  if (!["menu", "create", "join", "lobby"].includes(connectionPhase) && room && activeGame) {
     return <activeGame.RoundView room={room} me={me} myPlayer={myPlayer} myRole={myRole} wordReveal={wordReveal} isHost={isHost} send={send} />;
   }
 
