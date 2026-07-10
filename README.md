@@ -6,8 +6,8 @@ desde su celular, conectados por código de sala).
 
 Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA**, 🎡 **Ruleta**,
 ⭕ **Ta-Te-Ti**, 📡 **Sintonía** y 🍋 **Limón Limón**. El resto de los juegos
-del menú (Tutifrutti, Trivia) están registrados pero marcados como
-"Próximamente" — ver [Agregar un juego nuevo](#-agregar-un-juego-nuevo).
+del menú (Tutifrutti, Trivia, Codenames) están registrados pero marcados
+como "Próximamente" — ver [Agregar un juego nuevo](#-agregar-un-juego-nuevo).
 
 ---
 
@@ -135,7 +135,10 @@ juego, solo hay que tenerlas en cuenta.
 
 Mientras se construye, se puede registrar con `comingSoon: true` y componentes
 placeholder (`components/ComingSoon.jsx`) para que aparezca en el menú sin ser
-jugable todavía — así están hoy Tutifrutti y Trivia.
+jugable todavía — así están hoy Tutifrutti, Trivia y Codenames. Si el juego
+todavía no tiene ni reglas claras, dejar un `DESIGN.md` en su carpeta con el
+contexto (ver `frontend/src/games/codenames/DESIGN.md`) para no tener que
+volver a explicarlo desde cero más adelante.
 
 ---
 

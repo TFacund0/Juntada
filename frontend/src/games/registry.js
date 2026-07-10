@@ -18,6 +18,11 @@
 //   localOnly     optional: true skips the local/multi mode picker and goes
 //                 straight into LocalGame — for games with no backend engine
 //                 (see games/ruleta).
+//   rules         optional: string[] shown in the "¿Cómo se juega?" panel
+//                 (App.jsx, via components/GameRules.jsx) — plain sentences,
+//                 one per array entry; an entry starting with "- " joins the
+//                 previous run into a bullet list. Skip it and the button
+//                 just doesn't appear for that game.
 
 import { impostorGame } from "./impostor";
 import { sintoniaGame } from "./sintonia";
@@ -27,6 +32,7 @@ import { triviaGame } from "./trivia";
 import { ruletaGame } from "./ruleta";
 import { torneoFifaGame } from "./torneo-fifa";
 import { limonLimonGame } from "./limon-limon";
+import { codenamesGame } from "./codenames";
 
 export const GAMES = {
   [impostorGame.id]: impostorGame,
@@ -37,6 +43,7 @@ export const GAMES = {
   [ruletaGame.id]: ruletaGame,
   [torneoFifaGame.id]: torneoFifaGame,
   [limonLimonGame.id]: limonLimonGame,
+  [codenamesGame.id]: codenamesGame,
 };
 
 export const GAME_LIST = Object.values(GAMES);
