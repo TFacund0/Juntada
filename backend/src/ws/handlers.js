@@ -178,6 +178,7 @@ const HANDLERS = {
   player_ready: gameAction("player_ready"),
   vote: gameAction("vote"),
   skip_word: gameAction("skip_word"),
+  report_result: gameAction("report_result"),
   back_to_lobby: backToLobby,
   kick_player: kickPlayer,
   ping: (ws) => ping(ws),

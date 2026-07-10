@@ -15,6 +15,9 @@
 //                 Props: { room, me, myPlayer, myRole, wordReveal, isHost, send }
 //   comingSoon    optional: true hides "start round" behind a placeholder
 //                 while the game is still being built (see games/sintonia).
+//   localOnly     optional: true skips the local/multi mode picker and goes
+//                 straight into LocalGame — for games with no backend engine
+//                 (see games/torneo-fifa).
 
 import { impostorGame } from "./impostor";
 import { sintoniaGame } from "./sintonia";

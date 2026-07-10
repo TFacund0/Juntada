@@ -28,9 +28,11 @@
 // src/rooms/roomService.js and never need to change when a new game is added.
 
 const impostorEngine = require("./impostor/engine");
+const torneoFifaEngine = require("./torneo-fifa/engine");
 
 const GAMES = {
   [impostorEngine.id]: impostorEngine,
+  [torneoFifaEngine.id]: torneoFifaEngine,
 };
 
 function getEngine(gameType) {

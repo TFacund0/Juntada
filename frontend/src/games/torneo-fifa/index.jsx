@@ -1,16 +1,18 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { LocalGame } from "./LocalGame";
+import { ConfigPanel } from "./ConfigPanel";
+import { RoundView } from "./RoundView";
 
-// Bracket/fixture organizer for FIFA sessions between friends: group stage
-// or knockout, with matches and results tracked. Menu entry only for now —
-// see ComingSoon.
+// Bracket/fixture organizer for FIFA sessions between friends: sorteo de
+// equipos (ruleta aleatoria o manual) + eliminación directa con goles
+// opcionales. Modo local (un dispositivo) y modo online (cada uno desde su
+// celular, viendo los cruces y resultados en vivo).
 export const torneoFifaGame = {
   id: "torneo-fifa",
   label: "Torneo FIFA",
   icon: "🏆",
-  description: "Armá un torneo de FIFA entre amigos: fase de grupos o eliminación directa, con fixture y resultados.",
-  minPlayers: 4,
-  comingSoon: true,
-  LocalGame: () => <ComingSoon label="Torneo FIFA" />,
-  ConfigPanel: () => <ComingSoon label="Torneo FIFA" />,
-  RoundView: () => <ComingSoon label="Torneo FIFA" />,
+  description: "Armá un torneo de FIFA entre amigos: sorteo de equipos, eliminación directa y estadísticas de goles.",
+  minPlayers: 2,
+  LocalGame,
+  ConfigPanel,
+  RoundView,
 };
