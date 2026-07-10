@@ -46,7 +46,9 @@ function joinRoom(ws, { code, playerName }) {
   const room = rooms.get(code?.toUpperCase());
   if (!room) return { error: "Sala no encontrada" };
   if (room.phase !== "lobby" && room.phase !== "round") return { error: "La partida ya comenzó" };
-  if (room.players.length >= MAX_PLAYERS_PER_ROOM) return { error: "La sala está llena" };
+  const engine = getEngine(room.gameType);
+  const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
+  if (room.players.length >= maxPlayers) return { error: "La sala está llena" };
 
   const name = playerName || "Jugador";
   if (isNameTaken(room, name)) return { error: "Ese nombre ya está en uso en esta sala" };

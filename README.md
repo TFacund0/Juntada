@@ -4,9 +4,9 @@ Plataforma de juegos para jugar en grupo — cada juego se puede jugar en **modo
 (un dispositivo que se pasa por turnos) o en **modo multijugador online** (cada uno
 desde su celular, conectados por código de sala).
 
-Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA** y 🎡 **Ruleta**. El
-resto de los juegos del menú (Sintonía, Tutifrutti, Ta-Te-Ti, Trivia, Limón
-Limón) están registrados pero marcados como "Próximamente" — ver
+Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA**, 🎡 **Ruleta** y
+⭕ **Ta-Te-Ti**. El resto de los juegos del menú (Sintonía, Tutifrutti, Trivia,
+Limón Limón) están registrados pero marcados como "Próximamente" — ver
 [Agregar un juego nuevo](#-agregar-un-juego-nuevo).
 
 ---
@@ -124,7 +124,7 @@ juego, solo hay que tenerlas en cuenta.
 
 Mientras se construye, se puede registrar con `comingSoon: true` y componentes
 placeholder (`components/ComingSoon.jsx`) para que aparezca en el menú sin ser
-jugable todavía — así están hoy Sintonía, Tutifrutti, Ta-Te-Ti y Trivia.
+jugable todavía — así están hoy Sintonía, Tutifrutti y Trivia.
 
 ---
 
@@ -155,6 +155,22 @@ Dos modos:
   se quiera. Hay un panel colapsable para ver cuántas veces salió cada opción.
 - **Eliminación:** la entrada que sale se saca de la ruleta; se muestra el
   listado con el orden en que fueron eliminadas.
+
+---
+
+## ⭕ Ta-Te-Ti — cómo se juega
+
+El clásico 3 en raya, 1v1, en ambos modos:
+
+- **Local:** un solo dispositivo que se pasa por turnos — cada uno toca su
+  casillero cuando le toca.
+- **Online:** sala de a dos, cada uno desde su celular (`backend/src/games/tateti/engine.js`).
+
+En los dos modos se puede repetir la cantidad de partidas que se quiera: el
+marcador (victorias de cada uno + empates) se mantiene entre revanchas y quién
+arranca alterna en cada partida nueva. En modo online, tanto la revancha como
+el reinicio del marcador necesitan que **ambos** jugadores estén de acuerdo
+(cada uno confirma su lado antes de que el servidor actúe).
 
 ---
 
