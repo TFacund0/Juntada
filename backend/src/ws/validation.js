@@ -48,6 +48,17 @@ const SCHEMAS = {
   skip_word: z.object({
     type: z.literal("skip_word"),
   }),
+  submit_guess: z.object({
+    type: z.literal("submit_guess"),
+    value: z.number().int().min(0).max(100),
+  }),
+  confirm_round_setup: z.object({
+    type: z.literal("confirm_round_setup"),
+    psychicId: z.union([uuid, z.literal("random")]).optional(),
+    spectrumMode: z.enum(["random", "same", "manual"]).optional(),
+    left: z.string().trim().max(60).optional(),
+    right: z.string().trim().max(60).optional(),
+  }),
   report_result: z.object({
     type: z.literal("report_result"),
     roundIdx: z.number().int().min(0),
