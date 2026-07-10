@@ -9,7 +9,13 @@ const { getEngine } = require("../games/registry");
 const roomService = require("../rooms/roomService");
 const { sendTo, broadcast, getRoomPublicState, sendPrivateInfo, broadcastState, broadcastRoundReveal } = require("./messaging");
 
+function stopTimer(roomCode) {
+  const t = timers.get(roomCode);
+  if (t) { clearTimeout(t); timers.delete(roomCode); }
+}
+
 function startTimer(roomCode) {
+  stopTimer(roomCode); // a stale timer (e.g. from before a word reroll) must not fire early
   const room = rooms.get(roomCode);
   if (!room?.round?.timerEnd) return;
   const delay = room.round.timerEnd - Date.now();
@@ -65,8 +71,9 @@ function updateConfig(ws, msg, info) {
 function startRoundHandler(ws, msg, info) {
   const room = rooms.get(info.roomCode);
   if (!room || room.hostId !== info.playerId) return;
-  if (room.players.length < 2) { sendTo(ws, { type: "error", message: "Necesitás al menos 2 jugadores" }); return; }
   const engine = getEngine(room.gameType);
+  const minPlayers = engine.minPlayers ?? 2;
+  if (room.players.length < minPlayers) { sendTo(ws, { type: "error", message: `Necesitás al menos ${minPlayers} jugadores` }); return; }
   const res = engine.startRound(room);
   if (res.error) { sendTo(ws, { type: "error", message: res.error }); return; }
   broadcastToRoom(room, (ws2, i2) => {
@@ -76,16 +83,28 @@ function startRoundHandler(ws, msg, info) {
   if (room.round.timerEnd) startTimer(room.code);
 }
 
-// Generic entry point for any in-round player action (clue, ready, vote, ...).
-// The specific action names/payloads are entirely defined by the game engine.
+// Generic entry point for any in-round player action (clue, ready, vote,
+// skip_word, ...). The specific action names/payloads are entirely defined
+// by the game engine — this stays game-agnostic. A "rerolled" result means
+// the engine changed the round's private info (e.g. a new secret word), so
+// every player needs a fresh private_role message, not just the public state.
 function gameAction(actionType) {
   return (ws, msg, info) => {
     const room = rooms.get(info.roomCode);
     if (!room) return;
     const engine = getEngine(room.gameType);
-    const handled = engine.handleAction(room, info.playerId, actionType, msg);
-    if (!handled) { sendTo(ws, { type: "error", message: "Esa acción no es válida ahora" }); return; }
-    broadcastState(room);
+    const result = engine.handleAction(room, info.playerId, actionType, msg);
+    if (!result?.handled) { sendTo(ws, { type: "error", message: "Esa acción no es válida ahora" }); return; }
+
+    if (result.rerolled) {
+      if (room.round?.timerEnd) startTimer(room.code);
+      broadcastToRoom(room, (ws2, i2) => {
+        sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
+        sendPrivateInfo(ws2, room, i2.playerId);
+      });
+    } else {
+      broadcastState(room);
+    }
     if (room.phase === "result") broadcastRoundReveal(room);
   };
 }
@@ -141,6 +160,7 @@ const HANDLERS = {
   submit_clue: gameAction("submit_clue"),
   player_ready: gameAction("player_ready"),
   vote: gameAction("vote"),
+  skip_word: gameAction("skip_word"),
   back_to_lobby: backToLobby,
   kick_player: kickPlayer,
   ping: (ws) => ping(ws),

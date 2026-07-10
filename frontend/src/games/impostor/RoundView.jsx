@@ -10,11 +10,17 @@ import { Timer } from "../../components/Timer";
 // those phases *mean* for Impostor lives here.
 export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send }) {
   const [wordVisible, setWordVisible] = useState(false);
-  const [myVote, setMyVote] = useState(null);
+  const [skipRequested, setSkipRequested] = useState(false);
+  const [selectedSuspect, setSelectedSuspect] = useState(null);
+  const [voteConfirmed, setVoteConfirmed] = useState(false);
 
+  // A fresh private_role arrives on round start AND on a word reroll — either
+  // way it's a new word, so re-hide it and clear per-round local UI state.
   useEffect(() => {
     setWordVisible(false);
-    setMyVote(null);
+    setSkipRequested(false);
+    setSelectedSuspect(null);
+    setVoteConfirmed(false);
   }, [myRole]);
 
   if (room.phase === "round") {
@@ -24,7 +30,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 11, letterSpacing: "0.1em", color: "#7F77DD", fontWeight: 700 }}>CATEGORÍA</p>
           <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
-            {room.round?.categoryIcon} {room.round?.categoryLabel}
+            {room.round?.categoryLabel}
           </p>
         </div>
 
@@ -35,16 +41,12 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           {!myRole ? (
             <p style={{ color: "#6b6490" }}>Cargando tu rol...</p>
           ) : !wordVisible ? (
-            <>
-              <p style={{ fontSize: 32 }}>👁️</p>
-              <p style={{ color: "#6b6490", fontSize: 14 }}>Tocá para ver tu palabra</p>
-            </>
+            <p style={{ color: "#6b6490", fontSize: 14 }}>Tocá para ver tu palabra</p>
           ) : myRole.isImpostor ? (
             <>
-              <p style={{ fontSize: 40 }}>🕵️</p>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#F09595", margin: "8px 0" }}>¡ERES EL IMPOSTOR!</p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#F09595", margin: "0 0 8px" }}>Sos el impostor</p>
               {myRole.hint && <p style={{ fontSize: 13, color: "#9089c0" }}>{myRole.hint}</p>}
-              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 6 }}>Tocá para ocultar</p>
+              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
             </>
           ) : (
             <>
@@ -55,51 +57,69 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           )}
         </div>
 
+        {room.round && !myReadyState && <div style={{ ...S.card, textAlign: "center" }}>
+          {!skipRequested ? (
+            <Btn variant="secondary" onClick={() => { setSkipRequested(true); send({ type: "skip_word" }); }}>
+              No conozco esta palabra, pedir otra
+            </Btn>
+          ) : (
+            <p style={{ fontSize: 13, color: "#9089c0" }}>
+              Pediste cambiarla — {room.round.skipVotes}/{room.round.skipVotesNeeded} necesarios para cambiarla
+            </p>
+          )}
+        </div>}
+
         <div style={{ ...S.card, marginTop: 16 }}>
           <span style={S.label}>Estado de jugadores</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {room.players.map(p => (
-              <div key={p.id} style={S.pill(p.ready)}>
-                {p.ready ? "✓" : "⏳"} {p.name}
-              </div>
+              <div key={p.id} style={S.pill(p.ready)}>{p.name}{p.ready ? " · listo" : ""}</div>
             ))}
           </div>
         </div>
 
-        {!myReadyState && <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>✓ Ya vi mi palabra, listo</Btn>}
-        {myReadyState && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#5DCAA5" }}>✓ Marcado como listo — esperando a los demás...</p></div>}
+        {!myReadyState && <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>Ya vi mi palabra, listo</Btn>}
+        {myReadyState && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#5DCAA5" }}>Marcado como listo — esperando a los demás</p></div>}
       </div>
     );
   }
 
   if (room.phase === "voting") {
     const totalVoted = room.players.filter(p => p.hasVoted).length;
+    const suspects = room.players.filter(p => p.id !== me.playerId);
+
+    const confirmVote = () => {
+      if (!selectedSuspect) return;
+      send({ type: "vote", suspectId: selectedSuspect });
+      setVoteConfirmed(true);
+    };
+
     return (
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
-          <p style={{ fontSize: 12, color: "#7F77DD" }}>{totalVoted}/{room.players.length} votos emitidos</p>
+          <p style={{ fontSize: 12, color: "#7F77DD" }}>{totalVoted}/{room.players.length} confirmaron su voto</p>
         </div>
 
-        {!myVote ? (
+        {!voteConfirmed ? (
           <>
-            <p style={{ fontSize: 14, color: "#9089c0", marginBottom: 12, textAlign: "center" }}>Votá a quien sospechás</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {room.players.filter(p => p.id !== me.playerId).map(p => (
-                <button key={p.id} onClick={() => { setMyVote(p.id); send({ type: "vote", suspectId: p.id }); }}
-                  style={{ ...S.btn("secondary"), display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", textAlign: "left", borderRadius: 12 }}>
+            <p style={{ fontSize: 14, color: "#9089c0", marginBottom: 12, textAlign: "center" }}>Elegí a quién sospechás y confirmá</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+              {suspects.map(p => (
+                <button key={p.id} onClick={() => setSelectedSuspect(p.id)}
+                  style={{ ...S.btn(selectedSuspect === p.id ? "danger" : "secondary"), display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", textAlign: "left", borderRadius: 12 }}>
                   <Avatar name={p.name} size={36} />
                   <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>{p.name}</span>
-                  <span style={{ fontSize: 18 }}>→</span>
                 </button>
               ))}
             </div>
+            <Btn variant="success" disabled={!selectedSuspect} onClick={confirmVote}>Confirmar voto</Btn>
           </>
         ) : (
           <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ fontSize: 15, color: "#9089c0" }}>✓ Votaste. Esperando a los demás...</p>
+            <p style={{ fontSize: 15, color: "#9089c0" }}>Voto confirmado. Esperando a los demás</p>
             <p style={{ fontSize: 13, color: "#5a5280", marginTop: 6 }}>
-              {totalVoted}/{room.players.length} votos emitidos
+              {totalVoted}/{room.players.length} confirmaron su voto
             </p>
           </div>
         )}
@@ -120,9 +140,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     return (
       <div>
         <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
-          <div style={{ fontSize: 56 }}>{wasImpostor ? "🎉" : "😈"}</div>
           <p style={{ fontSize: 22, fontWeight: 800, color: wasImpostor ? "#5DCAA5" : "#F09595", marginTop: 8 }}>
-            {wasImpostor ? "¡Impostor atrapado!" : "¡El impostor escapó!"}
+            {wasImpostor ? "Impostor atrapado" : "El impostor escapó"}
           </p>
         </div>
 
@@ -142,7 +161,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Avatar name={eliminated.name} size={36} />
             <span style={{ fontWeight: 700 }}>{eliminated.name}</span>
-            <span style={S.pill(wasImpostor)}>{wasImpostor ? "✓ Era el impostor" : "✗ Era inocente"}</span>
+            <span style={S.pill(wasImpostor)}>{wasImpostor ? "Era el impostor" : "Era inocente"}</span>
           </div>
         </div>}
 
@@ -160,9 +179,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           })}
         </div>
 
-        {isHost && <Btn variant="success" onClick={() => send({ type: "start_round" })}>▶️ Nueva ronda</Btn>}
-        {isHost && <Btn variant="secondary" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>🏠 Volver al lobby</Btn>}
-        {!isHost && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#9089c0", fontSize: 14 }}>⏳ Esperando que el anfitrión inicie otra ronda...</p></div>}
+        {isHost && <Btn variant="success" onClick={() => send({ type: "start_round" })}>Nueva ronda</Btn>}
+        {isHost && <Btn variant="secondary" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>Volver al lobby</Btn>}
+        {!isHost && <div style={{ ...S.card, textAlign: "center" }}><p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p></div>}
       </div>
     );
   }

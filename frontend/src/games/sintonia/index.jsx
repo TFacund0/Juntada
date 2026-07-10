@@ -7,7 +7,6 @@ import { ComingSoon } from "../../components/ComingSoon";
 export const sintoniaGame = {
   id: "sintonia",
   label: "Sintonía",
-  icon: "📡",
   description: "Uno mueve la flecha a un punto secreto entre dos conceptos opuestos y da una pista. Los demás intentan adivinar dónde quedó.",
   minPlayers: 3,
   comingSoon: true,

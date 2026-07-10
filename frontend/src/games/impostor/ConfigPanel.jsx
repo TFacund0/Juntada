@@ -39,7 +39,7 @@ export function ConfigPanel({ room, updateConfig }) {
 
       {tab === "cats" && <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {Object.entries(CATEGORIES).map(([k, cat]) => (
-          <Toggle key={k} label={`${cat.icon} ${cat.label}`} value={room.config.enabledCategories[k]} onChange={v => updateConfig({ enabledCategories: { ...room.config.enabledCategories, [k]: v } })} />
+          <Toggle key={k} label={cat.label} value={room.config.enabledCategories[k]} onChange={v => updateConfig({ enabledCategories: { ...room.config.enabledCategories, [k]: v } })} />
         ))}
       </div>}
     </div>

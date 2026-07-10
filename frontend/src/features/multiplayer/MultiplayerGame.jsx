@@ -64,13 +64,13 @@ export function MultiplayerGame({ gameId }) {
       {connectionPhase === "create" && <div style={S.card}>
         <span style={S.label}>Nombre de la sala</span>
         <input style={S.input} placeholder="Ej: Noche de juegos" value={roomName} onChange={e => setRoomName(e.target.value)} />
-        {selectedGame && <p style={{ ...S.muted, marginTop: 10 }}>{selectedGame.icon} Vas a jugar {selectedGame.label}</p>}
-        <Btn onClick={createRoom} style={{ marginTop: 12 }}>🚀 Crear sala</Btn>
+        {selectedGame && <p style={{ ...S.muted, marginTop: 10 }}>Vas a jugar {selectedGame.label}</p>}
+        <Btn onClick={createRoom} style={{ marginTop: 12 }}>Crear sala</Btn>
       </div>}
       {connectionPhase === "join" && <div style={S.card}>
         <span style={S.label}>Código de sala</span>
         <input style={{ ...S.input, letterSpacing: "0.2em", textTransform: "uppercase", fontSize: 20, fontWeight: 700, textAlign: "center" }} placeholder="XXXXX" maxLength={5} value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
-        <Btn onClick={joinRoom} style={{ marginTop: 12 }}>Unirse →</Btn>
+        <Btn onClick={joinRoom} style={{ marginTop: 12 }}>Unirse</Btn>
       </div>}
     </div>
   );
@@ -79,15 +79,15 @@ export function MultiplayerGame({ gameId }) {
   if (connectionPhase === "lobby" && room) return (
     <div>
       <CodeDisplay code={room.code} />
-      {activeGame && <p style={{ ...S.muted, textAlign: "center", margin: "10px 0 0" }}>{activeGame.icon} {activeGame.label}</p>}
+      {activeGame && <p style={{ ...S.muted, textAlign: "center", margin: "10px 0 0" }}>{activeGame.label}</p>}
       <div style={{ ...S.card, marginTop: 14 }}>
         <span style={S.label}>{room.players.length} jugadores</span>
         {room.players.map(p => (
           <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}>
             <Avatar name={p.name} size={32} />
             <span style={{ flex: 1, fontWeight: 600 }}>{p.name}</span>
-            {p.id === room.hostId && <span style={S.pill(false)}>👑 Anfitrión</span>}
-            {!p.online && <span style={S.pill(false)}>📴</span>}
+            {p.id === room.hostId && <span style={S.pill(false)}>Anfitrión</span>}
+            {!p.online && <span style={S.pill(false)}>Desconectado</span>}
             {isHost && p.id !== me.playerId && <button onClick={() => send({ type: "kick_player", targetId: p.id })} style={{ ...S.btn("danger"), width: "auto", padding: "4px 10px", fontSize: 12, borderRadius: 6 }}>Expulsar</button>}
           </div>
         ))}
@@ -95,12 +95,12 @@ export function MultiplayerGame({ gameId }) {
 
       {isHost && <>
         {activeGame && <activeGame.ConfigPanel room={room} updateConfig={updateConfig} />}
-        <Btn variant="success" disabled={room.players.length < (activeGame?.minPlayers ?? 3)} onClick={() => send({ type: "start_round" })}>▶️ Iniciar ronda</Btn>
+        <Btn variant="success" disabled={room.players.length < (activeGame?.minPlayers ?? 3)} onClick={() => send({ type: "start_round" })}>Iniciar ronda</Btn>
         {room.players.length < (activeGame?.minPlayers ?? 3) && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>}
       </>}
 
       {!isHost && <div style={{ ...S.card, textAlign: "center" }}>
-        <p style={{ fontSize: 15, color: "#9089c0" }}>⏳ Esperando que el anfitrión inicie la partida...</p>
+        <p style={{ fontSize: 15, color: "#9089c0" }}>Esperando que el anfitrión inicie la partida</p>
       </div>}
 
       {error && <p style={{ color: "#F09595", fontSize: 13, textAlign: "center" }}>{error}</p>}

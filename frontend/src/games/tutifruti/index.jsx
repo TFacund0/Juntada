@@ -7,7 +7,6 @@ import { ComingSoon } from "../../components/ComingSoon";
 export const tutifrutiGame = {
   id: "tutifruti",
   label: "Tutifrutti",
-  icon: "🍉",
   description: "Sale una letra al azar y todos completan categorías (país, animal, color...) con una palabra que empiece con esa letra, contrarreloj.",
   minPlayers: 2,
   comingSoon: true,

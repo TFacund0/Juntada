@@ -8,6 +8,8 @@ const { CATEGORIES } = require("@juntada/impostor-data");
 const { shuffle } = require("../../utils/shuffle");
 const { timers } = require("../../state/roomStore");
 
+const MIN_PLAYERS = 3;
+
 function createConfig() {
   return {
     enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
@@ -17,20 +19,37 @@ function createConfig() {
   };
 }
 
+// A malformed update_config (bad client, typo) shouldn't be able to crash the
+// server — anything that doesn't look like a real category map is ignored.
+function activeCategoryKeys(room) {
+  const enabled = room.config.enabledCategories;
+  if (!enabled || typeof enabled !== "object") return [];
+  return Object.keys(CATEGORIES).filter(k => enabled[k]);
+}
+
+function pickWord(room, catKey, excludeWord = null) {
+  const cat = CATEGORIES[catKey];
+  const used = room.usedWords[catKey] || [];
+  const available = cat.words.filter(w => !used.includes(w) && w !== excludeWord);
+  if (available.length === 0) return null;
+  const word = available[Math.floor(Math.random() * available.length)];
+  room.usedWords[catKey] = [...used, word];
+  return word;
+}
+
 function startRound(room) {
-  const activeCats = Object.keys(room.config.enabledCategories).filter(k => room.config.enabledCategories[k]);
+  if (room.players.length < MIN_PLAYERS) return { error: `Necesitás al menos ${MIN_PLAYERS} jugadores` };
+
+  const activeCats = activeCategoryKeys(room);
   if (activeCats.length === 0) return { error: "No hay categorías activas" };
   const catKey = activeCats[Math.floor(Math.random() * activeCats.length)];
   const cat = CATEGORIES[catKey];
-  const used = room.usedWords[catKey] || [];
-  const available = cat.words.filter(w => !used.includes(w));
-  if (available.length === 0) return { error: `Sin palabras en ${cat.label}` };
-
-  const word = available[Math.floor(Math.random() * available.length)];
-  room.usedWords[catKey] = [...used, word];
+  const word = pickWord(room, catKey);
+  if (!word) return { error: `Sin palabras en ${cat.label}` };
 
   const playerIds = shuffle(room.players.map(p => p.id));
-  const impostorCount = Math.min(room.config.numImpostors, Math.floor(room.players.length / 2));
+  const numImpostors = Number.isInteger(room.config.numImpostors) ? room.config.numImpostors : 1;
+  const impostorCount = Math.max(1, Math.min(numImpostors, Math.floor(room.players.length / 2)));
   const impostors = playerIds.slice(0, impostorCount);
 
   const timerEnd = room.config.clueTime > 0
@@ -42,8 +61,9 @@ function startRound(room) {
     categoryLabel: cat.label,
     categoryIcon: cat.icon,
     impostors,
-    clues: {},   // playerId -> clueText
-    votes: {},   // voterId -> suspectId
+    clues: {},      // playerId -> clueText
+    votes: {},      // voterId -> suspectId
+    skipVotes: [],  // playerIds that asked for a different word this round
     eliminated: null,
     revealed: false,
     timerEnd,
@@ -52,6 +72,26 @@ function startRound(room) {
   room.players.forEach(p => { p.ready = false; });
 
   return { success: true };
+}
+
+// Majority of *online* players needed to swap the current word for a new one.
+function skipThreshold(room) {
+  const online = room.players.filter(p => p.online).length;
+  return Math.floor(online / 2) + 1;
+}
+
+// Swaps the word for a fresh one from the same category, keeping the same
+// impostors — this is meant to feel instant, not like starting the round
+// over. Only falls back to a full re-shuffle (new category, new impostors)
+// if that category has no words left to offer.
+function rerollWord(room) {
+  const word = pickWord(room, room.round.categoryKey, room.round.word);
+  if (!word) { startRound(room); return; }
+
+  room.round.word = word;
+  room.round.skipVotes = [];
+  room.players.forEach(p => { p.ready = false; });
+  room.round.timerEnd = room.config.clueTime > 0 ? Date.now() + room.config.clueTime * 1000 : null;
 }
 
 function tallyVotes(room) {
@@ -97,28 +137,41 @@ function maybeAdvance(room) {
 }
 
 function handleAction(room, playerId, action, payload) {
-  if (!room.round) return false;
+  if (!room.round) return { handled: false };
   switch (action) {
     case "submit_clue":
-      if (room.phase !== "round") return false;
+      if (room.phase !== "round") return { handled: false };
       room.round.clues[playerId] = payload.clue || "";
-      return true;
+      return { handled: true };
+
     case "player_ready": {
       const p = room.players.find(p => p.id === playerId);
       if (p) p.ready = true;
       maybeAdvance(room);
-      return true;
+      return { handled: true };
     }
+
     case "vote": {
-      if (room.phase !== "voting") return false;
+      if (room.phase !== "voting") return { handled: false };
       const suspectExists = room.players.some(p => p.id === payload.suspectId);
-      if (!suspectExists) return false;
+      if (!suspectExists) return { handled: false };
       room.round.votes[playerId] = payload.suspectId;
       maybeAdvance(room);
-      return true;
+      return { handled: true };
     }
+
+    case "skip_word": {
+      if (room.phase !== "round") return { handled: false };
+      if (!room.round.skipVotes.includes(playerId)) room.round.skipVotes.push(playerId);
+      if (room.round.skipVotes.length >= skipThreshold(room)) {
+        rerollWord(room);
+        return { handled: true, rerolled: true };
+      }
+      return { handled: true };
+    }
+
     default:
-      return false;
+      return { handled: false };
   }
 }
 
@@ -136,6 +189,8 @@ function getPublicRoundView(room) {
     wasImpostor: room.round.wasImpostor,
     tally: room.round.tally,
     impostors: room.round.revealed ? room.round.impostors : undefined,
+    skipVotes: room.round.skipVotes?.length ?? 0,
+    skipVotesNeeded: skipThreshold(room),
   };
 }
 
@@ -161,6 +216,7 @@ function getRevealMessage(room) {
 
 module.exports = {
   id: "impostor",
+  minPlayers: MIN_PLAYERS,
   createConfig,
   startRound,
   maybeAdvance,

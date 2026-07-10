@@ -45,6 +45,9 @@ const SCHEMAS = {
     type: z.literal("vote"),
     suspectId: uuid,
   }),
+  skip_word: z.object({
+    type: z.literal("skip_word"),
+  }),
   back_to_lobby: z.object({
     type: z.literal("back_to_lobby"),
   }),

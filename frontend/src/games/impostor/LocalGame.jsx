@@ -7,20 +7,20 @@ import { Toggle } from "../../components/Toggle";
 import { Avatar } from "../../components/Avatar";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LOCAL GAME MODE — un solo dispositivo, se pasa de mano en mano
+// LOCAL GAME MODE — un solo dispositivo, se pasa de mano en mano.
+// No hay pantalla para escribir pistas: cada uno la dice en voz alta cuando
+// le toca el dispositivo, no tiene sentido tipearla en un aparato compartido.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function LocalGame() {
-  const [phase, setPhase] = useState("setup"); // setup|reveal|clues|vote|result
+  const [phase, setPhase] = useState("setup"); // setup|reveal|discussion|vote|result
   const [players, setPlayers] = useState([{ id: 1, name: "Jugador 1" }, { id: 2, name: "Jugador 2" }, { id: 3, name: "Jugador 3" }, { id: 4, name: "Jugador 4" }]);
   const [newName, setNewName] = useState("");
   const [config, setConfig] = useState({ numImpostors: 1, hintsEnabled: true, clueTime: 90, enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}) });
   const [round, setRound] = useState(null);
   const [revealIdx, setRevealIdx] = useState(0);
   const [wordVisible, setWordVisible] = useState(false);
-  const [clues, setClues] = useState({});
-  const [clueInput, setClueInput] = useState({});
-  const [readyPlayers, setReadyPlayers] = useState(new Set());
+  const [selection, setSelection] = useState({}); // voterId -> suspectId not yet confirmed
   const [votes, setVotes] = useState({});
   const [usedWords, setUsedWords] = useState({});
   const [history, setHistory] = useState([]);
@@ -40,18 +40,16 @@ export function LocalGame() {
     setUsedWords(prev => ({ ...prev, [catKey]: [...(prev[catKey] || []), word] }));
     const ids = shuffle(players.map(p => p.id));
     const impostors = ids.slice(0, Math.min(config.numImpostors, Math.floor(players.length / 2)));
-    setRound({ word, categoryKey: catKey, categoryLabel: cat.label, categoryIcon: cat.icon, impostors });
+    setRound({ word, categoryKey: catKey, categoryLabel: cat.label, impostors });
     setRevealIdx(0);
     setWordVisible(false);
-    setClues({});
-    setClueInput({});
-    setReadyPlayers(new Set());
+    setSelection({});
     setVotes({});
     setPhase("reveal");
   };
 
-  const goToClues = () => {
-    setPhase("clues");
+  const goToDiscussion = () => {
+    setPhase("discussion");
     if (config.clueTime > 0) {
       setTimeLeft(config.clueTime);
       timerRef.current = setInterval(() => {
@@ -65,17 +63,9 @@ export function LocalGame() {
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
-  const markReady = (pid) => {
-    const next = new Set(readyPlayers);
-    next.add(pid);
-    setReadyPlayers(next);
-    if (next.size >= players.length) {
-      clearInterval(timerRef.current);
-      setPhase("vote");
-    }
-  };
-
-  const castVote = (voterId, suspectId) => {
+  const confirmVote = (voterId) => {
+    const suspectId = selection[voterId];
+    if (!suspectId) return;
     const next = { ...votes, [voterId]: suspectId };
     setVotes(next);
     if (Object.keys(next).length >= players.length) {
@@ -98,7 +88,7 @@ export function LocalGame() {
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {["players", "config"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{ ...S.btn(tab === t ? "primary" : "secondary"), flex: 1, padding: "10px" }}>
-            {t === "players" ? "👥 Jugadores" : "⚙️ Config"}
+            {t === "players" ? "Jugadores" : "Configuración"}
           </button>
         ))}
       </div>
@@ -115,7 +105,7 @@ export function LocalGame() {
           ))}
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <input style={{ ...S.input, flex: 1 }} placeholder="Nombre" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newName.trim()) { setPlayers(p => [...p, { id: Date.now(), name: newName.trim() }]); setNewName(""); } }} />
-            <Btn variant="secondary" onClick={() => { if (newName.trim()) { setPlayers(p => [...p, { id: Date.now(), name: newName.trim() }]); setNewName(""); } }} style={{ width: "auto", padding: "11px 18px" }}>+ Agregar</Btn>
+            <Btn variant="secondary" onClick={() => { if (newName.trim()) { setPlayers(p => [...p, { id: Date.now(), name: newName.trim() }]); setNewName(""); } }} style={{ width: "auto", padding: "11px 18px" }}>Agregar</Btn>
           </div>
         </div>
       </>}
@@ -138,20 +128,20 @@ export function LocalGame() {
           <span style={S.label}>Categorías</span>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {Object.entries(CATEGORIES).map(([k, cat]) => (
-              <Toggle key={k} label={`${cat.icon} ${cat.label}`} value={config.enabledCategories[k]} onChange={v => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: v } }))} />
+              <Toggle key={k} label={cat.label} value={config.enabledCategories[k]} onChange={v => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: v } }))} />
             ))}
           </div>
         </div>
       </>}
 
-      <Btn onClick={startRound} disabled={players.length < 3 || activeCats.length === 0} style={{ marginTop: 8 }}>🚀 Iniciar ronda</Btn>
+      <Btn onClick={startRound} disabled={players.length < 3 || activeCats.length === 0} style={{ marginTop: 8 }}>Iniciar ronda</Btn>
       {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
 
       {history.length > 0 && <div style={{ ...S.card, marginTop: 20 }}>
         <span style={S.label}>Historial</span>
         {history.map((r, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)", fontSize: 13 }}>
-          <span style={{ color: "#b8b0d4" }}>{r.categoryIcon} {r.categoryLabel}</span>
-          <span style={{ color: r.wasImpostor ? "#5DCAA5" : "#F09595" }}>{r.wasImpostor ? "✓ Atrapado" : "✗ Escapó"} · "{r.word}"</span>
+          <span style={{ color: "#b8b0d4" }}>{r.categoryLabel}</span>
+          <span style={{ color: r.wasImpostor ? "#5DCAA5" : "#F09595" }}>{r.wasImpostor ? "Atrapado" : "Escapó"} · "{r.word}"</span>
         </div>)}
       </div>}
     </div>
@@ -174,14 +164,10 @@ export function LocalGame() {
           onClick={() => setWordVisible(v => !v)}
         >
           {!wordVisible ? (
-            <>
-              <p style={{ fontSize: 28 }}>👁️</p>
-              <p style={{ color: "#6b6490", fontSize: 15 }}>Tocá para revelar tu palabra</p>
-            </>
+            <p style={{ color: "#6b6490", fontSize: 15 }}>Tocá para revelar tu palabra</p>
           ) : isImpostor ? (
             <>
-              <p style={{ fontSize: 36 }}>🕵️</p>
-              <p style={{ fontSize: 22, fontWeight: 800, color: "#F09595", margin: "8px 0" }}>¡ERES EL IMPOSTOR!</p>
+              <p style={{ fontSize: 22, fontWeight: 800, color: "#F09595", margin: "0 0 8px" }}>Sos el impostor</p>
               {config.hintsEnabled && <p style={{ fontSize: 13, color: "#9089c0" }}>Categoría: {round.categoryLabel}</p>}
               <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
             </>
@@ -189,24 +175,24 @@ export function LocalGame() {
             <>
               <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 6 }}>Tu palabra</p>
               <p style={S.bigReveal}>{round.word}</p>
-              <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryIcon} {round.categoryLabel}</p>
+              <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryLabel}</p>
               <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
             </>
           )}
         </div>
-        <Btn onClick={() => { setWordVisible(false); if (isLast) goToClues(); else setRevealIdx(i => i + 1); }}>
-          {isLast ? "✓ Todos listos → Empezar" : `Siguiente jugador →`}
+        <Btn onClick={() => { setWordVisible(false); if (isLast) goToDiscussion(); else setRevealIdx(i => i + 1); }}>
+          {isLast ? "Todos listos, empezar" : "Siguiente jugador"}
         </Btn>
       </div>
     );
   }
 
-  // ── CLUES ──
-  if (phase === "clues") return (
+  // ── DISCUSSION (todos dicen su pista en voz alta) ──
+  if (phase === "discussion") return (
     <div>
       <div style={{ ...S.cardHighlight, textAlign: "center" }}>
         <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Categoría de esta ronda</p>
-        <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{round.categoryIcon} {round.categoryLabel}</p>
+        <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{round.categoryLabel}</p>
       </div>
       {config.clueTime > 0 && <div style={S.card}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -217,51 +203,39 @@ export function LocalGame() {
           <div style={{ height: "100%", borderRadius: 3, width: `${Math.round((timeLeft / config.clueTime) * 100)}%`, background: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5", transition: "width 1s, background 0.5s" }} />
         </div>
       </div>}
-      {players.map(p => (
-        <div key={p.id} style={{ ...S.card, borderColor: readyPlayers.has(p.id) ? "rgba(29,158,117,0.4)" : "rgba(127,119,221,0.18)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: readyPlayers.has(p.id) ? 0 : 10 }}>
-            <Avatar name={p.name} size={32} />
-            <span style={{ fontWeight: 700, flex: 1 }}>{p.name}</span>
-            {readyPlayers.has(p.id) && <span style={S.pill(true)}>✓ Listo</span>}
-          </div>
-          {!readyPlayers.has(p.id) && <>
-            <input style={S.input} placeholder="Escribí tu pista..." value={clueInput[p.id] || ""} onChange={e => setClueInput(c => ({ ...c, [p.id]: e.target.value }))} />
-            <Btn variant="success" onClick={() => { setClues(c => ({ ...c, [p.id]: clueInput[p.id] || "" })); markReady(p.id); }} style={{ marginTop: 8 }}>✓ Listo</Btn>
-          </>}
-        </div>
-      ))}
-      <Btn variant="secondary" onClick={() => { clearInterval(timerRef.current); setPhase("vote"); }}>⏭️ Ir a votación ahora</Btn>
+      <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Cada uno dice su pista en voz alta. Cuando terminen, pasen a la votación.</p>
+      <Btn variant="secondary" onClick={() => { clearInterval(timerRef.current); setPhase("vote"); }}>Ir a votación</Btn>
     </div>
   );
 
   // ── VOTE ──
   if (phase === "vote") return (
     <div>
-      <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 20 }}>
-        <p style={{ fontSize: 14, color: "#9089c0" }}>Pistas dadas:</p>
-        {Object.entries(clues).map(([pid, clue]) => {
-          const p = players.find(x => x.id === +pid || x.id === pid);
-          return p && clue ? <p key={pid} style={{ fontSize: 14, margin: "4px 0", color: "#b8b0d4" }}><strong style={{ color: "#AFA9EC" }}>{p.name}:</strong> {clue}</p> : null;
-        })}
-      </div>
-      {players.map(voter => (
-        <div key={voter.id} style={S.card}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <Avatar name={voter.name} size={28} />
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{voter.name} sospecha de:</span>
-            {votes[voter.id] && <span style={S.pill(true)}>✓ Votó</span>}
+      {players.map(voter => {
+        const confirmed = votes[voter.id] != null;
+        const pending = selection[voter.id];
+        return (
+          <div key={voter.id} style={S.card}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: confirmed ? 0 : 12 }}>
+              <Avatar name={voter.name} size={28} />
+              <span style={{ fontWeight: 700, fontSize: 14, flex: 1 }}>{voter.name} sospecha de:</span>
+              {confirmed && <span style={S.pill(true)}>Confirmado</span>}
+            </div>
+            {!confirmed && <>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {players.filter(p => p.id !== voter.id).map(suspect => (
+                  <button key={suspect.id} onClick={() => setSelection(s => ({ ...s, [voter.id]: suspect.id }))}
+                    style={{ ...S.btn(pending === suspect.id ? "danger" : "secondary"), width: "auto", padding: "8px 14px", fontSize: 13, borderRadius: 8 }}>
+                    {suspect.name}
+                  </button>
+                ))}
+              </div>
+              <Btn variant="success" disabled={!pending} onClick={() => confirmVote(voter.id)} style={{ marginTop: 10 }}>Confirmar voto</Btn>
+            </>}
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {players.filter(p => p.id !== voter.id).map(suspect => (
-              <button key={suspect.id} onClick={() => castVote(voter.id, suspect.id)}
-                style={{ ...S.btn(votes[voter.id] === suspect.id ? "danger" : "secondary"), width: "auto", padding: "8px 14px", fontSize: 13, borderRadius: 8 }}>
-                {suspect.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-      <p style={{ ...S.muted, textAlign: "center" }}>Faltan {players.length - Object.keys(votes).length} votos</p>
+        );
+      })}
+      <p style={{ ...S.muted, textAlign: "center" }}>Faltan {players.length - Object.keys(votes).length} confirmaciones</p>
     </div>
   );
 
@@ -272,21 +246,20 @@ export function LocalGame() {
     return (
       <div>
         <div style={{ textAlign: "center", padding: "20px 0" }}>
-          <div style={{ fontSize: 60 }}>{round.wasImpostor ? "🎉" : "😈"}</div>
-          <p style={{ ...S.title, fontSize: 26, display: "block", marginTop: 8 }}>{round.wasImpostor ? "¡Impostor atrapado!" : "¡El impostor escapó!"}</p>
+          <p style={{ ...S.title, fontSize: 26, display: "block" }}>{round.wasImpostor ? "Impostor atrapado" : "El impostor escapó"}</p>
         </div>
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>
           <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
           <p style={{ fontSize: 32, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round.word}</p>
-          <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryIcon} {round.categoryLabel}</p>
+          <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryLabel}</p>
         </div>
         <div style={S.card}>
           <span style={S.label}>Impostores</span>
-          {impostorPlayers.map(p => <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}><Avatar name={p.name} size={32} /><span style={{ fontWeight: 700 }}>{p.name}</span><span style={S.pill(false)}>🕵️ Impostor</span></div>)}
+          {impostorPlayers.map(p => <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}><Avatar name={p.name} size={32} /><span style={{ fontWeight: 700 }}>{p.name}</span></div>)}
         </div>
         {eliminated && <div style={S.card}>
           <span style={S.label}>Eliminado</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}><Avatar name={eliminated.name} size={36} /><span style={{ fontWeight: 700 }}>{eliminated.name}</span><span style={S.pill(round.wasImpostor)}>{round.wasImpostor ? "✓ Era el impostor" : "✗ Era inocente"}</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}><Avatar name={eliminated.name} size={36} /><span style={{ fontWeight: 700 }}>{eliminated.name}</span><span style={S.pill(round.wasImpostor)}>{round.wasImpostor ? "Era el impostor" : "Era inocente"}</span></div>
         </div>}
         <div style={S.card}>
           <span style={S.label}>Votos</span>
@@ -299,8 +272,8 @@ export function LocalGame() {
           })}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <Btn variant="success" onClick={startRound}>▶️ Nueva ronda</Btn>
-          <Btn variant="secondary" onClick={() => setPhase("setup")}>🏠 Configuración</Btn>
+          <Btn variant="success" onClick={startRound}>Nueva ronda</Btn>
+          <Btn variant="secondary" onClick={() => setPhase("setup")}>Configuración</Btn>
         </div>
       </div>
     );

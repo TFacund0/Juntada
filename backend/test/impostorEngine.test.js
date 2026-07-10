@@ -31,10 +31,23 @@ test("startRound assigns a word, a category and the right number of impostors", 
   assert.ok(room.players.every(p => p.ready === false));
 });
 
+test("startRound refuses to start below the minimum player count", () => {
+  const room = makeRoom({ players: [{ id: "p1", name: "Ana", ready: false, online: true }, { id: "p2", name: "Beto", ready: false, online: true }] });
+  const res = engine.startRound(room);
+  assert.ok(res.error);
+  assert.equal(room.round, null);
+});
+
 test("startRound caps impostors at half the player count", () => {
   const room = makeRoom({ config: { ...engine.createConfig(), numImpostors: 3 } });
   engine.startRound(room);
   assert.equal(room.round.impostors.length, 1); // floor(3 players / 2) = 1
+});
+
+test("startRound falls back to a sane default when numImpostors is malformed", () => {
+  const room = makeRoom({ config: { ...engine.createConfig(), numImpostors: "not-a-number" }, players: [1, 2, 3, 4].map(n => ({ id: `p${n}`, name: `P${n}`, ready: false, online: true })) });
+  engine.startRound(room);
+  assert.equal(room.round.impostors.length, 1);
 });
 
 test("startRound never repeats a word already used in this room", () => {
@@ -52,6 +65,12 @@ test("startRound reports an error when no category is enabled", () => {
   const res = engine.startRound(room);
   assert.ok(res.error);
   assert.equal(room.round, null);
+});
+
+test("startRound doesn't crash when enabledCategories is malformed", () => {
+  const room = makeRoom({ config: { ...engine.createConfig(), enabledCategories: null } });
+  const res = engine.startRound(room);
+  assert.ok(res.error);
 });
 
 test("maybeAdvance moves round -> voting once every online player is ready", () => {
@@ -103,18 +122,68 @@ test("handleAction rejects a vote for a player that doesn't exist in the room", 
   engine.startRound(room);
   room.phase = "voting";
 
-  const handled = engine.handleAction(room, "p1", "vote", { suspectId: "not-a-real-player-id" });
+  const res = engine.handleAction(room, "p1", "vote", { suspectId: "not-a-real-player-id" });
 
-  assert.equal(handled, false);
+  assert.equal(res.handled, false);
   assert.deepEqual(room.round.votes, {});
 });
 
 test("handleAction ignores votes while not in the voting phase", () => {
   const room = makeRoom();
   engine.startRound(room); // phase is "round", not "voting"
-  const handled = engine.handleAction(room, "p1", "vote", { suspectId: "p2" });
-  assert.equal(handled, false);
+  const res = engine.handleAction(room, "p1", "vote", { suspectId: "p2" });
+  assert.equal(res.handled, false);
   assert.deepEqual(room.round.votes, {});
+});
+
+test("skip_word keeps the round going until a majority of online players ask for a new word", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const originalWord = room.round.word;
+
+  const first = engine.handleAction(room, "p1", "skip_word", {});
+  assert.equal(first.handled, true);
+  assert.equal(first.rerolled, undefined, "1 of 3 shouldn't be a majority yet");
+  assert.equal(room.round.word, originalWord);
+
+  const second = engine.handleAction(room, "p2", "skip_word", {});
+  assert.equal(second.rerolled, true, "2 of 3 online players is a majority");
+  assert.notEqual(room.round.word, originalWord);
+  assert.equal(room.round.skipVotes.length, 0, "skip votes reset after a reroll");
+  assert.ok(room.players.every(p => p.ready === false), "readiness resets so everyone re-confirms the new word");
+});
+
+test("skip_word keeps the same impostors after a reroll", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const impostorsBefore = [...room.round.impostors].sort();
+
+  engine.handleAction(room, "p1", "skip_word", {});
+  engine.handleAction(room, "p2", "skip_word", {});
+
+  assert.deepEqual([...room.round.impostors].sort(), impostorsBefore);
+});
+
+test("skip_word ignores duplicate votes from the same player", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+
+  engine.handleAction(room, "p1", "skip_word", {});
+  engine.handleAction(room, "p1", "skip_word", {});
+
+  assert.equal(room.round.skipVotes.length, 1);
+});
+
+test("skip_word only counts online players toward the threshold", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  room.players[2].online = false; // only p1/p2 online -> majority of 2 is 2
+
+  const res = engine.handleAction(room, "p1", "skip_word", {});
+  assert.equal(res.rerolled, undefined);
+
+  const res2 = engine.handleAction(room, "p2", "skip_word", {});
+  assert.equal(res2.rerolled, true);
 });
 
 test("getPublicRoundView hides the word but reveals it after the round resolves", () => {

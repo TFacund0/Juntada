@@ -4,7 +4,6 @@ import { ComingSoon } from "../../components/ComingSoon";
 export const tatetiGame = {
   id: "tateti",
   label: "Ta-Te-Ti",
-  icon: "⭕",
   description: "El clásico 3 en raya, uno contra uno. Rápido y para picar entre rondas de otros juegos.",
   minPlayers: 2,
   comingSoon: true,
