@@ -109,11 +109,14 @@ function handleAction(room, playerId, action, payload) {
       maybeAdvance(room);
       return true;
     }
-    case "vote":
+    case "vote": {
       if (room.phase !== "voting") return false;
+      const suspectExists = room.players.some(p => p.id === payload.suspectId);
+      if (!suspectExists) return false;
       room.round.votes[playerId] = payload.suspectId;
       maybeAdvance(room);
       return true;
+    }
     default:
       return false;
   }

@@ -84,7 +84,7 @@ function gameAction(actionType) {
     if (!room) return;
     const engine = getEngine(room.gameType);
     const handled = engine.handleAction(room, info.playerId, actionType, msg);
-    if (!handled) return;
+    if (!handled) { sendTo(ws, { type: "error", message: "Esa acción no es válida ahora" }); return; }
     broadcastState(room);
     if (room.phase === "result") broadcastRoundReveal(room);
   };

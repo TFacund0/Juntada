@@ -11,10 +11,13 @@ const { generateUniqueRoomCode } = require("./roomCode");
 const { getEngine } = require("../games/registry");
 
 const ONLINE_CLEANUP_DELAY_MS = 5 * 60 * 1000;
+const MAX_PLAYERS_PER_ROOM = 16;
+const MAX_TOTAL_ROOMS = 500;
 
 function createRoom(ws, { playerName, roomName, gameType = "impostor" }) {
   const engine = getEngine(gameType);
   if (!engine) return { error: `Juego desconocido: ${gameType}` };
+  if (rooms.size >= MAX_TOTAL_ROOMS) return { error: "El servidor está lleno, probá de nuevo en un rato" };
 
   const code = generateUniqueRoomCode();
   const playerId = uuidv4();
@@ -39,6 +42,7 @@ function joinRoom(ws, { code, playerName }) {
   const room = rooms.get(code?.toUpperCase());
   if (!room) return { error: "Sala no encontrada" };
   if (room.phase !== "lobby" && room.phase !== "round") return { error: "La partida ya comenzó" };
+  if (room.players.length >= MAX_PLAYERS_PER_ROOM) return { error: "La sala está llena" };
 
   const playerId = uuidv4();
   room.players.push({ id: playerId, name: playerName || "Jugador", ready: false, online: true });

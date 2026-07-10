@@ -98,6 +98,17 @@ test("voting tallies votes and eliminates the most-voted player", () => {
   assert.equal(room.roundHistory[0].eliminated, impostorId);
 });
 
+test("handleAction rejects a vote for a player that doesn't exist in the room", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  room.phase = "voting";
+
+  const handled = engine.handleAction(room, "p1", "vote", { suspectId: "not-a-real-player-id" });
+
+  assert.equal(handled, false);
+  assert.deepEqual(room.round.votes, {});
+});
+
 test("handleAction ignores votes while not in the voting phase", () => {
   const room = makeRoom();
   engine.startRound(room); // phase is "round", not "voting"
