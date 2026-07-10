@@ -23,6 +23,7 @@ import { tatetiGame } from "./tateti";
 import { triviaGame } from "./trivia";
 import { ruletaGame } from "./ruleta";
 import { torneoFifaGame } from "./torneo-fifa";
+import { limonLimonGame } from "./limon-limon";
 
 export const GAMES = {
   [impostorGame.id]: impostorGame,
@@ -32,6 +33,7 @@ export const GAMES = {
   [triviaGame.id]: triviaGame,
   [ruletaGame.id]: ruletaGame,
   [torneoFifaGame.id]: torneoFifaGame,
+  [limonLimonGame.id]: limonLimonGame,
 };
 
 export const GAME_LIST = Object.values(GAMES);

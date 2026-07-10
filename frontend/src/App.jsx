@@ -2,6 +2,7 @@ import { useState } from "react";
 import { S } from "./theme/styles";
 import { GAME_LIST, getGame } from "./games/registry";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
+import logo from "./assets/brand/logo.png";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROOT APP — landing = elegir juego, luego elegir modo (local/multi) para ese
@@ -30,7 +31,9 @@ export default function App() {
       <div style={S.wrap}>
         <div style={S.header}>
           {(gameId || mode) && <button onClick={goBack} style={{ background: "none", border: "none", color: "#6b6490", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700, marginBottom: 8, display: "block" }}>Volver</button>}
-          {game?.icon && <div style={{ fontSize: 48 }}>{game.icon}</div>}
+          {game?.icon
+            ? <div style={{ fontSize: 48 }}>{game.icon}</div>
+            : <img src={logo} alt="Juntada" style={{ width: 64, height: 64, borderRadius: 16 }} />}
           <h1 style={S.title}>{game?.label ?? "Juntada"}</h1>
           {!gameId && <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>Elegí un juego para arrancar</p>}
           {gameId && !mode && !game.comingSoon && <p style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}>Elegí cómo jugar</p>}
