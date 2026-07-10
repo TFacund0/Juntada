@@ -45,7 +45,7 @@ export function LocalGame() {
   };
 
   const handleCell = (i) => {
-    if (winner || board[i]) return;
+    if (winner !== null || board[i]) return;
     const next = [...board];
     next[i] = marks[turnIndex];
     setBoard(next);
@@ -98,15 +98,15 @@ export function LocalGame() {
         </div>
       </div>
 
-      {!winner && (
+      {winner === null && (
         <p style={{ textAlign: "center", fontSize: 14, color: "#9089c0", marginBottom: 14 }}>
           Turno de <strong style={{ color: turnIndex === 0 ? "#AFA9EC" : "#5DCAA5" }}>{names[turnIndex]}</strong> ({marks[turnIndex]})
         </p>
       )}
 
-      <Board board={board} winningLine={winningLine} onCellClick={handleCell} disabled={!!winner} />
+      <Board board={board} winningLine={winningLine} onCellClick={handleCell} disabled={winner !== null} />
 
-      {winner && (
+      {winner !== null && (
         <div style={{ ...S.cardHighlight, textAlign: "center", marginTop: 16 }}>
           <p style={S.bigReveal}>{winner === "draw" ? "Empate" : `Ganó ${names[winner]}`}</p>
           <Btn variant="success" onClick={newRound} style={{ marginTop: 8 }}>Jugar de nuevo</Btn>
