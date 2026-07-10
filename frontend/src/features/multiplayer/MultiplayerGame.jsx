@@ -109,8 +109,17 @@ export function MultiplayerGame({ gameId }) {
 
   // ── EN PARTIDA: cualquier fase que no sea menú/lobby es propia del juego,
   // así que se delega entera — este shell no necesita conocer sus nombres.
+  // El banner de error se muestra acá (no dentro de cada RoundView) porque
+  // una acción rechazada por el servidor (turno equivocado, jugada inválida,
+  // etc.) es un caso genérico común a cualquier juego, no algo que cada
+  // RoundView tenga que acordarse de manejar por su cuenta.
   if (!["menu", "create", "join", "lobby"].includes(connectionPhase) && room && activeGame) {
-    return <activeGame.RoundView room={room} me={me} myPlayer={myPlayer} myRole={myRole} wordReveal={wordReveal} isHost={isHost} send={send} />;
+    return (
+      <div>
+        {error && <div style={{ background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: "#F09595", fontSize: 13 }}>{error}</div>}
+        <activeGame.RoundView room={room} me={me} myPlayer={myPlayer} myRole={myRole} wordReveal={wordReveal} isHost={isHost} send={send} />
+      </div>
+    );
   }
 
   return <div style={{ textAlign: "center", padding: 40, color: "#6b6490" }}>Conectando...</div>;

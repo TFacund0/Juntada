@@ -2,6 +2,7 @@ import { useState } from "react";
 import { S } from "./theme/styles";
 import { GAME_LIST, getGame } from "./games/registry";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
+import { GameRules } from "./components/GameRules";
 import logo from "./assets/brand/logo.png";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -12,17 +13,19 @@ import logo from "./assets/brand/logo.png";
 export default function App() {
   const [gameId, setGameId] = useState(null);
   const [mode, setMode] = useState(null); // null | "local" | "multi"
+  const [showRules, setShowRules] = useState(false);
 
   const game = gameId ? getGame(gameId) : null;
 
   const goBack = () => {
     if (mode) setMode(null);
-    else setGameId(null);
+    else { setGameId(null); setShowRules(false); }
   };
 
   const pickGame = (id) => {
     setGameId(id);
     setMode(null);
+    setShowRules(false);
   };
 
   return (
@@ -39,7 +42,17 @@ export default function App() {
           {gameId && !mode && !game.comingSoon && <p style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}>Elegí cómo jugar</p>}
           {mode === "local" && <p style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}>Modo local · Un dispositivo</p>}
           {mode === "multi" && <p style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}>Modo multijugador · Online</p>}
+          {game?.rules?.length > 0 && (
+            <button
+              onClick={() => setShowRules(v => !v)}
+              style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700, marginTop: 10 }}
+            >
+              {showRules ? "Ocultar reglas ▲" : "¿Cómo se juega? ▼"}
+            </button>
+          )}
         </div>
+
+        {showRules && game?.rules?.length > 0 && <GameRules rules={game.rules} />}
 
         {/* ── Paso 1: elegir juego ── */}
         {!gameId && (

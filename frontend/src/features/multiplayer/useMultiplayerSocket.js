@@ -44,6 +44,7 @@ export function useMultiplayerSocket() {
       } else if (msg.type === "state") {
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
+        setError("");
       } else if (msg.type === "private_role") {
         setMyRole(msg);
         setWordReveal(null);
@@ -51,6 +52,12 @@ export function useMultiplayerSocket() {
         setWordReveal(msg);
       } else if (msg.type === "error") {
         setError(msg.message);
+        // Failed before ever being part of a room (e.g. wrong room code) —
+        // never leave the UI stuck showing a stale/nonexistent room.
+        if (!meRef.current) {
+          setRoom(null);
+          setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
+        }
       } else if (msg.type === "kicked") {
         setConnectionPhase("menu");
         setMe(null); setRoom(null); setMyRole(null);

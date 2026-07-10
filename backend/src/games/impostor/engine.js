@@ -92,6 +92,15 @@ function skipThreshold(room) {
   return Math.floor(online / 2) + 1;
 }
 
+// skipVotes only ever grows (see skip_word below) — if a voter is later
+// kicked, their id would otherwise linger there forever, forming a phantom
+// vote that counts toward a threshold now computed from a smaller player
+// list. Always read the count through this filter instead of skipVotes.length.
+function activeSkipVotes(room) {
+  const ids = room.players.map(p => p.id);
+  return room.round.skipVotes.filter(id => ids.includes(id));
+}
+
 // Swaps the word for a fresh one from the same category, keeping the same
 // impostors — this is meant to feel instant, not like starting the round
 // over. Only falls back to a full re-shuffle (new category, new impostors)
@@ -206,7 +215,7 @@ function handleAction(room, playerId, action, payload) {
     case "skip_word": {
       if (room.phase !== "round") return { handled: false };
       if (!room.round.skipVotes.includes(playerId)) room.round.skipVotes.push(playerId);
-      if (room.round.skipVotes.length >= skipThreshold(room)) {
+      if (activeSkipVotes(room).length >= skipThreshold(room)) {
         rerollWord(room);
         return { handled: true, rerolled: true };
       }
@@ -233,7 +242,7 @@ function getPublicRoundView(room) {
     wasImpostor: room.round.wasImpostor,
     tally: room.round.tally,
     impostors: room.round.revealed ? room.round.impostors : undefined,
-    skipVotes: room.round.skipVotes?.length ?? 0,
+    skipVotes: activeSkipVotes(room).length,
     skipVotesNeeded: skipThreshold(room),
   };
 }

@@ -44,7 +44,7 @@ function isNameTaken(room, name) {
 
 function joinRoom(ws, { code, playerName }) {
   const room = rooms.get(code?.toUpperCase());
-  if (!room) return { error: "Sala no encontrada" };
+  if (!room) return { error: "No existe ninguna sala con ese código" };
   if (room.phase !== "lobby" && room.phase !== "round") return { error: "La partida ya comenzó" };
   const engine = getEngine(room.gameType);
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
