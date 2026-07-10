@@ -4,9 +4,10 @@ Plataforma de juegos para jugar en grupo — cada juego se puede jugar en **modo
 (un dispositivo que se pasa por turnos) o en **modo multijugador online** (cada uno
 desde su celular, conectados por código de sala).
 
-Actualmente jugable: 🕵️ **El Impostor**. El resto de los juegos del menú
-(Sintonía, Tutifrutti, Ta-Te-Ti, Trivia) están registrados pero marcados como
-"Próximamente" — ver [Agregar un juego nuevo](#-agregar-un-juego-nuevo).
+Actualmente jugables: 🕵️ **El Impostor**, 🏆 **Torneo FIFA**, 🎡 **Ruleta** y
+⭕ **Ta-Te-Ti**. El resto de los juegos del menú (Sintonía, Tutifrutti, Trivia,
+Limón Limón) están registrados pero marcados como "Próximamente" — ver
+[Agregar un juego nuevo](#-agregar-un-juego-nuevo).
 
 ---
 
@@ -23,7 +24,9 @@ juntada/
 │   │   ├── rooms/                 lifecycle GENÉRICO de salas (crear/unir/kick/reconectar)
 │   │   ├── games/
 │   │   │   ├── registry.js        contrato + registro de motores de juego
-│   │   │   └── impostor/          motor específico de El Impostor
+│   │   │   ├── impostor/          motor específico de El Impostor
+│   │   │   ├── torneo-fifa/       motor específico de Torneo FIFA
+│   │   │   └── tateti/            motor específico de Ta-Te-Ti
 │   │   ├── ws/                    transporte WS, validación, rate limiting
 │   │   ├── state/                 Maps en memoria (rooms, clients, timers)
 │   │   └── http/                  rutas HTTP (health, estáticos del frontend)
@@ -34,7 +37,10 @@ juntada/
 │       ├── App.jsx                shell: elegir juego → elegir modo
 │       ├── games/
 │       │   ├── registry.js        contrato + registro de juegos (frontend)
-│       │   └── impostor/          LocalGame, ConfigPanel, RoundView
+│       │   ├── impostor/          LocalGame, ConfigPanel, RoundView
+│       │   ├── torneo-fifa/       LocalGame, ConfigPanel, RoundView
+│       │   ├── tateti/            LocalGame, ConfigPanel, RoundView
+│       │   └── ruleta/            LocalGame (juego local, sin backend)
 │       ├── features/multiplayer/  shell de sala/lobby genérico + hook de WS
 │       ├── components/            UI reutilizable (Btn, Avatar, Timer, ...)
 │       └── theme/                 estilos
@@ -123,7 +129,7 @@ juego, solo hay que tenerlas en cuenta.
 
 Mientras se construye, se puede registrar con `comingSoon: true` y componentes
 placeholder (`components/ComingSoon.jsx`) para que aparezca en el menú sin ser
-jugable todavía — así están hoy Sintonía, Tutifrutti, Ta-Te-Ti y Trivia.
+jugable todavía — así están hoy Sintonía, Tutifrutti y Trivia.
 
 ---
 
@@ -139,6 +145,37 @@ jugable todavía — así están hoy Sintonía, Tutifrutti, Ta-Te-Ti y Trivia.
 Configuración disponible: cantidad de impostores (1-3), pistas al impostor
 on/off, tiempo límite para dar pistas (0 = sin límite), y qué categorías de
 palabras están habilitadas.
+
+---
+
+## 🎡 Ruleta — cómo se juega
+
+Juego local (`localOnly: true`, sin backend): se cargan entradas con un nombre
+y, opcionalmente, una descripción más larga (por ejemplo el castigo o la
+prenda asociada), y se gira una ruleta real (SVG animado con desaceleración).
+
+Dos modos:
+
+- **Repetir:** se mantienen todas las entradas y se puede girar las veces que
+  se quiera. Hay un panel colapsable para ver cuántas veces salió cada opción.
+- **Eliminación:** la entrada que sale se saca de la ruleta; se muestra el
+  listado con el orden en que fueron eliminadas.
+
+---
+
+## ⭕ Ta-Te-Ti — cómo se juega
+
+El clásico 3 en raya, 1v1, en ambos modos:
+
+- **Local:** un solo dispositivo que se pasa por turnos — cada uno toca su
+  casillero cuando le toca.
+- **Online:** sala de a dos, cada uno desde su celular (`backend/src/games/tateti/engine.js`).
+
+En los dos modos se puede repetir la cantidad de partidas que se quiera: el
+marcador (victorias de cada uno + empates) se mantiene entre revanchas y quién
+arranca alterna en cada partida nueva. En modo online, tanto la revancha como
+el reinicio del marcador necesitan que **ambos** jugadores estén de acuerdo
+(cada uno confirma su lado antes de que el servidor actúe).
 
 ---
 
