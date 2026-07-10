@@ -8,19 +8,37 @@ import { Avatar } from "../../components/Avatar";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOCAL GAME MODE — un solo dispositivo, se pasa de mano en mano.
-// No hay pantalla para escribir pistas: cada uno la dice en voz alta cuando
-// le toca el dispositivo, no tiene sentido tipearla en un aparato compartido.
+// Las pistas se dicen en voz alta por defecto; "Pistas escritas" en la config
+// hace que cada uno la tipee al final de su turno de revelación, para poder
+// repasarlas juntos antes de votar.
 // ═══════════════════════════════════════════════════════════════════════════════
+
+function CluesReview({ clues, players }) {
+  const entries = Object.entries(clues || {}).filter(([, clue]) => clue);
+  if (entries.length === 0) return null;
+  return (
+    <div style={S.card}>
+      <span style={S.label}>Pistas</span>
+      {entries.map(([playerId, clue]) => {
+        const p = players.find(x => String(x.id) === playerId);
+        if (!p) return null;
+        return <p key={playerId} style={{ fontSize: 14, margin: "4px 0", color: "#b8b0d4" }}><strong style={{ color: "#AFA9EC" }}>{p.name}:</strong> {clue}</p>;
+      })}
+    </div>
+  );
+}
 
 export function LocalGame() {
   const [phase, setPhase] = useState("setup"); // setup|reveal|discussion|vote|result
   const [players, setPlayers] = useState([{ id: 1, name: "Jugador 1" }, { id: 2, name: "Jugador 2" }, { id: 3, name: "Jugador 3" }, { id: 4, name: "Jugador 4" }]);
   const [newName, setNewName] = useState("");
   const [nameError, setNameError] = useState("");
-  const [config, setConfig] = useState({ numImpostors: 1, hintsEnabled: true, clueTime: 90, enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}) });
+  const [config, setConfig] = useState({ numImpostors: 1, hintsEnabled: true, writtenClues: false, discussionTime: 30, enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}) });
   const [round, setRound] = useState(null);
   const [revealIdx, setRevealIdx] = useState(0);
   const [wordVisible, setWordVisible] = useState(false);
+  const [clueInput, setClueInput] = useState("");
+  const [clues, setClues] = useState({});
   const [selection, setSelection] = useState({}); // voterId -> suspectId not yet confirmed
   const [votes, setVotes] = useState({});
   const [usedWords, setUsedWords] = useState({});
@@ -64,22 +82,23 @@ export function LocalGame() {
     setRound({ word, categoryKey: catKey, categoryLabel: cat.label, impostors });
     setRevealIdx(0);
     setWordVisible(false);
+    setClueInput("");
+    setClues({});
     setSelection({});
     setVotes({});
     setPhase("reveal");
   };
 
   const goToDiscussion = () => {
+    if (config.discussionTime <= 0) { setPhase("vote"); return; }
     setPhase("discussion");
-    if (config.clueTime > 0) {
-      setTimeLeft(config.clueTime);
-      timerRef.current = setInterval(() => {
-        setTimeLeft(t => {
-          if (t <= 1) { clearInterval(timerRef.current); setPhase("vote"); return 0; }
-          return t - 1;
-        });
-      }, 1000);
-    }
+    setTimeLeft(config.discussionTime);
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) { clearInterval(timerRef.current); setPhase("vote"); return 0; }
+        return t - 1;
+      });
+    }, 1000);
   };
 
   useEffect(() => () => clearInterval(timerRef.current), []);
@@ -143,8 +162,11 @@ export function LocalGame() {
           <Toggle label={config.hintsEnabled ? "Pistas al impostor activas" : "Sin pistas"} value={config.hintsEnabled} onChange={v => setConfig(c => ({ ...c, hintsEnabled: v }))} />
         </div>
         <div style={S.card}>
-          <span style={S.label}>Tiempo para pistas: {config.clueTime === 0 ? "Sin límite" : `${config.clueTime}s`}</span>
-          <input type="range" min="0" max="180" step="15" value={config.clueTime} onChange={e => setConfig(c => ({ ...c, clueTime: +e.target.value }))} style={{ width: "100%" }} />
+          <Toggle label={config.writtenClues ? "Pistas escritas (se repasan al votar)" : "Pistas dichas en voz alta"} value={config.writtenClues} onChange={v => setConfig(c => ({ ...c, writtenClues: v }))} />
+        </div>
+        <div style={S.card}>
+          <span style={S.label}>Tiempo de discusión: {config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}</span>
+          <input type="range" min="0" max="180" step="15" value={config.discussionTime} onChange={e => setConfig(c => ({ ...c, discussionTime: +e.target.value }))} style={{ width: "100%" }} />
         </div>
         <div style={S.card}>
           <span style={S.label}>Categorías</span>
@@ -174,6 +196,15 @@ export function LocalGame() {
     const player = players[revealIdx];
     const isImpostor = round.impostors.includes(player.id);
     const isLast = revealIdx === players.length - 1;
+    const needsClue = config.writtenClues && !clueInput.trim();
+
+    const advance = () => {
+      if (config.writtenClues) setClues(c => ({ ...c, [player.id]: clueInput.trim() }));
+      setWordVisible(false);
+      setClueInput("");
+      if (isLast) goToDiscussion(); else setRevealIdx(i => i + 1);
+    };
+
     return (
       <div>
         <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Jugador {revealIdx + 1} de {players.length}</p>
@@ -202,30 +233,38 @@ export function LocalGame() {
             </>
           )}
         </div>
-        <Btn onClick={() => { setWordVisible(false); if (isLast) goToDiscussion(); else setRevealIdx(i => i + 1); }}>
+        {config.writtenClues && wordVisible && (
+          <div style={S.card}>
+            <span style={S.label}>Tu pista</span>
+            <input style={S.input} placeholder="Escribí tu pista antes de pasar el dispositivo..." value={clueInput} onChange={e => setClueInput(e.target.value)} />
+          </div>
+        )}
+        <Btn onClick={advance} disabled={!wordVisible || needsClue}>
           {isLast ? "Todos listos, empezar" : "Siguiente jugador"}
         </Btn>
       </div>
     );
   }
 
-  // ── DISCUSSION (todos dicen su pista en voz alta) ──
+  // ── DISCUSSION ──
   if (phase === "discussion") return (
     <div>
       <div style={{ ...S.cardHighlight, textAlign: "center" }}>
         <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Categoría de esta ronda</p>
         <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{round.categoryLabel}</p>
       </div>
-      {config.clueTime > 0 && <div style={S.card}>
+      <div style={S.card}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo restante</span>
           <span style={{ fontSize: 20, fontWeight: 800, color: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5" }}>{timeLeft}s</span>
         </div>
         <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
-          <div style={{ height: "100%", borderRadius: 3, width: `${Math.round((timeLeft / config.clueTime) * 100)}%`, background: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5", transition: "width 1s, background 0.5s" }} />
+          <div style={{ height: "100%", borderRadius: 3, width: `${Math.round((timeLeft / config.discussionTime) * 100)}%`, background: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5", transition: "width 1s, background 0.5s" }} />
         </div>
-      </div>}
-      <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Cada uno dice su pista en voz alta. Cuando terminen, pasen a la votación.</p>
+      </div>
+      {config.writtenClues
+        ? <CluesReview clues={clues} players={players} />
+        : <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Repasen entre todos lo que dijo cada uno antes de votar.</p>}
       <Btn variant="secondary" onClick={() => { clearInterval(timerRef.current); setPhase("vote"); }}>Ir a votación</Btn>
     </div>
   );
@@ -233,6 +272,7 @@ export function LocalGame() {
   // ── VOTE ──
   if (phase === "vote") return (
     <div>
+      <CluesReview clues={clues} players={players} />
       {players.map(voter => {
         const confirmed = votes[voter.id] != null;
         const pending = selection[voter.id];

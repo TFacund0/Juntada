@@ -44,7 +44,7 @@ export default function App() {
         {/* ── Paso 1: elegir juego ── */}
         {!gameId && (
           <div>
-            {GAME_LIST.map(g => (
+            {[...GAME_LIST].sort((a, b) => (a.comingSoon ? 1 : 0) - (b.comingSoon ? 1 : 0)).map(g => (
               <div key={g.id} style={{ ...S.card, cursor: "pointer" }} onClick={() => pickGame(g.id)}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>{g.icon}</div>
                 <p style={{ fontWeight: 800, fontSize: 18, margin: "0 0 6px" }}>
@@ -60,8 +60,11 @@ export default function App() {
         {/* ── Juego todavía no jugable: placeholder directo, sin pedir modo ── */}
         {gameId && game.comingSoon && !mode && <game.LocalGame />}
 
-        {/* ── Paso 2: elegir modo (solo si el juego ya está implementado) ── */}
-        {gameId && !mode && !game.comingSoon && (
+        {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}
+        {gameId && game.localOnly && !game.comingSoon && !mode && <game.LocalGame />}
+
+        {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
+        {gameId && !mode && !game.comingSoon && !game.localOnly && (
           <div>
             <div style={{ ...S.card, cursor: "pointer", transition: "border 0.15s" }} onClick={() => setMode("multi")}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🌐</div>

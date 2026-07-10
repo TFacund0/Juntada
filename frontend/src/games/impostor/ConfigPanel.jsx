@@ -31,9 +31,16 @@ export function ConfigPanel({ room, updateConfig }) {
         <div style={{ marginBottom: 14 }}>
           <Toggle label={room.config.hintsEnabled ? "Pistas al impostor" : "Sin pistas"} value={room.config.hintsEnabled} onChange={v => updateConfig({ hintsEnabled: v })} />
         </div>
-        <div>
+        <div style={{ marginBottom: 14 }}>
+          <Toggle label={room.config.writtenClues ? "Pistas escritas (se ven al votar)" : "Pistas dichas en voz alta"} value={room.config.writtenClues} onChange={v => updateConfig({ writtenClues: v })} />
+        </div>
+        <div style={{ marginBottom: 14 }}>
           <span style={S.label}>Tiempo de pistas: {room.config.clueTime === 0 ? "Sin límite" : `${room.config.clueTime}s`}</span>
           <input type="range" min="0" max="180" step="15" value={room.config.clueTime} onChange={e => updateConfig({ clueTime: +e.target.value })} style={{ width: "100%" }} />
+        </div>
+        <div>
+          <span style={S.label}>Tiempo de discusión: {room.config.discussionTime === 0 ? "Sin fase de discusión" : `${room.config.discussionTime}s`}</span>
+          <input type="range" min="0" max="180" step="15" value={room.config.discussionTime} onChange={e => updateConfig({ discussionTime: +e.target.value })} style={{ width: "100%" }} />
         </div>
       </>}
 

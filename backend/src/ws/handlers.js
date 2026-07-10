@@ -14,19 +14,34 @@ function stopTimer(roomCode) {
   if (t) { clearTimeout(t); timers.delete(roomCode); }
 }
 
-function startTimer(roomCode) {
-  stopTimer(roomCode); // a stale timer (e.g. from before a word reroll) must not fire early
-  const room = rooms.get(roomCode);
-  if (!room?.round?.timerEnd) return;
-  const delay = room.round.timerEnd - Date.now();
+// Re-derives whatever timer the room's current phase needs (if any) from the
+// engine and (re)schedules it, replacing any previous one. Safe to call after
+// every state-mutating action — cheap, and idempotent when nothing changed.
+// When the scheduled timer fires, it's as if every online player pressed
+// "ready": the engine decides where that leads, we just broadcast the result
+// and immediately re-sync in case that opened up a next phase's timer.
+function syncPhaseTimer(room) {
+  stopTimer(room.code);
+  const engine = getEngine(room.gameType);
+  const endsAt = engine.getPhaseTimerEnd?.(room);
+  if (!endsAt) return;
+
+  const expectedPhase = room.phase;
+  const delay = endsAt - Date.now();
   if (delay <= 0) return;
+
   const t = setTimeout(() => {
-    const r = rooms.get(roomCode);
-    if (!r || r.phase !== "round") return;
-    r.phase = "voting";
-    broadcastState(r);
+    const r = rooms.get(room.code);
+    if (!r || r.phase !== expectedPhase) return;
+    const eng = getEngine(r.gameType);
+    eng.forceReadyAndAdvance?.(r);
+    broadcastToRoom(r, (ws2, i2) => {
+      sendTo(ws2, { type: "state", room: getRoomPublicState(r) });
+    });
+    if (r.phase === "result") broadcastRoundReveal(r);
+    syncPhaseTimer(r);
   }, delay);
-  timers.set(roomCode, t);
+  timers.set(room.code, t);
 }
 
 function broadcastToRoom(room, message) {
@@ -80,7 +95,7 @@ function startRoundHandler(ws, msg, info) {
     sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
     sendPrivateInfo(ws2, room, i2.playerId);
   });
-  if (room.round.timerEnd) startTimer(room.code);
+  syncPhaseTimer(room);
 }
 
 // Generic entry point for any in-round player action (clue, ready, vote,
@@ -97,7 +112,6 @@ function gameAction(actionType) {
     if (!result?.handled) { sendTo(ws, { type: "error", message: "Esa acción no es válida ahora" }); return; }
 
     if (result.rerolled) {
-      if (room.round?.timerEnd) startTimer(room.code);
       broadcastToRoom(room, (ws2, i2) => {
         sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
         sendPrivateInfo(ws2, room, i2.playerId);
@@ -106,12 +120,14 @@ function gameAction(actionType) {
       broadcastState(room);
     }
     if (room.phase === "result") broadcastRoundReveal(room);
+    syncPhaseTimer(room);
   };
 }
 
 function backToLobby(ws, msg, info) {
   const room = rooms.get(info.roomCode);
   if (!room || room.hostId !== info.playerId) return;
+  stopTimer(room.code);
   room.phase = "lobby";
   room.round = null;
   room.players.forEach(p => { p.ready = false; });
@@ -144,6 +160,7 @@ function handleDisconnect(ws) {
       roomService.markOffline(room, info.playerId);
       broadcastState(room);
       if (room.phase === "result") broadcastRoundReveal(room);
+      if (room.round) syncPhaseTimer(room);
       if (roomService.isRoomFullyOffline(room)) roomService.scheduleRoomCleanup(room.code);
     }
   }
@@ -161,6 +178,7 @@ const HANDLERS = {
   player_ready: gameAction("player_ready"),
   vote: gameAction("vote"),
   skip_word: gameAction("skip_word"),
+  report_result: gameAction("report_result"),
   back_to_lobby: backToLobby,
   kick_player: kickPlayer,
   ping: (ws) => ping(ws),
