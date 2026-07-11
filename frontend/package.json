@@ -11,6 +11,7 @@
   "dependencies": {
     "@juntada/impostor-data": "workspace:*",
     "@juntada/sintonia-data": "workspace:*",
+    "@juntada/tutifruti-data": "workspace:*",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

@@ -138,9 +138,12 @@ export function MultiplayerGame({ gameId, initialJoinCode }) {
         {room.players.length < (activeGame?.minPlayers ?? 3) && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>}
       </>}
 
-      {!isHost && <div style={{ ...S.card, textAlign: "center" }}>
-        <p style={{ fontSize: 15, color: "#9089c0" }}>Esperando que el anfitrión inicie la partida</p>
-      </div>}
+      {!isHost && <>
+        {activeGame?.LobbyInfo && <Suspense fallback={null}><activeGame.LobbyInfo room={room} /></Suspense>}
+        <div style={{ ...S.card, textAlign: "center" }}>
+          <p style={{ fontSize: 15, color: "#9089c0" }}>Esperando que el anfitrión inicie la partida</p>
+        </div>
+      </>}
 
       {error && <p style={{ color: "#F09595", fontSize: 13, textAlign: "center" }}>{error}</p>}
     </div>

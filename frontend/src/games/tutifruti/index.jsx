@@ -1,22 +1,29 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { LocalGame } from "./LocalGame";
+import { ConfigPanel } from "./ConfigPanel";
+import { RoundView } from "./RoundView";
+import { LobbyInfo } from "./LobbyInfo";
 
 // Tutifrutti / Stop / Basta: se sortea una letra y todos completan a
-// contrarreloj una lista de categorías (país, animal, color, ...) con una
-// palabra que empiece con esa letra. Puntúan las respuestas válidas y no
-// repetidas entre jugadores. Menu entry only for now — see ComingSoon.
+// contrarreloj (o hasta que alguien grite "¡Basta!") una lista de categorías
+// (país, animal, color, ...) con una palabra que empiece con esa letra. Luego
+// entre todos marcan qué respuestas son válidas antes de sumar puntos.
 export const tutifrutiGame = {
   id: "tutifruti",
   label: "Tutifrutti",
   icon: "🍉",
   description: "Sale una letra al azar y todos completan categorías (país, animal, color...) con una palabra que empiece con esa letra, contrarreloj.",
   minPlayers: 2,
-  comingSoon: true,
   rules: [
-    "Se sortea una letra al azar.",
-    "Todos completan, a contrarreloj, una lista de categorías (país, animal, color, comida, etc.) con una palabra que empiece con esa letra.",
-    "Al terminar el tiempo, se comparan las respuestas: puntúan las válidas, y valen más las que nadie más puso igual.",
+    "Se sortea una letra al azar; el anfitrión puede cambiarla antes de arrancar.",
+    "Todos completan, a contrarreloj (o hasta que alguien grite \"¡Basta!\"), una lista de categorías con una palabra que empiece con esa letra.",
+    "Al terminar, entre todos marcan con tilde o cruz cada respuesta de los demás.",
+    "- Una palabra válida y no repetida vale 10 puntos.",
+    "- Una palabra repetida con otro jugador vale la mitad.",
+    "- Una palabra con más cruces que tildes no suma puntos.",
+    "Se juegan varias rondas (las que configure el anfitrión) y gana quien más puntos acumule.",
   ],
-  LocalGame: () => <ComingSoon label="Tutifrutti" />,
-  ConfigPanel: () => <ComingSoon label="Tutifrutti" />,
-  RoundView: () => <ComingSoon label="Tutifrutti" />,
+  LocalGame,
+  ConfigPanel,
+  RoundView,
+  LobbyInfo,
 };

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
+import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TORNEO FIFA — vista compartida del bracket en modo online. Todos los que
@@ -20,6 +21,11 @@ export function RoundView({ room, myPlayer, isHost, send }) {
   const champion = room.phase === "champion" ? rounds[rounds.length - 1][0].winner : null;
   const [editingMatch, setEditingMatch] = useState(null);
   const [scoreInput, setScoreInput] = useState({ goalsA: "", goalsB: "" });
+  // No dedicated tournament counter — total reported matches ticks up as the
+  // bracket fills and resets to 0 for a fresh tournament, which is enough to
+  // restart the countdown once per championship.
+  const matchesReported = rounds.reduce((sum, r) => sum + r.filter(m => m.goalsA != null || m.winner).length, 0);
+  const revealCount = useRevealCountdown(matchesReported);
 
   const openMatch = (roundIdx, matchIdx) => {
     setEditingMatch({ roundIdx, matchIdx });
@@ -54,6 +60,7 @@ export function RoundView({ room, myPlayer, isHost, send }) {
 
   // ── CHAMPION ──
   if (room.phase === "champion" && champion) {
+    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando al campeón..." />;
     const s = stats().sort((a, b) => b.goalsFor - a.goalsFor);
     const topScorer = trackGoals && s.length ? s[0] : null;
     const leakiest = trackGoals && s.length ? [...s].sort((a, b) => b.goalsAgainst - a.goalsAgainst)[0] : null;

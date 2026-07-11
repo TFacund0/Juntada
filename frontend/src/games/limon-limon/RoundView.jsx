@@ -4,6 +4,7 @@ import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { CardView } from "./CardView";
 import { getDescription } from "./deck";
+import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 
 function TurnOrder({ players, order, turnId }) {
   const ordered = order.map(id => players.find(p => p.id === id)).filter(Boolean);
@@ -57,6 +58,9 @@ function Ranking({ players, pileCounts }) {
 export function RoundView({ room, me, isHost, send }) {
   const [showRanking, setShowRanking] = useState(false);
   const round = room.round;
+  // No standalone match counter on this engine — the pile distribution is a
+  // stable stand-in: it only changes once a new deck starts.
+  const revealCount = useRevealCountdown(round ? JSON.stringify(round.pileCounts) : "");
   if (!round) return null;
 
   const turnPlayer = room.players.find(p => p.id === round.turnId);
@@ -130,6 +134,7 @@ export function RoundView({ room, me, isHost, send }) {
   }
 
   if (room.phase === "result") {
+    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando la tabla final..." />;
     return (
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>

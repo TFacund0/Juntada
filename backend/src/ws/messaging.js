@@ -54,7 +54,7 @@ function broadcastState(room) {
 
 function broadcastRoundReveal(room) {
   const engine = getEngine(room.gameType);
-  const message = engine?.getRevealMessage(room);
+  const message = engine?.getRevealMessage?.(room);
   if (message) broadcast(room.code, message);
 }
 

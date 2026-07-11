@@ -3,6 +3,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
+import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 
 function PlayerReadyPills({ players }) {
   return (
@@ -43,6 +44,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   const [clueSubmitted, setClueSubmitted] = useState(false);
   const [selectedSuspect, setSelectedSuspect] = useState(null);
   const [voteConfirmed, setVoteConfirmed] = useState(false);
+  const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
   // A fresh private_role arrives on round start AND on a word reroll — either
   // way it's a new word, so re-hide it and clear per-round local UI state.
@@ -225,6 +227,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const wasImpostor = round?.wasImpostor ?? lastH?.wasImpostor;
     const impostors = round ? room.players.filter(p => round.impostors?.includes(p.id)) : [];
     const tally = round?.votes || lastH?.tally || {};
+
+    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando al impostor..." />;
 
     return (
       <div>

@@ -3,6 +3,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { Dial } from "./Dial";
+import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 
 function Scoreboard({ players, score }) {
   const ranked = players
@@ -34,6 +35,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   const [setupSpectrumMode, setSetupSpectrumMode] = useState("random");
   const [setupManualLeft, setSetupManualLeft] = useState("");
   const [setupManualRight, setSetupManualRight] = useState("");
+  const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
   // A fresh private_role arrives every round (new psychic/target) — reset
   // this round's local input state.
@@ -227,6 +229,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const markers = room.players
       .filter(p => p.id !== round.psychicId && guesses[p.id] != null)
       .map(p => ({ value: guesses[p.id], label: p.name.trim()[0]?.toUpperCase() }));
+
+    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando el objetivo..." />;
+
     return (
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>
