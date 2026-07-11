@@ -73,13 +73,27 @@ function updateConfig(room, patch) {
   Object.assign(room.config, patch);
 }
 
+// If the player leaving/going offline was the host, hand the room off to
+// someone still around rather than leaving it stuck with a host who's gone
+// and nobody able to configure/start rounds or kick. Prefers another online
+// player; only reaches for an offline one if literally everybody else is
+// offline too (about to be cleaned up anyway).
+function reassignHostIfNeeded(room, leavingId) {
+  if (room.hostId !== leavingId) return;
+  const candidate = room.players.find(p => p.id !== leavingId && p.online)
+    || room.players.find(p => p.id !== leavingId);
+  if (candidate) room.hostId = candidate.id;
+}
+
 function kickPlayer(room, targetId) {
   room.players = room.players.filter(p => p.id !== targetId);
+  reassignHostIfNeeded(room, targetId);
 }
 
 function markOffline(room, playerId) {
   const p = room.players.find(p => p.id === playerId);
   if (p) p.online = false;
+  reassignHostIfNeeded(room, playerId);
   const engine = getEngine(room.gameType);
   engine?.maybeAdvance(room);
 }

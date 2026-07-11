@@ -1,4 +1,9 @@
-import { LocalGame } from "./LocalGame";
+import { lazy } from "react";
+
+// Dynamic import() creates its own chunk even though this metadata object is
+// imported eagerly by the registry — this keeps every game's actual code out
+// of the initial bundle until the player picks that game (see registry.js).
+const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
 
 // A configurable spinner: the group loads whatever options they want
 // ("quién arranca", "qué comemos", prendas/consecuencias con descripción, etc.)

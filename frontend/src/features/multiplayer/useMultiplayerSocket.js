@@ -46,6 +46,10 @@ export function useMultiplayerSocket() {
   const [myRole, setMyRole] = useState(null); // { isImpostor, word, hint }
   const [wordReveal, setWordReveal] = useState(null);
   const [error, setError] = useState("");
+  // True while a dropped socket is being retried in the background (flaky
+  // connection, tab was suspended, etc.) — lets the UI show a "reconectando"
+  // banner instead of silently retrying with no feedback.
+  const [reconnecting, setReconnecting] = useState(false);
   const wsRef = useRef(null);
   const reconnectRef = useRef(null);
   const meRef = useRef(me);
@@ -70,10 +74,12 @@ export function useMultiplayerSocket() {
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
         setError("");
+        setReconnecting(false);
       } else if (msg.type === "state") {
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
         setError("");
+        setReconnecting(false);
       } else if (msg.type === "private_role") {
         setMyRole(msg);
         setWordReveal(null);
@@ -95,9 +101,11 @@ export function useMultiplayerSocket() {
         setConnectionPhase("menu");
         setMe(null); setRoom(null); setMyRole(null);
         setError("Fuiste expulsado de la sala");
+        setReconnecting(false);
       }
     };
     ws.onclose = () => {
+      if (meRef.current) setReconnecting(true);
       reconnectRef.current = setTimeout(() => {
         if (meRef.current) connect();
       }, 3000);
@@ -153,11 +161,13 @@ export function useMultiplayerSocket() {
     setRoom(null);
     setMyRole(null);
     setConnectionPhase("menu");
+    setReconnecting(false);
   }, []);
 
   return {
     connectionPhase, setConnectionPhase,
     me, room, myRole, wordReveal, error, setError,
+    reconnecting,
     connect, send, leave,
   };
 }

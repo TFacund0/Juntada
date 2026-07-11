@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { S } from "./theme/styles";
 import { GAME_LIST, getGame } from "./games/registry";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
@@ -17,6 +17,10 @@ import logo from "./assets/brand/logo.png";
 // Remembers which game/mode was active so a mobile browser fully discarding
 // the page while backgrounded (not just dropping the socket) still comes
 // back to the same online room instead of the game picker.
+function GameLoading() {
+  return <p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>;
+}
+
 const ACTIVE_KEY = "impostorgame:active";
 function loadActive() {
   try { return JSON.parse(sessionStorage.getItem(ACTIVE_KEY)); } catch { return null; }
@@ -71,7 +75,6 @@ export default function App() {
 
   return (
     <div style={S.app}>
-      <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
       <div style={S.wrap}>
         <div style={S.header}>
           {(gameId || mode) && (
@@ -125,10 +128,10 @@ export default function App() {
         )}
 
         {/* ── Juego todavía no jugable: placeholder directo, sin pedir modo ── */}
-        {gameId && game.comingSoon && !mode && <game.LocalGame />}
+        {gameId && game.comingSoon && !mode && <Suspense fallback={<GameLoading />}><game.LocalGame /></Suspense>}
 
         {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}
-        {gameId && game.localOnly && !game.comingSoon && !mode && <game.LocalGame />}
+        {gameId && game.localOnly && !game.comingSoon && !mode && <Suspense fallback={<GameLoading />}><game.LocalGame /></Suspense>}
 
         {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
         {gameId && !mode && !game.comingSoon && !game.localOnly && (
@@ -147,7 +150,7 @@ export default function App() {
         )}
 
         {/* ── Paso 3: jugar ── */}
-        {mode === "local" && <game.LocalGame />}
+        {mode === "local" && <Suspense fallback={<GameLoading />}><game.LocalGame /></Suspense>}
         {mode === "multi" && <MultiplayerGame gameId={gameId} initialJoinCode={validJoinLink?.code} />}
       </div>
 

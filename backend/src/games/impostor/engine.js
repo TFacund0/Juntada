@@ -13,6 +13,10 @@ const { shuffle } = require("../../utils/shuffle");
 const { timers } = require("../../state/roomStore");
 
 const MIN_PLAYERS = 3;
+// A tie at the top keeps re-voting among just the tied suspects rather than
+// eliminating one at random — but cap it so a stubborn 1-1 tie between two
+// players (who can just keep voting for each other) doesn't loop forever.
+const MAX_REVOTES = 2;
 
 function createConfig() {
   return {
@@ -22,6 +26,7 @@ function createConfig() {
     clueTime: 90,       // seconds, 0 = unlimited
     writtenClues: false, // require typing the clue instead of just saying it out loud
     discussionTime: 30, // seconds, 0 = skip the discussion phase entirely
+    discussionUnlimited: false, // discussion phase happens but with no timer/auto-advance — players mark ready manually
   };
 }
 
@@ -79,6 +84,8 @@ function startRound(room) {
     revealed: false,
     timerEnd,
     discussionEnd: null,
+    revoteCandidates: null, // set of tied playerIds when a vote must be repeated
+    revoteCount: 0,
   };
   room.phase = "round";
   room.players.forEach(p => { p.ready = false; });
@@ -121,6 +128,18 @@ function tallyVotes(room) {
   Object.values(room.round.votes).forEach(id => { tally[id] = (tally[id] || 0) + 1; });
   const maxVotes = Math.max(...Object.values(tally));
   const topVoted = Object.entries(tally).filter(([, v]) => v === maxVotes).map(([id]) => id);
+
+  // Tie at the top: repeat the vote among just the tied suspects instead of
+  // eliminating one at random, up to MAX_REVOTES times.
+  if (topVoted.length > 1 && maxVotes > 0 && room.round.revoteCount < MAX_REVOTES) {
+    room.round.revoteCandidates = topVoted;
+    room.round.revoteCount += 1;
+    room.round.votes = {};
+    room.round.tally = tally;
+    room.phase = "voting";
+    return;
+  }
+
   const eliminatedId = topVoted[Math.floor(Math.random() * topVoted.length)];
   const wasImpostor = room.round.impostors.includes(eliminatedId);
   room.round.eliminated = eliminatedId;
@@ -147,13 +166,15 @@ function enterVoting(room) {
 function enterDiscussionOrVoting(room) {
   stopRoomTimer(room); // clear the round's clue-timer, we're leaving that phase
   const discussionTime = Number.isFinite(room.config.discussionTime) ? room.config.discussionTime : 0;
-  if (discussionTime > 0) {
-    room.phase = "discussion";
-    room.round.discussionEnd = Date.now() + discussionTime * 1000;
-    room.players.forEach(p => { p.ready = false; });
-  } else {
-    enterVoting(room);
-  }
+  const unlimited = !!room.config.discussionUnlimited;
+  // discussionTime === 0 without "unlimited" means the host chose to skip
+  // the discussion phase entirely, straight to voting. With "unlimited" on,
+  // the phase still happens but nothing forces it to end — same as clueTime
+  // === 0 already does for the round phase — players advance by hand.
+  if (discussionTime <= 0 && !unlimited) { enterVoting(room); return; }
+  room.phase = "discussion";
+  room.round.discussionEnd = unlimited ? null : Date.now() + discussionTime * 1000;
+  room.players.forEach(p => { p.ready = false; });
 }
 
 // Re-checks whether the round/discussion/voting phase can advance now that a
@@ -205,8 +226,11 @@ function handleAction(room, playerId, action, payload) {
 
     case "vote": {
       if (room.phase !== "voting") return { handled: false };
-      const suspectExists = room.players.some(p => p.id === payload.suspectId);
-      if (!suspectExists) return { handled: false };
+      const { revoteCandidates } = room.round;
+      const eligible = revoteCandidates
+        ? room.players.some(p => p.id === payload.suspectId && revoteCandidates.includes(p.id))
+        : room.players.some(p => p.id === payload.suspectId);
+      if (!eligible) return { handled: false };
       room.round.votes[playerId] = payload.suspectId;
       maybeAdvance(room);
       return { handled: true };
@@ -244,6 +268,8 @@ function getPublicRoundView(room) {
     impostors: room.round.revealed ? room.round.impostors : undefined,
     skipVotes: activeSkipVotes(room).length,
     skipVotesNeeded: skipThreshold(room),
+    revoteCandidates: room.round.revoteCandidates,
+    revoteCount: room.round.revoteCount,
   };
 }
 
