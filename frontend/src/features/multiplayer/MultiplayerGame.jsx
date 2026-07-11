@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { CodeDisplay } from "../../components/CodeDisplay";
+import { QRDialog } from "../../components/QRDialog";
 import { getGame } from "../../games/registry";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
+import { buildJoinUrl } from "./joinLink";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — sala, lobby y jugadores son genéricos acá.
@@ -13,16 +15,26 @@ import { useMultiplayerSocket } from "./useMultiplayerSocket";
 // registrado en games/registry.js vía room.gameType.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function MultiplayerGame({ gameId }) {
+export function MultiplayerGame({ gameId, initialJoinCode }) {
   const {
     connectionPhase, setConnectionPhase,
-    me, room, myRole, wordReveal, error, setError,
+    me, room, myRole, wordReveal, error, setError, reconnecting,
     connect, send,
   } = useMultiplayerSocket();
 
   const [playerName, setPlayerName] = useState("");
   const [roomName, setRoomName] = useState("");
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
+  const [showQR, setShowQR] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [showInviteQR, setShowInviteQR] = useState(false);
+
+  // Scanned a "join this room" QR — skip straight to the join form with the
+  // code already filled in, they just need to type their name.
+  useEffect(() => {
+    if (initialJoinCode && connectionPhase === "menu") setConnectionPhase("join");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isHost = me && room && room.hostId === me.playerId;
   const myPlayer = room?.players?.find(p => p.id === me?.playerId);
@@ -49,9 +61,20 @@ export function MultiplayerGame({ gameId }) {
     send({ type: "update_config", config: { ...room.config, ...patch } });
   };
 
+  // Shown across every phase — a dropped connection doesn't lose your spot
+  // in the room (see useMultiplayerSocket's session persistence), but on a
+  // flaky connection the silent retry loop needs to be visible, or it just
+  // looks frozen.
+  const reconnectBanner = reconnecting && (
+    <div style={{ background: "rgba(226,196,74,0.1)", border: "1px solid rgba(226,196,74,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: "#E2C44A", fontSize: 13, textAlign: "center" }}>
+      Reconectando...
+    </div>
+  );
+
   // ── MENU ──
   if (connectionPhase === "menu" || connectionPhase === "create" || connectionPhase === "join") return (
     <div>
+      {reconnectBanner}
       {error && <div style={{ background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: "#F09595", fontSize: 13 }}>{error}</div>}
       <div style={S.card}>
         <span style={S.label}>Tu nombre</span>
@@ -78,7 +101,23 @@ export function MultiplayerGame({ gameId }) {
   // ── LOBBY ──
   if (connectionPhase === "lobby" && room) return (
     <div>
+      {reconnectBanner}
+      {room.name && <p style={{ textAlign: "center", fontSize: 18, fontWeight: 800, color: "#AFA9EC", margin: "0 0 12px" }}>{room.name}</p>}
       <CodeDisplay code={room.code} />
+      <button
+        onClick={() => setShowQR(true)}
+        style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}
+      >
+        📱 Invitar con QR
+      </button>
+      {showQR && (
+        <QRDialog
+          title="Escaneá para unirte"
+          subtitle={`${room.name ? room.name + " · " : ""}Sala ${room.code} · ${activeGame?.label ?? ""}`}
+          value={buildJoinUrl(room.gameType, room.code)}
+          onClose={() => setShowQR(false)}
+        />
+      )}
       {activeGame && <p style={{ ...S.muted, textAlign: "center", margin: "10px 0 0" }}>{activeGame.label}</p>}
       <div style={{ ...S.card, marginTop: 14 }}>
         <span style={S.label}>{room.players.length} jugadores</span>
@@ -94,7 +133,7 @@ export function MultiplayerGame({ gameId }) {
       </div>
 
       {isHost && <>
-        {activeGame && <activeGame.ConfigPanel room={room} updateConfig={updateConfig} />}
+        {activeGame && <Suspense fallback={null}><activeGame.ConfigPanel room={room} updateConfig={updateConfig} /></Suspense>}
         <Btn variant="success" disabled={room.players.length < (activeGame?.minPlayers ?? 3)} onClick={() => send({ type: "start_round" })}>Iniciar ronda</Btn>
         {room.players.length < (activeGame?.minPlayers ?? 3) && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>}
       </>}
@@ -116,8 +155,47 @@ export function MultiplayerGame({ gameId }) {
   if (!["menu", "create", "join", "lobby"].includes(connectionPhase) && room && activeGame) {
     return (
       <div>
+        {reconnectBanner}
         {error && <div style={{ background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, color: "#F09595", fontSize: 13 }}>{error}</div>}
-        <activeGame.RoundView room={room} me={me} myPlayer={myPlayer} myRole={myRole} wordReveal={wordReveal} isHost={isHost} send={send} />
+
+        {/* Only once the round is fully resolved (nobody mid-vote) — joining
+            is blocked until the room's back in the lobby anyway, and showing
+            this earlier just invites confusion about when it actually works. */}
+        {connectionPhase === "result" && (
+          <div style={{ textAlign: "center", marginBottom: 14 }}>
+            <button
+              onClick={() => setShowInvite(v => !v)}
+              style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}
+            >
+              {showInvite ? "Ocultar código de sala ▲" : "Invitar a alguien más ▼"}
+            </button>
+            {showInvite && (
+              <div style={{ marginTop: 10 }}>
+                {room.name && <p style={{ fontSize: 15, fontWeight: 800, color: "#AFA9EC", margin: "0 0 8px" }}>{room.name}</p>}
+                <CodeDisplay code={room.code} />
+                <button
+                  onClick={() => setShowInviteQR(true)}
+                  style={{ display: "block", margin: "10px auto 0", background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}
+                >
+                  📱 Invitar con QR
+                </button>
+                <p style={{ ...S.muted, marginTop: 8 }}>Van a poder unirse cuando vuelvan al lobby o arranquen la próxima ronda</p>
+              </div>
+            )}
+          </div>
+        )}
+        {showInviteQR && (
+          <QRDialog
+            title="Escaneá para unirte"
+            subtitle={`${room.name ? room.name + " · " : ""}Sala ${room.code} · ${activeGame.label}`}
+            value={buildJoinUrl(room.gameType, room.code)}
+            onClose={() => setShowInviteQR(false)}
+          />
+        )}
+
+        <Suspense fallback={<p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>}>
+          <activeGame.RoundView room={room} me={me} myPlayer={myPlayer} myRole={myRole} wordReveal={wordReveal} isHost={isHost} send={send} />
+        </Suspense>
       </div>
     );
   }

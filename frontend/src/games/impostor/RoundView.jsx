@@ -55,6 +55,13 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     setVoteConfirmed(false);
   }, [myRole]);
 
+  // A tie triggers a fresh vote among just the tied suspects — clear the
+  // previous selection/confirmation so nobody's stuck showing a stale vote.
+  useEffect(() => {
+    setSelectedSuspect(null);
+    setVoteConfirmed(false);
+  }, [room.round?.revoteCount]);
+
   if (room.phase === "round") {
     const myReadyState = myPlayer?.ready;
     const requiresWrittenClue = room.config.writtenClues;
@@ -141,7 +148,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <p style={{ fontSize: 12, color: "#7F77DD" }}>Analicen las pistas antes de votar</p>
         </div>
 
-        {room.round?.discussionEnd && <Timer timerEnd={room.round.discussionEnd} total={room.config.discussionTime} />}
+        {room.round?.discussionEnd
+          ? <Timer timerEnd={room.round.discussionEnd} total={room.config.discussionTime} />
+          : <p style={{ ...S.muted, textAlign: "center" }}>Sin límite de tiempo — avancen cuando estén listos</p>}
 
         <CluesReview clues={room.round?.clues} players={room.players} />
 
@@ -155,7 +164,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
   if (room.phase === "voting") {
     const totalVoted = room.players.filter(p => p.hasVoted).length;
-    const suspects = room.players.filter(p => p.id !== me.playerId);
+    const revoteCandidates = room.round?.revoteCandidates;
+    const isRevote = !!revoteCandidates;
+    const suspects = room.players.filter(p => p.id !== me.playerId && (!revoteCandidates || revoteCandidates.includes(p.id)));
 
     const confirmVote = () => {
       if (!selectedSuspect) return;
@@ -169,6 +180,13 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
           <p style={{ fontSize: 12, color: "#7F77DD" }}>{totalVoted}/{room.players.length} confirmaron su voto</p>
         </div>
+
+        {isRevote && (
+          <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
+            <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>Hubo un empate</p>
+            <p style={{ fontSize: 13, color: "#b8b0d4", marginTop: 4 }}>Se vota de nuevo solo entre los más votados</p>
+          </div>
+        )}
 
         <CluesReview clues={room.round?.clues} players={room.players} />
 

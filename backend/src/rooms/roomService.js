@@ -45,7 +45,7 @@ function isNameTaken(room, name) {
 function joinRoom(ws, { code, playerName }) {
   const room = rooms.get(code?.toUpperCase());
   if (!room) return { error: "No existe ninguna sala con ese código" };
-  if (room.phase !== "lobby" && room.phase !== "round") return { error: "La partida ya comenzó" };
+  if (room.phase !== "lobby") return { error: "La partida ya empezó, esperá a que termine la ronda para unirte" };
   const engine = getEngine(room.gameType);
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
   if (room.players.length >= maxPlayers) return { error: "La sala está llena" };
@@ -73,13 +73,27 @@ function updateConfig(room, patch) {
   Object.assign(room.config, patch);
 }
 
+// If the player leaving/going offline was the host, hand the room off to
+// someone still around rather than leaving it stuck with a host who's gone
+// and nobody able to configure/start rounds or kick. Prefers another online
+// player; only reaches for an offline one if literally everybody else is
+// offline too (about to be cleaned up anyway).
+function reassignHostIfNeeded(room, leavingId) {
+  if (room.hostId !== leavingId) return;
+  const candidate = room.players.find(p => p.id !== leavingId && p.online)
+    || room.players.find(p => p.id !== leavingId);
+  if (candidate) room.hostId = candidate.id;
+}
+
 function kickPlayer(room, targetId) {
   room.players = room.players.filter(p => p.id !== targetId);
+  reassignHostIfNeeded(room, targetId);
 }
 
 function markOffline(room, playerId) {
   const p = room.players.find(p => p.id === playerId);
   if (p) p.online = false;
+  reassignHostIfNeeded(room, playerId);
   const engine = getEngine(room.gameType);
   engine?.maybeAdvance(room);
 }

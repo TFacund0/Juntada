@@ -10,6 +10,12 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Discovered by the browser immediately (not after JS parses/mounts,
+         like the old in-component <link> was), so the cross-origin font
+         connection/fetch overlaps the JS download instead of trailing it. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
     <title>Juntada</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }

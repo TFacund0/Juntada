@@ -1,6 +1,11 @@
-import { LocalGame } from "./LocalGame";
-import { ConfigPanel } from "./ConfigPanel";
-import { RoundView } from "./RoundView";
+import { lazy } from "react";
+
+// Dynamic import() creates its own chunk even though this metadata object is
+// imported eagerly by the registry — this keeps every game's actual code out
+// of the initial bundle until the player picks that game (see registry.js).
+const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
+const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
 
 // Card-based game with a Spanish ("truco") deck: in a circle with the deck in
 // the middle, players reveal cards one by one in turn order and the group

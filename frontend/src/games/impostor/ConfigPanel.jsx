@@ -38,9 +38,20 @@ export function ConfigPanel({ room, updateConfig }) {
           <span style={S.label}>Tiempo de pistas: {room.config.clueTime === 0 ? "Sin límite" : `${room.config.clueTime}s`}</span>
           <input type="range" min="0" max="180" step="15" value={room.config.clueTime} onChange={e => updateConfig({ clueTime: +e.target.value })} style={{ width: "100%" }} />
         </div>
+        <div style={{ marginBottom: 14 }}>
+          <Toggle label={room.config.discussionUnlimited ? "Discusión sin límite de tiempo" : "Discusión con tiempo limitado"} value={room.config.discussionUnlimited} onChange={v => updateConfig({ discussionUnlimited: v })} />
+        </div>
         <div>
-          <span style={S.label}>Tiempo de discusión: {room.config.discussionTime === 0 ? "Sin fase de discusión" : `${room.config.discussionTime}s`}</span>
-          <input type="range" min="0" max="180" step="15" value={room.config.discussionTime} onChange={e => updateConfig({ discussionTime: +e.target.value })} style={{ width: "100%" }} />
+          <span style={S.label}>
+            Tiempo de discusión: {room.config.discussionUnlimited ? "Sin límite" : room.config.discussionTime === 0 ? "Sin fase de discusión" : `${room.config.discussionTime}s`}
+          </span>
+          <input
+            type="range" min="0" max="180" step="15"
+            value={room.config.discussionTime}
+            disabled={room.config.discussionUnlimited}
+            onChange={e => updateConfig({ discussionTime: +e.target.value })}
+            style={{ width: "100%", opacity: room.config.discussionUnlimited ? 0.4 : 1 }}
+          />
         </div>
       </>}
 

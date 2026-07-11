@@ -63,8 +63,9 @@ function createRoom(ws, msg) {
 function joinRoom(ws, msg) {
   const { room, playerId, error } = roomService.joinRoom(ws, { code: msg.code, playerName: msg.playerName });
   if (error) { sendTo(ws, { type: "error", message: error }); return; }
+  // Joining is only ever allowed during "lobby" (roomService rejects it
+  // otherwise), so there's never a round in progress to send private info for.
   sendTo(ws, { type: "joined", playerId, roomCode: room.code, room: getRoomPublicState(room) });
-  if (room.round) sendPrivateInfo(ws, room, playerId);
   broadcast(room.code, { type: "state", room: getRoomPublicState(room) }, ws);
 }
 
