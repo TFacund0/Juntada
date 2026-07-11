@@ -45,7 +45,7 @@ function isNameTaken(room, name) {
 function joinRoom(ws, { code, playerName }) {
   const room = rooms.get(code?.toUpperCase());
   if (!room) return { error: "No existe ninguna sala con ese código" };
-  if (room.phase !== "lobby" && room.phase !== "round") return { error: "La partida ya comenzó" };
+  if (room.phase !== "lobby") return { error: "La partida ya empezó, esperá a que termine la ronda para unirte" };
   const engine = getEngine(room.gameType);
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
   if (room.players.length >= maxPlayers) return { error: "La sala está llena" };
