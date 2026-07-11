@@ -23,6 +23,11 @@
 //                 one per array entry; an entry starting with "- " joins the
 //                 previous run into a bullet list. Skip it and the button
 //                 just doesn't appear for that game.
+//   LobbyInfo     optional: read-only component shown to non-host players in
+//                 the multiplayer lobby, mirroring whatever the host is
+//                 configuring live (see games/tutifruti). Props: { room }.
+//                 Games that skip it just get the generic "esperando..."
+//                 message instead (see MultiplayerGame.jsx).
 
 import { impostorGame } from "./impostor";
 import { sintoniaGame } from "./sintonia";

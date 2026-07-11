@@ -17,10 +17,12 @@ const uuid = z.string().uuid();
 // to every player in the room, and crash whichever UI tries to render it
 // directly (e.g. a game rendering a config string straight into JSX).
 const configPrimitive = z.union([z.string().max(2000), z.number(), z.boolean()]);
+const configRecord = z.record(z.string(), configPrimitive);
 const configValue = z.union([
   configPrimitive,
   z.array(configPrimitive).max(50),
-  z.record(z.string(), configPrimitive),
+  configRecord,
+  z.array(configRecord).max(50),
 ]);
 
 const SCHEMAS = {
@@ -106,6 +108,26 @@ const SCHEMAS = {
   }),
   ping: z.object({
     type: z.literal("ping"),
+  }),
+  confirm_letter: z.object({
+    type: z.literal("confirm_letter"),
+    reroll: z.boolean().optional(),
+  }),
+  submit_answers: z.object({
+    type: z.literal("submit_answers"),
+    answers: z.record(z.string(), z.string().max(60)).refine(a => Object.keys(a).length <= 50, "Demasiadas categorías"),
+  }),
+  call_basta: z.object({
+    type: z.literal("call_basta"),
+  }),
+  mark_word: z.object({
+    type: z.literal("mark_word"),
+    targetPlayerId: uuid,
+    categoryId: z.string().max(60),
+    valid: z.boolean(),
+  }),
+  confirm_review: z.object({
+    type: z.literal("confirm_review"),
   }),
 };
 
