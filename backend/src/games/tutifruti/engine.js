@@ -76,6 +76,7 @@ function startRound(room) {
 function enterReview(room) {
   room.phase = "review";
   room.round.marks = {};
+  room.round.reviewConfirmed = {};
   room.players.forEach(p => { room.round.marks[p.id] = {}; });
 }
 
@@ -101,20 +102,25 @@ function finishRound(room) {
       normalizedCounts[norm] = (normalizedCounts[norm] || 0) + 1;
     });
 
+    const normLetter = normalizeWord(round.letter);
+
     players.forEach(p => {
       const word = wordsByPlayer[p.id];
       if (!word) {
-        breakdown[p.id][cat.id] = { word: "", valid: false, duplicate: false, points: 0, ticks: 0, crosses: 0 };
+        breakdown[p.id][cat.id] = { word: "", valid: false, wrongLetter: false, duplicate: false, points: 0, ticks: 0, crosses: 0 };
         return;
       }
       const marksForWord = (round.marks[p.id] || {})[cat.id] || {};
       const values = Object.values(marksForWord);
       const ticks = values.filter(v => v === true).length;
       const crosses = values.filter(v => v === false).length;
-      const valid = crosses <= ticks;
+      // A word that doesn't even start with the round's letter is invalid
+      // no matter how anyone voted — no amount of ticks saves it.
+      const wrongLetter = !normalizeWord(word).startsWith(normLetter);
+      const valid = !wrongLetter && crosses <= ticks;
       const duplicate = valid && normalizedCounts[normalizeWord(word)] > 1;
       const points = !valid ? 0 : duplicate ? 5 : 10;
-      breakdown[p.id][cat.id] = { word, valid, duplicate, points, ticks, crosses };
+      breakdown[p.id][cat.id] = { word, valid, wrongLetter, duplicate, points, ticks, crosses };
       pointsByPlayer[p.id] += points;
     });
   });
@@ -135,9 +141,20 @@ function finishRound(room) {
   room.usedWords.letters = [...(room.usedWords.letters || []), round.letter];
 }
 
-function maybeAdvance() {
-  // Writing ends only via timer/basta, review only via host confirm — no
-  // player state change auto-advances a phase here.
+// Writing normally ends via timer or "basta" — but with a long timer, once
+// every online player has marked themselves done there's no reason to make
+// everyone sit through the rest of the clock, so that also advances early.
+// Review ends once every online player has confirmed the scores, not just
+// the host — see the "confirm_review" action below.
+function maybeAdvance(room) {
+  if (!room?.round) return;
+  const online = room.players.filter(p => p.online);
+  if (online.length === 0) return;
+  if (room.phase === "writing" && online.every(p => p.ready)) {
+    enterReview(room);
+  } else if (room.phase === "review" && online.every(p => room.round.reviewConfirmed[p.id])) {
+    finishRound(room);
+  }
 }
 
 function forceReadyAndAdvance(room) {
@@ -188,10 +205,19 @@ function handleAction(room, playerId, action, payload) {
       return { handled: true };
     }
 
+    // Lets each player flag "I'm done" during a timed round — once every
+    // online player has, there's no reason to keep waiting out the clock.
+    case "player_ready": {
+      if (room.phase !== "writing") return { handled: false };
+      const p = room.players.find(p => p.id === playerId);
+      if (p) p.ready = true;
+      maybeAdvance(room);
+      return { handled: true };
+    }
+
     case "mark_word": {
       if (room.phase !== "review") return { handled: false };
       const { targetPlayerId, categoryId, valid } = payload || {};
-      if (targetPlayerId === playerId) return { handled: false };
       if (typeof valid !== "boolean") return { handled: false };
       if (!round.categories.some(c => c.id === categoryId)) return { handled: false };
       if (!room.players.some(p => p.id === targetPlayerId)) return { handled: false };
@@ -202,10 +228,12 @@ function handleAction(room, playerId, action, payload) {
       return { handled: true };
     }
 
+    // Every online player has to confirm before the round's scores are
+    // tallied — not just the host — so nobody's marks get cut off early.
     case "confirm_review": {
       if (room.phase !== "review") return { handled: false };
-      if (playerId !== room.hostId) return { handled: false };
-      finishRound(room);
+      round.reviewConfirmed[playerId] = true;
+      maybeAdvance(room);
       return { handled: true };
     }
 
@@ -238,6 +266,7 @@ function getPublicRoundView(room) {
       ...base,
       answers: round.answers,
       marks: round.marks,
+      reviewConfirmed: round.reviewConfirmed,
       pointsByPlayer: round.pointsByPlayer,
       breakdown: round.breakdown,
     };

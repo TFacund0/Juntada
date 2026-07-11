@@ -1,6 +1,7 @@
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Board } from "./Board";
+import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 
 // Covers both in-progress phases ("round" while playing, "result" once a
 // match ends) for the 1v1 online room. Score and the pending reset-scoreboard
@@ -13,6 +14,11 @@ export function RoundView({ room, me, myPlayer, isHost, send }) {
   const resetVotes = room.config.resetVotes || [];
   const iVotedReset = resetVotes.includes(me.playerId);
   const opponentVotedReset = opponent && resetVotes.includes(opponent.id);
+  // No per-match history array here (score/draws in room.config are the
+  // running tally) — their sum still ticks up exactly once per finished
+  // match, which is all the countdown needs to restart on a rematch.
+  const matchesPlayed = (room.config.draws || 0) + Object.values(score).reduce((a, b) => a + b, 0);
+  const revealCount = useRevealCountdown(matchesPlayed);
 
   const myTurn = round?.turn === me.playerId;
   const myMark = round?.marks?.[me.playerId];
@@ -69,6 +75,9 @@ export function RoundView({ room, me, myPlayer, isHost, send }) {
   if (room.phase === "result" && round) {
     const isDraw = round.winner === "draw";
     const iWon = round.winner === me.playerId;
+
+    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando resultado..." />;
+
     return (
       <div>
         {Scoreboard}
