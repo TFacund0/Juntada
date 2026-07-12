@@ -190,7 +190,7 @@ el reinicio del marcador necesitan que **ambos** jugadores estén de acuerdo
 
 ## 📡 Sintonía — cómo se juega
 
-Estilo *Wavelength*: en cada ronda alguien es el "psíquico" y ve un punto
+Estilo _Wavelength_: en cada ronda alguien es el "psíquico" y ve un punto
 secreto en un dial entre dos conceptos opuestos (por ejemplo "Frío" ↔
 "Caliente"). Dice (o escribe) una pista relacionada a ese punto sin nombrarlo
 directamente, y el resto adivina por turnos moviendo la aguja. Al final se

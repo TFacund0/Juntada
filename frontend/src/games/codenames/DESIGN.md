@@ -77,7 +77,7 @@ contrato completo. Puntos concretos para Codenames:
   define qué ve cada uno (ver `getPrivateView`).
 - **Validación de turno:** "no es tu turno" / "no es tu rol" se resuelve
   igual que en cualquier otro juego dentro de `handleAction(room, playerId,
-  action, payload)` — rechazar con `{ handled: false }` si el que manda la
+action, payload)` — rechazar con `{ handled: false }` si el que manda la
   acción no es el spymaster activo o no es su turno. El nuevo banner de
   error genérico (`MultiplayerGame.jsx`, agregado para que ninguna acción
   rechazada falle en silencio) ya cubre esto sin trabajo extra.
