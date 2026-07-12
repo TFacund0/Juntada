@@ -9,6 +9,7 @@ import type { Room } from "@juntada/shared-types";
 import type { WebSocket } from "ws";
 import type { ClientInfo } from "../state/roomStore";
 import type { GameEngine } from "../games/engineTypes";
+import { logger } from "../logger";
 
 const { v4: uuidv4 } = require("uuid");
 const { rooms, clients } = require("../state/roomStore") as {
@@ -52,6 +53,7 @@ function createRoom(
   };
   rooms.set(code, room);
   clients.set(ws, { roomCode: code, playerId });
+  logger.info({ roomCode: code, gameType, playerCount: rooms.size }, "room created");
   return { room, playerId };
 }
 
@@ -98,7 +100,10 @@ function updateConfig(room: Room, patch: Record<string, unknown>): void {
 function reassignHostIfNeeded(room: Room, leavingId: string): void {
   if (room.hostId !== leavingId) return;
   const candidate = room.players.find(p => p.id !== leavingId && p.online) || room.players.find(p => p.id !== leavingId);
-  if (candidate) room.hostId = candidate.id;
+  if (candidate) {
+    room.hostId = candidate.id;
+    logger.info({ roomCode: room.code, newHostId: candidate.id }, "host handed off");
+  }
 }
 
 function kickPlayer(room: Room, targetId: string): void {
@@ -121,7 +126,10 @@ function isRoomFullyOffline(room: Room): boolean {
 function scheduleRoomCleanup(roomCode: string): void {
   setTimeout(() => {
     const r = rooms.get(roomCode);
-    if (r && isRoomFullyOffline(r)) rooms.delete(roomCode);
+    if (r && isRoomFullyOffline(r)) {
+      rooms.delete(roomCode);
+      logger.info({ roomCode, remainingRooms: rooms.size }, "room closed: fully offline past grace period");
+    }
   }, ONLINE_CLEANUP_DELAY_MS);
 }
 

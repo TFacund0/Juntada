@@ -16,6 +16,8 @@ const schema = z.object({
 
 const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
+  // Plain console here, not the Pino logger — logger.ts reads `env`, so
+  // reaching for it before validation has even passed would be circular.
   console.error("Invalid environment variables:");
   for (const [key, errors] of Object.entries(parsed.error.flatten().fieldErrors)) {
     console.error(`  ${key}: ${errors?.join(", ")}`);

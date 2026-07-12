@@ -6,6 +6,7 @@
 import type { Room, ClientMessage } from "@juntada/shared-types";
 import type { ClientInfo } from "../state/roomStore";
 import type { GameEngine } from "../games/engineTypes";
+import { logger } from "../logger";
 
 const { WebSocket } = require("ws");
 type WS = import("ws").WebSocket;
@@ -173,6 +174,7 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
   const room = rooms.get(info.roomCode ?? "");
   if (!room || room.hostId !== info.playerId) return;
   roomService.kickPlayer(room, msg.targetId);
+  logger.info({ roomCode: room.code, targetId: msg.targetId, byHostId: info.playerId }, "player kicked");
 
   // The kick can be exactly what a phase was waiting on (e.g. it was the
   // last player who hadn't voted/readied) — re-check right away, the same
@@ -202,6 +204,7 @@ function handleDisconnect(ws: WS): void {
   if (info?.roomCode) {
     const room = rooms.get(info.roomCode);
     if (room && info.playerId) {
+      logger.debug({ roomCode: room.code, playerId: info.playerId }, "player disconnected");
       roomService.markOffline(room, info.playerId);
       broadcastState(room);
       if (room.phase === "result") broadcastRoundReveal(room);

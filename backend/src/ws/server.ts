@@ -4,6 +4,7 @@
 
 import type { IncomingMessage } from "http";
 import type { Server } from "http";
+import { logger } from "../logger";
 
 const { WebSocketServer } = require("ws");
 const { clients } = require("../state/roomStore");
@@ -87,7 +88,7 @@ function attachWebSocketServer(httpServer: Server) {
       try {
         handler(ws, data, info);
       } catch (err) {
-        console.error(`Error handling "${data.type}":`, err);
+        logger.error({ err, messageType: data.type }, "handler threw");
         sendError(ws, "INTERNAL_ERROR", "Ocurrió un error inesperado");
       }
     });
