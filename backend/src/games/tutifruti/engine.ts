@@ -21,6 +21,7 @@ const { DEFAULT_CATEGORIES, LETTERS } = require("@juntada/tutifruti-data") as {
   DEFAULT_CATEGORIES: Category[];
   LETTERS: string[];
 };
+const { normalizeWord, startsWithLetter } = require("@juntada/tutifruti-words") as typeof import("@juntada/tutifruti-words");
 
 const MIN_PLAYERS = 2;
 
@@ -84,10 +85,6 @@ function activeCategories(room: Room): Category[] {
   const defaults = DEFAULT_CATEGORIES.filter(c => enabled && typeof enabled === "object" && enabled[c.id]);
   const custom = Array.isArray(cfg(room).customCategories) ? cfg(room).customCategories : [];
   return [...defaults, ...custom.filter(c => c && c.id && c.label)];
-}
-
-function normalizeWord(word: string | undefined): string {
-  return (word || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 function pickLetter(room: Room): string {
@@ -162,8 +159,6 @@ function finishRound(room: Room): void {
       normalizedCounts[norm] = (normalizedCounts[norm] || 0) + 1;
     });
 
-    const normLetter = normalizeWord(r.letter);
-
     players.forEach(p => {
       const word = wordsByPlayer[p.id];
       if (!word) {
@@ -176,7 +171,7 @@ function finishRound(room: Room): void {
       const crosses = values.filter(v => v === false).length;
       // A word that doesn't even start with the round's letter is invalid
       // no matter how anyone voted — no amount of ticks saves it.
-      const wrongLetter = !normalizeWord(word).startsWith(normLetter);
+      const wrongLetter = !startsWithLetter(word, r.letter);
       const valid = !wrongLetter && crosses <= ticks;
       const duplicate = valid && normalizedCounts[normalizeWord(word)] > 1;
       const points = !valid ? 0 : duplicate ? 5 : 10;

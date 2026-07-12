@@ -9,6 +9,8 @@
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
 
+const { checkWinner } = require("@juntada/tateti-board") as typeof import("@juntada/tateti-board");
+
 interface TatetiConfig {
   score: Record<string, number>;
   draws: number;
@@ -36,27 +38,8 @@ function round(room: Room): TatetiRound {
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 2;
 
-const WIN_LINES = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6],
-];
-
 function createConfig(): TatetiConfig {
   return { score: {}, draws: 0, resetVotes: [] };
-}
-
-function checkWinner(board: (string | null)[]): number[] | null {
-  for (const line of WIN_LINES) {
-    const [a, b, c] = line;
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) return line;
-  }
-  return null;
 }
 
 function startRound(room: Room): { success?: true; error?: string } {

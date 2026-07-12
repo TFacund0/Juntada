@@ -3,18 +3,8 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
+import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
-
-// Same accent/case-insensitive normalization the backend uses to decide
-// whether a word actually starts with the round's letter.
-function normalizeWord(word: string | undefined): string {
-  return (word || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-}
-
-function startsWithLetter(word: string, letter: string): boolean {
-  const w = normalizeWord(word);
-  return !w || w.startsWith(normalizeWord(letter));
-}
 
 function useCountdown(timerEnd: number | null): number | null {
   const [now, setNow] = useState(Date.now());

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Board } from "./Board";
-import { checkWinner } from "./boardLogic";
+import { checkWinner } from "@juntada/tateti-board";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TA-TE-TI — un solo dispositivo, pasándoselo por turnos: cada uno toca su

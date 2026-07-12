@@ -53,12 +53,18 @@ importers:
       '@juntada/sintonia-data':
         specifier: workspace:*
         version: link:../packages/sintonia-data
+      '@juntada/tateti-board':
+        specifier: workspace:*
+        version: link:../packages/tateti-board
       '@juntada/torneo-fifa-bracket':
         specifier: workspace:*
         version: link:../packages/torneo-fifa-bracket
       '@juntada/tutifruti-data':
         specifier: workspace:*
         version: link:../packages/tutifruti-data
+      '@juntada/tutifruti-words':
+        specifier: workspace:*
+        version: link:../packages/tutifruti-words
       compression:
         specifier: ^1.8.1
         version: 1.8.1
@@ -108,12 +114,18 @@ importers:
       '@juntada/sintonia-data':
         specifier: workspace:*
         version: link:../packages/sintonia-data
+      '@juntada/tateti-board':
+        specifier: workspace:*
+        version: link:../packages/tateti-board
       '@juntada/torneo-fifa-bracket':
         specifier: workspace:*
         version: link:../packages/torneo-fifa-bracket
       '@juntada/tutifruti-data':
         specifier: workspace:*
         version: link:../packages/tutifruti-data
+      '@juntada/tutifruti-words':
+        specifier: workspace:*
+        version: link:../packages/tutifruti-words
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -171,9 +183,13 @@ importers:
 
   packages/sintonia-data: {}
 
+  packages/tateti-board: {}
+
   packages/torneo-fifa-bracket: {}
 
   packages/tutifruti-data: {}
+
+  packages/tutifruti-words: {}
 
 packages:
 
