@@ -53,6 +53,9 @@ importers:
       '@juntada/sintonia-data':
         specifier: workspace:*
         version: link:../packages/sintonia-data
+      '@juntada/torneo-fifa-bracket':
+        specifier: workspace:*
+        version: link:../packages/torneo-fifa-bracket
       '@juntada/tutifruti-data':
         specifier: workspace:*
         version: link:../packages/tutifruti-data
@@ -105,6 +108,9 @@ importers:
       '@juntada/sintonia-data':
         specifier: workspace:*
         version: link:../packages/sintonia-data
+      '@juntada/torneo-fifa-bracket':
+        specifier: workspace:*
+        version: link:../packages/torneo-fifa-bracket
       '@juntada/tutifruti-data':
         specifier: workspace:*
         version: link:../packages/tutifruti-data
@@ -164,6 +170,8 @@ importers:
         version: 4.4.3
 
   packages/sintonia-data: {}
+
+  packages/torneo-fifa-bracket: {}
 
   packages/tutifruti-data: {}
 

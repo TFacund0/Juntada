@@ -12,22 +12,10 @@
 
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
+import type { Entrant, Match } from "@juntada/torneo-fifa-bracket";
 
 const { shuffle } = require("../../utils/shuffle");
-
-interface Entrant {
-  id: string;
-  name: string;
-  team: string;
-}
-
-interface Match {
-  a: Entrant | null;
-  b: Entrant | null;
-  winner: Entrant | null;
-  goalsA: number | null;
-  goalsB: number | null;
-}
+const { buildBracket, propagateByes } = require("@juntada/torneo-fifa-bracket") as typeof import("@juntada/torneo-fifa-bracket");
 
 interface TorneoFifaConfig {
   trackGoals: boolean;
@@ -38,7 +26,7 @@ interface TorneoFifaConfig {
 }
 
 interface TorneoFifaRound {
-  rounds: Match[][];
+  rounds: Match<string>[][];
   trackGoals: boolean;
 }
 
@@ -76,59 +64,6 @@ function createConfig(): TorneoFifaConfig {
   };
 }
 
-function nextPowerOf2(n: number): number {
-  let p = 1;
-  while (p < n) p *= 2;
-  return p;
-}
-
-// Pushes an already-decided winner into the next round's slot. Does NOT
-// invent new winners for the next round — with byes distributed one-per-pair
-// (see buildBracket) every later-round match always ends up with two real
-// contenders, even if one arrives instantly via a round-0 bye and the other
-// only after a real match is played.
-function propagateByes(rounds: Match[][]): void {
-  for (let r = 0; r < rounds.length - 1; r++) {
-    rounds[r].forEach((match, i) => {
-      if (match.winner) {
-        const nextMatch = rounds[r + 1][Math.floor(i / 2)];
-        if (i % 2 === 0) nextMatch.a = match.winner;
-        else nextMatch.b = match.winner;
-      }
-    });
-  }
-}
-
-function buildBracket(entrants: Entrant[]): Match[][] {
-  // Byes only go to the trailing entrants (matches the "los últimos N pasan
-  // directo" copy shown in the UI), and each bye gets its own pair with an
-  // empty slot — never two byes paired against each other, so no round-0
-  // match is ever left with zero real players.
-  const size = nextPowerOf2(entrants.length);
-  const pairCount = size / 2;
-  const byeCount = size - entrants.length;
-  const normalPairs = pairCount - byeCount;
-
-  const pool = [...entrants];
-  const round0: Match[] = [];
-  for (let i = 0; i < normalPairs; i++) {
-    round0.push({ a: pool.shift() ?? null, b: pool.shift() ?? null, winner: null, goalsA: null, goalsB: null });
-  }
-  for (let i = 0; i < byeCount; i++) {
-    const a = pool.shift() ?? null;
-    round0.push({ a, b: null, winner: a, goalsA: null, goalsB: null });
-  }
-
-  const rounds: Match[][] = [round0];
-  let count = round0.length;
-  while (count > 1) {
-    count = count / 2;
-    rounds.push(Array.from({ length: count }, () => ({ a: null, b: null, winner: null, goalsA: null, goalsB: null })));
-  }
-  propagateByes(rounds);
-  return rounds;
-}
-
 function startRound(room: Room): { success?: true; error?: string } {
   if (room.players.length < MIN_PLAYERS) return { error: `Necesitás al menos ${MIN_PLAYERS} jugadores` };
 
@@ -144,7 +79,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     playerIds.every(id => cfg(room).seedOrder.includes(id));
   const seedOrder: string[] = validSeed ? cfg(room).seedOrder : shuffle(playerIds);
 
-  const entrants: Entrant[] = seedOrder.map(id => {
+  const entrants: Entrant<string>[] = seedOrder.map(id => {
     const p = room.players.find(x => x.id === id)!;
     return { id: p.id, name: p.name, team: assignments[p.id] };
   });

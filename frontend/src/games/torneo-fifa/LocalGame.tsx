@@ -3,6 +3,8 @@ import { S } from "../../theme/styles";
 import { shuffle } from "../../utils/shuffle";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
+import { buildBracket, nextPowerOf2, propagateByes } from "@juntada/torneo-fifa-bracket";
+import type { Entrant, Match } from "@juntada/torneo-fifa-bracket";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TORNEO FIFA — un solo dispositivo. Carga de jugadores + equipos, sorteo de
@@ -14,20 +16,6 @@ import { Avatar } from "../../components/Avatar";
 interface LocalPlayer {
   id: number;
   name: string;
-}
-
-interface Entrant {
-  id: number;
-  name: string;
-  team: string;
-}
-
-interface Match {
-  a: Entrant | null;
-  b: Entrant | null;
-  winner: Entrant | null;
-  goalsA: number | null;
-  goalsB: number | null;
 }
 
 const DEFAULT_TEAMS = [
@@ -48,59 +36,6 @@ const DEFAULT_TEAMS = [
   "Manchester City",
   "Boca Juniors",
 ];
-
-function nextPowerOf2(n: number): number {
-  let p = 1;
-  while (p < n) p *= 2;
-  return p;
-}
-
-function buildBracket(entrants: Entrant[]): Match[][] {
-  // entrants: [{id,name,team}] YA EN EL ORDEN de cruce deseado (round 0 = pares
-  // consecutivos). Los byes van solo a los últimos entrantes, cada uno en su
-  // propio par contra un hueco vacío — nunca dos byes emparejados entre sí,
-  // para que ningún cruce de rondas siguientes quede sin jugadores reales.
-  const size = nextPowerOf2(entrants.length);
-  const pairCount = size / 2;
-  const byeCount = size - entrants.length;
-  const normalPairs = pairCount - byeCount;
-
-  const pool = [...entrants];
-  const round0: Match[] = [];
-  for (let i = 0; i < normalPairs; i++) {
-    round0.push({ a: pool.shift() ?? null, b: pool.shift() ?? null, winner: null, goalsA: null, goalsB: null });
-  }
-  for (let i = 0; i < byeCount; i++) {
-    const a = pool.shift() ?? null;
-    round0.push({ a, b: null, winner: a, goalsA: null, goalsB: null });
-  }
-
-  const rounds: Match[][] = [round0];
-  let count = round0.length;
-  while (count > 1) {
-    count = count / 2;
-    rounds.push(Array.from({ length: count }, () => ({ a: null, b: null, winner: null, goalsA: null, goalsB: null })));
-  }
-  propagateByes(rounds);
-  return rounds;
-}
-
-// Empuja un ganador ya decidido al cruce de la ronda siguiente. No inventa
-// ganadores nuevos ahí: con los byes repartidos uno por par (ver
-// buildBracket), todo cruce de rondas posteriores termina con dos
-// contendientes reales, aunque uno llegue al instante por bye y el otro recién
-// después de jugarse un partido real.
-function propagateByes(rounds: Match[][]): void {
-  for (let r = 0; r < rounds.length - 1; r++) {
-    rounds[r].forEach((match, i) => {
-      if (match.winner) {
-        const nextMatch = rounds[r + 1][Math.floor(i / 2)];
-        if (i % 2 === 0) nextMatch.a = match.winner;
-        else nextMatch.b = match.winner;
-      }
-    });
-  }
-}
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -127,7 +62,7 @@ export function LocalGame() {
   const [spinningId, setSpinningId] = useState<number | null>(null); // playerId currently on the roulette
   const [spinLabel, setSpinLabel] = useState("");
   const [seedOrder, setSeedOrder] = useState<number[]>([]); // array de playerId, orden de cruce
-  const [rounds, setRounds] = useState<Match[][] | null>(null);
+  const [rounds, setRounds] = useState<Match<number>[][] | null>(null);
   const [scoreInput, setScoreInput] = useState({ goalsA: "", goalsB: "" });
   const [editingMatch, setEditingMatch] = useState<{ roundIdx: number; matchIdx: number } | null>(null);
 
@@ -235,7 +170,7 @@ export function LocalGame() {
   };
 
   const startBracket = () => {
-    const entrants: Entrant[] = seedOrder.map(id => {
+    const entrants: Entrant<number>[] = seedOrder.map(id => {
       const p = players.find(x => x.id === id)!;
       return { id: p.id, name: p.name, team: assignments[p.id] };
     });
@@ -248,7 +183,7 @@ export function LocalGame() {
     setScoreInput({ goalsA: "", goalsB: "" });
   };
 
-  const confirmWinnerSimple = (roundIdx: number, matchIdx: number, winner: Entrant | null) => {
+  const confirmWinnerSimple = (roundIdx: number, matchIdx: number, winner: Entrant<number> | null) => {
     setRounds(prev => {
       const next = prev!.map(r => r.map(m => ({ ...m })));
       next[roundIdx][matchIdx].winner = winner;
@@ -795,7 +730,7 @@ export function LocalGame() {
       );
     }
 
-    const sideStyle = (side: Entrant | null, m: Match) => ({
+    const sideStyle = (side: Entrant<number> | null, m: Match<number>) => ({
       display: "flex" as const,
       alignItems: "center" as const,
       gap: 8,
@@ -803,7 +738,7 @@ export function LocalGame() {
       flex: 1,
       opacity: m.winner && m.winner.id !== side?.id ? 0.45 : 1,
     });
-    const nameStyle = (side: Entrant | null, m: Match) => ({
+    const nameStyle = (side: Entrant<number> | null, m: Match<number>) => ({
       margin: 0,
       fontWeight: 700 as const,
       fontSize: 13,
