@@ -18,7 +18,13 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     hostId: "p1",
     gameType: "impostor",
     phase: "lobby",
-    players: [],
+    players: [
+      { id: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
+      { id: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
+      { id: "p3", name: "Caro", ready: false, online: true, hasVoted: false },
+      { id: "p4", name: "Dana", ready: false, online: true, hasVoted: false },
+      { id: "p5", name: "Emi", ready: false, online: true, hasVoted: false },
+    ],
     maxPlayers: 16,
     config: {
       enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
@@ -55,15 +61,44 @@ describe("Impostor ConfigPanel", () => {
     expect(updateConfig).toHaveBeenCalledWith({ numImpostors: 2 });
   });
 
-  test("toggling hints sends the inverse of the current value", async () => {
+  test("disables impostor counts that would leave them a majority or tied with the innocents", async () => {
+    const user = userEvent.setup();
+    const updateConfig = vi.fn();
+    const room = makeRoom();
+    room.players = room.players.slice(0, 3); // 3 players -> max 1 impostor
+    render(<ConfigPanel room={room} updateConfig={updateConfig} />);
+
+    await user.click(screen.getByRole("button", { name: "Reglas" }));
+    expect(screen.getByRole("button", { name: "2" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "2" }));
+    expect(updateConfig).not.toHaveBeenCalled();
+  });
+
+  test("picking 'a ciegas' turns hints off", async () => {
     const user = userEvent.setup();
     const updateConfig = vi.fn();
     render(<ConfigPanel room={makeRoom({ hintsEnabled: true })} updateConfig={updateConfig} />);
 
     await user.click(screen.getByRole("button", { name: "Reglas" }));
-    await user.click(screen.getByText("Pistas al impostor"));
+    await user.click(screen.getByRole("button", { name: "No, a ciegas" }));
 
     expect(updateConfig).toHaveBeenCalledWith({ hintsEnabled: false });
+  });
+
+  test("picking a category toggles it on", async () => {
+    const user = userEvent.setup();
+    const updateConfig = vi.fn();
+    const room = makeRoom({ enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}) });
+    render(<ConfigPanel room={room} updateConfig={updateConfig} />);
+
+    const firstKey = Object.keys(CATEGORIES)[0];
+    const firstCategory = CATEGORIES[firstKey as keyof typeof CATEGORIES] as any;
+    await user.click(screen.getByText(firstCategory.label));
+
+    expect(updateConfig).toHaveBeenCalledWith({
+      enabledCategories: expect.objectContaining({ [firstKey]: true }),
+    });
   });
 
   test("the discussion-time slider is disabled when discussion is set to unlimited", async () => {
@@ -72,5 +107,17 @@ describe("Impostor ConfigPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Reglas" }));
     expect(screen.getByText("Tiempo de discusión: Sin límite")).toBeInTheDocument();
+  });
+
+  test("moving a player down in the turn order sends the swapped order", async () => {
+    const user = userEvent.setup();
+    const updateConfig = vi.fn();
+    render(<ConfigPanel room={makeRoom()} updateConfig={updateConfig} />);
+
+    await user.click(screen.getByRole("button", { name: "Orden" }));
+    const [downButton] = screen.getAllByRole("button", { name: "↓" });
+    await user.click(downButton);
+
+    expect(updateConfig).toHaveBeenCalledWith({ turnOrder: ["p2", "p1", "p3", "p4", "p5"] });
   });
 });

@@ -59,6 +59,9 @@ export const SCHEMAS = {
   skip_word: z.object({
     type: z.literal("skip_word"),
   }),
+  continue_round: z.object({
+    type: z.literal("continue_round"),
+  }),
   submit_guess: z.object({
     type: z.literal("submit_guess"),
     value: z.number().int().min(0).max(100),

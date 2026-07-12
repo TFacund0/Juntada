@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
@@ -28,7 +28,7 @@ function CluesReview({ clues, players }: { clues: Record<string, string> | undef
   if (entries.length === 0) return null;
   return (
     <div style={S.card}>
-      <span style={S.label}>Pistas</span>
+      <span style={S.label}>Palabras</span>
       {entries.map(([playerId, clue]) => {
         const p = players.find(x => x.id === playerId);
         if (!p) return null;
@@ -38,6 +38,113 @@ function CluesReview({ clues, players }: { clues: Record<string, string> | undef
           </p>
         );
       })}
+    </div>
+  );
+}
+
+// The round phase's turn order laid out as a circle: whoever's turn it is
+// glows, players who already went are dimmed with a checkmark, and everyone
+// else waits their turn — so it's visually obvious who's up without reading
+// a list of names.
+function TurnCircle({
+  turnOrder,
+  turnIndex,
+  players,
+  clues,
+  meId,
+}: {
+  turnOrder: string[];
+  turnIndex: number;
+  players: PublicPlayer[];
+  clues: Record<string, string> | undefined;
+  meId: string | undefined;
+}) {
+  const size = 260;
+  const radius = 96;
+  const center = size / 2;
+  const ordered = turnOrder.map(id => players.find(p => p.id === id)).filter((p): p is PublicPlayer => Boolean(p));
+  const n = ordered.length;
+  const current = ordered[turnIndex];
+
+  return (
+    <div style={{ position: "relative", width: size, height: size, margin: "0 auto 12px" }}>
+      {ordered.map((p, i) => {
+        const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+        const x = center + radius * Math.cos(angle);
+        const y = center + radius * Math.sin(angle);
+        const isCurrent = i === turnIndex;
+        const hasGone = i < turnIndex;
+        const isMe = p.id === meId;
+        return (
+          <div
+            key={p.id}
+            style={{
+              position: "absolute",
+              left: x,
+              top: y,
+              transform: "translate(-50%, -50%)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 3,
+              width: 68,
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                borderRadius: "50%",
+                padding: 3,
+                border: isCurrent ? "2px solid #5DCAA5" : hasGone ? "2px solid rgba(127,119,221,0.45)" : "2px solid transparent",
+                boxShadow: isCurrent ? "0 0 14px rgba(93,202,165,0.55)" : "none",
+                opacity: hasGone && !isCurrent ? 0.55 : 1,
+                transition: "all 0.2s",
+              }}
+            >
+              <Avatar name={p.name} size={44} />
+              {hasGone && (
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: -2,
+                    right: -2,
+                    background: "#5DCAA5",
+                    color: "#0f0c1d",
+                    borderRadius: "50%",
+                    width: 16,
+                    height: 16,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ✓
+                </span>
+              )}
+            </div>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: isCurrent ? 800 : 600,
+                color: isCurrent ? "#5DCAA5" : isMe ? "#fff" : "#9089c0",
+                textAlign: "center",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: 68,
+              }}
+            >
+              {isMe ? "Vos" : p.name}
+            </span>
+          </div>
+        );
+      })}
+      <div style={{ position: "absolute", left: center, top: center, transform: "translate(-50%, -50%)", textAlign: "center" }}>
+        <p style={{ fontSize: 11, color: "#9089c0", margin: 0 }}>Turno de</p>
+        <p style={{ fontSize: 15, fontWeight: 800, color: "#AFA9EC", margin: 0, maxWidth: 100 }}>{current?.name ?? "—"}</p>
+      </div>
     </div>
   );
 }
@@ -53,6 +160,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   const [clueSubmitted, setClueSubmitted] = useState(false);
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [voteConfirmed, setVoteConfirmed] = useState(false);
+  const [wordChangeCount, setWordChangeCount] = useState(0);
+  const prevRerollCount = useRef<number | null>(null);
   const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
   const round = room.round as any;
@@ -69,6 +178,24 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     setVoteConfirmed(false);
   }, [myRole]);
 
+  // round.rerollCount only bumps when skip_word actually swaps the word —
+  // show a short "cambiando de palabra" transition instead of the new word
+  // just appearing instantly. Skipped on the very first render (joining an
+  // in-progress round shouldn't play the transition for old history).
+  useEffect(() => {
+    const current = round?.rerollCount ?? 0;
+    if (prevRerollCount.current !== null && current !== prevRerollCount.current) {
+      setWordChangeCount(2);
+    }
+    prevRerollCount.current = current;
+  }, [round?.rerollCount]);
+
+  useEffect(() => {
+    if (wordChangeCount <= 0) return;
+    const t = setTimeout(() => setWordChangeCount(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wordChangeCount]);
+
   // A tie triggers a fresh vote among just the tied suspects — clear the
   // previous selection/confirmation so nobody's stuck showing a stale vote.
   useEffect(() => {
@@ -77,13 +204,18 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   }, [round?.revoteCount]);
 
   if (room.phase === "round") {
-    const myReadyState = myPlayer?.ready;
+    if (wordChangeCount > 0) return <RevealCountdown count={wordChangeCount} label="Cambiando de palabra..." />;
+
+    const turnOrder: string[] = round?.turnOrder || [];
+    const turnIndex: number = round?.turnIndex ?? 0;
+    const currentTurnId = turnOrder[turnIndex];
+    const isMyTurn = !!me?.playerId && currentTurnId === me.playerId;
+    const currentTurnPlayer = room.players.find(p => p.id === currentTurnId);
     const requiresWrittenClue = config.writtenClues;
-    const canMarkReady = !requiresWrittenClue || clueSubmitted;
 
     const submitClue = () => {
-      if (!clueText.trim()) return;
-      send({ type: "submit_clue", clue: clueText.trim() });
+      if (requiresWrittenClue && !clueText.trim()) return;
+      send({ type: "submit_clue", clue: requiresWrittenClue ? clueText.trim() : "" });
       setClueSubmitted(true);
     };
 
@@ -94,20 +226,20 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round?.categoryLabel}</p>
         </div>
 
-        {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} />}
+        {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 
         <div
           style={{
             ...S.card,
             textAlign: "center",
-            cursor: myReadyState ? "default" : "pointer",
+            cursor: "pointer",
             minHeight: 140,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
           }}
-          onClick={() => !myReadyState && setWordVisible(v => !v)}
+          onClick={() => setWordVisible(v => !v)}
         >
           {!myRole ? (
             <p style={{ color: "#6b6490" }}>Cargando tu rol...</p>
@@ -128,7 +260,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           )}
         </div>
 
-        {round && !myReadyState && (
+        {round && (
           <div style={{ ...S.card, textAlign: "center" }}>
             {!skipRequested ? (
               <Btn
@@ -148,34 +280,37 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           </div>
         )}
 
-        {requiresWrittenClue && !myReadyState && (
-          <div style={S.card}>
-            <span style={S.label}>Tu pista</span>
-            {!clueSubmitted ? (
+        <div style={S.card}>
+          <span style={S.label}>Ronda de turnos</span>
+          <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} clues={round?.clues} meId={me?.playerId} />
+
+          {isMyTurn && !clueSubmitted ? (
+            requiresWrittenClue ? (
               <>
-                <input style={S.input} placeholder="Escribí tu pista..." value={clueText} onChange={e => setClueText(e.target.value)} />
-                <Btn variant="ghost" disabled={!clueText.trim()} onClick={submitClue} style={{ marginTop: 8 }}>
-                  Enviar pista
+                <span style={S.label}>Tu palabra</span>
+                <input style={S.input} placeholder="Escribí tu palabra..." value={clueText} onChange={e => setClueText(e.target.value)} />
+                <Btn variant="success" disabled={!clueText.trim()} onClick={submitClue} style={{ marginTop: 8 }}>
+                  Enviar palabra
                 </Btn>
               </>
             ) : (
-              <p style={{ color: "#5DCAA5", fontSize: 14 }}>Pista enviada: "{clueText}"</p>
-            )}
-          </div>
-        )}
+              <>
+                <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Es tu turno — decí tu palabra en voz alta y confirmá.</p>
+                <Btn variant="success" onClick={submitClue}>
+                  Ya dije mi palabra
+                </Btn>
+              </>
+            )
+          ) : isMyTurn && clueSubmitted ? (
+            <p style={{ color: "#5DCAA5", fontSize: 14, textAlign: "center" }}>Palabra enviada — pasando el turno...</p>
+          ) : (
+            <p style={{ ...S.muted, textAlign: "center" }}>
+              {currentTurnPlayer ? `Esperando a ${currentTurnPlayer.name}...` : "Esperando..."}
+            </p>
+          )}
+        </div>
 
-        <PlayerReadyPills players={room.players} />
-
-        {!myReadyState && (
-          <Btn variant="success" disabled={!canMarkReady} onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>
-            Ya di mi pista, listo
-          </Btn>
-        )}
-        {myReadyState && (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#5DCAA5" }}>Marcado como listo — esperando a los demás</p>
-          </div>
-        )}
+        <CluesReview clues={round?.clues} players={room.players} />
       </div>
     );
   }
@@ -186,11 +321,11 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 14, color: "#9089c0" }}>Momento de pensar</p>
-          <p style={{ fontSize: 12, color: "#7F77DD" }}>Analicen las pistas antes de votar</p>
+          <p style={{ fontSize: 12, color: "#7F77DD" }}>Analicen las palabras antes de votar</p>
         </div>
 
         {round?.discussionEnd ? (
-          <Timer timerEnd={round.discussionEnd} total={config.discussionTime} />
+          <Timer timerEnd={round.discussionEnd} total={config.discussionTime} label="Tiempo de discusión" />
         ) : (
           <p style={{ ...S.muted, textAlign: "center" }}>Sin límite de tiempo — avancen cuando estén listos</p>
         )}
@@ -286,61 +421,99 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const lastH = room.roundHistory?.[room.roundHistory.length - 1] as any;
     const word = wordReveal?.word || lastH?.word;
     const catLabel = wordReveal?.categoryLabel || lastH?.categoryLabel;
-    const eliminated = room.players.find(p => p.id === round?.eliminated);
-    const wasImpostor = round?.wasImpostor ?? lastH?.wasImpostor;
-    const impostors = round ? room.players.filter(p => round.impostors?.includes(p.id)) : [];
-    const tally: Record<string, string> = round?.votes || lastH?.tally || {};
+    const eliminated = room.players.find(p => p.id === (round?.eliminated ?? lastH?.eliminated));
+    const wasImpostor: boolean | undefined = round?.wasImpostor ?? lastH?.wasImpostor;
+    const matchOver: boolean = round?.matchOver ?? lastH?.matchOver ?? false;
+    const winner: "innocents" | "impostors" | null = round?.winner ?? lastH?.winner ?? null;
+    const matchEliminatedIds: string[] = round?.matchEliminated || [];
+    const impostors = matchOver ? room.players.filter(p => (round?.impostors || lastH?.impostors || []).includes(p.id)) : [];
+    // Who was actually eligible to vote/be voted this round — a stand-in for
+    // "everyone still alive at the time", to keep the vote breakdown from
+    // dragging in players eliminated in earlier rounds.
+    const turnOrder: string[] | undefined = round?.turnOrder;
+    const roundParticipants = turnOrder ? room.players.filter(p => turnOrder.includes(p.id)) : room.players;
+    const votes: Record<string, string> = round?.votes || {};
 
-    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando al impostor..." />;
+    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando resultado..." />;
+
+    const winnerColor = winner === "innocents" ? "#5DCAA5" : "#F09595";
+    const roleColor = wasImpostor ? "#5DCAA5" : "#F09595";
 
     return (
       <div>
-        <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
-          <p style={{ fontSize: 22, fontWeight: 800, color: wasImpostor ? "#5DCAA5" : "#F09595", marginTop: 8 }}>
-            {wasImpostor ? "Impostor atrapado" : "El impostor escapó"}
-          </p>
-        </div>
+        {matchOver && (
+          <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+            <p style={{ fontSize: 22, fontWeight: 800, color: winnerColor, marginTop: 8 }}>
+              {winner === "innocents" ? "Ganaron los inocentes" : "Ganaron los impostores"}
+            </p>
+          </div>
+        )}
+
+        {eliminated && (
+          <div
+            style={{
+              ...S.cardHighlight,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              border: `1px solid ${wasImpostor == null ? "rgba(127,119,221,0.35)" : roleColor}66`,
+            }}
+          >
+            <Avatar name={eliminated.name} size={44} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{eliminated.name}</p>
+              <p style={{ ...S.muted, margin: 0 }}>quedó eliminado/a</p>
+            </div>
+            {wasImpostor != null && (
+              <span
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.02em",
+                  color: roleColor,
+                  background: wasImpostor ? "rgba(93,202,165,0.15)" : "rgba(240,149,149,0.15)",
+                  border: `1px solid ${wasImpostor ? "rgba(93,202,165,0.4)" : "rgba(240,149,149,0.4)"}`,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {wasImpostor ? "ERA EL IMPOSTOR" : "ERA INOCENTE"}
+              </span>
+            )}
+          </div>
+        )}
 
         {word && (
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
-            <p style={{ fontSize: 30, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{String(word)}</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{String(word)}</p>
             <p style={{ fontSize: 13, color: "#7F77DD" }}>{String(catLabel)}</p>
           </div>
         )}
 
-        {impostors.length > 0 && (
+        {matchOver && impostors.length > 0 && (
           <div style={S.card}>
             <span style={S.label}>Impostores</span>
             {impostors.map(p => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                 <Avatar name={p.name} size={32} />
-                <span style={{ fontWeight: 700 }}>{p.name}</span>
+                <span style={{ fontWeight: 700, flex: 1 }}>{p.name}</span>
+                <span style={S.pill(matchEliminatedIds.includes(p.id))}>
+                  {matchEliminatedIds.includes(p.id) ? "Atrapado" : "Sigue libre"}
+                </span>
               </div>
             ))}
           </div>
         )}
 
-        {eliminated && (
-          <div style={S.card}>
-            <span style={S.label}>Eliminado</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Avatar name={eliminated.name} size={36} />
-              <span style={{ fontWeight: 700 }}>{eliminated.name}</span>
-              <span style={S.pill(!!wasImpostor)}>{wasImpostor ? "Era el impostor" : "Era inocente"}</span>
-            </div>
-          </div>
-        )}
-
         <div style={S.card}>
           <span style={S.label}>Votos</span>
-          {room.players.map(p => {
-            const pid = p.id;
-            const count = Object.values(tally).filter(v => v === pid).length;
-            const total = room.players.length - 1 || 1;
-            const isImp = round?.impostors?.includes(pid) || lastH?.impostors?.includes(pid);
+          {roundParticipants.map(p => {
+            const count = Object.values(votes).filter(v => v === p.id).length;
+            const total = Math.max(1, roundParticipants.length - 1);
             return (
-              <div key={pid} style={{ marginBottom: 10 }}>
+              <div key={p.id} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 13 }}>{p.name}</span>
                   <span style={S.muted}>{count} votos</span>
@@ -351,7 +524,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                       height: "100%",
                       borderRadius: 3,
                       width: `${Math.round((count / total) * 100)}%`,
-                      background: isImp ? "#E24B4A" : "#534AB7",
+                      background: p.id === (round?.eliminated ?? lastH?.eliminated) ? "#E24B4A" : "#534AB7",
                       transition: "width 0.6s",
                     }}
                   />
@@ -361,9 +534,14 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           })}
         </div>
 
-        {isHost && (
+        {isHost && matchOver && (
           <Btn variant="success" onClick={() => send({ type: "start_round" })}>
-            Nueva ronda
+            Nueva partida
+          </Btn>
+        )}
+        {isHost && !matchOver && (
+          <Btn variant="success" onClick={() => send({ type: "continue_round" })}>
+            Siguiente ronda
           </Btn>
         )}
         {isHost && (
@@ -373,7 +551,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         )}
         {!isHost && (
           <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
+            <p style={{ color: "#9089c0", fontSize: 14 }}>
+              {matchOver ? "Esperando que el anfitrión inicie otra partida" : "Esperando que el anfitrión continúe la ronda"}
+            </p>
           </div>
         )}
       </div>

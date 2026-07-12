@@ -1,7 +1,18 @@
 import { describe, test, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { CATEGORIES } from "@juntada/impostor-data";
 import { LocalGame } from "./LocalGame";
+
+// Categories start off by default (the host has to actively pick some) — a
+// round can't start with none active, so every test that needs to actually
+// play a round picks the first one first.
+async function enableFirstCategory(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Configuración" }));
+  const firstLabel = Object.values(CATEGORIES)[0].label;
+  await user.click(screen.getByText(firstLabel));
+  await user.click(screen.getByRole("button", { name: "Jugadores" }));
+}
 
 // Plays one full local round end to end (setup -> reveal -> discussion ->
 // vote -> result) with the 4 default players, driving the UI the same way a
@@ -33,11 +44,19 @@ async function voteAllPlayers(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("Impostor LocalGame", () => {
-  test("renders the setup screen with the 4 default players and start enabled", () => {
+  test("renders the setup screen with the 4 default players", () => {
     render(<LocalGame />);
     expect(screen.getByText("Jugadores (4)")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Jugador 1")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Jugador 4")).toBeInTheDocument();
+  });
+
+  test("'Iniciar ronda' stays disabled until at least one category is picked", async () => {
+    const user = userEvent.setup();
+    render(<LocalGame />);
+    expect(screen.getByRole("button", { name: "Iniciar ronda" })).toBeDisabled();
+
+    await enableFirstCategory(user);
     expect(screen.getByRole("button", { name: "Iniciar ronda" })).toBeEnabled();
   });
 
@@ -65,6 +84,7 @@ describe("Impostor LocalGame", () => {
   test("plays a full round from setup through result", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
+    await enableFirstCategory(user);
 
     await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
     expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
@@ -87,6 +107,7 @@ describe("Impostor LocalGame", () => {
   test("starting a new round from the result screen resets reveal/vote state", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
+    await enableFirstCategory(user);
 
     await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
     await revealAllPlayers(user);

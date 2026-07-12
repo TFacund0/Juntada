@@ -3,7 +3,6 @@ import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { shuffle } from "../../utils/shuffle";
 import { Btn } from "../../components/Btn";
-import { Toggle } from "../../components/Toggle";
 import { Avatar } from "../../components/Avatar";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -16,6 +15,12 @@ import { Avatar } from "../../components/Avatar";
 interface LocalPlayer {
   id: number;
   name: string;
+}
+
+// The most impostors a room of this size can start with while keeping them
+// a strict minority — mirrors backend/src/games/impostor/engine.ts.
+function maxImpostors(playerCount: number): number {
+  return Math.max(1, Math.floor((playerCount - 1) / 2));
 }
 
 interface Round {
@@ -70,7 +75,9 @@ export function LocalGame() {
     hintsEnabled: true,
     writtenClues: false,
     discussionTime: 30,
-    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {} as Record<string, boolean>),
+    // Off by default — you have to actively pick which categories are in
+    // play rather than opt out of a preselected set.
+    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {} as Record<string, boolean>),
   });
   const [round, setRound] = useState<Round | null>(null);
   const [revealIdx, setRevealIdx] = useState(0);
@@ -122,7 +129,7 @@ export function LocalGame() {
     const word = available[Math.floor(Math.random() * available.length)];
     setUsedWords(prev => ({ ...prev, [catKey]: [...(prev[catKey] || []), word] }));
     const ids = shuffle(players.map(p => p.id));
-    const impostors = ids.slice(0, Math.min(config.numImpostors, Math.floor(players.length / 2)));
+    const impostors = ids.slice(0, Math.min(config.numImpostors, maxImpostors(players.length)));
     setRound({ word, categoryKey: catKey, categoryLabel: cat.label, impostors });
     setRevealIdx(0);
     setWordVisible(false);
@@ -237,30 +244,76 @@ export function LocalGame() {
             <div style={S.card}>
               <span style={S.label}>Impostores</span>
               <div style={{ display: "flex", gap: 8 }}>
-                {[1, 2, 3].map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setConfig(c => ({ ...c, numImpostors: n }))}
-                    style={{ ...S.btn(config.numImpostors === n ? "primary" : "ghost"), flex: 1, padding: "10px 0", fontSize: 14 }}
-                  >
-                    {n}
-                  </button>
-                ))}
+                {[1, 2, 3].map(n => {
+                  const maxImp = maxImpostors(players.length);
+                  return (
+                    <button
+                      key={n}
+                      onClick={() => setConfig(c => ({ ...c, numImpostors: n }))}
+                      disabled={n > maxImp}
+                      style={{
+                        ...S.btn(config.numImpostors === n ? "primary" : "ghost"),
+                        flex: 1,
+                        padding: "10px 0",
+                        fontSize: 14,
+                        opacity: n > maxImp ? 0.35 : 1,
+                      }}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
               </div>
+              {maxImpostors(players.length) < 3 && (
+                <p style={{ ...S.muted, marginTop: 8, lineHeight: 1.4 }}>
+                  Con {players.length} jugadores, como máximo puede haber {maxImpostors(players.length)}{" "}
+                  {maxImpostors(players.length) === 1 ? "impostor" : "impostores"}.
+                </p>
+              )}
             </div>
             <div style={S.card}>
-              <Toggle
-                label={config.hintsEnabled ? "Pistas al impostor activas" : "Sin pistas"}
-                value={config.hintsEnabled}
-                onChange={v => setConfig(c => ({ ...c, hintsEnabled: v }))}
-              />
+              <span style={S.label}>¿El impostor recibe una pista?</span>
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, hintsEnabled: true }))}
+                  style={{ ...S.btn(config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                >
+                  Sí, con pista
+                </button>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, hintsEnabled: false }))}
+                  style={{ ...S.btn(!config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                >
+                  No, a ciegas
+                </button>
+              </div>
+              <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                {config.hintsEnabled
+                  ? "El impostor ve la categoría, para poder disimular."
+                  : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
+              </p>
             </div>
             <div style={S.card}>
-              <Toggle
-                label={config.writtenClues ? "Pistas escritas (se repasan al votar)" : "Pistas dichas en voz alta"}
-                value={config.writtenClues}
-                onChange={v => setConfig(c => ({ ...c, writtenClues: v }))}
-              />
+              <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, writtenClues: true }))}
+                  style={{ ...S.btn(config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                >
+                  Escrita
+                </button>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, writtenClues: false }))}
+                  style={{ ...S.btn(!config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                >
+                  En voz alta
+                </button>
+              </div>
+              <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                {config.writtenClues
+                  ? "Cada uno escribe su palabra en el dispositivo antes de pasarlo, y quedan visibles para repasar antes de votar."
+                  : "Cada uno dice su palabra en voz alta, por turnos, sin escribir nada."}
+              </p>
             </div>
             <div style={S.card}>
               <span style={S.label}>
@@ -273,21 +326,47 @@ export function LocalGame() {
                 step="15"
                 value={config.discussionTime}
                 onChange={e => setConfig(c => ({ ...c, discussionTime: +e.target.value }))}
-                style={{ width: "100%" }}
+                style={{ width: "100%", marginTop: 8 }}
               />
             </div>
             <div style={S.card}>
               <span style={S.label}>Categorías</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => (
-                  <Toggle
-                    key={k}
-                    label={`${cat.icon} ${cat.label}`}
-                    value={config.enabledCategories[k]}
-                    onChange={v => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: v } }))}
-                  />
-                ))}
+              <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
+                  const active = !!config.enabledCategories[k];
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: !active } }))}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 7,
+                        padding: "10px 16px",
+                        borderRadius: 999,
+                        border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
+                        background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
+                        color: active ? "#fff" : "#9089c0",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.label}</span>
+                    </button>
+                  );
+                })}
               </div>
+              <p style={{ ...S.muted, marginTop: 12 }}>
+                {activeCats.length === 0
+                  ? "No elegiste ninguna categoría todavía."
+                  : `${activeCats.length} categoría${activeCats.length === 1 ? "" : "s"} activa${activeCats.length === 1 ? "" : "s"}.`}
+              </p>
             </div>
           </>
         )}

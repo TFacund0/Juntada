@@ -28,9 +28,12 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
       categoryLabel: "Animales",
       impostors: ["p2"],
       clues: {},
+      turnOrder: players.map(p => p.id),
+      turnIndex: 0,
       votes: {},
       skipVotes: 0,
       skipVotesNeeded: 2,
+      rerollCount: 0,
       timerEnd: null,
       discussionEnd: null,
       revoteCandidates: null,
@@ -44,6 +47,50 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
 afterEach(() => vi.useRealTimers());
 
 describe("Impostor RoundView — round phase", () => {
+  test("a word reroll shows a brief 'cambiando de palabra' transition before the new word is usable", async () => {
+    vi.useFakeTimers();
+    const room = makeRoom("round");
+    const { rerender } = render(
+      <RoundView
+        room={room}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={{ isImpostor: false, word: "Gato", hint: null }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Tocá para ver tu palabra")).toBeInTheDocument();
+
+    const rerolledRoom = makeRoom("round", { rerollCount: 1 });
+    rerender(
+      <RoundView
+        room={rerolledRoom}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={{ isImpostor: false, word: "Perro", hint: null }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Cambiando de palabra...")).toBeInTheDocument();
+    expect(screen.queryByText("Tocá para ver tu palabra")).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(screen.queryByText("Cambiando de palabra...")).not.toBeInTheDocument();
+    expect(screen.getByText("Tocá para ver tu palabra")).toBeInTheDocument();
+  });
+
   test("shows the innocent's secret word once the card is revealed", async () => {
     const user = userEvent.setup();
     render(
@@ -82,12 +129,12 @@ describe("Impostor RoundView — round phase", () => {
     expect(screen.getByText("La categoría es Animales")).toBeInTheDocument();
   });
 
-  test("marking ready sends player_ready", async () => {
+  test("on your turn, confirming out loud sends an empty submit_clue", async () => {
     const user = userEvent.setup();
     const send = vi.fn();
     render(
       <RoundView
-        room={makeRoom("round")}
+        room={makeRoom("round")} // turnIndex 0 -> p1's turn
         me={{ playerId: "p1", roomCode: "TEST1" }}
         myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: false, word: "Gato", hint: null }}
@@ -97,11 +144,28 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Ya di mi pista, listo" }));
-    expect(send).toHaveBeenCalledWith({ type: "player_ready" });
+    await user.click(screen.getByRole("button", { name: "Ya dije mi palabra" }));
+    expect(send).toHaveBeenCalledWith({ type: "submit_clue", clue: "" });
   });
 
-  test("a written-clue round blocks 'ready' until a clue is submitted", async () => {
+  test("players whose turn hasn't come up yet see a waiting message, not the input", () => {
+    render(
+      <RoundView
+        room={makeRoom("round")} // turnIndex 0 -> p1's turn, not p2's
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myRole={{ isImpostor: true, hint: null }}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Esperando a Jugador 1...")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ya dije mi palabra" })).not.toBeInTheDocument();
+  });
+
+  test("a written-clue round requires typing a word before it can be sent, only on your turn", async () => {
     const user = userEvent.setup();
     const send = vi.fn();
     const room = makeRoom("round");
@@ -118,13 +182,12 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Ya di mi pista, listo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enviar palabra" })).toBeDisabled();
 
-    await user.type(screen.getByPlaceholderText("Escribí tu pista..."), "Maúlla");
-    await user.click(screen.getByRole("button", { name: "Enviar pista" }));
+    await user.type(screen.getByPlaceholderText("Escribí tu palabra..."), "Maúlla");
+    await user.click(screen.getByRole("button", { name: "Enviar palabra" }));
 
     expect(send).toHaveBeenCalledWith({ type: "submit_clue", clue: "Maúlla" });
-    expect(screen.getByRole("button", { name: "Ya di mi pista, listo" })).toBeEnabled();
   });
 });
 
@@ -200,7 +263,15 @@ describe("Impostor RoundView — result phase", () => {
     const send = vi.fn();
     render(
       <RoundView
-        room={makeRoom("result", { eliminated: "p2", wasImpostor: true, impostors: ["p2"], votes: { p1: "p2", p3: "p2" } })}
+        room={makeRoom("result", {
+          eliminated: "p2",
+          wasImpostor: true,
+          impostors: ["p2"],
+          votes: { p1: "p2", p3: "p2" },
+          matchOver: true,
+          winner: "innocents",
+          matchEliminated: ["p2"],
+        })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
         myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
@@ -211,26 +282,78 @@ describe("Impostor RoundView — result phase", () => {
     );
 
     // The countdown blocks the reveal for a few seconds by design.
-    expect(screen.queryByText("Impostor atrapado")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ganaron los inocentes")).not.toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
 
-    expect(screen.getByText("Impostor atrapado")).toBeInTheDocument();
+    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
     expect(screen.getByText("Gato")).toBeInTheDocument();
 
     // Switch back to real timers before driving further interaction —
     // userEvent's own internal delays don't play well with fake ones.
     vi.useRealTimers();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Nueva ronda" }));
+    await user.click(screen.getByRole("button", { name: "Nueva partida" }));
     expect(send).toHaveBeenCalledWith({ type: "start_round" });
+  });
+
+  test("a non-decisive elimination lets the host continue the match instead of starting over", async () => {
+    const send = vi.fn();
+    render(
+      <RoundView
+        room={makeRoom(
+          "result",
+          {
+            eliminated: "p2",
+            wasImpostor: false,
+            impostors: ["p3"],
+            votes: { p1: "p2" },
+            matchOver: false,
+            winner: null,
+            matchEliminated: ["p2"],
+          },
+          [
+            { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+            { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+            { id: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false },
+            { id: "p4", name: "Jugador 4", ready: false, online: true, hasVoted: false },
+          ],
+        )}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={null}
+        wordReveal={{ word: "Gato", categoryLabel: "Animales" }}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(screen.getByText("ERA INOCENTE")).toBeInTheDocument();
+    expect(screen.queryByText("Impostores")).not.toBeInTheDocument(); // roster stays hidden mid-match
+
+    vi.useRealTimers();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Siguiente ronda" }));
+    expect(send).toHaveBeenCalledWith({ type: "continue_round" });
   });
 
   test("non-host players see a waiting message instead of round controls", async () => {
     render(
       <RoundView
-        room={makeRoom("result", { eliminated: "p2", wasImpostor: false, impostors: ["p2"], votes: {} })}
+        room={makeRoom("result", {
+          eliminated: "p2",
+          wasImpostor: true,
+          impostors: ["p2"],
+          votes: {},
+          matchOver: true,
+          winner: "innocents",
+          matchEliminated: ["p2"],
+        })}
         me={{ playerId: "p3", roomCode: "TEST1" }}
         myPlayer={{ id: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false }}
         myRole={null}
@@ -244,8 +367,8 @@ describe("Impostor RoundView — result phase", () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
 
-    expect(screen.getByText("El impostor escapó")).toBeInTheDocument();
-    expect(screen.getByText("Esperando que el anfitrión inicie otra ronda")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Nueva ronda" })).not.toBeInTheDocument();
+    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
+    expect(screen.getByText("Esperando que el anfitrión inicie otra partida")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Nueva partida" })).not.toBeInTheDocument();
   });
 });
