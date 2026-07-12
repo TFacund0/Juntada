@@ -17,6 +17,7 @@ import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
 
 const { SPECTRUMS } = require("@juntada/sintonia-data") as { SPECTRUMS: [string, string][] };
+const { scoreFor } = require("@juntada/sintonia-scoring") as typeof import("@juntada/sintonia-scoring");
 
 interface SintoniaConfig {
   score: Record<string, number>;
@@ -44,13 +45,6 @@ function round(room: Room): SintoniaRound {
 }
 
 const MIN_PLAYERS = 2;
-
-function scoreFor(diff: number): number {
-  if (diff <= 3) return 4;
-  if (diff <= 8) return 3;
-  if (diff <= 15) return 2;
-  return 0;
-}
 
 function randomTarget(): number {
   return 8 + Math.floor(Math.random() * 85); // 8..92, evita los extremos

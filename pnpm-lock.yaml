@@ -47,12 +47,18 @@ importers:
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
+      '@juntada/limon-limon-deck':
+        specifier: workspace:*
+        version: link:../packages/limon-limon-deck
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
       '@juntada/sintonia-data':
         specifier: workspace:*
         version: link:../packages/sintonia-data
+      '@juntada/sintonia-scoring':
+        specifier: workspace:*
+        version: link:../packages/sintonia-scoring
       '@juntada/tateti-board':
         specifier: workspace:*
         version: link:../packages/tateti-board
@@ -108,12 +114,18 @@ importers:
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
+      '@juntada/limon-limon-deck':
+        specifier: workspace:*
+        version: link:../packages/limon-limon-deck
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
       '@juntada/sintonia-data':
         specifier: workspace:*
         version: link:../packages/sintonia-data
+      '@juntada/sintonia-scoring':
+        specifier: workspace:*
+        version: link:../packages/sintonia-scoring
       '@juntada/tateti-board':
         specifier: workspace:*
         version: link:../packages/tateti-board
@@ -175,6 +187,8 @@ importers:
 
   packages/impostor-data: {}
 
+  packages/limon-limon-deck: {}
+
   packages/shared-types:
     dependencies:
       zod:
@@ -182,6 +196,8 @@ importers:
         version: 4.4.3
 
   packages/sintonia-data: {}
+
+  packages/sintonia-scoring: {}
 
   packages/tateti-board: {}
 

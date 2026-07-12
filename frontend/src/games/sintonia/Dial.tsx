@@ -4,6 +4,8 @@
 // su valor en puntos. `markers` dibuja una marca por cada adivinanza ya
 // confirmada, para ver en qué zona cayó cada una.
 
+import { SCORE_ZONES } from "@juntada/sintonia-scoring";
+
 const CX = 150;
 const CY = 150;
 const R = 130;
@@ -22,13 +24,11 @@ function arcPath(radiusOuter: number, radiusInner: number, fromPct: number, toPc
   return `M ${x1} ${y1} A ${radiusOuter} ${radiusOuter} 0 ${large} 1 ${x2} ${y2} L ${x3} ${y3} A ${radiusInner} ${radiusInner} 0 ${large} 0 ${x4} ${y4} Z`;
 }
 
-// spread = qué tan lejos del objetivo llega la zona; points = lo que vale
-// (debe coincidir con scoreFor en LocalGame.jsx / el engine del backend).
-const ZONES = [
-  { spread: 3, points: 4, color: "#EF9F27" },
-  { spread: 8, points: 3, color: "#5DCAA5" },
-  { spread: 15, points: 2, color: "rgba(93,202,165,0.35)" },
-];
+// Thresholds come from @juntada/sintonia-scoring — the single source of
+// truth for how many points each distance from the target is worth; colors
+// are purely a rendering concern, applied here in the same order.
+const ZONE_COLORS = ["#EF9F27", "#5DCAA5", "rgba(93,202,165,0.35)"];
+const ZONES = SCORE_ZONES.map((z, i) => ({ ...z, color: ZONE_COLORS[i] }));
 
 const MARKER_COLORS = ["#534AB7", "#4A9FE0", "#C77DE0", "#E0C24A", "#6BD1C0", "#F09595"];
 

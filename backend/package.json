@@ -12,8 +12,10 @@
   "license": "ISC",
   "dependencies": {
     "@juntada/impostor-data": "workspace:*",
+    "@juntada/limon-limon-deck": "workspace:*",
     "@juntada/shared-types": "workspace:*",
     "@juntada/sintonia-data": "workspace:*",
+    "@juntada/sintonia-scoring": "workspace:*",
     "@juntada/tateti-board": "workspace:*",
     "@juntada/torneo-fifa-bracket": "workspace:*",
     "@juntada/tutifruti-data": "workspace:*",

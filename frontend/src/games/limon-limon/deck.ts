@@ -1,60 +1,21 @@
 import { shuffle } from "../../utils/shuffle";
+import { SUIT_IDS, VALUES, cardKey, buildDefaultDescriptions, getDescription, orderedDeck } from "@juntada/limon-limon-deck";
+import type { Card } from "@juntada/limon-limon-deck";
 
-// Mazo de baraja española usado para el truco: 40 cartas, 4 palos, sin 8 ni 9.
-// Colores tradicionales de impresión de cada palo (naipes Fournier/criollos).
-export const SUITS = [
-  { id: "oro", label: "Oro", color: "#C9972A" },
-  { id: "copa", label: "Copa", color: "#B33A3A" },
-  { id: "espada", label: "Espada", color: "#2B3A67" },
-  { id: "basto", label: "Basto", color: "#3F6B35" },
-];
+export { VALUES, cardKey, buildDefaultDescriptions, getDescription };
+export type { Card };
 
-export const VALUES = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
-
-export interface Card {
-  suit: string;
-  value: number;
-}
-
-// Cada carta (número + palo) es una combinación distinta, así que el
-// significado se guarda por carta puntual — pero las reglas son las mismas
-// en los 4 palos, con una sola excepción: el 1 de oro duplica el castigo,
-// mientras que el 1 de copa/espada/basto es un castigo simple.
-const BASE_DESCRIPTIONS: Record<number, string> = {
-  1: "Te la comés vos mismo.",
-  2: "Come la carta el jugador a la derecha de quien la reveló.",
-  3: "Quien reveló la carta elige quién se la come.",
-  4: "Cuenten cuatro jugadores a la derecha empezando por quien reveló (que cuenta como el primero): el cuarto se la come.",
-  5: "Elijan un tema (por ejemplo, selecciones de fútbol) y vayan diciendo uno por turno; quien se traba o repite, se come la carta.",
-  6: 'Juego del limón: quien reveló dice "un limón, medio limón, tres limones" y el turno salta a la tercera persona a la derecha. Desde ahí, cada uno suma uno a la frase ("tres limones, medio limón, cuatro limones", después "cuatro... cinco", etc.) pasando siempre hacia la derecha. Quien se traba, se come la carta.',
-  7: "Todos se tocan la nariz a la vez — el último en tocársela se come la carta.",
-  10: "Elijan un tema nuevo y vayan diciendo uno por turno, como en el 5; quien se traba, se come la carta.",
-  11: 'Palito: quien reveló dice "palito", el de la derecha "palito, palito", el siguiente "palito, palito, palito", sumando uno cada vez. Quien se confunde, se come la carta.',
-  12: 'Se repite el juego del limón (como en el 6): arranca en "un limón, medio limón, tres limones" y sigue sumando de a uno hacia la derecha. Quien se traba, se come la carta.',
+// Colores tradicionales de impresión de cada palo (naipes Fournier/criollos)
+// — puramente de presentación, así que se quedan del lado del frontend en
+// vez de ir al paquete compartido (que solo conoce los ids "oro"/"copa"/...).
+const SUIT_LABELS: Record<string, { label: string; color: string }> = {
+  oro: { label: "Oro", color: "#C9972A" },
+  copa: { label: "Copa", color: "#B33A3A" },
+  espada: { label: "Espada", color: "#2B3A67" },
+  basto: { label: "Basto", color: "#3F6B35" },
 };
 
-const ORO_OVERRIDES: Record<number, string> = {
-  1: "Te la comés vos mismo, pero el castigo se cumple doble.",
-};
-
-export function cardKey(suit: string, value: number): string {
-  return `${suit}-${value}`;
-}
-
-export function buildDefaultDescriptions(): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const suit of SUITS)
-    for (const value of VALUES) {
-      result[cardKey(suit.id, value)] = (suit.id === "oro" && ORO_OVERRIDES[value]) || BASE_DESCRIPTIONS[value];
-    }
-  return result;
-}
-
-export function getDescription(descriptions: Record<string, string> | undefined, card: Card | null): string {
-  if (!card) return "";
-  const value = descriptions?.[cardKey(card.suit, card.value)];
-  return typeof value === "string" ? value : "";
-}
+export const SUITS = SUIT_IDS.map(id => ({ id, ...SUIT_LABELS[id] }));
 
 export function suitInfo(suitId: string) {
   return SUITS.find(s => s.id === suitId)!;
@@ -68,9 +29,7 @@ export function valueLabel(value: number): string {
 }
 
 export function buildDeck(): Card[] {
-  const deck: Card[] = [];
-  for (const suit of SUITS) for (const value of VALUES) deck.push({ suit: suit.id, value });
-  return shuffle(deck);
+  return shuffle(orderedDeck());
 }
 
 // El orden de turno guardado (room.config.turnOrder) respeta lo que haya

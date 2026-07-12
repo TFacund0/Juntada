@@ -5,6 +5,7 @@ import { Avatar } from "../../components/Avatar";
 import { Toggle } from "../../components/Toggle";
 import { shuffle } from "../../utils/shuffle";
 import { SPECTRUMS } from "@juntada/sintonia-data";
+import { scoreFor } from "@juntada/sintonia-scoring";
 import { Dial } from "./Dial";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -45,13 +46,6 @@ interface HistoryEntry {
 }
 
 const MIN_PLAYERS = 2;
-
-function scoreFor(diff: number): number {
-  if (diff <= 3) return 4;
-  if (diff <= 8) return 3;
-  if (diff <= 15) return 2;
-  return 0;
-}
 
 function randomTarget(): number {
   return 8 + Math.floor(Math.random() * 85); // 8..92, evita los extremos
