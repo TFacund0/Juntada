@@ -13,6 +13,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     gameType: "tutifruti",
     phase: "lobby",
     players: [],
+    maxPlayers: 16,
     config: {
       activeCategories: DEFAULT_CATEGORIES.reduce((a: Record<string, boolean>, c: { id: string }) => ({ ...a, [c.id]: true }), {}),
       customCategories: [],

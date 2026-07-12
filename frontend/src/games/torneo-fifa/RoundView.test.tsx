@@ -22,6 +22,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}): 
     gameType: "torneo-fifa",
     phase,
     players: makePlayers(),
+    maxPlayers: 16,
     config: {},
     round: {
       trackGoals: true,

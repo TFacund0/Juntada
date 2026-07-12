@@ -7,11 +7,14 @@
 // the sum of every guesser's points (a clue that gets everyone close is worth
 // as much as the whole group combined).
 //
-// Phases: setup (host picks who's psychic + which spectrum pair to use, or
-// leaves it to chance) -> clue (psychic writes the phrase) -> guess (everyone
-// else submits a value) -> result (target revealed, points awarded).
+// Phases: setup (host picks who's psychic) -> spectrum (the psychic picks
+// which pair of concepts to use — repeat the last one, a random one, or one
+// they type themselves) -> clue (psychic writes the phrase) -> guess
+// (everyone else submits a value) -> result (target revealed, points awarded).
 // start_round always re-enters "setup"; that's what powers both "Iniciar
-// ronda" from the lobby and "Nueva ronda" after a result.
+// ronda" from the lobby and "Nueva ronda" after a result. If the room is
+// configured to play a fixed number of rounds, start_round refuses once that
+// count is reached — "new_game" resets the score/history and starts fresh.
 
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
@@ -22,13 +25,15 @@ const { scoreFor } = require("@juntada/sintonia-scoring") as typeof import("@jun
 interface SintoniaConfig {
   score: Record<string, number>;
   turnIdx: number;
+  playMode: "endless" | "rounds";
+  roundLimit: number;
   [key: string]: unknown;
 }
 
 interface SintoniaRound {
-  left: string;
-  right: string;
-  target: number;
+  left: string | null;
+  right: string | null;
+  target: number | null;
   psychicId: string;
   clue: string | null;
   guesses: Record<string, number>;
@@ -51,7 +56,7 @@ function randomTarget(): number {
 }
 
 function createConfig(): SintoniaConfig {
-  return { score: {}, turnIdx: 0 };
+  return { score: {}, turnIdx: 0, playMode: "endless", roundLimit: 5 };
 }
 
 function pickSpectrum(room: Room): { left: string; right: string } {
@@ -72,6 +77,10 @@ function pickSpectrum(room: Room): { left: string; right: string } {
 // from room state so they always reflect the current player list.
 function startRound(room: Room): { success?: true; error?: string } {
   if (room.players.length < MIN_PLAYERS) return { error: `Se necesitan al menos ${MIN_PLAYERS} jugadores` };
+  const c = cfg(room);
+  if (c.playMode === "rounds" && room.roundHistory.length >= c.roundLimit) {
+    return { error: "Ya se jugaron todas las rondas configuradas" };
+  }
   room.round = null;
   room.phase = "setup";
   return { success: true };
@@ -79,10 +88,11 @@ function startRound(room: Room): { success?: true; error?: string } {
 
 function finishRound(room: Room): void {
   const r = round(room);
+  const target = r.target!;
   const guesserIds = Object.keys(r.guesses);
   const pointsByPlayer: Record<string, number> = {};
   guesserIds.forEach(pid => {
-    const diff = Math.abs(r.guesses[pid] - r.target);
+    const diff = Math.abs(r.guesses[pid] - target);
     pointsByPlayer[pid] = scoreFor(diff);
   });
   // El psíquico gana lo mismo que sumaron entre todos los que adivinaron —
@@ -100,7 +110,7 @@ function finishRound(room: Room): void {
   room.roundHistory.push({
     left: r.left,
     right: r.right,
-    target: r.target,
+    target,
     psychicId: r.psychicId,
     guesses: r.guesses,
     pointsByPlayer,
@@ -115,10 +125,9 @@ function maybeAdvance(room: Room): void {
   if (online.every(p => round(room).guesses[p.id] != null)) finishRound(room);
 }
 
-// Only the host can finalize the round's setup — payload lets them override
-// who's psychic (a specific id, or "random") and how the spectrum pair is
-// picked ("same" as last round, "random" from the pool, or "manual" with
-// their own left/right text).
+// Only the host can finalize this step — payload lets them override who's
+// psychic (a specific id, or "random"). The spectrum pair itself is chosen
+// next, by the psychic, in the "spectrum" phase (see submit_spectrum below).
 function confirmRoundSetup(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: boolean } {
   if (room.phase !== "setup") return { handled: false };
   if (playerId !== room.hostId) return { handled: false };
@@ -129,7 +138,29 @@ function confirmRoundSetup(room: Room, playerId: string, payload: Record<string,
   }
   const psychicIdx = room.players.findIndex(p => p.id === psychicId);
 
-  const mode = (payload?.spectrumMode as string) || "random";
+  cfg(room).turnIdx = psychicIdx + 1;
+  room.round = {
+    left: null,
+    right: null,
+    target: null,
+    psychicId,
+    clue: null,
+    guesses: {},
+    pointsByPlayer: null,
+    psychicBonus: null,
+  } satisfies SintoniaRound;
+  room.phase = "spectrum";
+  return { handled: true, rerolled: true }; // everyone needs to know who the fresh psychic is
+}
+
+// The assigned psychic picks the spectrum pair — repeat the last round's, a
+// random one from the pool, or one they type themselves — which locks it in
+// immediately and moves straight to the clue phase, no approval needed.
+function submitSpectrum(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: boolean } {
+  if (!room.round || room.phase !== "spectrum") return { handled: false };
+  if (playerId !== round(room).psychicId) return { handled: false };
+
+  const mode = String(payload?.mode || "random");
   const lastRound = room.roundHistory[room.roundHistory.length - 1] as { left?: string; right?: string } | undefined;
   let left: string, right: string;
   if (mode === "same" && lastRound) {
@@ -142,19 +173,21 @@ function confirmRoundSetup(room: Room, playerId: string, payload: Record<string,
     ({ left, right } = pickSpectrum(room));
   }
 
-  cfg(room).turnIdx = psychicIdx + 1;
-  room.round = {
-    left,
-    right,
-    target: randomTarget(),
-    psychicId,
-    clue: null,
-    guesses: {},
-    pointsByPlayer: null,
-    psychicBonus: null,
-  } satisfies SintoniaRound;
+  round(room).left = left;
+  round(room).right = right;
+  round(room).target = randomTarget();
   room.phase = "clue";
   return { handled: true, rerolled: true }; // fresh private info (target) for everyone
+}
+
+// Host-only: wipes the accumulated score and round history and starts a
+// fresh round-setup step, for after a fixed-round-count game has ended.
+function newGame(room: Room, playerId: string): { handled: boolean } {
+  if (playerId !== room.hostId) return { handled: false };
+  cfg(room).score = {};
+  room.roundHistory.length = 0;
+  const res = startRound(room);
+  return { handled: !!res.success };
 }
 
 function handleAction(
@@ -166,6 +199,12 @@ function handleAction(
   switch (action) {
     case "confirm_round_setup":
       return confirmRoundSetup(room, playerId, payload);
+
+    case "submit_spectrum":
+      return submitSpectrum(room, playerId, payload);
+
+    case "new_game":
+      return newGame(room, playerId);
 
     case "submit_clue": {
       if (!room.round || room.phase !== "clue") return { handled: false };
@@ -193,17 +232,31 @@ function handleAction(
 }
 
 function getPublicRoundView(room: Room): Record<string, unknown> | null {
+  const c = cfg(room);
+  const gameProgress = { playMode: c.playMode, roundLimit: c.roundLimit, roundsPlayed: room.roundHistory.length };
+
   if (room.phase === "setup") {
-    const turnIdx = cfg(room).turnIdx || 0;
+    const turnIdx = c.turnIdx || 0;
     const lastRound = room.roundHistory[room.roundHistory.length - 1] as { left?: string; right?: string } | undefined;
     return {
       setup: true,
       suggestedPsychicId: room.players[turnIdx % room.players.length]?.id ?? null,
       lastSpectrum: lastRound ? { left: lastRound.left, right: lastRound.right } : null,
+      ...gameProgress,
     };
   }
   if (!room.round) return null;
   const r = round(room);
+
+  if (room.phase === "spectrum") {
+    const lastRound = room.roundHistory[room.roundHistory.length - 1] as { left?: string; right?: string } | undefined;
+    return {
+      psychicId: r.psychicId,
+      lastSpectrum: lastRound ? { left: lastRound.left, right: lastRound.right } : null,
+      ...gameProgress,
+    };
+  }
+
   const guessersOnline = room.players.filter(p => p.online && p.id !== r.psychicId).length;
   return {
     left: r.left,
@@ -216,6 +269,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     guesses: room.phase === "result" ? r.guesses : null,
     pointsByPlayer: room.phase === "result" ? r.pointsByPlayer : null,
     psychicBonus: room.phase === "result" ? r.psychicBonus : null,
+    ...gameProgress,
   };
 }
 

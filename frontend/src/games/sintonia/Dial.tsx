@@ -30,12 +30,13 @@ function arcPath(radiusOuter: number, radiusInner: number, fromPct: number, toPc
 const ZONE_COLORS = ["#EF9F27", "#5DCAA5", "rgba(93,202,165,0.35)"];
 const ZONES = SCORE_ZONES.map((z, i) => ({ ...z, color: ZONE_COLORS[i] }));
 
-const MARKER_COLORS = ["#534AB7", "#4A9FE0", "#C77DE0", "#E0C24A", "#6BD1C0", "#F09595"];
+export const MARKER_COLORS = ["#534AB7", "#4A9FE0", "#C77DE0", "#E0C24A", "#6BD1C0", "#F09595"];
 
 interface Marker {
   value: number;
   label?: string;
   color?: string;
+  highlight?: boolean;
 }
 
 interface DialProps {
@@ -44,9 +45,10 @@ interface DialProps {
   leftLabel: string;
   rightLabel: string;
   markers?: Marker[];
+  showNeedle?: boolean;
 }
 
-export function Dial({ value, target = null, leftLabel, rightLabel, markers = [] }: DialProps) {
+export function Dial({ value, target = null, leftLabel, rightLabel, markers = [], showNeedle = true }: DialProps) {
   const [needleX, needleY] = pointAt(R - 14, value);
   return (
     <div style={{ width: "100%", maxWidth: 320, margin: "0 auto" }}>
@@ -89,22 +91,45 @@ export function Dial({ value, target = null, leftLabel, rightLabel, markers = []
             const [tx, ty] = pointAt(R - 11, target);
             return <circle cx={tx} cy={ty} r={5} fill="#fff" stroke="#0f0c1d" strokeWidth={1.5} />;
           })()}
-        {markers.map((m, i) => {
-          const [mx, my] = pointAt(R - 11, m.value);
-          const color = m.color || MARKER_COLORS[i % MARKER_COLORS.length];
-          return (
-            <g key={i}>
-              <circle cx={mx} cy={my} r={8} fill={color} stroke="#0f0c1d" strokeWidth={1.5} />
-              {m.label && (
-                <text x={mx} y={my} fontSize={9} fontWeight={800} fill="#fff" textAnchor="middle" dominantBaseline="middle">
-                  {m.label}
-                </text>
-              )}
-            </g>
-          );
-        })}
-        <line x1={CX} y1={CY} x2={needleX} y2={needleY} stroke="#E24B4A" strokeWidth={4} strokeLinecap="round" />
-        <circle cx={CX} cy={CY} r={11} fill="#E24B4A" stroke="#0f0c1d" strokeWidth={2} />
+        {markers
+          .map((m, i) => ({ ...m, colorFallback: MARKER_COLORS[i % MARKER_COLORS.length] }))
+          // SVG paints in document order, so later elements sit on top —
+          // draw the viewer's own marker last so it's never buried under an
+          // overlapping guess from someone else at the same value.
+          .sort((a, b) => (a.highlight ? 1 : 0) - (b.highlight ? 1 : 0))
+          .map((m, i) => {
+            const [mx, my] = pointAt(R - 11, m.value);
+            const color = m.color || m.colorFallback;
+            // Shrink markers a bit once there are many, so they don't fully
+            // overlap each other around the same zone of the dial.
+            const shrink = markers.length > 6 ? 0.8 : 1;
+            const radius = (m.highlight ? 11 : 8) * shrink;
+            return (
+              <g key={i}>
+                {m.highlight && <circle cx={mx} cy={my} r={radius + 3} fill="none" stroke={color} strokeWidth={2} opacity={0.5} />}
+                <circle cx={mx} cy={my} r={radius} fill={color} stroke="#fff" strokeWidth={m.highlight ? 2.5 : 1.5} />
+                {m.label && (
+                  <text
+                    x={mx}
+                    y={my}
+                    fontSize={(m.highlight ? 10 : 9) * shrink}
+                    fontWeight={800}
+                    fill="#fff"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {m.label}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        {showNeedle && (
+          <>
+            <line x1={CX} y1={CY} x2={needleX} y2={needleY} stroke="#E24B4A" strokeWidth={4} strokeLinecap="round" />
+            <circle cx={CX} cy={CY} r={11} fill="#E24B4A" stroke="#0f0c1d" strokeWidth={2} />
+          </>
+        )}
       </svg>
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#AFA9EC", textAlign: "left" }}>{leftLabel}</span>

@@ -142,4 +142,5 @@ module.exports = {
   markOffline,
   isRoomFullyOffline,
   scheduleRoomCleanup,
+  MAX_PLAYERS_PER_ROOM,
 };

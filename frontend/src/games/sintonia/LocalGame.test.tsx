@@ -3,12 +3,14 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocalGame } from "./LocalGame";
 
-// Plays one full local round end to end (setup -> roundSetup -> reveal ->
-// guessTurn -> result) with the 3 default players.
+// Plays one full local round end to end (setup -> roundSetup -> reveal
+// [pick psychic -> psychic picks the spectrum -> reveal target] -> guessTurn
+// -> result) with the 3 default players.
 
 async function startRound(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Iniciar partida" }));
-  await user.click(screen.getByRole("button", { name: "Empezar ronda" }));
+  await user.click(screen.getByRole("button", { name: "Continuar" }));
+  await user.click(screen.getByRole("button", { name: "Confirmar y ver el objetivo" }));
 }
 
 async function revealAndProceed(user: ReturnType<typeof userEvent.setup>) {
@@ -67,6 +69,24 @@ describe("Sintonía LocalGame", () => {
 
     expect(screen.getByText("Puntos de la ronda")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Siguiente ronda" })).toBeInTheDocument();
+  });
+
+  test("the psychic can type their own pair of concepts instead of a random one", async () => {
+    const user = userEvent.setup();
+    render(<LocalGame />);
+
+    await user.click(screen.getByRole("button", { name: "Iniciar partida" }));
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await user.click(screen.getByRole("button", { name: "Elegirlo yo mismo" }));
+    expect(screen.getByRole("button", { name: "Confirmar y ver el objetivo" })).toBeDisabled();
+
+    await user.type(screen.getByPlaceholderText("Extremo izquierdo"), "Frío");
+    await user.type(screen.getByPlaceholderText("Extremo derecho"), "Calor");
+    await user.click(screen.getByRole("button", { name: "Confirmar y ver el objetivo" }));
+    await user.click(screen.getByText("Tocá para revelar el objetivo"));
+
+    expect(screen.getByText("Frío")).toBeInTheDocument();
+    expect(screen.getByText("Calor")).toBeInTheDocument();
   });
 
   test("a written-clue round requires the clue text before proceeding", async () => {

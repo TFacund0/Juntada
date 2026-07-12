@@ -22,6 +22,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
     gameType: "impostor",
     phase,
     players,
+    maxPlayers: 16,
     config: { writtenClues: false, clueTime: 90, discussionTime: 30, hintsEnabled: true },
     round: {
       categoryLabel: "Animales",

@@ -70,6 +70,15 @@ export const SCHEMAS = {
     left: z.string().trim().max(60).optional(),
     right: z.string().trim().max(60).optional(),
   }),
+  submit_spectrum: z.object({
+    type: z.literal("submit_spectrum"),
+    mode: z.enum(["random", "same", "manual"]),
+    left: z.string().trim().max(60).optional(),
+    right: z.string().trim().max(60).optional(),
+  }),
+  new_game: z.object({
+    type: z.literal("new_game"),
+  }),
   report_result: z.object({
     type: z.literal("report_result"),
     roundIdx: z.number().int().min(0),
@@ -166,6 +175,7 @@ export interface RoomPublicState {
   gameType: string;
   phase: string;
   players: PublicPlayer[];
+  maxPlayers: number;
   config: Record<string, unknown>;
   round: unknown;
   usedWords: Record<string, unknown>;

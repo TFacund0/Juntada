@@ -6,17 +6,19 @@ import { Toggle } from "../../components/Toggle";
 import { shuffle } from "../../utils/shuffle";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";
-import { Dial } from "./Dial";
+import { Dial, MARKER_COLORS } from "./Dial";
+import { Collapsible } from "../../components/Collapsible";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SINTONÍA (estilo Wavelength) — un solo dispositivo, se pasa de mano en mano.
-// Mismo modelo que el modo online: antes de cada ronda se elige quién es el
-// psíquico (sugerido por turno, manual o al azar) y qué par de conceptos se
-// usa (uno al azar de la base, o uno escrito a mano). El psíquico ve el
-// objetivo secreto y, si "pistas escritas" está activo, la escribe; si no,
-// la dice en voz alta. Después el dispositivo pasa de jugador en jugador para
-// que cada uno adivine por su cuenta, y al final se revela el objetivo con la
-// marca de cada uno y el puntaje de la ronda — igual que en el modo online.
+// Mismo modelo que el modo online: primero se elige quién es el psíquico
+// (sugerido por turno, manual o al azar). Ya con el dispositivo en mano, el
+// propio psíquico elige el par de conceptos (repetir el último, uno al azar
+// de la base, o uno escrito por él) antes de ver el objetivo secreto y, si
+// "pistas escritas" está activo, escribir la pista; si no, la dice en voz
+// alta. Después el dispositivo pasa de jugador en jugador para que cada uno
+// adivine por su cuenta, y al final se revela el objetivo con la marca de
+// cada uno y el puntaje de la ronda — igual que en el modo online.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface LocalPlayer {
@@ -25,9 +27,9 @@ interface LocalPlayer {
 }
 
 interface RoundData {
-  left: string;
-  right: string;
-  target: number;
+  left: string | null;
+  right: string | null;
+  target: number | null;
   psychicId: number;
   psychicName: string;
   clue: string | null;
@@ -60,8 +62,7 @@ function Scoreboard({ players, history, totalScore }: { players: LocalPlayer[]; 
     }))
     .sort((a, b) => b.points - a.points);
   return (
-    <div style={S.card}>
-      <span style={S.label}>Tabla de puntuación (puntaje total: {totalScore})</span>
+    <Collapsible title={`Tabla de puntuación (puntaje total: ${totalScore})`}>
       {ranked.map((p, i) => (
         <div
           key={p.id}
@@ -80,7 +81,7 @@ function Scoreboard({ players, history, totalScore }: { players: LocalPlayer[]; 
           <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 28, textAlign: "right" }}>{p.points}</span>
         </div>
       ))}
-    </div>
+    </Collapsible>
   );
 }
 
@@ -93,7 +94,11 @@ export function LocalGame() {
   ]);
   const [newName, setNewName] = useState("");
   const [nameError, setNameError] = useState("");
-  const [config, setConfig] = useState({ writtenClues: false });
+  const [config, setConfig] = useState<{ writtenClues: boolean; playMode: "endless" | "rounds"; roundLimit: number }>({
+    writtenClues: false,
+    playMode: "endless",
+    roundLimit: 5,
+  });
 
   const [pool, setPool] = useState<[string, string][]>([]); // pares de la base sin usar en esta partida
   const [turnIdx, setTurnIdx] = useState(0);
@@ -107,9 +112,11 @@ export function LocalGame() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const [setupPsychicId, setSetupPsychicId] = useState<number | "random" | null>(null); // null = sugerido, "random", o un id
-  const [setupSpectrumMode, setSetupSpectrumMode] = useState<"random" | "manual">("random");
-  const [setupManualLeft, setSetupManualLeft] = useState("");
-  const [setupManualRight, setSetupManualRight] = useState("");
+  // Elegidos por el propio psíquico, una vez que tiene el dispositivo en mano
+  // (ver fase "reveal"), no por quien configura la ronda.
+  const [spectrumMode, setSpectrumMode] = useState<"random" | "manual" | "same">("random");
+  const [spectrumLeft, setSpectrumLeft] = useState("");
+  const [spectrumRight, setSpectrumRight] = useState("");
 
   const isDuplicateName = (name: string, excludeId: number | null) => {
     const norm = name.trim().toLowerCase();
@@ -139,9 +146,6 @@ export function LocalGame() {
 
   const goToRoundSetup = () => {
     setSetupPsychicId(null);
-    setSetupSpectrumMode("random");
-    setSetupManualLeft("");
-    setSetupManualRight("");
     setPhase("roundSetup");
   };
 
@@ -163,28 +167,40 @@ export function LocalGame() {
     const psychic = players.find(p => p.id === psychicId)!;
     const psychicIdx = players.findIndex(p => p.id === psychicId);
 
-    let left: string,
-      right: string,
-      nextPool = pool;
-    if (setupSpectrumMode === "manual" && setupManualLeft.trim() && setupManualRight.trim()) {
-      left = setupManualLeft.trim();
-      right = setupManualRight.trim();
-    } else {
-      let source = pool;
-      if (source.length === 0) source = shuffle(SPECTRUMS as [string, string][]);
-      [left, right] = source[0];
-      nextPool = source.slice(1);
-    }
-
-    setRound({ left, right, target: randomTarget(), psychicId: psychicId as number, psychicName: psychic.name, clue: null, guesses: {} });
-    setPool(nextPool);
+    setRound({ left: null, right: null, target: null, psychicId: psychicId as number, psychicName: psychic.name, clue: null, guesses: {} });
     setRevealed(false);
     setClueText("");
     setGuessOrder(players.filter(p => p.id !== psychicId).map(p => p.id));
     setGuessIdx(0);
     setGuessValue(50);
     setTurnIdx(psychicIdx + 1);
+    setSpectrumMode("random");
+    setSpectrumLeft("");
+    setSpectrumRight("");
     setPhase("reveal");
+  };
+
+  // Called by the psychic, once they have the device in hand, to lock in
+  // this round's pair of concepts before the secret target is generated.
+  const confirmSpectrum = () => {
+    const lastRound = history[history.length - 1];
+    let left: string,
+      right: string,
+      nextPool = pool;
+    if (spectrumMode === "manual" && spectrumLeft.trim() && spectrumRight.trim()) {
+      left = spectrumLeft.trim();
+      right = spectrumRight.trim();
+    } else if (spectrumMode === "same" && lastRound) {
+      left = lastRound.left;
+      right = lastRound.right;
+    } else {
+      let source = pool;
+      if (source.length === 0) source = shuffle(SPECTRUMS as [string, string][]);
+      [left, right] = source[0];
+      nextPool = source.slice(1);
+    }
+    setPool(nextPool);
+    setRound(r => r && { ...r, left, right, target: randomTarget() });
   };
 
   const proceedToGuessing = () => {
@@ -212,7 +228,7 @@ export function LocalGame() {
     const pointsByPlayer: Record<number, number> = {};
     let guesserPointsSum = 0;
     Object.entries(nextGuesses).forEach(([pid, value]) => {
-      const pts = scoreFor(Math.abs(value - round.target));
+      const pts = scoreFor(Math.abs(value - round.target!));
       pointsByPlayer[Number(pid)] = pts;
       guesserPointsSum += pts;
     });
@@ -222,9 +238,9 @@ export function LocalGame() {
     setHistory(h => [
       ...h,
       {
-        left: round.left,
-        right: round.right,
-        target: round.target,
+        left: round.left!,
+        right: round.right!,
+        target: round.target!,
         psychicId: round.psychicId,
         psychicName: round.psychicName,
         guesses: nextGuesses,
@@ -278,6 +294,38 @@ export function LocalGame() {
           />
         </div>
 
+        <div style={S.card}>
+          <span style={S.label}>¿Cómo se juega?</span>
+          <div style={{ display: "flex", gap: 8, marginBottom: config.playMode === "rounds" ? 14 : 0 }}>
+            <button
+              onClick={() => setConfig(c => ({ ...c, playMode: "endless" }))}
+              style={{ ...S.btn(config.playMode === "endless" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
+            >
+              Libre (sin límite)
+            </button>
+            <button
+              onClick={() => setConfig(c => ({ ...c, playMode: "rounds" }))}
+              style={{ ...S.btn(config.playMode === "rounds" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
+            >
+              Por rondas
+            </button>
+          </div>
+          {config.playMode === "rounds" && (
+            <div>
+              <span style={S.label}>Cantidad de rondas: {config.roundLimit}</span>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                step="1"
+                value={config.roundLimit}
+                onChange={e => setConfig(c => ({ ...c, roundLimit: +e.target.value }))}
+                style={{ width: "100%" }}
+              />
+            </div>
+          )}
+        </div>
+
         <Btn onClick={startGame} disabled={players.length < MIN_PLAYERS}>
           Iniciar partida
         </Btn>
@@ -314,11 +362,10 @@ export function LocalGame() {
       </div>
     );
 
-  // ── ROUND SETUP (elegir psíquico y par para esta ronda) ──
+  // ── ROUND SETUP (elegir psíquico para esta ronda) ──
   if (phase === "roundSetup") {
     const suggestedId = players[turnIdx % players.length].id;
     const chosenPsychicId = setupPsychicId === null ? suggestedId : setupPsychicId;
-    const manualIncomplete = setupSpectrumMode === "manual" && (!setupManualLeft.trim() || !setupManualRight.trim());
 
     return (
       <div>
@@ -349,42 +396,8 @@ export function LocalGame() {
           </div>
         </div>
 
-        <div style={S.card}>
-          <span style={S.label}>¿Qué par de conceptos usamos?</span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button
-              onClick={() => setSetupSpectrumMode("random")}
-              style={{ ...S.btn(setupSpectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
-            >
-              🎲 Uno al azar de la base
-            </button>
-            <button
-              onClick={() => setSetupSpectrumMode("manual")}
-              style={{ ...S.btn(setupSpectrumMode === "manual" ? "primary" : "ghost"), textAlign: "left" }}
-            >
-              ✍️ Elegirlo yo mismo
-            </button>
-          </div>
-          {setupSpectrumMode === "manual" && (
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <input
-                style={{ ...S.input, flex: 1 }}
-                placeholder="Extremo izquierdo"
-                value={setupManualLeft}
-                onChange={e => setSetupManualLeft(e.target.value)}
-              />
-              <input
-                style={{ ...S.input, flex: 1 }}
-                placeholder="Extremo derecho"
-                value={setupManualRight}
-                onChange={e => setSetupManualRight(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-
-        <Btn variant="success" onClick={confirmRoundSetup} disabled={manualIncomplete}>
-          Empezar ronda
+        <Btn variant="success" onClick={confirmRoundSetup}>
+          Continuar
         </Btn>
         <Btn variant="ghost" onClick={() => setPhase("setup")} style={{ marginTop: 10 }}>
           Volver a configuración
@@ -396,6 +409,70 @@ export function LocalGame() {
   // ── REVEAL (el "psíquico" ve el objetivo) ──
   if (phase === "reveal" && round) {
     const psychic = players.find(p => p.id === round.psychicId)!;
+
+    // Antes de ver el objetivo, el propio psíquico elige el par de conceptos
+    // de esta ronda (repetir el último, uno al azar, o uno escrito por él).
+    if (round.left === null) {
+      const lastRound = history[history.length - 1];
+      const manualIncomplete = spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim());
+      return (
+        <div>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <Avatar name={psychic.name} size={56} />
+            <p style={{ fontWeight: 800, fontSize: 20, marginTop: 10 }}>{psychic.name}</p>
+            <p style={S.muted}>Pasále el dispositivo solo a esta persona</p>
+          </div>
+          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
+          </div>
+          <div style={S.card}>
+            <span style={S.label}>¿Qué par de conceptos usamos?</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {lastRound && (
+                <button
+                  onClick={() => setSpectrumMode("same")}
+                  style={{ ...S.btn(spectrumMode === "same" ? "primary" : "ghost"), textAlign: "left" }}
+                >
+                  Repetir: {lastRound.left} / {lastRound.right}
+                </button>
+              )}
+              <button
+                onClick={() => setSpectrumMode("random")}
+                style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
+              >
+                Uno al azar de la base
+              </button>
+              <button
+                onClick={() => setSpectrumMode("manual")}
+                style={{ ...S.btn(spectrumMode === "manual" ? "primary" : "ghost"), textAlign: "left" }}
+              >
+                Elegirlo yo mismo
+              </button>
+            </div>
+            {spectrumMode === "manual" && (
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <input
+                  style={{ ...S.input, flex: 1 }}
+                  placeholder="Extremo izquierdo"
+                  value={spectrumLeft}
+                  onChange={e => setSpectrumLeft(e.target.value)}
+                />
+                <input
+                  style={{ ...S.input, flex: 1 }}
+                  placeholder="Extremo derecho"
+                  value={spectrumRight}
+                  onChange={e => setSpectrumRight(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <Btn variant="success" onClick={confirmSpectrum} disabled={manualIncomplete}>
+            Confirmar y ver el objetivo
+          </Btn>
+        </div>
+      );
+    }
+
     const canProceed = revealed && (!config.writtenClues || clueText.trim());
     return (
       <div>
@@ -423,7 +500,7 @@ export function LocalGame() {
             <p style={{ color: "#6b6490", fontSize: 15 }}>Tocá para revelar el objetivo</p>
           ) : (
             <>
-              <Dial value={round.target} target={round.target} leftLabel={round.left} rightLabel={round.right} />
+              <Dial value={round.target!} target={round.target} leftLabel={round.left!} rightLabel={round.right!} />
               <p style={{ fontSize: 12, color: "#5a5280", marginTop: 12 }}>Tocá para ocultar</p>
             </>
           )}
@@ -468,7 +545,7 @@ export function LocalGame() {
           <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Guiate por la pista que dijo {round.psychicName} en voz alta</p>
         )}
         <div style={S.card}>
-          <Dial value={guessValue} leftLabel={round.left} rightLabel={round.right} />
+          <Dial value={guessValue} leftLabel={round.left!} rightLabel={round.right!} />
           <input
             type="range"
             min="0"
@@ -488,28 +565,49 @@ export function LocalGame() {
   // ── RESULT ──
   if (phase === "result" && round) {
     const points = round.pointsByPlayer || {};
-    const markers = players
-      .filter(p => p.id !== round.psychicId && round.guesses[p.id] != null)
-      .map(p => ({ value: round.guesses[p.id], label: p.name.trim()[0]?.toUpperCase() }));
+    const guessers = players.filter(p => p.id !== round.psychicId && round.guesses[p.id] != null);
+    const markers = guessers.map((p, i) => ({
+      value: round.guesses[p.id],
+      label: p.name.trim()[0]?.toUpperCase(),
+      color: MARKER_COLORS[i % MARKER_COLORS.length],
+    }));
 
     return (
       <div>
-        <div style={S.cardHighlight}>
-          <Dial value={round.target} target={round.target} leftLabel={round.left} rightLabel={round.right} markers={markers} />
-        </div>
-        <div style={S.card}>
+        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
           <span style={S.label}>Pista de {round.psychicName}</span>
           {round.clue ? (
-            <p style={{ fontSize: 18, fontWeight: 700, margin: "4px 0 0" }}>"{round.clue}"</p>
+            <p style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>"{round.clue}"</p>
           ) : (
-            <p style={{ ...S.muted, margin: "4px 0 0" }}>(dicha en voz alta)</p>
+            <p style={{ ...S.muted, margin: 0 }}>(dicha en voz alta)</p>
           )}
-          <p style={{ ...S.muted, marginTop: 6 }}>
-            {round.psychicName} gana lo mismo que sumaron los que adivinaron: +{points[round.psychicId] || 0}
-          </p>
         </div>
-        <div style={S.card}>
-          <span style={S.label}>Puntos de la ronda</span>
+        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+          <Dial value={round.target!} target={round.target} leftLabel={round.left!} rightLabel={round.right!} markers={markers} showNeedle={false} />
+          {guessers.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 10px", marginTop: 10 }}>
+              {guessers.map((p, i) => (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span
+                    style={{
+                      width: 13,
+                      height: 13,
+                      borderRadius: "50%",
+                      background: MARKER_COLORS[i % MARKER_COLORS.length],
+                      border: "1.5px solid rgba(255,255,255,0.4)",
+                      display: "inline-block",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#b8b0d4" }}>
+                    {p.name.trim()[0]?.toUpperCase()} — {p.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <Collapsible title="Puntos de la ronda">
           {players.map(p => (
             <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
               <span style={{ color: "#b8b0d4" }}>
@@ -519,12 +617,33 @@ export function LocalGame() {
               <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
             </div>
           ))}
-        </div>
+        </Collapsible>
         <Scoreboard players={players} history={history} totalScore={totalScore} />
+        {(() => {
+          const gameOver = config.playMode === "rounds" && history.length >= config.roundLimit;
+          if (!gameOver) return null;
+          const winnerScore = (p: LocalPlayer) => history.reduce((sum, h) => sum + (h.pointsByPlayer[p.id] || 0), 0);
+          const winner = players.slice().sort((a, b) => winnerScore(b) - winnerScore(a))[0];
+          return (
+            <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+              <span style={S.label}>Partida terminada</span>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>🏆 Ganó {winner?.name}</p>
+              <p style={S.muted}>
+                {history.length} rondas jugadas · {winnerScore(winner)} puntos
+              </p>
+            </div>
+          );
+        })()}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-          <Btn variant="success" onClick={goToRoundSetup}>
-            Siguiente ronda
-          </Btn>
+          {config.playMode === "rounds" && history.length >= config.roundLimit ? (
+            <Btn variant="success" onClick={startGame}>
+              Nueva partida
+            </Btn>
+          ) : (
+            <Btn variant="success" onClick={goToRoundSetup}>
+              Siguiente ronda
+            </Btn>
+          )}
           <Btn variant="ghost" onClick={() => setPhase("setup")}>
             Terminar partida
           </Btn>

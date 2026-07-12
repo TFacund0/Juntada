@@ -19,6 +19,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, c
     gameType: "tateti",
     phase,
     players: makePlayers(),
+    maxPlayers: 16,
     config: { score: {}, draws: 0, resetVotes: [], ...configOverrides },
     round: {
       board: Array(9).fill(null),

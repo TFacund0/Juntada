@@ -29,8 +29,6 @@ export function MultiplayerGame({ gameId, initialJoinCode }: MultiplayerGameProp
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
   const [showQR, setShowQR] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
-  const [showInviteQR, setShowInviteQR] = useState(false);
 
   // Scanned a "join this room" QR — skip straight to the join form with the
   // code already filled in, they just need to type their name.
@@ -193,7 +191,12 @@ export function MultiplayerGame({ gameId, initialJoinCode }: MultiplayerGameProp
         )}
         {activeGame && <p style={{ ...S.muted, textAlign: "center", margin: "10px 0 0" }}>{activeGame.label}</p>}
         <div style={{ ...S.card, marginTop: 14 }}>
-          <span style={S.label}>{room.players.length} jugadores</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={S.label}>
+              {room.players.length}/{room.maxPlayers} jugadores
+            </span>
+            {room.players.length >= room.maxPlayers && <span style={S.pill(false)}>Sala llena</span>}
+          </div>
           {room.players.map(p => (
             <div
               key={p.id}
@@ -276,59 +279,6 @@ export function MultiplayerGame({ gameId, initialJoinCode }: MultiplayerGameProp
           >
             {error}
           </div>
-        )}
-
-        {/* Only once the round is fully resolved (nobody mid-vote) — joining
-            is blocked until the room's back in the lobby anyway, and showing
-            this earlier just invites confusion about when it actually works. */}
-        {connectionPhase === "result" && (
-          <div style={{ textAlign: "center", marginBottom: 14 }}>
-            <button
-              onClick={() => setShowInvite(v => !v)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#7F77DD",
-                cursor: "pointer",
-                fontSize: 13,
-                fontFamily: "inherit",
-                fontWeight: 700,
-              }}
-            >
-              {showInvite ? "Ocultar código de sala ▲" : "Invitar a alguien más ▼"}
-            </button>
-            {showInvite && (
-              <div style={{ marginTop: 10 }}>
-                {room.name && <p style={{ fontSize: 15, fontWeight: 800, color: "#AFA9EC", margin: "0 0 8px" }}>{room.name}</p>}
-                <CodeDisplay code={room.code} />
-                <button
-                  onClick={() => setShowInviteQR(true)}
-                  style={{
-                    display: "block",
-                    margin: "10px auto 0",
-                    background: "none",
-                    border: "none",
-                    color: "#7F77DD",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontFamily: "inherit",
-                    fontWeight: 700,
-                  }}
-                >
-                  📱 Invitar con QR
-                </button>
-                <p style={{ ...S.muted, marginTop: 8 }}>Van a poder unirse cuando vuelvan al lobby o arranquen la próxima ronda</p>
-              </div>
-            )}
-          </div>
-        )}
-        {showInviteQR && (
-          <QRDialog
-            title="Escaneá para unirte"
-            subtitle={`${room.name ? room.name + " · " : ""}Sala ${room.code} · ${activeGame.label}`}
-            value={buildJoinUrl(room.gameType, room.code)}
-            onClose={() => setShowInviteQR(false)}
-          />
         )}
 
         <Suspense fallback={<p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>}>

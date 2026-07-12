@@ -16,6 +16,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
       { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
       { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
     ],
+    maxPlayers: 16,
     config: {
       descriptions: buildDefaultDescriptions(),
       turnOrder: ["p1", "p2"],

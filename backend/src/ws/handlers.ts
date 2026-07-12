@@ -230,6 +230,8 @@ const HANDLERS: Record<string, Handler> = {
   skip_word: gameAction("skip_word"),
   submit_guess: gameAction("submit_guess"),
   confirm_round_setup: gameAction("confirm_round_setup"),
+  submit_spectrum: gameAction("submit_spectrum"),
+  new_game: gameAction("new_game"),
   report_result: gameAction("report_result"),
   mark: gameAction("mark"),
   reset_score_vote: gameAction("reset_score_vote"),

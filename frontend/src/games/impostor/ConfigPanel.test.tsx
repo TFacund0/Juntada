@@ -19,6 +19,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     gameType: "impostor",
     phase: "lobby",
     players: [],
+    maxPlayers: 16,
     config: {
       enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
       numImpostors: 1,

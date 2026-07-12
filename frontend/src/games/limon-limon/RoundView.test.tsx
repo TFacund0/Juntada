@@ -20,6 +20,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, c
     gameType: "limon-limon",
     phase,
     players: makePlayers(),
+    maxPlayers: 16,
     config: { descriptions: buildDefaultDescriptions(), turnOrder: ["p1", "p2"], showScoreToPlayers: true, ...configOverrides },
     round: {
       order: ["p1", "p2"],

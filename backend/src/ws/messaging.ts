@@ -15,6 +15,7 @@ const { rooms, clients } = require("../state/roomStore") as {
   clients: Map<WS, ClientInfo>;
 };
 const { getEngine } = require("../games/registry") as { getEngine: (gameType: string) => GameEngine | undefined };
+const { MAX_PLAYERS_PER_ROOM } = require("../rooms/roomService") as { MAX_PLAYERS_PER_ROOM: number };
 
 function sendTo(ws: WS, message: ServerMessage): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
@@ -53,6 +54,7 @@ function getRoomPublicState(room: Room): RoomPublicState {
       online: p.online,
       hasVoted: !!(room.round as any)?.votes?.[p.id],
     })),
+    maxPlayers: engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM,
     config: room.config,
     round: engine?.getPublicRoundView(room) ?? null,
     usedWords: room.usedWords,

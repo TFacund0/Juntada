@@ -27,6 +27,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
     gameType: "tutifruti",
     phase,
     players,
+    maxPlayers: 16,
     config: { score: {} },
     round: {
       letter: "A",
