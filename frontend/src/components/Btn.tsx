@@ -11,7 +11,7 @@ interface BtnProps {
 
 export function Btn({ children, onClick, variant = "primary", disabled, style = {} }: BtnProps) {
   return (
-    <button onClick={disabled ? undefined : onClick} style={{ ...S.btn(variant, disabled), ...style }}>
+    <button disabled={disabled} onClick={disabled ? undefined : onClick} style={{ ...S.btn(variant, disabled), ...style }}>
       {children}
     </button>
   );

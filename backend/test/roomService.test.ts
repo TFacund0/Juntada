@@ -44,7 +44,7 @@ test("joinRoom adds a player to an existing lobby room", () => {
 
   assert.equal(error, undefined);
   assert.equal(room.players.length, 2);
-  assert.ok(room.players.some(p => p.id === playerId && p.name === "Beto"));
+  assert.ok(room.players.some((p: any) => p.id === playerId && p.name === "Beto"));
 });
 
 test("joinRoom is case-insensitive on the room code", () => {
@@ -109,7 +109,7 @@ test("kickPlayer removes the player from the room", () => {
 
   roomService.kickPlayer(room, betoId);
   assert.equal(room.players.length, 1);
-  assert.ok(!room.players.some(p => p.id === betoId));
+  assert.ok(!room.players.some((p: any) => p.id === betoId));
 });
 
 test("kickPlayer hands the host role off when the host itself is kicked", () => {
@@ -125,7 +125,7 @@ test("markOffline flags the player offline and hands off host if needed", () => 
   const { playerId: betoId } = roomService.joinRoom(fakeSocket(), { code: room.code, playerName: "Beto" });
 
   roomService.markOffline(room, hostId);
-  assert.equal(room.players.find(p => p.id === hostId).online, false);
+  assert.equal(room.players.find((p: any) => p.id === hostId).online, false);
   assert.equal(room.hostId, betoId);
 });
 
@@ -140,7 +140,7 @@ test("isRoomFullyOffline is true only once every player is offline", () => {
   assert.equal(roomService.isRoomFullyOffline(room), true);
 });
 
-test("scheduleRoomCleanup deletes a fully-offline room once the grace period elapses", t => {
+test("scheduleRoomCleanup deletes a fully-offline room once the grace period elapses", (t: any) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { room, playerId } = roomService.createRoom(fakeSocket(), { playerName: "Ana" });
   roomService.markOffline(room, playerId);
@@ -152,7 +152,7 @@ test("scheduleRoomCleanup deletes a fully-offline room once the grace period ela
   assert.equal(rooms.has(room.code), false);
 });
 
-test("scheduleRoomCleanup leaves the room alone if someone reconnected in time", t => {
+test("scheduleRoomCleanup leaves the room alone if someone reconnected in time", (t: any) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { room, playerId } = roomService.createRoom(fakeSocket(), { playerName: "Ana" });
   roomService.markOffline(room, playerId);

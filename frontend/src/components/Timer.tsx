@@ -1,11 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { memo, useState, useEffect, useRef } from "react";
 
 interface TimerProps {
   timerEnd: number;
   total?: number;
 }
 
-export function Timer({ timerEnd, total }: TimerProps) {
+// Ticks its own countdown via internal state (no prop changes needed for
+// that), but its parent (RoundView) re-renders on every WS "state"
+// broadcast — memoized so those unrelated re-renders don't re-run this
+// component's render body in between its own 500ms ticks.
+export const Timer = memo(function Timer({ timerEnd, total }: TimerProps) {
   const [secs, setSecs] = useState(0);
   const totalRef = useRef(total || 1);
 
@@ -37,4 +41,4 @@ export function Timer({ timerEnd, total }: TimerProps) {
       </div>
     </div>
   );
-}
+});

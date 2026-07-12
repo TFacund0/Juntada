@@ -52,7 +52,7 @@ test("startRound assigns a word, a category and the right number of impostors", 
   assert.ok(room.round.word);
   assert.ok(room.round.categoryLabel);
   assert.equal(room.round.impostors.length, 1); // default numImpostors = 1
-  assert.ok(room.round.impostors.every(id => room.players.some(p => p.id === id)));
+  assert.ok(room.round.impostors.every((id: string) => room.players.some(p => p.id === id)));
   assert.ok(room.players.every(p => p.ready === false));
 });
 
@@ -305,7 +305,7 @@ test("getPrivateView never reveals the word to the impostor", () => {
   const room = makeRoom();
   engine.startRound(room);
   const impostorId = room.round.impostors[0];
-  const innocentId = room.players.find(p => p.id !== impostorId).id;
+  const innocentId = room.players.find(p => p.id !== impostorId)!.id;
 
   assert.equal(engine.getPrivateView(room, impostorId).word, null);
   assert.equal(engine.getPrivateView(room, innocentId).word, room.round.word);
