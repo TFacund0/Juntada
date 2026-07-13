@@ -23,6 +23,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
     phase,
     players,
     maxPlayers: 16,
+    groupCode: null,
     config: { score: {} },
     round: {
       psychicId: "p1",

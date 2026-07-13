@@ -3,19 +3,23 @@
 // The room-level fields here are generic; anything about "what's happening
 // in this round" is delegated to the room's game engine.
 
-import type { Room, RoomPublicState, ServerMessage, ErrorCode } from "@juntada/shared-types";
+import type { Room, RoomPublicState, Group, GroupPublicState, ServerMessage, ErrorCode } from "@juntada/shared-types";
 import type { ClientInfo } from "../state/roomStore";
 import type { GameEngine } from "../games/engineTypes";
 
 const { WebSocket } = require("ws");
 type WS = import("ws").WebSocket;
 
-const { rooms, clients } = require("../state/roomStore") as {
+const { rooms, groups, clients } = require("../state/roomStore") as {
   rooms: Map<string, Room>;
+  groups: Map<string, Group>;
   clients: Map<WS, ClientInfo>;
 };
-const { getEngine } = require("../games/registry") as { getEngine: (gameType: string) => GameEngine | undefined };
+const { getEngine } = require("../games/registry") as {
+  getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
+};
 const { MAX_PLAYERS_PER_ROOM } = require("../rooms/roomService") as { MAX_PLAYERS_PER_ROOM: number };
+const { MAX_MEMBERS_PER_GROUP } = require("../rooms/groupService") as { MAX_MEMBERS_PER_GROUP: number };
 
 function sendTo(ws: WS, message: ServerMessage): void {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
@@ -39,6 +43,20 @@ function broadcast(roomCode: string, message: ServerMessage, excludeWs: WS | nul
   }
 }
 
+// Every client whose groupCode matches gets this — regardless of which
+// instance (if any) they're currently attached to, since the group screen
+// (member list, open instances) is relevant to the whole group at once.
+function broadcastGroup(groupCode: string, message: ServerMessage, excludeWs: WS | null = null): void {
+  const group = groups.get(groupCode);
+  if (!group) return;
+  const data = JSON.stringify(message);
+  for (const [ws, info] of clients) {
+    if (info.groupCode === groupCode && ws !== excludeWs && ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+    }
+  }
+}
+
 function getRoomPublicState(room: Room): RoomPublicState {
   const engine = getEngine(room.gameType);
   return {
@@ -46,6 +64,7 @@ function getRoomPublicState(room: Room): RoomPublicState {
     name: room.name,
     hostId: room.hostId,
     gameType: room.gameType,
+    groupCode: room.groupCode,
     phase: room.phase,
     players: room.players.map(p => ({
       id: p.id,
@@ -62,6 +81,33 @@ function getRoomPublicState(room: Room): RoomPublicState {
   };
 }
 
+// The group's open instances, summarized just enough for a join button —
+// scans every room for the ones linked back to this group.
+function getGroupPublicState(group: Group): GroupPublicState {
+  const instances = [...rooms.values()]
+    .filter(r => r.groupCode === group.code)
+    .map(r => {
+      const engine = getEngine(r.gameType);
+      const host = r.players.find(p => p.id === r.hostId);
+      return {
+        roomCode: r.code,
+        gameType: r.gameType,
+        phase: r.phase,
+        playerCount: r.players.length,
+        maxPlayers: engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM,
+        hostName: host?.name ?? "",
+      };
+    });
+  return {
+    code: group.code,
+    name: group.name,
+    hostId: group.hostId,
+    members: group.members,
+    maxMembers: MAX_MEMBERS_PER_GROUP,
+    instances,
+  };
+}
+
 function sendPrivateInfo(ws: WS, room: Room, playerId: string): void {
   const engine = getEngine(room.gameType);
   const view = engine?.getPrivateView(room, playerId);
@@ -71,6 +117,10 @@ function sendPrivateInfo(ws: WS, room: Room, playerId: string): void {
 
 function broadcastState(room: Room): void {
   broadcast(room.code, { type: "state", room: getRoomPublicState(room) });
+}
+
+function broadcastGroupState(group: Group): void {
+  broadcastGroup(group.code, { type: "group_state", group: getGroupPublicState(group) });
 }
 
 function broadcastRoundReveal(room: Room): void {
@@ -83,8 +133,11 @@ module.exports = {
   sendTo,
   sendError,
   broadcast,
+  broadcastGroup,
   getRoomPublicState,
+  getGroupPublicState,
   sendPrivateInfo,
   broadcastState,
+  broadcastGroupState,
   broadcastRoundReveal,
 };

@@ -219,12 +219,22 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
       setClueSubmitted(true);
     };
 
+    // The category doubles as the impostor's hint — showing it to them
+    // unconditionally would defeat the "sin pista" setting, so it's hidden
+    // for a blind impostor and just relabeled (not a spoiler) for everyone
+    // else, who already know the actual word.
+    const showCategory = !myRole?.isImpostor || config.hintsEnabled;
+
     return (
       <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-          <p style={{ fontSize: 11, letterSpacing: "0.1em", color: "#7F77DD", fontWeight: 700 }}>CATEGORÍA</p>
-          <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round?.categoryLabel}</p>
-        </div>
+        {showCategory && (
+          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+            <p style={{ fontSize: 11, letterSpacing: "0.1em", color: "#7F77DD", fontWeight: 700 }}>
+              {myRole?.isImpostor ? "PISTA PARA EL IMPOSTOR" : "CATEGORÍA"}
+            </p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round?.categoryLabel}</p>
+          </div>
+        )}
 
         {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 

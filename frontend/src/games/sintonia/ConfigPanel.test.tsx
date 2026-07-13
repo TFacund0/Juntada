@@ -13,6 +13,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     phase: "lobby",
     players: [],
     maxPlayers: 16,
+    groupCode: null,
     config: { score: {}, turnIdx: 0, playMode: "endless", roundLimit: 5, ...configOverrides },
     round: null,
     usedWords: {},

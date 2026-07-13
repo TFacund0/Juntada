@@ -26,7 +26,7 @@ export const SCHEMAS = {
     type: z.literal("create_room"),
     playerName: name,
     roomName: z.string().trim().max(60).optional(),
-    gameType: z.string().max(30).optional(),
+    gameType: z.string().max(30),
   }),
   join_room: z.object({
     type: z.literal("join_room"),
@@ -37,6 +37,32 @@ export const SCHEMAS = {
     type: z.literal("rejoin"),
     roomCode,
     playerId: uuid,
+  }),
+  create_group: z.object({
+    type: z.literal("create_group"),
+    playerName: name,
+    groupName: z.string().trim().max(60).optional(),
+  }),
+  join_group: z.object({
+    type: z.literal("join_group"),
+    code: roomCode,
+    playerName: name,
+  }),
+  rejoin_group: z.object({
+    type: z.literal("rejoin_group"),
+    groupCode: roomCode,
+    playerId: uuid,
+  }),
+  create_instance: z.object({
+    type: z.literal("create_instance"),
+    gameType: z.string().max(30),
+  }),
+  join_instance: z.object({
+    type: z.literal("join_instance"),
+    roomCode,
+  }),
+  leave_instance: z.object({
+    type: z.literal("leave_instance"),
   }),
   update_config: z.object({
     type: z.literal("update_config"),
@@ -163,6 +189,10 @@ export interface Room {
   name: string;
   hostId: string;
   gameType: string;
+  // Which group this instance belongs to, if any — null for a room created
+  // directly for one game (the original, group-less flow). Set when the
+  // instance was opened from inside a group (see create_instance).
+  groupCode: string | null;
   phase: string;
   players: Player[];
   config: Record<string, unknown>;
@@ -176,6 +206,7 @@ export interface RoomPublicState {
   name: string;
   hostId: string;
   gameType: string;
+  groupCode: string | null;
   phase: string;
   players: PublicPlayer[];
   maxPlayers: number;
@@ -183,6 +214,44 @@ export interface RoomPublicState {
   round: unknown;
   usedWords: Record<string, unknown>;
   roundHistory: unknown[];
+}
+
+// ─── Group ───────────────────────────────────────────────────────────────────
+// A group is a persistent lobby of people (its own code, its own member
+// list) that can have several game instances (Room above) open under it at
+// once — anyone in the group can start one, and each member decides on
+// their own whether to join it, independent of what anyone else is doing.
+export interface GroupMember {
+  id: string;
+  name: string;
+  online: boolean;
+}
+
+export interface Group {
+  code: string;
+  name: string;
+  hostId: string; // the group's creator — mostly informational, doesn't gate instance actions
+  members: GroupMember[];
+}
+
+// One open game instance, as seen from the group screen — enough to show a
+// join button without pulling in that game's full round state.
+export interface GroupInstanceSummary {
+  roomCode: string;
+  gameType: string;
+  phase: string;
+  playerCount: number;
+  maxPlayers: number;
+  hostName: string;
+}
+
+export interface GroupPublicState {
+  code: string;
+  name: string;
+  hostId: string;
+  members: GroupMember[];
+  maxMembers: number;
+  instances: GroupInstanceSummary[];
 }
 
 // ─── Server → Client ─────────────────────────────────────────────────────────
@@ -197,6 +266,11 @@ export type ErrorCode =
   | "CREATE_ROOM_FAILED"
   | "JOIN_ROOM_FAILED"
   | "REJOIN_FAILED"
+  | "CREATE_GROUP_FAILED"
+  | "JOIN_GROUP_FAILED"
+  | "REJOIN_GROUP_FAILED"
+  | "CREATE_INSTANCE_FAILED"
+  | "JOIN_INSTANCE_FAILED"
   | "NOT_ENOUGH_PLAYERS"
   | "START_ROUND_FAILED"
   | "INVALID_ACTION" // handleAction rejected it for the current phase/state
@@ -209,6 +283,9 @@ export type ErrorCode =
 export type ServerMessage =
   | { type: "state"; room: RoomPublicState }
   | { type: "joined"; playerId: string; roomCode: string; room: RoomPublicState }
+  | { type: "group_state"; group: GroupPublicState }
+  | { type: "group_joined"; playerId: string; groupCode: string; group: GroupPublicState }
+  | { type: "left_instance" }
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }
   | { type: "pong" }

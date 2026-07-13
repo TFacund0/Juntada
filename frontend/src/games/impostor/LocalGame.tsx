@@ -421,9 +421,9 @@ export function LocalGame() {
         <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>
           Jugador {revealIdx + 1} de {players.length}
         </p>
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 20 }}>
           <Avatar name={player.name} size={56} />
-          <p style={{ fontWeight: 800, fontSize: 20, marginTop: 10 }}>{player.name}</p>
+          <p style={{ fontWeight: 800, fontSize: 20, margin: 0 }}>{player.name}</p>
         </div>
         <div
           style={{
@@ -468,7 +468,7 @@ export function LocalGame() {
             />
           </div>
         )}
-        <Btn onClick={advance} disabled={!wordVisible || needsClue}>
+        <Btn onClick={advance} disabled={needsClue}>
           {isLast ? "Todos listos, empezar" : "Siguiente jugador"}
         </Btn>
       </div>
@@ -479,10 +479,12 @@ export function LocalGame() {
   if (phase === "discussion" && round)
     return (
       <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Categoría de esta ronda</p>
-          <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{round.categoryLabel}</p>
-        </div>
+        {config.hintsEnabled && (
+          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Pista para el impostor</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{round.categoryLabel}</p>
+          </div>
+        )}
         <div style={S.card}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
             <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo restante</span>

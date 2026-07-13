@@ -21,6 +21,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, c
     phase,
     players: makePlayers(),
     maxPlayers: 16,
+    groupCode: null,
     config: { descriptions: buildDefaultDescriptions(), turnOrder: ["p1", "p2"], showScoreToPlayers: true, ...configOverrides },
     round: {
       order: ["p1", "p2"],

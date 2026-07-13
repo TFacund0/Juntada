@@ -1,6 +1,9 @@
-import type { Room } from "@juntada/shared-types";
+import type { Room, Group } from "@juntada/shared-types";
 
-const { rooms } = require("../state/roomStore") as { rooms: Map<string, Room> };
+const { rooms, groups } = require("../state/roomStore") as {
+  rooms: Map<string, Room>;
+  groups: Map<string, Group>;
+};
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sin 0/O/1/I para evitar confusión al leerlo en voz alta
 
@@ -10,11 +13,17 @@ function generateCode(): string {
   return code;
 }
 
+// Rooms (game instances) and groups share one code space so a code always
+// unambiguously means one or the other, never both.
+function codeTaken(code: string): boolean {
+  return rooms.has(code) || groups.has(code);
+}
+
 function generateUniqueRoomCode(): string {
   let code: string;
   do {
     code = generateCode();
-  } while (rooms.has(code));
+  } while (codeTaken(code));
   return code;
 }
 

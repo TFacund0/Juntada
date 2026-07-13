@@ -23,6 +23,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
     phase,
     players,
     maxPlayers: 16,
+    groupCode: null,
     config: { writtenClues: false, clueTime: 90, discussionTime: 30, hintsEnabled: true },
     round: {
       categoryLabel: "Animales",
@@ -127,6 +128,39 @@ describe("Impostor RoundView — round phase", () => {
     await user.click(screen.getByText("Tocá para ver tu palabra"));
     expect(screen.getByText("Sos el impostor")).toBeInTheDocument();
     expect(screen.getByText("La categoría es Animales")).toBeInTheDocument();
+    expect(screen.getByText("PISTA PARA EL IMPOSTOR")).toBeInTheDocument();
+  });
+
+  test("hides the category from a blind impostor (hintsEnabled off), but not from innocents", () => {
+    const room = makeRoom("round");
+    room.config = { ...room.config, hintsEnabled: false };
+
+    const { rerender } = render(
+      <RoundView
+        room={room}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myRole={{ isImpostor: true, hint: null }}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText("Animales")).not.toBeInTheDocument();
+
+    rerender(
+      <RoundView
+        room={room}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={{ isImpostor: false, word: "Gato", hint: null }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Animales")).toBeInTheDocument();
+    expect(screen.getByText("CATEGORÍA")).toBeInTheDocument();
   });
 
   test("on your turn, confirming out loud sends an empty submit_clue", async () => {

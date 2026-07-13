@@ -90,7 +90,7 @@ describe("Impostor LocalGame", () => {
     expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
 
     await revealAllPlayers(user);
-    expect(screen.getByText("Categoría de esta ronda")).toBeInTheDocument();
+    expect(screen.getByText("Pista para el impostor")).toBeInTheDocument(); // hintsEnabled defaults to true
 
     await user.click(screen.getByRole("button", { name: "Ir a votación" }));
     expect(screen.getByText("Faltan 4 confirmaciones")).toBeInTheDocument();

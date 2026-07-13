@@ -14,6 +14,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     phase: "lobby",
     players: [],
     maxPlayers: 16,
+    groupCode: null,
     config: {
       activeCategories: DEFAULT_CATEGORIES.reduce((a: Record<string, boolean>, c: { id: string }) => ({ ...a, [c.id]: true }), {}),
       customCategories: [],

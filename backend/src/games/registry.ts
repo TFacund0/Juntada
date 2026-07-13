@@ -46,8 +46,8 @@ const GAMES: Record<string, GameEngine> = {
   [tutifrutiEngine.id]: tutifrutiEngine,
 };
 
-function getEngine(gameType: string): GameEngine | undefined {
-  return GAMES[gameType];
+function getEngine(gameType: string | null | undefined): GameEngine | undefined {
+  return gameType ? GAMES[gameType] : undefined;
 }
 
 module.exports = { GAMES, getEngine };

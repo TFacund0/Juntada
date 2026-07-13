@@ -67,7 +67,7 @@ describe("inbound messages", () => {
     expect(result.current.me).toEqual({ playerId: "p1", roomCode: "ABCDE" });
     expect(result.current.connectionPhase).toBe("lobby");
     expect(result.current.room?.code).toBe("ABCDE");
-    expect(JSON.parse(localStorage.getItem("impostorgame:session")!)).toEqual({ playerId: "p1", roomCode: "ABCDE" });
+    expect(JSON.parse(localStorage.getItem("impostorgame:session")!)).toEqual({ room: { playerId: "p1", roomCode: "ABCDE" } });
   });
 
   test("'state' updates room and mirrors room.phase into connectionPhase", () => {
@@ -163,6 +163,86 @@ describe("inbound messages", () => {
     expect(result.current.me).toBeNull();
     expect(result.current.room).toBeNull();
     expect(result.current.error).toBe("Fuiste expulsado de la sala");
+  });
+});
+
+describe("group messages", () => {
+  test("'group_joined' with no active instance updates groupMe/group/connectionPhase and persists the session", () => {
+    const { result } = renderHook(() => useMultiplayerSocket());
+    act(() => result.current.connect());
+    const ws = lastSocket();
+    act(() => ws.simulateOpen());
+
+    act(() =>
+      ws.simulateMessage({
+        type: "group_joined",
+        playerId: "p1",
+        groupCode: "GRUPO",
+        group: { code: "GRUPO", name: "Los pibes", hostId: "p1", members: [], maxMembers: 16, instances: [] },
+      }),
+    );
+
+    expect(result.current.groupMe).toEqual({ playerId: "p1", groupCode: "GRUPO" });
+    expect(result.current.connectionPhase).toBe("group");
+    expect(result.current.group?.code).toBe("GRUPO");
+    expect(JSON.parse(localStorage.getItem("impostorgame:session")!)).toEqual({ group: { playerId: "p1", groupCode: "GRUPO" } });
+  });
+
+  test("'group_joined' followed by 'joined' (rejoin with a live instance) ends up attached to the instance, not the bare group screen", () => {
+    const { result } = renderHook(() => useMultiplayerSocket());
+    act(() => result.current.connect());
+    const ws = lastSocket();
+    act(() => ws.simulateOpen());
+
+    act(() =>
+      ws.simulateMessage({
+        type: "group_joined",
+        playerId: "p1",
+        groupCode: "GRUPO",
+        group: { code: "GRUPO", name: "Los pibes", hostId: "p1", members: [], maxMembers: 16, instances: [] },
+      }),
+    );
+    act(() =>
+      ws.simulateMessage({
+        type: "joined",
+        playerId: "p1",
+        roomCode: "ABCDE",
+        room: { code: "ABCDE", phase: "lobby", groupCode: "GRUPO", players: [] },
+      }),
+    );
+
+    expect(result.current.connectionPhase).toBe("lobby");
+    expect(result.current.room?.code).toBe("ABCDE");
+  });
+
+  test("'left_instance' drops the room but keeps the group, landing back on the group screen", () => {
+    const { result } = renderHook(() => useMultiplayerSocket());
+    act(() => result.current.connect());
+    const ws = lastSocket();
+    act(() => ws.simulateOpen());
+
+    act(() =>
+      ws.simulateMessage({
+        type: "group_joined",
+        playerId: "p1",
+        groupCode: "GRUPO",
+        group: { code: "GRUPO", name: "Los pibes", hostId: "p1", members: [], maxMembers: 16, instances: [] },
+      }),
+    );
+    act(() =>
+      ws.simulateMessage({
+        type: "joined",
+        playerId: "p1",
+        roomCode: "ABCDE",
+        room: { code: "ABCDE", phase: "lobby", groupCode: "GRUPO", players: [] },
+      }),
+    );
+
+    act(() => ws.simulateMessage({ type: "left_instance" }));
+
+    expect(result.current.connectionPhase).toBe("group");
+    expect(result.current.room).toBeNull();
+    expect(result.current.groupMe).toEqual({ playerId: "p1", groupCode: "GRUPO" });
   });
 });
 

@@ -23,6 +23,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}): 
     phase,
     players: makePlayers(),
     maxPlayers: 16,
+    groupCode: null,
     config: {},
     round: {
       trackGoals: true,

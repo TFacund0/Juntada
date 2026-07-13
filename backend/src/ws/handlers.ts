@@ -1,9 +1,10 @@
 // ─── WS Message Handlers ────────────────────────────────────────────────────
-// One function per message type. Handlers only orchestrate: generic room
-// concerns go through roomService, game-specific rules go through the
-// engine registered for the room's gameType. No game rules live here.
+// One function per message type. Handlers only orchestrate: generic
+// room/group concerns go through roomService/groupService, game-specific
+// rules go through the engine registered for the room's gameType. No game
+// rules live here.
 
-import type { Room, ClientMessage } from "@juntada/shared-types";
+import type { Room, Group, ClientMessage } from "@juntada/shared-types";
 import type { ClientInfo } from "../state/roomStore";
 import type { GameEngine } from "../games/engineTypes";
 import { logger } from "../logger";
@@ -11,14 +12,28 @@ import { logger } from "../logger";
 const { WebSocket } = require("ws");
 type WS = import("ws").WebSocket;
 
-const { rooms, clients, timers } = require("../state/roomStore") as {
+const { rooms, groups, clients, timers } = require("../state/roomStore") as {
   rooms: Map<string, Room>;
+  groups: Map<string, Group>;
   clients: Map<WS, ClientInfo>;
   timers: Map<string, NodeJS.Timeout>;
 };
-const { getEngine } = require("../games/registry") as { getEngine: (gameType: string) => GameEngine | undefined };
+const { getEngine } = require("../games/registry") as {
+  getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
+};
 const roomService = require("../rooms/roomService");
-const { sendTo, sendError, broadcast, getRoomPublicState, sendPrivateInfo, broadcastState, broadcastRoundReveal } = require("./messaging");
+const groupService = require("../rooms/groupService");
+const {
+  sendTo,
+  sendError,
+  broadcast,
+  getRoomPublicState,
+  getGroupPublicState,
+  sendPrivateInfo,
+  broadcastState,
+  broadcastGroupState,
+  broadcastRoundReveal,
+} = require("./messaging");
 
 function stopTimer(roomCode: string): void {
   const t = timers.get(roomCode);
@@ -64,6 +79,21 @@ function broadcastToRoom(room: Room, message: (ws2: WS, info: ClientInfo) => voi
   }
 }
 
+// Deletes a game instance once nobody's left in it — otherwise it'd sit
+// around forever in the group's "open instances" list with 0 players. A
+// standalone room (no group) is left for scheduleRoomCleanup to reap instead,
+// since going to 0 players there just means everyone disconnected, which is
+// already handled by the normal offline-cleanup grace period.
+function cleanupRoomIfEmpty(room: Room): void {
+  if (room.players.length > 0) return;
+  stopTimer(room.code);
+  rooms.delete(room.code);
+  if (room.groupCode) {
+    const group = groups.get(room.groupCode);
+    if (group) broadcastGroupState(group);
+  }
+}
+
 function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>): void {
   const { room, error } = roomService.createRoom(ws, {
     playerName: msg.playerName,
@@ -98,6 +128,128 @@ function rejoin(ws: WS, msg: Extract<ClientMessage, { type: "rejoin" }>): void {
   sendTo(ws, { type: "joined", playerId, roomCode: room.code, room: getRoomPublicState(room) });
   if (room.round) sendPrivateInfo(ws, room, playerId);
   broadcast(room.code, { type: "state", room: getRoomPublicState(room) }, ws);
+}
+
+// ── Group handlers ───────────────────────────────────────────────────────────
+// A group is the persistent lobby people share; game instances (rooms) open
+// and close underneath it as members start/join/leave them independently —
+// see rooms/groupService.ts and rooms/roomService.ts's *InstanceRoom helpers.
+
+function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" }>): void {
+  const { group, playerId, error } = groupService.createGroup(ws, { playerName: msg.playerName, groupName: msg.groupName });
+  if (error) {
+    sendError(ws, "CREATE_GROUP_FAILED", error);
+    return;
+  }
+  sendTo(ws, { type: "group_joined", playerId, groupCode: group.code, group: getGroupPublicState(group) });
+}
+
+function joinGroup(ws: WS, msg: Extract<ClientMessage, { type: "join_group" }>): void {
+  const { group, playerId, error } = groupService.joinGroup(ws, { code: msg.code, playerName: msg.playerName });
+  if (error) {
+    sendError(ws, "JOIN_GROUP_FAILED", error);
+    return;
+  }
+  sendTo(ws, { type: "group_joined", playerId, groupCode: group.code, group: getGroupPublicState(group) });
+  broadcastGroupState(group);
+}
+
+// Restores group membership after a dropped socket, and — since a group
+// member's current instance isn't tracked on the group itself — re-derives
+// it by checking whether any room still has them in its player list.
+function rejoinGroup(ws: WS, msg: Extract<ClientMessage, { type: "rejoin_group" }>): void {
+  const { group, playerId, error } = groupService.rejoinGroup(ws, { groupCode: msg.groupCode, playerId: msg.playerId });
+  if (error) {
+    sendError(ws, "REJOIN_GROUP_FAILED", error);
+    return;
+  }
+  sendTo(ws, { type: "group_joined", playerId, groupCode: group.code, group: getGroupPublicState(group) });
+
+  const instance = [...rooms.values()].find(r => r.groupCode === group.code && r.players.some(p => p.id === playerId));
+  if (instance) {
+    const player = instance.players.find(p => p.id === playerId)!;
+    player.online = true;
+    clients.set(ws, { groupCode: group.code, roomCode: instance.code, playerId });
+    sendTo(ws, { type: "joined", playerId, roomCode: instance.code, room: getRoomPublicState(instance) });
+    if (instance.round) sendPrivateInfo(ws, instance, playerId);
+    broadcast(instance.code, { type: "state", room: getRoomPublicState(instance) }, ws);
+  }
+
+  broadcastGroupState(group);
+}
+
+// Opens a new game instance under the group — any member can do this, not
+// just the group's creator (see the whole point of this feature: nobody
+// decides for everyone what the group plays next). The opener becomes that
+// instance's own host and its first player; everyone else in the group sees
+// it appear in the group screen and joins (or not) on their own.
+function createInstance(ws: WS, msg: Extract<ClientMessage, { type: "create_instance" }>, info: ClientInfo): void {
+  const group = groups.get(info.groupCode ?? "");
+  if (!group || !info.playerId) return;
+  const member = group.members.find(m => m.id === info.playerId);
+  if (!member) return;
+
+  const { room, error } = roomService.createInstanceRoom(group.code, msg.gameType, member.id, member.name);
+  if (error) {
+    sendError(ws, "CREATE_INSTANCE_FAILED", error);
+    return;
+  }
+  clients.set(ws, { groupCode: group.code, roomCode: room.code, playerId: member.id });
+  sendTo(ws, { type: "joined", playerId: member.id, roomCode: room.code, room: getRoomPublicState(room) });
+  broadcastGroupState(group);
+}
+
+// A member joining an already-open instance. They can only ever be attached
+// to one instance at a time — if they're already in a different one, that's
+// left behind first (freeing them to move between games on their own terms).
+function joinInstance(ws: WS, msg: Extract<ClientMessage, { type: "join_instance" }>, info: ClientInfo): void {
+  const group = groups.get(info.groupCode ?? "");
+  if (!group || !info.playerId) return;
+  const member = group.members.find(m => m.id === info.playerId);
+  if (!member) return;
+
+  if (info.roomCode && info.roomCode !== msg.roomCode) leavePlayerFromInstance(info.roomCode, member.id, group);
+
+  const { room, error } = roomService.joinInstanceRoom(msg.roomCode, member.id, member.name);
+  if (error) {
+    sendError(ws, "JOIN_INSTANCE_FAILED", error);
+    return;
+  }
+  clients.set(ws, { groupCode: group.code, roomCode: room.code, playerId: member.id });
+  sendTo(ws, { type: "joined", playerId: member.id, roomCode: room.code, room: getRoomPublicState(room) });
+  broadcast(room.code, { type: "state", room: getRoomPublicState(room) }, ws);
+  broadcastGroupState(group);
+}
+
+// Shared by both an explicit leave_instance and joinInstance's implicit
+// "leave whatever you were in first" — removes the player, reassigns that
+// instance's host if it was them, deletes the instance if it's now empty,
+// and lets the instance's remaining players (if any) know.
+function leavePlayerFromInstance(roomCode: string, playerId: string, group: Group): void {
+  const room = rooms.get(roomCode);
+  if (!room) return;
+  roomService.removePlayer(room, playerId);
+  const engine = getEngine(room.gameType);
+  engine?.maybeAdvance(room);
+  if (room.players.length === 0) {
+    cleanupRoomIfEmpty(room);
+  } else {
+    broadcast(room.code, { type: "state", room: getRoomPublicState(room) });
+    if (room.phase === "result") broadcastRoundReveal(room);
+    syncPhaseTimer(room);
+    // The instance's own list changed even if it's not empty — reflect the
+    // new player count on the group screen.
+    broadcastGroupState(group);
+  }
+}
+
+function leaveInstance(ws: WS, msg: ClientMessage, info: ClientInfo): void {
+  if (!info.groupCode || !info.roomCode || !info.playerId) return;
+  const group = groups.get(info.groupCode);
+  if (!group) return;
+  leavePlayerFromInstance(info.roomCode, info.playerId, group);
+  clients.set(ws, { groupCode: info.groupCode, roomCode: null, playerId: info.playerId });
+  sendTo(ws, { type: "left_instance" });
 }
 
 function updateConfig(ws: WS, msg: Extract<ClientMessage, { type: "update_config" }>, info: ClientInfo): void {
@@ -186,13 +338,17 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
   broadcastToRoom(room, (ws2, i2) => {
     if (i2.playerId === msg.targetId) {
       sendTo(ws2, { type: "kicked" });
-      clients.set(ws2, { roomCode: null, playerId: null });
+      clients.set(ws2, { groupCode: room.groupCode, roomCode: null, playerId: i2.playerId });
     } else {
       sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
     }
   });
   if (room.phase === "result") broadcastRoundReveal(room);
   syncPhaseTimer(room);
+  if (room.groupCode) {
+    const group = groups.get(room.groupCode);
+    if (group) broadcastGroupState(group);
+  }
 }
 
 function ping(ws: WS): void {
@@ -201,15 +357,23 @@ function ping(ws: WS): void {
 
 function handleDisconnect(ws: WS): void {
   const info = clients.get(ws);
-  if (info?.roomCode) {
+  if (info?.roomCode && info.playerId) {
     const room = rooms.get(info.roomCode);
-    if (room && info.playerId) {
+    if (room) {
       logger.debug({ roomCode: room.code, playerId: info.playerId }, "player disconnected");
       roomService.markOffline(room, info.playerId);
       broadcastState(room);
       if (room.phase === "result") broadcastRoundReveal(room);
       if (room.round) syncPhaseTimer(room);
-      if (roomService.isRoomFullyOffline(room)) roomService.scheduleRoomCleanup(room.code);
+      if (roomService.isRoomFullyOffline(room) && !room.groupCode) roomService.scheduleRoomCleanup(room.code);
+    }
+  }
+  if (info?.groupCode && info.playerId) {
+    const group = groups.get(info.groupCode);
+    if (group) {
+      groupService.markMemberOffline(group, info.playerId);
+      broadcastGroupState(group);
+      if (groupService.isGroupFullyOffline(group)) groupService.scheduleGroupCleanup(group.code);
     }
   }
   clients.delete(ws);
@@ -222,6 +386,12 @@ const HANDLERS: Record<string, Handler> = {
   create_room: (ws, msg) => createRoom(ws, msg),
   join_room: (ws, msg) => joinRoom(ws, msg),
   rejoin: (ws, msg) => rejoin(ws, msg),
+  create_group: (ws, msg) => createGroup(ws, msg),
+  join_group: (ws, msg) => joinGroup(ws, msg),
+  rejoin_group: (ws, msg) => rejoinGroup(ws, msg),
+  create_instance: createInstance,
+  join_instance: joinInstance,
+  leave_instance: leaveInstance,
   update_config: updateConfig,
   start_round: startRoundHandler,
   submit_clue: gameAction("submit_clue"),

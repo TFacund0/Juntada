@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import type { ClientMessage, RoomPublicState, ErrorCode } from "@juntada/shared-types";
+import type { ClientMessage, RoomPublicState, GroupPublicState, ErrorCode } from "@juntada/shared-types";
 
 // In dev, Vite (5173) and the backend (3001) run as separate servers, so the
 // socket has to point at the backend explicitly. In production a single
@@ -10,18 +10,34 @@ const WS_URL = import.meta.env.DEV
 
 // Backgrounding the tab on mobile (switching to WhatsApp, locking the screen,
 // etc.) can kill the socket or even discard the JS context entirely. We
-// persist just enough identity to rejoin the same room after either case —
-// the server already keeps a disconnected player's slot reserved (marked
-// offline, not removed) for a grace period, so this is what lets the client
-// actually make use of that instead of dumping the player back at the menu.
+// persist just enough identity to rejoin the same room/group after either
+// case — the server already keeps a disconnected player's slot reserved
+// (marked offline, not removed) for a grace period, so this is what lets the
+// client actually make use of that instead of dumping the player back at the
+// menu.
+//
+// A client can be:
+//   - standalone-room-attached only: room session, no group session.
+//   - group-attached, no active instance: group session, no room session.
+//   - group-attached with an active instance: both sessions set, same playerId.
 const SESSION_KEY = "impostorgame:session";
 
-interface Session {
+interface RoomSession {
   playerId: string;
   roomCode: string;
 }
 
-function loadSession(): Session | null {
+interface GroupSession {
+  playerId: string;
+  groupCode: string;
+}
+
+interface PersistedSession {
+  room?: RoomSession;
+  group?: GroupSession;
+}
+
+function loadSession(): PersistedSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -30,9 +46,9 @@ function loadSession(): Session | null {
   }
 }
 
-function saveSession(session: Session | null): void {
+function saveSession(session: PersistedSession | null): void {
   try {
-    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    if (session && (session.room || session.group)) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     else localStorage.removeItem(SESSION_KEY);
   } catch {
     /* storage unavailable (private mode, etc.) — degrade silently */
@@ -46,13 +62,16 @@ export function clearMultiplayerSession(): void {
   saveSession(null);
 }
 
-// The server messages this hook reacts to (see backend/src/ws/messaging.js
+// The server messages this hook reacts to (see backend/src/ws/messaging.ts
 // and each engine's getRevealMessage) — private_role and word_reveal payload
 // shapes are per-engine, not yet a clean discriminated union (see
 // @juntada/shared-types's ServerMessage comment), so they stay loose here too.
 type InboundMessage =
   | { type: "joined"; playerId: string; roomCode: string; room: RoomPublicState }
   | { type: "state"; room: RoomPublicState }
+  | { type: "group_joined"; playerId: string; groupCode: string; group: GroupPublicState }
+  | { type: "group_state"; group: GroupPublicState }
+  | { type: "left_instance" }
   | { type: "private_role"; [key: string]: unknown }
   | { type: "word_reveal"; [key: string]: unknown }
   | { type: "error"; code: ErrorCode; message: string }
@@ -63,10 +82,13 @@ type InboundMessage =
 export function useMultiplayerSocket() {
   // menu|create|join, then mirrors room.phase directly ("lobby" and whatever
   // in-game phases the active game defines — this hook doesn't know or care
-  // what those are).
+  // what those are) once a room is attached, or "group" once a group is
+  // attached with no active instance.
   const [connectionPhase, setConnectionPhase] = useState("menu");
-  const [me, setMe] = useState<Session | null>(() => loadSession());
+  const [me, setMe] = useState<RoomSession | null>(() => loadSession()?.room ?? null);
+  const [groupMe, setGroupMe] = useState<GroupSession | null>(() => loadSession()?.group ?? null);
   const [room, setRoom] = useState<RoomPublicState | null>(null);
+  const [group, setGroup] = useState<GroupPublicState | null>(null);
   const [myRole, setMyRole] = useState<Record<string, unknown> | null>(null); // { isImpostor, word, hint }
   const [wordReveal, setWordReveal] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState("");
@@ -77,12 +99,19 @@ export function useMultiplayerSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const meRef = useRef(me);
+  const groupMeRef = useRef(groupMe);
   const roomRef = useRef<RoomPublicState | null>(null);
 
   useEffect(() => {
     meRef.current = me;
-    saveSession(me);
+    saveSession({ room: me ?? undefined, group: groupMeRef.current ?? undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me]);
+  useEffect(() => {
+    groupMeRef.current = groupMe;
+    saveSession({ room: meRef.current ?? undefined, group: groupMe ?? undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupMe]);
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
@@ -96,8 +125,9 @@ export function useMultiplayerSocket() {
     wsRef.current = ws;
     ws.onopen = () => {
       if (onOpen) onOpen(ws);
-      else if (meRef.current)
-        ws.send(JSON.stringify({ type: "rejoin", roomCode: meRef.current.roomCode, playerId: meRef.current.playerId }));
+      else if (groupMeRef.current)
+        ws.send(JSON.stringify({ type: "rejoin_group", groupCode: groupMeRef.current.groupCode, playerId: groupMeRef.current.playerId }));
+      else if (meRef.current) ws.send(JSON.stringify({ type: "rejoin", roomCode: meRef.current.roomCode, playerId: meRef.current.playerId }));
     };
     ws.onmessage = e => {
       let msg: InboundMessage;
@@ -117,6 +147,31 @@ export function useMultiplayerSocket() {
         setConnectionPhase(msg.room.phase);
         setError("");
         setReconnecting(false);
+      } else if (msg.type === "group_joined") {
+        setGroupMe({ playerId: msg.playerId, groupCode: msg.groupCode });
+        setGroup(msg.group);
+        // A rejoin_group may be immediately followed by a "joined" for a
+        // still-live instance — don't force the group screen if that's
+        // about to happen; only switch phase here if we're not already
+        // sitting on a room (a plain group_state update from the group
+        // screen itself takes this branch too, harmlessly).
+        setRoom(prevRoom => {
+          if (!prevRoom) setConnectionPhase("group");
+          return prevRoom;
+        });
+        setError("");
+        setReconnecting(false);
+      } else if (msg.type === "group_state") {
+        setGroup(msg.group);
+        setError("");
+        setReconnecting(false);
+      } else if (msg.type === "left_instance") {
+        setMe(null);
+        setRoom(null);
+        setMyRole(null);
+        setWordReveal(null);
+        setConnectionPhase("group");
+        setError("");
       } else if (msg.type === "private_role") {
         setMyRole(msg);
         setWordReveal(null);
@@ -124,18 +179,22 @@ export function useMultiplayerSocket() {
         setWordReveal(msg);
       } else if (msg.type === "error") {
         setError(msg.message);
-        // Failed before ever landing in a room — either a fresh join with a
-        // bad code, or a restored/rejoin session whose room has since
-        // expired. Either way, never leave the UI stuck: drop the stale
-        // session and send them back to the menu instead of an infinite
-        // "Conectando..." with nothing to rejoin.
-        if (!roomRef.current) {
+        // Failed before ever landing in a room/group — either a fresh
+        // join with a bad code, or a restored/rejoin session whose
+        // room/group has since expired. Either way, never leave the UI
+        // stuck: drop the stale session and send them back to the menu
+        // instead of an infinite "Conectando..." with nothing to rejoin.
+        if (!roomRef.current && !groupMeRef.current) {
           setMe(null);
           setRoom(null);
           setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
+        } else if (!roomRef.current && groupMeRef.current && msg.code === "REJOIN_GROUP_FAILED") {
+          setGroupMe(null);
+          setGroup(null);
+          setConnectionPhase("menu");
         }
       } else if (msg.type === "kicked") {
-        setConnectionPhase("menu");
+        setConnectionPhase(groupMeRef.current ? "group" : "menu");
         setMe(null);
         setRoom(null);
         setMyRole(null);
@@ -144,9 +203,9 @@ export function useMultiplayerSocket() {
       }
     };
     ws.onclose = () => {
-      if (meRef.current) setReconnecting(true);
+      if (meRef.current || groupMeRef.current) setReconnecting(true);
       reconnectRef.current = setTimeout(() => {
-        if (meRef.current) connect();
+        if (meRef.current || groupMeRef.current) connect();
       }, 3000);
     };
     ws.onerror = () => setError("No se pudo conectar al servidor");
@@ -156,7 +215,7 @@ export function useMultiplayerSocket() {
   // mobile browser fully discarded the page while backgrounded, so the app
   // remounted from scratch instead of just dropping the socket).
   useEffect(() => {
-    if (meRef.current) connect();
+    if (meRef.current || groupMeRef.current) connect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -166,7 +225,11 @@ export function useMultiplayerSocket() {
   // check the connection the moment the tab becomes visible again.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible" && meRef.current && wsRef.current?.readyState !== WebSocket.OPEN) {
+      if (
+        document.visibilityState === "visible" &&
+        (meRef.current || groupMeRef.current) &&
+        wsRef.current?.readyState !== WebSocket.OPEN
+      ) {
         if (reconnectRef.current) clearTimeout(reconnectRef.current);
         connect();
       }
@@ -194,14 +257,16 @@ export function useMultiplayerSocket() {
   }, []);
 
   // Explicit leave (kicked, "Menú principal", etc.) should forget the
-  // session so a later fresh visit doesn't try to rejoin a room the player
-  // deliberately left.
+  // session so a later fresh visit doesn't try to rejoin a room/group the
+  // player deliberately left.
   const leave = useCallback(() => {
     wsRef.current?.close();
     if (reconnectRef.current) clearTimeout(reconnectRef.current);
     setMe(null);
     setRoom(null);
     setMyRole(null);
+    setGroupMe(null);
+    setGroup(null);
     setConnectionPhase("menu");
     setReconnecting(false);
   }, []);
@@ -211,6 +276,8 @@ export function useMultiplayerSocket() {
     setConnectionPhase,
     me,
     room,
+    groupMe,
+    group,
     myRole,
     wordReveal,
     error,

@@ -26,6 +26,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
       { id: "p5", name: "Emi", ready: false, online: true, hasVoted: false },
     ],
     maxPlayers: 16,
+    groupCode: null,
     config: {
       enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
       numImpostors: 1,
