@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Btn } from "./Btn";
 import { QRCode } from "./QRCode";
 
@@ -8,7 +9,35 @@ interface QRDialogProps {
   onClose: () => void;
 }
 
+// TS's lib.dom types navigator.share as always-defined, which defeats
+// feature-detection narrowing — check via an explicit cast instead.
+const canShare = typeof (navigator as { share?: unknown }).share === "function";
+
 export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
+  const [copied, setCopied] = useState(false);
+
+  // Mobile browsers get the native share sheet (WhatsApp, SMS, etc.) when
+  // available; everywhere else falls back to copying the link to the
+  // clipboard, with a brief "Copiado" confirmation since there's no OS-level
+  // feedback for that.
+  const shareLink = async () => {
+    if (canShare) {
+      try {
+        await navigator.share({ title, url: value });
+      } catch {
+        /* user cancelled the share sheet — nothing to do */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable — the QR/code above still work */
+    }
+  };
+
   return (
     <div
       onClick={onClose}
@@ -41,6 +70,9 @@ export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
         <div style={{ display: "flex", justifyContent: "center", padding: 12, background: "#f2f0fb", borderRadius: 14, marginBottom: 18 }}>
           <QRCode value={value} />
         </div>
+        <Btn variant="ghost" onClick={shareLink} style={{ marginBottom: 10 }}>
+          {copied ? "✅ Copiado" : canShare ? "📤 Compartir enlace" : "🔗 Copiar enlace"}
+        </Btn>
         <Btn variant="ghost" onClick={onClose}>
           Cerrar
         </Btn>
