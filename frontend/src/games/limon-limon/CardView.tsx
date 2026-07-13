@@ -1,3 +1,4 @@
+import { useEffect, useState, type CSSProperties } from "react";
 import { suitInfo, valueLabel } from "./deck";
 import type { Card } from "./deck";
 import { SuitGlyph } from "./SuitGlyph";
@@ -78,7 +79,8 @@ function CardFace({ card }: { card: Card }) {
         <g transform="translate(50,72)">
           <circle r={27} fill="none" stroke={suit.color} strokeWidth={1.4} opacity={0.5} />
           <FaceIcon value={card.value} color={suit.color} />
-          <text y={44} textAnchor="middle" fontSize={11} fontWeight={700} fill={suit.color} fontFamily="inherit">
+          <SuitGlyph suit={card.suit} x={0} y={33} scale={0.55} />
+          <text y={47} textAnchor="middle" fontSize={11} fontWeight={700} fill={suit.color} fontFamily="inherit">
             {valueLabel(card.value)}
           </text>
         </g>
@@ -107,6 +109,47 @@ function CardBack() {
   );
 }
 
+const LAYER_OFFSET_PX = 1.5;
+
+interface DeckStackProps {
+  cardsLeft: number;
+  size?: "large" | "small";
+}
+
+// Capas de dorso apiladas detrás de la carta actual, una por cada carta que
+// todavía queda debajo — así el volumen del mazo refleja la cantidad exacta
+// y se ve bajar a medida que se van sacando cartas.
+export function DeckStack({ cardsLeft, size = "large" }: DeckStackProps) {
+  const big = size === "large";
+  const width = big ? 140 : 64;
+  const height = big ? 196 : 90;
+
+  return (
+    <>
+      {Array.from({ length: cardsLeft }, (_, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "50%",
+            width,
+            height,
+            marginLeft: -width / 2,
+            borderRadius: big ? 14 : 8,
+            overflow: "hidden",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+            transform: `translateX(${(i + 1) * LAYER_OFFSET_PX}px)`,
+            zIndex: -1 - i,
+          }}
+        >
+          <CardBack />
+        </div>
+      ))}
+    </>
+  );
+}
+
 interface CardViewProps {
   card?: Card | null;
   size?: "large" | "small";
@@ -114,26 +157,50 @@ interface CardViewProps {
 }
 
 // Carta grande (revelada) o el lomo del mazo (dorso) si no se pasa `card`.
+// La cara y el dorso conviven en el DOM y se giran en 3D con CSS —
+// mantenemos la última carta mostrada (`shownCard`) para que no desaparezca
+// a mitad de la animación cuando `card` vuelve a null.
 export function CardView({ card, size = "large", onClick }: CardViewProps) {
   const big = size === "large";
   const width = big ? 140 : 64;
   const height = big ? 196 : 90;
+  const [shownCard, setShownCard] = useState<Card | null>(card ?? null);
+  const flipped = !!card;
+
+  useEffect(() => {
+    if (card) setShownCard(card);
+  }, [card]);
+
+  const faceStyle: CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden",
+    borderRadius: big ? 14 : 8,
+    overflow: "hidden",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+  };
 
   return (
     <div
       onClick={onClick}
-      style={{
-        width,
-        height,
-        margin: "0 auto",
-        cursor: onClick ? "pointer" : "default",
-        userSelect: "none",
-        borderRadius: big ? 14 : 8,
-        overflow: "hidden",
-        boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
-      }}
+      style={{ width, height, margin: "0 auto", cursor: onClick ? "pointer" : "default", userSelect: "none", perspective: 800 }}
     >
-      {card ? <CardFace card={card} /> : <CardBack />}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          transformStyle: "preserve-3d",
+          transition: "transform 0.45s cubic-bezier(0.4, 0.2, 0.2, 1)",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+        }}
+      >
+        <div style={faceStyle}>
+          <CardBack />
+        </div>
+        <div style={{ ...faceStyle, transform: "rotateY(180deg)" }}>{shownCard && <CardFace card={shownCard} />}</div>
+      </div>
     </div>
   );
 }
