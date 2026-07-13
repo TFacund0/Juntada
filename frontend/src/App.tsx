@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { S } from "./theme/styles";
 import { GAME_LIST, getGame } from "./games/registry";
 import type { GameDef } from "./games/gameTypes";
@@ -95,16 +95,19 @@ export default function App() {
   // this is — a stale/mismatched join link (or gameId picked before the
   // room was known) shouldn't leave the header showing the wrong game while
   // the room content underneath is correct.
-  const handleRoomGameType = (roomGameType: string | null) => {
-    if (roomGameType === null) {
-      // No active instance (sitting on the group screen) — only relevant
-      // while in the group flow, where there's no fixed gameId to fall back
-      // to; a standalone room always has a gameType.
-      if (groupFlow) setGameId(null);
-      return;
-    }
-    if (roomGameType !== gameId && getGame(roomGameType)) setGameId(roomGameType);
-  };
+  const handleRoomGameType = useCallback(
+    (roomGameType: string | null) => {
+      if (roomGameType === null) {
+        // No active instance (sitting on the group screen) — only relevant
+        // while in the group flow, where there's no fixed gameId to fall back
+        // to; a standalone room always has a gameType.
+        if (groupFlow) setGameId(null);
+        return;
+      }
+      if (roomGameType !== gameId && getGame(roomGameType)) setGameId(roomGameType);
+    },
+    [groupFlow, gameId],
+  );
 
   useEffect(() => {
     saveActive(mode === "multi" && gameId ? { gameId, mode } : null);
@@ -139,6 +142,7 @@ export default function App() {
   };
 
   const startGroupFlow = () => {
+    setGameId(null);
     setGroupFlow(true);
     setMode("multi");
     setShowRules(false);
