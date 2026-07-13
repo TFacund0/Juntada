@@ -2,11 +2,18 @@
 
 Plataforma de juegos para jugar en grupo — cada juego se puede jugar en **modo
 local** (un dispositivo que se pasa por turnos) o en **modo multijugador
-online** (cada uno desde su celular, conectados por código de sala).
+online** (cada uno desde su celular, conectados por código de sala o de
+grupo).
 
 Jugables hoy: El Impostor, Torneo FIFA, Ruleta, Ta-Te-Ti, Sintonía, Limón
 Limón y Tutifrutti. Trivia y Codenames están registrados pero marcados como
 "Próximamente" — ver [Agregar un juego nuevo](#agregar-un-juego-nuevo).
+
+El primer uso pide un nombre de jugador una única vez (se guarda en el
+dispositivo) y, desde ahí, se puede crear o unirse tanto a una sala suelta
+para un juego puntual como a un grupo persistente donde varios juegos se
+abren y cierran sin perder al resto de los integrantes — ver
+[Salas y grupos](#salas-y-grupos).
 
 Stack: TypeScript de punta a punta (backend y frontend), React + Vite,
 WebSocket + Express, sin base de datos.
@@ -25,7 +32,9 @@ juntada/
 │   │   ├── app.ts                composición de express + http + ws
 │   │   ├── env.ts                validación de variables de entorno (zod)
 │   │   ├── logger.ts             logging estructurado (pino)
-│   │   ├── rooms/                 lifecycle genérico de salas (crear/unir/kick/reconectar)
+│   │   ├── rooms/                 lifecycle genérico de salas y grupos
+│   │   │   ├── roomService.ts      crear/unir/kick/reconectar una sala (una partida)
+│   │   │   └── groupService.ts     crear/unir/reconectar un grupo (varias salas)
 │   │   ├── games/
 │   │   │   ├── registry.ts        registro de motores de juego
 │   │   │   ├── engineTypes.ts     contrato GameEngine compartido por todos los motores
@@ -34,33 +43,37 @@ juntada/
 │   │   │   ├── tateti/            motor específico de Ta-Te-Ti
 │   │   │   ├── sintonia/          motor específico de Sintonía
 │   │   │   ├── limon-limon/       motor específico de Limón Limón
-│   │   │   └── tutifruti/         motor específico de Tutifrutti
+│   │   │   ├── tutifruti/         motor específico de Tutifrutti
+│   │   │   └── ruleta/            motor específico de Ruleta
 │   │   ├── ws/                    transporte WS, validación, rate limiting
-│   │   ├── state/                 Maps en memoria (rooms, clients, timers)
+│   │   ├── state/                 Maps en memoria (rooms, groups, clients, timers)
 │   │   └── http/                  rutas HTTP (health, estáticos del frontend)
 │   └── test/                     tests unitarios (node --test)
 │
 ├── frontend/                   @juntada/frontend — React + Vite
 │   └── src/
-│       ├── App.tsx                shell: elegir juego → elegir modo
+│       ├── App.tsx                shell: nombre de jugador → elegir juego → elegir modo
 │       ├── games/
 │       │   ├── registry.ts        registro de juegos (frontend)
 │       │   ├── gameTypes.ts       contrato GameDef compartido por todos los juegos
 │       │   ├── impostor/          LocalGame, ConfigPanel, RoundView
 │       │   ├── torneo-fifa/       LocalGame, ConfigPanel, RoundView
 │       │   ├── tateti/            LocalGame, ConfigPanel, RoundView
-│       │   ├── ruleta/            LocalGame (juego local, sin backend)
+│       │   ├── ruleta/            LocalGame, ConfigPanel, RoundView, LobbyInfo
 │       │   ├── sintonia/          LocalGame, ConfigPanel, RoundView, Dial
 │       │   ├── limon-limon/       LocalGame, ConfigPanel, RoundView, cartas dibujadas en SVG
 │       │   └── tutifruti/         LocalGame, ConfigPanel, RoundView, LobbyInfo
-│       ├── features/multiplayer/  shell de sala/lobby genérico + hook de WS
+│       ├── features/multiplayer/  shell de sala/grupo genérico + hook de WS
+│       │   ├── MultiplayerGame.tsx     UI de conectar/crear/unirse y el lobby de grupo
+│       │   ├── useMultiplayerSocket.ts hook de WebSocket (conexión, reconexión, sesión)
+│       │   └── playerName.ts           nombre de jugador persistido en localStorage
 │       ├── components/            UI reutilizable (Btn, Avatar, Timer, ...)
 │       ├── test/                  setup y mocks para Vitest
 │       └── theme/                 estilos
 │
 └── packages/
     ├── shared-types/            @juntada/shared-types — contrato de mensajes WS
-    │                              (ClientMessage/ServerMessage) y de Room/Player,
+    │                              (ClientMessage/ServerMessage) y de Room/Group/Player,
     │                              compartido entre backend y frontend
     ├── impostor-data/           @juntada/impostor-data — categorías/palabras
     ├── sintonia-data/           @juntada/sintonia-data — pares de conceptos opuestos
@@ -76,6 +89,29 @@ juego nuevo no debería requerir tocar `roomService.ts`, `handlers.ts`,
 
 Ver [WEBSOCKET.md](./WEBSOCKET.md) para la referencia completa de mensajes
 cliente↔servidor.
+
+---
+
+## Salas y grupos
+
+Hay dos formas de entrar al modo online:
+
+- **Sala suelta:** se elige un juego puntual desde el menú y se crea o se
+  une una sala con ese único juego (`create_room` / `join_room`). Al
+  terminar, la sala queda en el lobby lista para otra ronda o para
+  volver al menú.
+- **Grupo:** un lobby persistente, con su propio código, donde cualquier
+  integrante puede abrir una instancia de cualquier juego habilitado
+  (`create_instance`) y el resto decide por su cuenta si se suma
+  (`join_instance`) o se queda mirando otra cosa. Varias instancias pueden
+  estar abiertas al mismo tiempo bajo el mismo grupo, y salir de una
+  (`leave_instance`) no saca a nadie del grupo en sí (`leave_group`).
+
+Un jugador desconectado (se le cortó el WiFi, se le apagó la pantalla) queda
+marcado como offline pero conserva su lugar durante una ventana de gracia; si
+vuelve a conectarse a tiempo, un `rejoin`/`rejoin_group` lo reintegra a donde
+estaba sin que nadie más note la diferencia. Pasado ese tiempo sin volver, se
+lo expulsa automáticamente para no dejar trancado al resto.
 
 ---
 
@@ -109,7 +145,7 @@ valor inválido falla explícito, no en silencio.
 ### Tests
 
 ```bash
-pnpm --filter @juntada/backend test     # node --test — lifecycle de salas + los 6 motores de juego
+pnpm --filter @juntada/backend test     # node --test — lifecycle de salas/grupos + motores de juego
 pnpm --filter @juntada/frontend test    # vitest — hook de WebSocket, etc.
 ```
 
@@ -189,12 +225,33 @@ palabras están habilitadas.
 
 ---
 
+## Torneo FIFA — cómo se juega
+
+Organizador de bracket para sesiones de FIFA entre amigos: sorteo de
+equipos y eliminación directa, con estadísticas de goles opcionales.
+
+- Cada jugador queda asignado a un equipo (sorteado con una ruleta o elegido
+  a mano) antes de arrancar.
+- Se arma un cuadro de eliminación directa: si la cantidad de jugadores no
+  es una potencia de 2, algunos pasan directo a la siguiente ronda ("bye").
+- Los cruces se pueden reordenar antes de iniciar el torneo.
+- Cada partido se resuelve cargando el resultado: goles de cada lado (si se
+  activó "contabilizar goles") o directamente quién ganó.
+- El ganador de cada cruce avanza a la siguiente ronda hasta que quede un
+  solo campeón. Si se contabilizan goles, al final se muestra una tabla con
+  goleador y valla menos vencida del torneo.
+
+Disponible en modo local (un dispositivo) y online, cada uno viendo los
+cruces y resultados en vivo desde su celular
+(`backend/src/games/torneo-fifa/engine.ts`).
+
+---
+
 ## Ruleta — cómo se juega
 
-Juego local (`localOnly: true`, sin backend): se cargan entradas con un
-nombre y, opcionalmente, una descripción más larga (por ejemplo el castigo o
-la prenda asociada), y se gira una ruleta real (SVG animado con
-desaceleración).
+Se cargan entradas con un nombre y, opcionalmente, una descripción más larga
+(por ejemplo el castigo o la prenda asociada), y se gira una ruleta real
+(SVG animado con desaceleración).
 
 Dos modos:
 
@@ -202,7 +259,17 @@ Dos modos:
   que se quiera. Hay un panel colapsable para ver cuántas veces salió cada
   opción.
 - **Eliminación:** la entrada que sale se saca de la ruleta; se muestra el
-  listado con el orden en que fueron eliminadas.
+  listado con el orden en que fueron eliminadas. Cuando queda una sola
+  entrada, se corta la ronda y se la destaca como ganadora.
+
+Disponible en modo local (un dispositivo que carga las entradas y gira) y
+online (`backend/src/games/ruleta/engine.ts`): el anfitrión carga las
+entradas y el modo desde el lobby, y es quien gira la ruleta durante la
+ronda — el servidor decide cada resultado de forma autoritativa para que
+todos vean la misma rueda frenar en el mismo lugar al mismo tiempo. Las
+tablas de eliminación y de conteo solo se actualizan una vez que termina la
+animación de cada giro, para no arruinar la sorpresa antes de que el
+anfitrión confirme y siga.
 
 ---
 
@@ -324,3 +391,10 @@ sin puntaje) y online, con puntaje y clasificación completos
 - **Logging:** estructurado con Pino (`backend/src/logger.ts`) — JSON en
   producción, formateado y coloreado en dev. Cubre creación/cierre de sala,
   handoff de host, kicks y errores no manejados en un handler.
+- **Identidad de jugador:** el nombre se pide una sola vez al abrir la app y
+  se guarda en `localStorage` (`frontend/src/features/multiplayer/playerName.ts`),
+  así crear o unirse a salas y grupos nunca lo vuelve a preguntar. El
+  servidor no permite dos jugadores con el mismo nombre (sin distinguir
+  mayúsculas) dentro de la misma sala o grupo; si el join es rechazado por
+  eso, la UI abre ahí mismo un campo para cambiarlo y reintentar, sin
+  volver al menú principal.
