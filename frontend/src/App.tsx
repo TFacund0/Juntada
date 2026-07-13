@@ -201,7 +201,7 @@ export default function App() {
                 marginTop: 10,
               }}
             >
-              📱 Invitar por QR
+              Invitar
             </button>
           )}
           {gameId && !mode && !game?.comingSoon && (

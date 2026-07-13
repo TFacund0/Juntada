@@ -251,7 +251,7 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
             fontWeight: 700,
           }}
         >
-          📱 Invitar con QR
+          Invitar
         </button>
         {showQR && (
           <QRDialog
@@ -403,7 +403,7 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
                 onClick={() => setShowQR(true)}
                 style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}
               >
-                📱 Invitar con QR
+                Invitar
               </button>
               <button
                 onClick={() => setShowCode(v => !v)}

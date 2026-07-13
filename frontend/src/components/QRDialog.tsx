@@ -71,7 +71,7 @@ export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
           <QRCode value={value} />
         </div>
         <Btn variant="ghost" onClick={shareLink} style={{ marginBottom: 10 }}>
-          {copied ? "✅ Copiado" : canShare ? "📤 Compartir enlace" : "🔗 Copiar enlace"}
+          {copied ? "Copiado" : canShare ? "Compartir enlace" : "Copiar enlace"}
         </Btn>
         <Btn variant="ghost" onClick={onClose}>
           Cerrar
