@@ -174,74 +174,80 @@ export function LocalGame() {
 
   return (
     <div>
-      <div style={{ position: "relative", width: size, maxWidth: "100%", margin: "0 auto 20px" }}>
-        <div
-          style={{
-            position: "absolute",
-            top: -6,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 2,
-            width: 0,
-            height: 0,
-            borderLeft: "12px solid transparent",
-            borderRight: "12px solid transparent",
-            borderTop: "20px solid #EF9F27",
-            filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
-          }}
-        />
-        <div
-          style={{
-            width: size,
-            height: size,
-            maxWidth: "100%",
-            aspectRatio: "1/1",
-            borderRadius: "50%",
-            border: "4px solid rgba(127,119,221,0.4)",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
-            overflow: "hidden",
-          }}
-        >
-          <svg
-            viewBox={`0 0 ${size} ${size}`}
-            width="100%"
-            height="100%"
-            style={{ transform: `rotate(${rotation}deg)`, transition: `transform ${SPIN_MS}ms cubic-bezier(0.17, 0.67, 0.2, 1)` }}
+      {/* Con una sola entrada en el pool, un slice de 360° es un arco
+          degenerado (el punto de inicio y fin coinciden) y no dibuja nada —
+          se ve como una rueda negra. En vez de forzarlo, cuando ya está
+          decidido el ganador se oculta la rueda y se muestra el cartel. */}
+      {!finished && (
+        <div style={{ position: "relative", width: size, maxWidth: "100%", margin: "0 auto 20px" }}>
+          <div
+            style={{
+              position: "absolute",
+              top: -6,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 2,
+              width: 0,
+              height: 0,
+              borderLeft: "12px solid transparent",
+              borderRight: "12px solid transparent",
+              borderTop: "20px solid #EF9F27",
+              filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.4))",
+            }}
+          />
+          <div
+            style={{
+              width: size,
+              height: size,
+              maxWidth: "100%",
+              aspectRatio: "1/1",
+              borderRadius: "50%",
+              border: "4px solid rgba(127,119,221,0.4)",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+              overflow: "hidden",
+            }}
           >
-            {pool.length === 0 ? (
-              <circle cx={r} cy={r} r={r} fill="rgba(255,255,255,0.06)" />
-            ) : (
-              pool.map((e, i) => {
-                const seg = 360 / pool.length;
-                const start = i * seg;
-                const end = start + seg;
-                const mid = start + seg / 2;
-                const [lx, ly] = polar(r, r, r * 0.62, mid);
-                return (
-                  <g key={e.id}>
-                    <path d={slicePath(r, r, r, start, end)} fill={COLORS[i % COLORS.length]} stroke="#0f0c1d" strokeWidth={2} />
-                    <text
-                      x={lx}
-                      y={ly}
-                      fill="#0f0c1d"
-                      fontSize={pool.length > 10 ? 9 : 12}
-                      fontWeight={800}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      transform={`rotate(${mid}, ${lx}, ${ly})`}
-                    >
-                      {e.name.length > 14 ? e.name.slice(0, 13) + "…" : e.name}
-                    </text>
-                  </g>
-                );
-              })
-            )}
-          </svg>
+            <svg
+              viewBox={`0 0 ${size} ${size}`}
+              width="100%"
+              height="100%"
+              style={{ transform: `rotate(${rotation}deg)`, transition: `transform ${SPIN_MS}ms cubic-bezier(0.17, 0.67, 0.2, 1)` }}
+            >
+              {pool.length === 0 ? (
+                <circle cx={r} cy={r} r={r} fill="rgba(255,255,255,0.06)" />
+              ) : (
+                pool.map((e, i) => {
+                  const seg = 360 / pool.length;
+                  const start = i * seg;
+                  const end = start + seg;
+                  const mid = start + seg / 2;
+                  const [lx, ly] = polar(r, r, r * 0.62, mid);
+                  return (
+                    <g key={e.id}>
+                      <path d={slicePath(r, r, r, start, end)} fill={COLORS[i % COLORS.length]} stroke="#0f0c1d" strokeWidth={2} />
+                      <text
+                        x={lx}
+                        y={ly}
+                        fill="#0f0c1d"
+                        fontSize={pool.length > 10 ? 9 : 12}
+                        fontWeight={800}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        transform={`rotate(${mid}, ${lx}, ${ly})`}
+                      >
+                        {e.name.length > 14 ? e.name.slice(0, 13) + "…" : e.name}
+                      </text>
+                    </g>
+                  );
+                })
+              )}
+            </svg>
+          </div>
         </div>
-      </div>
+      )}
 
       {!finished && !result && (
-        <Btn variant="success" onClick={spin} disabled={spinning || pool.length < 2}>
+        <Btn variant="success" onClick={spin} disabled={spinning || pool.length < 2} style={{ marginBottom: 14 }}>
           {spinning ? "Girando..." : "🎡 Girar la ruleta"}
         </Btn>
       )}
@@ -265,8 +271,8 @@ export function LocalGame() {
 
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             {mode === "eliminate" ? (
-              <Btn variant="danger" onClick={confirmEliminate}>
-                Sacar de la ruleta
+              <Btn variant="success" onClick={confirmEliminate}>
+                Continuar
               </Btn>
             ) : (
               <Btn variant="success" onClick={spinAgain}>
@@ -278,7 +284,8 @@ export function LocalGame() {
       )}
 
       {finished && (
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 14 }}>
+          <p style={{ fontSize: 40, margin: "0 0 4px" }}>🏆</p>
           <p
             style={{
               fontSize: 11,
@@ -289,7 +296,7 @@ export function LocalGame() {
               margin: "0 0 6px",
             }}
           >
-            Queda
+            Ganador
           </p>
           <p style={S.bigReveal}>{pool[0].name}</p>
           {pool[0].description && <p style={{ fontSize: 14, color: "#e8e4f0", margin: "8px 0 0" }}>{pool[0].description}</p>}

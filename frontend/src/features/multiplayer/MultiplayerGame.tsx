@@ -29,6 +29,10 @@ interface MultiplayerGameProps {
   // Only meaningful for entryKind "room" — the game picked on the home
   // screen before ever connecting.
   gameId: string | null;
+  // Collected once by App.tsx on first visit (and persisted there) — this
+  // shell never asks for it itself, so creating/joining rooms and groups
+  // never re-prompts.
+  playerName: string;
   initialJoinCode?: string;
   // Lets the parent (App.tsx) keep its own header/title in sync with the
   // game actually active — e.g. after scanning a QR/join link for room X,
@@ -49,7 +53,7 @@ function playableGames(): GameDef[] {
   return (GAME_LIST as GameDef[]).filter(g => !g.comingSoon && !g.localOnly);
 }
 
-export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameTypeChange, onLeaveGroup }: MultiplayerGameProps) {
+export function MultiplayerGame({ entryKind, gameId, playerName, initialJoinCode, onGameTypeChange, onLeaveGroup }: MultiplayerGameProps) {
   const {
     connectionPhase,
     setConnectionPhase,
@@ -65,7 +69,6 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
     send,
   } = useMultiplayerSocket({ onLeftGroup: onLeaveGroup });
 
-  const [playerName, setPlayerName] = useState("");
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
   const [showQR, setShowQR] = useState(false);
@@ -96,21 +99,21 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
   }, [room?.code]);
 
   const isHost = !!(me && room && room.hostId === me.playerId);
+  const isGroupHost = !!(me && group && group.hostId === me.playerId);
   const myPlayer = room?.players?.find(p => p.id === me?.playerId);
   const selectedGame = (gameId ? getGame(gameId) : undefined) as GameDef | undefined;
   const activeGame = (room ? getGame(room.gameType) : selectedGame) as GameDef | undefined;
   const inGroup = entryKind === "group";
 
   const createRoom = () => {
-    if (!playerName.trim()) return setError("Ingresá tu nombre");
     connect(ws => {
       if (inGroup) {
-        ws.send(JSON.stringify({ type: "create_group", playerName: playerName.trim(), groupName: roomName.trim() || undefined }));
+        ws.send(JSON.stringify({ type: "create_group", playerName, groupName: roomName.trim() || undefined }));
       } else {
         ws.send(
           JSON.stringify({
             type: "create_room",
-            playerName: playerName.trim(),
+            playerName,
             roomName: roomName.trim() || "Mi sala",
             gameType: gameId,
           }),
@@ -120,12 +123,9 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
   };
 
   const joinRoom = () => {
-    if (!playerName.trim()) return setError("Ingresá tu nombre");
     if (!joinCode.trim()) return setError("Ingresá el código");
     const code = joinCode.toUpperCase().trim();
-    connect(ws =>
-      ws.send(JSON.stringify({ type: inGroup ? "join_group" : "join_room", code, playerName: playerName.trim() })),
-    );
+    connect(ws => ws.send(JSON.stringify({ type: inGroup ? "join_group" : "join_room", code, playerName })));
   };
 
   const updateConfig = (patch: Record<string, unknown>) => {
@@ -176,10 +176,7 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
             {error}
           </div>
         )}
-        <div style={S.card}>
-          <span style={S.label}>Tu nombre</span>
-          <input style={S.input} placeholder="¿Cómo te llamás?" value={playerName} onChange={e => setPlayerName(e.target.value)} />
-        </div>
+        <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Jugás como <b style={{ color: "#AFA9EC" }}>{playerName}</b></p>
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
           <Btn
             variant={connectionPhase === "create" ? "primary" : "ghost"}
@@ -280,6 +277,14 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
               </span>
               {m.id === group.hostId && <span style={S.pill(false)}>Anfitrión</span>}
               {!m.online && <span style={S.pill(false)}>Desconectado</span>}
+              {isGroupHost && m.id !== me?.playerId && m.online && (
+                <button
+                  onClick={() => send({ type: "transfer_host", targetId: m.id })}
+                  style={{ ...S.btn("ghost"), width: "auto", padding: "4px 10px", fontSize: 12, borderRadius: 6 }}
+                >
+                  Hacer anfitrión
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -385,7 +390,7 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
   // ── LOBBY ── (either a standalone room or a group instance's lobby)
   if (connectionPhase === "lobby" && room)
     return (
-      <div>
+      <div style={isHost ? { paddingBottom: 88 } : undefined}>
         {reconnectBanner}
         {room.name && (
           <p style={{ textAlign: "center", fontSize: 18, fontWeight: 800, color: "#AFA9EC", margin: "0 0 12px" }}>{room.name}</p>
@@ -425,8 +430,6 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
             )}
           </>
         )}
-        {activeGame && <p style={{ ...S.muted, textAlign: "center", margin: "10px 0 0" }}>{activeGame.label}</p>}
-
         <div style={{ ...S.card, marginTop: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={S.label}>
@@ -446,6 +449,14 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
               </span>
               {p.id === room.hostId && <span style={S.pill(false)}>Anfitrión</span>}
               {!p.online && <span style={S.pill(false)}>Desconectado</span>}
+              {isHost && p.id !== me?.playerId && p.online && (
+                <button
+                  onClick={() => send({ type: "transfer_host", targetId: p.id })}
+                  style={{ ...S.btn("ghost"), width: "auto", padding: "4px 10px", fontSize: 12, borderRadius: 6 }}
+                >
+                  Hacer anfitrión
+                </button>
+              )}
               {isHost && p.id !== me?.playerId && (
                 <button
                   onClick={() => send({ type: "kick_player", targetId: p.id })}
@@ -465,16 +476,30 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
                 <activeGame.ConfigPanel room={room} updateConfig={updateConfig} />
               </Suspense>
             )}
-            <Btn
-              variant="success"
-              disabled={room.players.length < (activeGame?.minPlayers ?? 3)}
-              onClick={() => send({ type: "start_round" })}
+            <div
+              style={{
+                position: "fixed",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                padding: "12px 16px calc(12px + env(safe-area-inset-bottom))",
+                background: "linear-gradient(rgba(15,12,29,0), #0f0c1d 24%)",
+                zIndex: 10,
+              }}
             >
-              Iniciar ronda
-            </Btn>
-            {room.players.length < (activeGame?.minPlayers ?? 3) && (
-              <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>
-            )}
+              <div style={{ maxWidth: 480, margin: "0 auto" }}>
+                <Btn
+                  variant="success"
+                  disabled={room.players.length < (activeGame?.minPlayers ?? 3)}
+                  onClick={() => send({ type: "start_round" })}
+                >
+                  Iniciar ronda
+                </Btn>
+                {room.players.length < (activeGame?.minPlayers ?? 3) && (
+                  <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>
+                )}
+              </div>
+            </div>
           </>
         )}
 

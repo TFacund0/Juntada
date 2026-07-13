@@ -11,10 +11,16 @@ describe("Tutifrutti LocalGame", () => {
     expect(screen.getByText("Tocá para sortear una letra")).toBeInTheDocument();
     expect(screen.getByText("?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "🎲 Sortear letra" })).toBeInTheDocument();
-    expect(screen.getByText(/Nombre/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Nombre/ })).toBeInTheDocument();
   });
 
-  test("drawing a letter shows it and the categories to fill in", async () => {
+  test("the active categories show right under the letter, even before drawing", () => {
+    render(<LocalGame />);
+    const letterCard = screen.getByText("?").closest("div")!;
+    expect(letterCard).toHaveTextContent("Nombre");
+  });
+
+  test("drawing a letter shows it alongside the active categories", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const user = userEvent.setup();
     render(<LocalGame />);
@@ -23,17 +29,18 @@ describe("Tutifrutti LocalGame", () => {
 
     expect(screen.getByText("A")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "🔀 Nueva letra" })).toBeInTheDocument();
-    expect(screen.getByText('A completar con la "A"')).toBeInTheDocument();
+    const letterCard = screen.getByText("A").closest("div")!;
+    expect(letterCard).toHaveTextContent("Nombre");
   });
 
-  test("disabling a category removes it from the 'to fill in' list", async () => {
+  test("disabling a category removes it from the letter card", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
 
-    await user.click(screen.getByText(/Nombre/));
+    await user.click(screen.getByRole("button", { name: /Nombre/ }));
     await user.click(screen.getByRole("button", { name: "🎲 Sortear letra" }));
 
-    const toFillCard = screen.getByText(/A completar con la/).closest("div")!;
-    expect(toFillCard).not.toHaveTextContent("Nombre");
+    const letterCard = screen.getByText("La letra es...").closest("div")!;
+    expect(letterCard).not.toHaveTextContent("Nombre");
   });
 });

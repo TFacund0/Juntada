@@ -369,6 +369,30 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
   }
 }
 
+// Lets the current host hand the role to someone else — e.g. so another
+// player can configure the next round. Works both inside an active room
+// (game lobby/round) and on the group screen itself (no instance open),
+// picking whichever context the sender is actually in.
+function transferHost(ws: WS, msg: Extract<ClientMessage, { type: "transfer_host" }>, info: ClientInfo): void {
+  if (info.roomCode) {
+    const room = rooms.get(info.roomCode);
+    if (!room || room.hostId !== info.playerId) return;
+    if (!room.players.some(p => p.id === msg.targetId)) return;
+    room.hostId = msg.targetId;
+    logger.info({ roomCode: room.code, targetId: msg.targetId, byHostId: info.playerId }, "host transferred");
+    broadcastState(room);
+    return;
+  }
+  if (info.groupCode) {
+    const group = groups.get(info.groupCode);
+    if (!group || group.hostId !== info.playerId) return;
+    if (!group.members.some(m => m.id === msg.targetId)) return;
+    group.hostId = msg.targetId;
+    logger.info({ groupCode: group.code, targetId: msg.targetId, byHostId: info.playerId }, "group host transferred");
+    broadcastGroupState(group);
+  }
+}
+
 function ping(ws: WS): void {
   sendTo(ws, { type: "pong" });
 }
@@ -481,8 +505,12 @@ const HANDLERS: Record<string, Handler> = {
   reveal: gameAction("reveal"),
   assign: gameAction("assign"),
   vote_end: gameAction("vote_end"),
+  spin: gameAction("spin"),
+  confirm_eliminate: gameAction("confirm_eliminate"),
+  spin_again: gameAction("spin_again"),
   back_to_lobby: backToLobby,
   kick_player: kickPlayer,
+  transfer_host: transferHost,
   ping: ws => ping(ws),
 };
 

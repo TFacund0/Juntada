@@ -20,6 +20,10 @@ interface TestRoom {
 }
 
 function makeRoom(overrides: Partial<TestRoom> = {}): TestRoom {
+  const config = engine.createConfig();
+  Object.keys(config.activeCategories).forEach((id: string) => {
+    config.activeCategories[id] = true;
+  });
   return {
     code: "TEST1",
     hostId: "p1",
@@ -27,7 +31,7 @@ function makeRoom(overrides: Partial<TestRoom> = {}): TestRoom {
       { id: "p1", name: "Ana", ready: false, online: true },
       { id: "p2", name: "Beto", ready: false, online: true },
     ],
-    config: engine.createConfig(),
+    config,
     round: null,
     usedWords: {},
     roundHistory: [],
@@ -121,7 +125,8 @@ test("call_basta only works in basta mode and jumps straight to review", () => {
   const rejected = engine.handleAction(room, "p1", "call_basta", {});
   assert.equal(rejected.handled, false, "endMode defaults to timer");
 
-  const room2 = makeRoom({ config: { ...engine.createConfig(), endMode: "basta" } });
+  const room2 = makeRoom();
+  room2.config.endMode = "basta";
   startAndConfirmLetter(room2);
   const res = engine.handleAction(room2, "p1", "call_basta", {});
   assert.equal(res.handled, true);

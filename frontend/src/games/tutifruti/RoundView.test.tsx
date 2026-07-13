@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, act, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 import { RoundView } from "./RoundView";
@@ -194,9 +194,7 @@ describe("Tutifrutti RoundView — review phase", () => {
 });
 
 describe("Tutifrutti RoundView — result phase", () => {
-  beforeEach(() => vi.useFakeTimers());
-
-  test("reveals standings after the countdown, and the host can start a new round", async () => {
+  test("reveals standings instantly, and the host can start a new round", async () => {
     const send = vi.fn();
     render(
       <RoundView
@@ -210,17 +208,14 @@ describe("Tutifrutti RoundView — result phase", () => {
       />,
     );
 
-    expect(screen.queryByText("Clasificación")).not.toBeInTheDocument();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3000);
-    });
-
     expect(screen.getByText("Clasificación")).toBeInTheDocument();
 
-    vi.useRealTimers();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Nueva ronda" }));
     expect(send).toHaveBeenCalledWith({ type: "start_round" });
+
+    await user.click(screen.getByRole("button", { name: "Volver al lobby" }));
+    expect(send).toHaveBeenCalledWith({ type: "back_to_lobby" });
   });
 
   test("the final round shows a closing message instead of a new-round button", async () => {
@@ -235,10 +230,6 @@ describe("Tutifrutti RoundView — result phase", () => {
         send={vi.fn()}
       />,
     );
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3000);
-    });
 
     expect(screen.getByText("Fin del juego")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Nueva ronda" })).not.toBeInTheDocument();

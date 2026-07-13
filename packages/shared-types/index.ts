@@ -143,6 +143,10 @@ export const SCHEMAS = {
     type: z.literal("kick_player"),
     targetId: uuid,
   }),
+  transfer_host: z.object({
+    type: z.literal("transfer_host"),
+    targetId: uuid,
+  }),
   ping: z.object({
     type: z.literal("ping"),
   }),
@@ -165,6 +169,15 @@ export const SCHEMAS = {
   }),
   confirm_review: z.object({
     type: z.literal("confirm_review"),
+  }),
+  spin: z.object({
+    type: z.literal("spin"),
+  }),
+  confirm_eliminate: z.object({
+    type: z.literal("confirm_eliminate"),
+  }),
+  spin_again: z.object({
+    type: z.literal("spin_again"),
   }),
 } as const;
 
