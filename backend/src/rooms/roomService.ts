@@ -136,8 +136,18 @@ function rejoinRoom(ws: WebSocket, { roomCode, playerId }: { roomCode: string; p
   return { room, playerId };
 }
 
+// Each game defines its own config shape (see engine.createConfig()), so
+// there's no single schema to validate a patch against here. Instead this
+// only ever overwrites keys that already exist on the room's config, and
+// only with a same-typed value — so a client can tweak known settings but
+// can't inject new keys or swap a setting's type out from under the engine
+// that reads it.
 function updateConfig(room: Room, patch: Record<string, unknown>): void {
-  Object.assign(room.config, patch);
+  for (const [key, value] of Object.entries(patch)) {
+    if (!Object.hasOwn(room.config, key)) continue;
+    if (typeof value !== typeof (room.config as Record<string, unknown>)[key]) continue;
+    (room.config as Record<string, unknown>)[key] = value;
+  }
 }
 
 // If the player leaving/going offline was the host, hand the room off to
