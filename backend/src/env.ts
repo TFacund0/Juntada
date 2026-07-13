@@ -26,3 +26,15 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+// Not a hard failure — same-origin deployments (see render.yaml) intentionally
+// leave this unset — but a silent misconfiguration here means CORS opens up
+// to any origin, so make it visible at startup rather than only discoverable
+// by testing cross-origin requests against prod.
+if (env.NODE_ENV === "production" && !env.CORS_ORIGIN) {
+  console.warn(
+    "[env] CORS_ORIGIN is unset in production. This is expected only if the frontend " +
+      "is served from the same origin as this backend (see render.yaml comment) — " +
+      "otherwise, cross-origin requests are unrestricted.",
+  );
+}

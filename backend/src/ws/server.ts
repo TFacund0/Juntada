@@ -5,6 +5,7 @@
 import type { IncomingMessage } from "http";
 import type { Server } from "http";
 import { logger } from "../logger";
+import { env } from "../env";
 
 const { WebSocketServer } = require("ws");
 const { clients } = require("../state/roomStore");
@@ -25,12 +26,45 @@ function clientIp(req: IncomingMessage): string {
   return req.socket.remoteAddress || "unknown";
 }
 
-// Cheap-to-abuse message types get a per-IP rate limit: creating rooms
-// exhausts server memory, and hammering join_room is a room-code brute force.
+// Cheap-to-abuse message types get a per-IP rate limit: creating rooms/groups
+// exhausts server memory, and hammering join_room/join_group is a room/group
+// code brute force.
 const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   create_room: { limit: 5, windowMs: 60_000 },
   join_room: { limit: 20, windowMs: 60_000 },
+  create_group: { limit: 5, windowMs: 60_000 },
+  join_group: { limit: 20, windowMs: 60_000 },
 };
+
+// Blanket per-connection limit covering every message type (in-round actions
+// like vote/submit_clue included), so a single client can't hammer the game
+// loop with rapid-fire messages even for types with no per-type limit above.
+const GLOBAL_MESSAGE_LIMIT = { limit: 30, windowMs: 10_000 };
+
+// Origin isn't sent by non-browser clients (native apps, test scripts), so
+// only enforce it when present. Browsers always send it on WS handshakes,
+// which is what we actually care about blocking here — some other site's
+// page opening a socket to this backend on a visitor's behalf.
+function isAllowedOrigin(req: IncomingMessage): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  if (env.CORS_ORIGIN) return origin === env.CORS_ORIGIN;
+  // No CORS_ORIGIN configured means frontend and backend share an origin
+  // (see env.ts/app.ts) — so the Origin header's host must match the Host
+  // header the socket was actually opened against.
+  try {
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
+
+// Caps concurrent open sockets per IP so one client can't cheaply exhaust
+// server memory/file descriptors by opening connections without ever
+// sending create_room (which is what the per-message rate limits above
+// guard against instead).
+const MAX_CONNECTIONS_PER_IP = 20;
+const connectionsPerIp = new Map<string, number>();
 
 // A closed TCP connection fires "close" and lets handleDisconnect run, but a
 // phone that dies or drops off wifi without a clean shutdown never sends
@@ -56,12 +90,24 @@ function attachWebSocketServer(httpServer: Server) {
   wss.on("close", () => clearInterval(heartbeat));
 
   wss.on("connection", (ws: HeartbeatSocket, req: IncomingMessage) => {
+    if (!isAllowedOrigin(req)) {
+      ws.close(1008, "Origin not allowed");
+      return;
+    }
+
+    const ip = clientIp(req);
+    const openFromIp = (connectionsPerIp.get(ip) ?? 0) + 1;
+    if (openFromIp > MAX_CONNECTIONS_PER_IP) {
+      ws.close(1008, "Too many connections");
+      return;
+    }
+    connectionsPerIp.set(ip, openFromIp);
+
     clients.set(ws, { roomCode: null, playerId: null });
     ws.isAlive = true;
     ws.on("pong", () => {
       ws.isAlive = true;
     });
-    const ip = clientIp(req);
 
     ws.on("message", (raw: Buffer) => {
       let msg: unknown;
@@ -74,6 +120,11 @@ function attachWebSocketServer(httpServer: Server) {
       const { ok, data, error } = validateMessage(msg);
       if (!ok) {
         sendError(ws, "VALIDATION_ERROR", error);
+        return;
+      }
+
+      if (!isAllowed(`${ip}:global`, GLOBAL_MESSAGE_LIMIT.limit, GLOBAL_MESSAGE_LIMIT.windowMs)) {
+        sendError(ws, "RATE_LIMITED", "Estás yendo muy rápido, esperá un momento");
         return;
       }
 
@@ -93,7 +144,12 @@ function attachWebSocketServer(httpServer: Server) {
       }
     });
 
-    ws.on("close", () => handleDisconnect(ws));
+    ws.on("close", () => {
+      const remaining = (connectionsPerIp.get(ip) ?? 1) - 1;
+      if (remaining <= 0) connectionsPerIp.delete(ip);
+      else connectionsPerIp.set(ip, remaining);
+      handleDisconnect(ws);
+    });
   });
 
   return wss;
