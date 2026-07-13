@@ -41,7 +41,7 @@ test("createRoom refuses once the server hits MAX_TOTAL_ROOMS", () => {
 });
 
 test("createInstanceRoom links the new room back to the group and reuses the given identity", () => {
-  const { room } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "Ana");
+  const { room } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "Ana", "Grupo de Ana");
 
   assert.equal(room.groupCode, "GRUPO1");
   assert.equal(room.gameType, "impostor");
@@ -49,11 +49,12 @@ test("createInstanceRoom links the new room back to the group and reuses the giv
   assert.equal(room.players.length, 1);
   assert.equal(room.players[0].id, "host-id");
   assert.equal(room.players[0].name, "Ana");
+  assert.equal(room.name, "Grupo de Ana");
   assert.equal(rooms.get(room.code), room);
 });
 
 test("createInstanceRoom rejects an unknown gameType", () => {
-  const { error } = roomService.createInstanceRoom("GRUPO1", "no-existe", "host-id", "Ana");
+  const { error } = roomService.createInstanceRoom("GRUPO1", "no-existe", "host-id", "Ana", "Grupo de Ana");
   assert.match(error, /desconocido/i);
 });
 
@@ -100,7 +101,7 @@ test("joinRoom rejects once the room is at its player cap", () => {
 });
 
 test("joinInstanceRoom reuses the given playerId instead of minting a new one", () => {
-  const { room: created } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "Ana");
+  const { room: created } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "Ana", "Grupo de Ana");
   const { room, error } = roomService.joinInstanceRoom(created.code, "member-2", "Beto");
 
   assert.equal(error, undefined);
@@ -109,7 +110,7 @@ test("joinInstanceRoom reuses the given playerId instead of minting a new one", 
 });
 
 test("joinInstanceRoom is idempotent when the player already joined", () => {
-  const { room: created } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "Ana");
+  const { room: created } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "Ana", "Grupo de Ana");
   roomService.joinInstanceRoom(created.code, "member-2", "Beto");
   const { room, error } = roomService.joinInstanceRoom(created.code, "member-2", "Beto");
 

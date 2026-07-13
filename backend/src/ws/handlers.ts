@@ -189,7 +189,7 @@ function createInstance(ws: WS, msg: Extract<ClientMessage, { type: "create_inst
   const member = group.members.find(m => m.id === info.playerId);
   if (!member) return;
 
-  const { room, error } = roomService.createInstanceRoom(group.code, msg.gameType, member.id, member.name);
+  const { room, error } = roomService.createInstanceRoom(group.code, msg.gameType, member.id, member.name, group.name);
   if (error) {
     sendError(ws, "CREATE_INSTANCE_FAILED", error);
     return;
@@ -373,6 +373,52 @@ function ping(ws: WS): void {
   sendTo(ws, { type: "pong" });
 }
 
+// How long a single disconnected player is allowed to sit offline (while
+// others in the room/group stay connected) before being auto-removed, so
+// one dropped connection doesn't keep holding up the game or cluttering the
+// group's roster indefinitely. Whole-room/whole-group cleanup (see
+// scheduleRoomCleanup/scheduleGroupCleanup) already handles the case where
+// everyone is offline, so this only ever fires while someone else is still
+// around to keep playing without the disconnected player in the way.
+const PLAYER_OFFLINE_TIMEOUT_MS = 5 * 60 * 1000;
+
+function schedulePlayerKick(roomCode: string, playerId: string): void {
+  setTimeout(() => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const player = room.players.find(p => p.id === playerId);
+    if (!player || player.online) return;
+    if (roomService.isRoomFullyOffline(room)) return;
+
+    roomService.kickPlayer(room, playerId);
+    logger.info({ roomCode, playerId }, "player auto-kicked after disconnect timeout");
+    const engine = getEngine(room.gameType);
+    engine?.maybeAdvance(room);
+    broadcastToRoom(room, ws2 => sendTo(ws2, { type: "state", room: getRoomPublicState(room) }));
+    if (room.phase === "result") broadcastRoundReveal(room);
+    syncPhaseTimer(room);
+    if (room.groupCode) {
+      const group = groups.get(room.groupCode);
+      if (group) broadcastGroupState(group);
+    }
+  }, PLAYER_OFFLINE_TIMEOUT_MS);
+}
+
+function scheduleGroupMemberKick(groupCode: string, playerId: string): void {
+  setTimeout(() => {
+    const group = groups.get(groupCode);
+    if (!group) return;
+    const member = group.members.find(m => m.id === playerId);
+    if (!member || member.online) return;
+    if (groupService.isGroupFullyOffline(group)) return;
+
+    groupService.leaveGroup(group, playerId);
+    logger.info({ groupCode, playerId }, "member auto-removed from group after disconnect timeout");
+    if (group.members.length === 0) groups.delete(group.code);
+    else broadcastGroupState(group);
+  }, PLAYER_OFFLINE_TIMEOUT_MS);
+}
+
 function handleDisconnect(ws: WS): void {
   const info = clients.get(ws);
   if (info?.roomCode && info.playerId) {
@@ -384,6 +430,7 @@ function handleDisconnect(ws: WS): void {
       if (room.phase === "result") broadcastRoundReveal(room);
       if (room.round) syncPhaseTimer(room);
       if (roomService.isRoomFullyOffline(room) && !room.groupCode) roomService.scheduleRoomCleanup(room.code);
+      else schedulePlayerKick(room.code, info.playerId);
     }
   }
   if (info?.groupCode && info.playerId) {
@@ -392,6 +439,7 @@ function handleDisconnect(ws: WS): void {
       groupService.markMemberOffline(group, info.playerId);
       broadcastGroupState(group);
       if (groupService.isGroupFullyOffline(group)) groupService.scheduleGroupCleanup(group.code);
+      else scheduleGroupMemberKick(group.code, info.playerId);
     }
   }
   clients.delete(ws);
