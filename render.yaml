@@ -28,3 +28,10 @@ services:
       # var in the Render dashboard, not here.
       # - key: REDIS_URL
       #   sync: false
+      # Only matters if REDIS_URL points at a database shared with another
+      # deployment (e.g. juntada-staging) — namespaces this service's
+      # snapshot key so the two don't collide. Give each deployment sharing
+      # a database a distinct value (e.g. staging sets REDIS_NAMESPACE to
+      # "juntada-staging" in its own service's dashboard).
+      - key: REDIS_NAMESPACE
+        value: juntada-production
