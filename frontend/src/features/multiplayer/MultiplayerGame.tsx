@@ -71,14 +71,21 @@ export function MultiplayerGame({
     setConnectionPhase,
     me,
     room,
+    groupMe,
     group,
     myRole,
     wordReveal,
     error,
     setError,
     reconnecting,
+    reconnectAttempt,
+    reconnectFailed,
+    justReconnected,
+    maxReconnectAttempts,
     connect,
+    retryConnection,
     send,
+    leave,
   } = useMultiplayerSocket({ onLeftGroup: onLeaveGroup });
 
   const [roomName, setRoomName] = useState("");
@@ -169,24 +176,45 @@ export function MultiplayerGame({
 
   const leaveInstance = () => send({ type: "leave_instance" });
 
+  // Whether a session belongs to a room or a group is decided the same way
+  // the socket itself decides which rejoin message to send on reconnect
+  // (see useMultiplayerSocket's onopen: groupMe takes priority) — so the
+  // banner's wording always matches what's actually being rejoined.
+  const reconnectContext = groupMe ? "grupo" : "sala";
+
   // Shown across every phase — a dropped connection doesn't lose your spot
-  // (see useMultiplayerSocket's session persistence), but on a flaky
-  // connection the silent retry loop needs to be visible, or it just looks
-  // frozen.
-  const reconnectBanner = reconnecting && (
+  // (see useMultiplayerSocket's session persistence), but the retry loop
+  // needs to be visible or it just looks frozen. Three states: mid-retry,
+  // a brief confirmation right after recovering, or — once the automatic
+  // retries are exhausted — a manual choice instead of failing silently.
+  const reconnectBanner = (reconnecting || justReconnected || reconnectFailed) && (
     <div
       style={{
-        background: "rgba(226,196,74,0.1)",
-        border: "1px solid rgba(226,196,74,0.3)",
+        background: reconnectFailed ? "rgba(226,75,74,0.1)" : justReconnected ? "rgba(74,226,138,0.1)" : "rgba(226,196,74,0.1)",
+        border: `1px solid ${reconnectFailed ? "rgba(226,75,74,0.3)" : justReconnected ? "rgba(74,226,138,0.3)" : "rgba(226,196,74,0.3)"}`,
         borderRadius: 10,
         padding: "10px 14px",
         marginBottom: 16,
-        color: "#E2C44A",
+        color: reconnectFailed ? "#F09595" : justReconnected ? "#7EE2A8" : "#E2C44A",
         fontSize: 13,
         textAlign: "center",
       }}
     >
-      Reconectando...
+      {reconnectFailed
+        ? `No pudimos reconectarte a la ${reconnectContext}.`
+        : justReconnected
+          ? "Reconectado ✓"
+          : `Reconectando a la ${reconnectContext}... (intento ${reconnectAttempt} de ${maxReconnectAttempts})`}
+      {reconnectFailed && (
+        <div style={{ marginTop: 10, display: "flex", gap: 8, justifyContent: "center" }}>
+          <Btn variant="success" onClick={retryConnection} style={{ padding: "6px 14px", fontSize: 13 }}>
+            Reintentar
+          </Btn>
+          <Btn variant="ghost" onClick={leave} style={{ padding: "6px 14px", fontSize: 13 }}>
+            Volver al menú
+          </Btn>
+        </div>
+      )}
     </div>
   );
 
@@ -205,6 +233,7 @@ export function MultiplayerGame({
               marginBottom: 16,
               color: "#F09595",
               fontSize: 13,
+              textAlign: "center",
             }}
           >
             {error}
@@ -612,6 +641,7 @@ export function MultiplayerGame({
               marginBottom: 16,
               color: "#F09595",
               fontSize: 13,
+              textAlign: "center",
             }}
           >
             {error}
