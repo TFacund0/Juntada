@@ -8,6 +8,17 @@ const WS_URL = import.meta.env.DEV
   ? `ws://${window.location.hostname}:${import.meta.env.VITE_BACKEND_PORT || 3001}`
   : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`;
 
+// Stops the automatic retry loop after this many failed attempts so a
+// truly-gone connection doesn't retry silently forever — the UI offers a
+// manual "reintentar"/"volver al menú" choice once this is hit instead.
+const MAX_RECONNECT_ATTEMPTS = 10;
+// Backoff between retries: starts at 3s, grows by 600ms per attempt, caps
+// at 8s — gentler on a flaky connection (and the server) than hammering
+// every 3s indefinitely, while still recovering quickly from a brief drop.
+function reconnectDelayMs(attempt: number): number {
+  return Math.min(3000 + (attempt - 1) * 600, 8000);
+}
+
 // Backgrounding the tab on mobile (switching to WhatsApp, locking the screen,
 // etc.) can kill the socket or even discard the JS context entirely. We
 // persist just enough identity to rejoin the same room/group after either
@@ -101,11 +112,26 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
   // connection, tab was suspended, etc.) — lets the UI show a "reconectando"
   // banner instead of silently retrying with no feedback.
   const [reconnecting, setReconnecting] = useState(false);
+  // How many attempts have been made since the socket last dropped — shown
+  // in the UI so a long reconnect doesn't look frozen, and used to decide
+  // when to give up (see MAX_RECONNECT_ATTEMPTS below).
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
+  // True once MAX_RECONNECT_ATTEMPTS is exhausted with no successful
+  // reconnect — stops the retry loop and lets the UI offer a manual
+  // "reintentar"/"volver al menú" choice instead of retrying forever
+  // in silence.
+  const [reconnectFailed, setReconnectFailed] = useState(false);
+  // Briefly true right after a reconnect that followed a real drop (not the
+  // very first connect) — lets the UI flash a "Reconectado" confirmation
+  // instead of the banner just vanishing with no acknowledgment.
+  const [justReconnected, setJustReconnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectedBannerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const meRef = useRef(me);
   const groupMeRef = useRef(groupMe);
   const roomRef = useRef<RoomPublicState | null>(null);
+  const reconnectingRef = useRef(false);
   const onLeftGroupRef = useRef(onLeftGroup);
   onLeftGroupRef.current = onLeftGroup;
 
@@ -122,6 +148,25 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
+  useEffect(() => {
+    reconnectingRef.current = reconnecting;
+  }, [reconnecting]);
+
+  // Called on any message that confirms the connection is actually working
+  // again (joined/state/group_joined/group_state/kicked all count — a
+  // response of any kind proves the round trip works). Only flashes the
+  // "Reconectado" confirmation if we were actually mid-reconnect, not on
+  // the very first connect of a session.
+  const onReconnected = useCallback(() => {
+    if (reconnectingRef.current) {
+      setJustReconnected(true);
+      if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
+      reconnectedBannerRef.current = setTimeout(() => setJustReconnected(false), 3000);
+    }
+    setReconnecting(false);
+    setReconnectAttempt(0);
+    setReconnectFailed(false);
+  }, []);
 
   const connect = useCallback((onOpen?: (ws: WebSocket) => void) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -148,12 +193,12 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
         setError("");
-        setReconnecting(false);
+        onReconnected();
       } else if (msg.type === "state") {
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
         setError("");
-        setReconnecting(false);
+        onReconnected();
       } else if (msg.type === "group_joined") {
         setGroupMe({ playerId: msg.playerId, groupCode: msg.groupCode });
         setGroup(msg.group);
@@ -167,11 +212,11 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
           return prevRoom;
         });
         setError("");
-        setReconnecting(false);
+        onReconnected();
       } else if (msg.type === "group_state") {
         setGroup(msg.group);
         setError("");
-        setReconnecting(false);
+        onReconnected();
       } else if (msg.type === "left_instance") {
         setMe(null);
         setRoom(null);
@@ -220,13 +265,36 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
       }
     };
     ws.onclose = () => {
-      if (meRef.current || groupMeRef.current) setReconnecting(true);
-      reconnectRef.current = setTimeout(() => {
-        if (meRef.current || groupMeRef.current) connect();
-      }, 3000);
+      if (!meRef.current && !groupMeRef.current) return;
+      setReconnecting(true);
+      // A fresh drop mid-retry-loop shouldn't still show a stale
+      // "Reconectado" from an earlier, unrelated recovery.
+      setJustReconnected(false);
+      if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
+      setReconnectAttempt(prevAttempt => {
+        const attempt = prevAttempt + 1;
+        if (attempt > MAX_RECONNECT_ATTEMPTS) {
+          setReconnecting(false);
+          setReconnectFailed(true);
+          return prevAttempt;
+        }
+        reconnectRef.current = setTimeout(() => {
+          if (meRef.current || groupMeRef.current) connect();
+        }, reconnectDelayMs(attempt));
+        return attempt;
+      });
     };
     ws.onerror = () => setError("No se pudo conectar al servidor");
-  }, []);
+  }, [onReconnected]);
+
+  // Manual retry after the automatic loop gave up (see reconnectFailed) —
+  // resets the attempt count/backoff so the player gets a fresh full run
+  // of retries rather than picking up where the exhausted loop left off.
+  const retryConnection = useCallback(() => {
+    setReconnectFailed(false);
+    setReconnectAttempt(0);
+    connect();
+  }, [connect]);
 
   // Auto-rejoin a persisted session on mount (covers the case where the
   // mobile browser fully discarded the page while backgrounded, so the app
@@ -263,6 +331,7 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
     () => () => {
       wsRef.current?.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
     },
     [],
   );
@@ -279,6 +348,7 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
   const leave = useCallback(() => {
     wsRef.current?.close();
     if (reconnectRef.current) clearTimeout(reconnectRef.current);
+    if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
     setMe(null);
     setRoom(null);
     setMyRole(null);
@@ -286,6 +356,9 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
     setGroup(null);
     setConnectionPhase("menu");
     setReconnecting(false);
+    setReconnectAttempt(0);
+    setReconnectFailed(false);
+    setJustReconnected(false);
   }, []);
 
   return {
@@ -300,7 +373,12 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
     error,
     setError,
     reconnecting,
+    reconnectAttempt,
+    reconnectFailed,
+    justReconnected,
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
     connect,
+    retryConnection,
     send,
     leave,
   };

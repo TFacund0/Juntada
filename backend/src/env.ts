@@ -15,6 +15,16 @@ const schema = z.object({
   // Optional — error tracking is a no-op until this is set (see sentry.ts).
   // Get one by creating a free Sentry.io project (Node/Express platform).
   SENTRY_DSN: z.string().url().optional(),
+  // Optional — room/group persistence across restarts is a no-op until this
+  // is set (see state/persistence.ts). Get one by creating a free Redis
+  // database on upstash.com (or any other rediss://-compatible provider).
+  REDIS_URL: z.string().url().optional(),
+  // Prefixes the Redis key persistence.ts snapshots under — lets multiple
+  // deployments (e.g. staging and production) safely share a single Redis
+  // database without their snapshots colliding. Only matters when REDIS_URL
+  // is set; each deployment sharing a database should set this to something
+  // unique to it (e.g. "juntada-staging" vs "juntada-production").
+  REDIS_NAMESPACE: z.string().min(1).default("juntada"),
 });
 
 const parsed = schema.safeParse(process.env);

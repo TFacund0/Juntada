@@ -21,3 +21,17 @@ services:
       # dashboard, not here, so the DSN isn't committed to the repo.
       # - key: SENTRY_DSN
       #   sync: false
+      # Set this to a Redis connection URL (e.g. from upstash.com) so active
+      # rooms/groups survive a restart (deploy, free-tier sleep) instead of
+      # being wiped. Left unset by default — persistence is a no-op without
+      # it (see backend/src/state/persistence.ts). Set it as a secret env
+      # var in the Render dashboard, not here.
+      # - key: REDIS_URL
+      #   sync: false
+      # Only matters if REDIS_URL points at a database shared with another
+      # deployment (e.g. juntada-staging) — namespaces this service's
+      # snapshot key so the two don't collide. Give each deployment sharing
+      # a database a distinct value (e.g. staging sets REDIS_NAMESPACE to
+      # "juntada-staging" in its own service's dashboard).
+      - key: REDIS_NAMESPACE
+        value: juntada-production

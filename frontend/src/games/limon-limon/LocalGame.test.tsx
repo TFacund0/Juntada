@@ -59,9 +59,12 @@ describe("Limón Limón LocalGame", () => {
     expect(screen.getByText(/Carta 1 de 40/)).toBeInTheDocument(); // still the same card
 
     // Only the 3rd tap slides the card away — that runs on a timer before
-    // "Carta 2" shows up.
+    // "Carta 2" shows up. The real animation is SLIDE_MS (350ms — see
+    // LocalGame.tsx), but this timeout is generous because the full suite
+    // runs many test files in parallel, and CPU contention under that load
+    // can delay this specific test's event loop well past the real delay.
     await user.click(clickDeck(container));
-    expect(await screen.findByText(/Carta 2 de 40/, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByText(/Carta 2 de 40/, {}, { timeout: 8000 })).toBeInTheDocument();
     expect(screen.getByText(/toquen para revelar/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Anotar cartas manualmente" }));
