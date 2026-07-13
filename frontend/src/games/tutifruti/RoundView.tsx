@@ -2,8 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
+
+// ── Ronda X/Y indicator, shown at the top of every phase ──
+function RoundBadge({ round }: { round: any }) {
+  if (!round.totalRounds) return null;
+  return (
+    <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>
+      Ronda {round.roundNumber}/{round.totalRounds}
+    </p>
+  );
+}
 
 function useCountdown(timerEnd: number | null): number | null {
   const [now, setNow] = useState(Date.now());
@@ -21,6 +32,7 @@ function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHos
   const round = room.round as any;
   return (
     <div>
+      <RoundBadge round={round} />
       <div style={{ ...S.cardHighlight, textAlign: "center", padding: "36px 20px" }}>
         <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 8 }}>La letra es...</p>
         <p style={{ fontSize: 64, fontWeight: 800, color: "#AFA9EC", margin: 0, lineHeight: 1 }}>{round.letter}</p>
@@ -80,6 +92,7 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
 
   return (
     <div>
+      <RoundBadge round={round} />
       <div style={{ ...S.cardHighlight, textAlign: "center" }}>
         <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Letra</p>
         <p style={{ fontSize: 32, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>{round.letter}</p>
@@ -150,6 +163,7 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
 
   return (
     <div>
+      <RoundBadge round={round} />
       <div style={{ ...S.cardHighlight, textAlign: "center" }}>
         <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Letra</p>
         <p style={{ fontSize: 32, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>{round.letter}</p>
@@ -165,7 +179,14 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
             </span>
             {entries.map(({ playerId, word }) => {
               const marksForWord = (round.marks[playerId] || {})[cat.id] || {};
+              const voteValues = Object.values(marksForWord);
+              const ticks = voteValues.filter((v: any) => v === true).length;
+              const crosses = voteValues.filter((v: any) => v === false).length;
               const wrongLetter = !startsWithLetter(word, round.letter);
+              // Half or more of the votes marking it invalid rejects the word live,
+              // same rule the backend applies once the round is tallied.
+              const rejectedByVotes = ticks + crosses > 0 && crosses >= ticks;
+              const struckOut = wrongLetter || rejectedByVotes;
               return (
                 <div
                   key={playerId}
@@ -185,8 +206,8 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
                         fontWeight: 600,
                         wordBreak: "break-word",
                         overflowWrap: "anywhere",
-                        color: wrongLetter ? "#F09595" : undefined,
-                        textDecoration: wrongLetter ? "line-through" : undefined,
+                        color: struckOut ? "#F09595" : undefined,
+                        textDecoration: struckOut ? "line-through" : undefined,
                       }}
                     >
                       {word}
@@ -257,9 +278,11 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
   const standings = [...room.players]
     .map(p => ({ ...p, score: score[p.id] || 0, roundPts: round.pointsByPlayer[p.id] || 0 }))
     .sort((a, b) => b.score - a.score);
+  const [confirmLobby, setConfirmLobby] = useState(false);
 
   return (
     <div>
+      <RoundBadge round={round} />
       <div style={{ textAlign: "center", padding: "12px 0" }}>
         <p style={{ ...S.title, fontSize: 26, display: "block" }}>{round.isFinalRound ? "Fin del juego" : "Puntos de la ronda"}</p>
       </div>
@@ -294,9 +317,25 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
                   key={i}
                   style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "4px 0", color: "#b8b0d4" }}
                 >
-                  <span style={{ wordBreak: "break-word", overflowWrap: "anywhere", minWidth: 0 }}>{b.word}</span>
+                  <span
+                    style={{
+                      wordBreak: "break-word",
+                      overflowWrap: "anywhere",
+                      minWidth: 0,
+                      color: !b.valid ? "#F09595" : undefined,
+                      textDecoration: !b.valid ? "line-through" : undefined,
+                    }}
+                  >
+                    {b.word}
+                  </span>
                   <span style={{ flexShrink: 0, color: !b.valid ? "#F09595" : b.duplicate ? "#EF9F27" : "#5DCAA5" }}>
-                    {b.wrongLetter ? `No empieza con "${round.letter}"` : !b.valid ? "Inválida" : b.duplicate ? "Repetida (+5)" : "+10"}
+                    {b.wrongLetter
+                      ? `No empieza con "${round.letter}"`
+                      : !b.valid
+                        ? "Inválida"
+                        : b.duplicate
+                          ? `Repetida (+${b.points})`
+                          : `+${b.points}`}
                   </span>
                 </div>
               ))}
@@ -312,9 +351,21 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
       {round.isFinalRound && <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
       {isHost && room.groupCode === null && (
-        <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>
+        <Btn variant="ghost" onClick={() => setConfirmLobby(true)} style={{ marginTop: 10 }}>
           Volver al lobby
         </Btn>
+      )}
+      {confirmLobby && (
+        <ConfirmDialog
+          title="¿Volver al lobby?"
+          message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
+          confirmLabel="Volver al lobby"
+          onConfirm={() => {
+            setConfirmLobby(false);
+            send({ type: "back_to_lobby" });
+          }}
+          onCancel={() => setConfirmLobby(false)}
+        />
       )}
     </div>
   );

@@ -159,10 +159,11 @@ function finishRound(room: Room): void {
       normalizedCounts[norm] = (normalizedCounts[norm] || 0) + 1;
     });
 
+    const catBreakdown: Record<string, Omit<AnswerBreakdown, "points">> = {};
     players.forEach(p => {
       const word = wordsByPlayer[p.id];
       if (!word) {
-        breakdown[p.id][cat.id] = { word: "", valid: false, wrongLetter: false, duplicate: false, points: 0, ticks: 0, crosses: 0 };
+        catBreakdown[p.id] = { word: "", valid: false, wrongLetter: false, duplicate: false, ticks: 0, crosses: 0 };
         return;
       }
       const marksForWord = (r.marks[p.id] || {})[cat.id] || {};
@@ -172,10 +173,22 @@ function finishRound(room: Room): void {
       // A word that doesn't even start with the round's letter is invalid
       // no matter how anyone voted — no amount of ticks saves it.
       const wrongLetter = !startsWithLetter(word, r.letter);
-      const valid = !wrongLetter && crosses <= ticks;
+      // No votes at all defaults to valid; otherwise invalid votes tying or
+      // outnumbering valid ones (half or majority invalid) rejects the word.
+      const noVotes = ticks + crosses === 0;
+      const valid = !wrongLetter && (noVotes || ticks > crosses);
       const duplicate = valid && normalizedCounts[normalizeWord(word)] > 1;
-      const points = !valid ? 0 : duplicate ? 5 : 10;
-      breakdown[p.id][cat.id] = { word, valid, wrongLetter, duplicate, points, ticks, crosses };
+      catBreakdown[p.id] = { word, valid, wrongLetter, duplicate, ticks, crosses };
+    });
+
+    // A category where exactly one player landed a valid word is worth a
+    // bonus — being the only one to nail it beats splitting points with dupes.
+    const validCount = players.filter(p => catBreakdown[p.id].valid).length;
+
+    players.forEach(p => {
+      const b = catBreakdown[p.id];
+      const points = !b.valid ? 0 : validCount === 1 ? 20 : b.duplicate ? 5 : 10;
+      breakdown[p.id][cat.id] = { ...b, points };
       pointsByPlayer[p.id] += points;
     });
   });
@@ -303,13 +316,19 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
 function getPublicRoundView(room: Room): Record<string, unknown> | null {
   if (!room.round) return null;
   const r = round(room);
+  const isFinalRound = room.roundHistory.length >= cfg(room).rounds;
+  // In every phase but "result" the current round hasn't been pushed to
+  // roundHistory yet, so its number is one past what's already completed.
+  const roundNumber = room.phase === "result" ? room.roundHistory.length : room.roundHistory.length + 1;
   const base = {
     letter: r.letter,
     rerollsUsed: r.rerollsUsed,
     categories: r.categories,
     endMode: r.endMode,
     timerEnd: r.timerEnd,
-    isFinalRound: room.roundHistory.length >= cfg(room).rounds,
+    isFinalRound,
+    roundNumber,
+    totalRounds: cfg(room).rounds,
   };
   if (room.phase === "setup") return base;
   if (room.phase === "writing") {
