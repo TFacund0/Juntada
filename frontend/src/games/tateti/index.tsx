@@ -17,6 +17,7 @@ export const tatetiGame: GameDef = {
   icon: "⭕",
   description: "El clásico 3 en raya, uno contra uno. Rápido y para picar entre rondas de otros juegos.",
   minPlayers: 2,
+  category: "rapidos",
   rules: [
     "El clásico 3 en raya, uno contra uno: se turnan para marcar casilleros en un tablero de 3x3.",
     "Gana quien logre alinear sus tres marcas (fila, columna o diagonal) primero. Si se llena el tablero sin que nadie alinee, es empate.",

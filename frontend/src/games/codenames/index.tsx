@@ -14,6 +14,7 @@ export const codenamesGame: GameDef = {
   description:
     "Por equipos: el spymaster da una pista (palabra + número) para que su equipo adivine las palabras del tablero sin caer en la del rival ni en la asesina.",
   minPlayers: 4,
+  category: "equipos",
   comingSoon: true,
   rules: [
     "Dos equipos (Rojo y Azul). Cada uno tiene un spymaster (ve los colores ocultos de las 25 palabras) y uno o más operatives (solo ven las palabras).",

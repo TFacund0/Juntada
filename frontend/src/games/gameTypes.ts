@@ -26,12 +26,17 @@ export interface LobbyInfoProps {
   room: RoomPublicState;
 }
 
+// Groups games in the picker screen (search + category sections). A game
+// without a category falls into "otros" — see CATEGORY_LABEL in GamePicker.
+export type GameCategory = "destacados" | "grupo" | "rapidos" | "equipos" | "otros";
+
 export interface GameDef {
   id: string;
   label: string;
   icon?: string;
   description: string;
   minPlayers?: number;
+  category?: GameCategory;
   LocalGame: ComponentType<Record<string, never>>;
   ConfigPanel?: ComponentType<ConfigPanelProps>;
   RoundView?: ComponentType<RoundViewProps>;
