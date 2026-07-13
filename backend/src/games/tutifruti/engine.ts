@@ -73,7 +73,7 @@ function createConfig(): TutifrutiConfig {
     rounds: 5,
     endMode: "timer", // "timer" | "basta"
     roundTime: 90, // seconds, used when endMode === "timer"
-    activeCategories: DEFAULT_CATEGORIES.reduce((a, c) => ({ ...a, [c.id]: true }), {} as Record<string, boolean>),
+    activeCategories: DEFAULT_CATEGORIES.reduce((a, c) => ({ ...a, [c.id]: false }), {} as Record<string, boolean>),
     customCategories: [], // [{ id, label }]
   };
 }

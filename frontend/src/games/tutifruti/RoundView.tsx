@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
-import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
 
@@ -179,10 +178,19 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600, wordBreak: "break-word", overflowWrap: "anywhere" }}>{word}</p>
-                    {wrongLetter && (
-                      <span style={{ fontSize: 11, color: "#F09595", fontWeight: 700 }}>✗ no empieza con "{round.letter}" — no cuenta</span>
-                    )}
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        wordBreak: "break-word",
+                        overflowWrap: "anywhere",
+                        color: wrongLetter ? "#F09595" : undefined,
+                        textDecoration: wrongLetter ? "line-through" : undefined,
+                      }}
+                    >
+                      {word}
+                    </p>
                   </div>
                   {/* Fixed-width tally column to the left of our own vote buttons, so
                       the buttons never shift position as votes come in. */}
@@ -245,13 +253,10 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
 // ── RESULT: round breakdown + running standings ──
 function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
   const round = room.round as any;
-  const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
   const score = room.config.score as Record<string, number>;
   const standings = [...room.players]
     .map(p => ({ ...p, score: score[p.id] || 0, roundPts: round.pointsByPlayer[p.id] || 0 }))
     .sort((a, b) => b.score - a.score);
-
-  if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando puntajes..." />;
 
   return (
     <div>
@@ -305,6 +310,12 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
         </Btn>
       )}
       {round.isFinalRound && <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>}
+      {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
+      {isHost && room.groupCode === null && (
+        <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>
+          Volver al lobby
+        </Btn>
+      )}
     </div>
   );
 }

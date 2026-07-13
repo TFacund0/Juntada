@@ -53,9 +53,9 @@ describe("Ruleta LocalGame", () => {
     await user.click(screen.getByRole("button", { name: "🎡 Girar la ruleta" }));
     await waitFor(() => expect(screen.getByText("Salió")).toBeInTheDocument(), { timeout: 6000 });
 
-    await user.click(screen.getByRole("button", { name: "Sacar de la ruleta" }));
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
 
     expect(screen.getByText("Orden de eliminación")).toBeInTheDocument();
-    expect(screen.getByText("Queda")).toBeInTheDocument();
+    expect(screen.getByText("Ganador")).toBeInTheDocument();
   }, 8000);
 });

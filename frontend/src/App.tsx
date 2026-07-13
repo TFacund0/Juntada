@@ -3,12 +3,14 @@ import { S } from "./theme/styles";
 import { GAME_LIST, getGame } from "./games/registry";
 import type { GameDef } from "./games/gameTypes";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
+import { Btn } from "./components/Btn";
+import { Avatar } from "./components/Avatar";
 import { GameRules } from "./components/GameRules";
 import { ConfirmDialog } from "./components/ConfirmDialog";
-import { QRDialog } from "./components/QRDialog";
 import { DevNoticeDialog } from "./components/DevNoticeDialog";
 import { clearMultiplayerSession } from "./features/multiplayer/useMultiplayerSocket";
 import { consumeJoinLink } from "./features/multiplayer/joinLink";
+import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/playerName";
 import logo from "./assets/brand/logo.webp";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -71,7 +73,6 @@ export default function App() {
   const [groupFlow, setGroupFlow] = useState(() => validJoinLink?.kind === "group");
   const [showRules, setShowRules] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [showHomeQR, setShowHomeQR] = useState(false);
   const [showDevNotice, setShowDevNotice] = useState(() => {
     try {
       return !localStorage.getItem("impostorgame:devNoticeSeen");
@@ -87,6 +88,21 @@ export default function App() {
       /* storage unavailable */
     }
     setShowDevNotice(false);
+  };
+
+  // Asked once, right when the app is first opened — saved locally so
+  // nothing downstream (creating/joining a room or group) ever has to ask
+  // for it again. Editable later from the home screen ("Cambiar" link).
+  const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
+  const [nameDraft, setNameDraft] = useState("");
+  const [editingName, setEditingName] = useState(false);
+
+  const savePlayerName = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setStoredPlayerName(trimmed);
+    setPlayerName(trimmed);
+    setEditingName(false);
   };
 
   const game = gameId ? (getGame(gameId) as GameDef | undefined) : null;
@@ -148,6 +164,38 @@ export default function App() {
     setShowRules(false);
   };
 
+  // First thing the app ever asks — before picking a game, before anything
+  // else. Once saved, this screen never shows again on this device.
+  if (!playerName)
+    return (
+      <div style={S.app}>
+        <div style={S.wrap}>
+          <div style={S.header}>
+            <img src={logo} alt="Juntada" style={{ width: 64, height: 64, borderRadius: 16 }} />
+            <h1 style={S.title}>Juntada</h1>
+            <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>¿Cómo te llamás?</p>
+          </div>
+          <div style={S.card}>
+            <span style={S.label}>Tu nombre</span>
+            <input
+              style={S.input}
+              placeholder="¿Cómo te llamás?"
+              autoFocus
+              value={nameDraft}
+              onChange={e => setNameDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") savePlayerName(nameDraft);
+              }}
+            />
+            <p style={{ ...S.muted, marginTop: 10 }}>Así te van a ver los demás jugadores. Lo guardamos en este dispositivo, no te lo va a volver a pedir.</p>
+          </div>
+          <button onClick={() => savePlayerName(nameDraft)} disabled={!nameDraft.trim()} style={S.btn("primary", !nameDraft.trim())}>
+            Continuar
+          </button>
+        </div>
+      </div>
+    );
+
   return (
     <div style={S.app}>
       <div style={S.wrap}>
@@ -191,22 +239,61 @@ export default function App() {
           )}
           <h1 style={S.title}>{game?.label ?? "Juntada"}</h1>
           {!gameId && !groupFlow && <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>Elegí un juego para arrancar</p>}
-          {!gameId && !groupFlow && (
-            <button
-              onClick={() => setShowHomeQR(true)}
+          {!gameId && !groupFlow && !editingName && (
+            <div
               style={{
-                background: "none",
-                border: "none",
-                color: "#7F77DD",
-                cursor: "pointer",
-                fontSize: 13,
-                fontFamily: "inherit",
-                fontWeight: 700,
-                marginTop: 10,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+                marginTop: 14,
+                padding: "6px 8px 6px 10px",
+                borderRadius: 999,
+                background: "rgba(127,119,221,0.1)",
+                border: "1px solid rgba(127,119,221,0.3)",
               }}
             >
-              Invitar
-            </button>
+              <Avatar name={playerName} size={26} />
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{playerName}</span>
+              <button
+                onClick={() => {
+                  setNameDraft(playerName);
+                  setEditingName(true);
+                }}
+                style={{
+                  background: "rgba(127,119,221,0.18)",
+                  border: "none",
+                  borderRadius: 999,
+                  color: "#AFA9EC",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                  fontWeight: 700,
+                  padding: "5px 12px",
+                }}
+              >
+                Cambiar
+              </button>
+            </div>
+          )}
+          {!gameId && !groupFlow && editingName && (
+            <div style={{ ...S.card, textAlign: "left", marginTop: 12 }}>
+              <span style={S.label}>Tu nombre</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  style={{ ...S.input, flex: 1 }}
+                  autoFocus
+                  value={nameDraft}
+                  onChange={e => setNameDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") savePlayerName(nameDraft);
+                    if (e.key === "Escape") setEditingName(false);
+                  }}
+                />
+                <Btn onClick={() => savePlayerName(nameDraft)} disabled={!nameDraft.trim()} style={{ width: "auto", padding: "11px 18px" }}>
+                  Guardar
+                </Btn>
+              </div>
+            </div>
           )}
           {gameId && !mode && !game?.comingSoon && (
             <p
@@ -321,6 +408,7 @@ export default function App() {
           <MultiplayerGame
             entryKind={groupFlow ? "group" : "room"}
             gameId={gameId}
+            playerName={playerName}
             initialJoinCode={validJoinLink?.code}
             onGameTypeChange={handleRoomGameType}
             onLeaveGroup={goHome}
@@ -329,15 +417,6 @@ export default function App() {
       </div>
 
       {showDevNotice && <DevNoticeDialog onClose={dismissDevNotice} />}
-
-      {showHomeQR && (
-        <QRDialog
-          title="Escaneá para entrar"
-          subtitle="Te lleva directo al menú de juegos de Juntada."
-          value={`${window.location.origin}${window.location.pathname}`}
-          onClose={() => setShowHomeQR(false)}
-        />
-      )}
 
       {showExitConfirm && (
         <ConfirmDialog
