@@ -31,7 +31,7 @@
 import type { GameEngine } from "./engineTypes";
 
 const impostorEngine: GameEngine = require("./impostor/engine");
-const torneoFifaEngine: GameEngine = require("./torneo-fifa/engine");
+const torneoFutbolEngine: GameEngine = require("./torneo-futbol/engine");
 const tatetiEngine: GameEngine = require("./tateti/engine");
 const sintoniaEngine: GameEngine = require("./sintonia/engine");
 const limonLimonEngine: GameEngine = require("./limon-limon/engine");
@@ -40,7 +40,7 @@ const ruletaEngine: GameEngine = require("./ruleta/engine");
 
 const GAMES: Record<string, GameEngine> = {
   [impostorEngine.id]: impostorEngine,
-  [torneoFifaEngine.id]: torneoFifaEngine,
+  [torneoFutbolEngine.id]: torneoFutbolEngine,
   [tatetiEngine.id]: tatetiEngine,
   [sintoniaEngine.id]: sintoniaEngine,
   [limonLimonEngine.id]: limonLimonEngine,

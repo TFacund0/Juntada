@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildBracket, nextPowerOf2, propagateByes } from "@juntada/torneo-fifa-bracket";
-import type { Entrant, Match } from "@juntada/torneo-fifa-bracket";
+import { buildBracket, nextPowerOf2, propagateByes } from "@juntada/torneo-futbol-bracket";
+import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 
 // Direct tests for the bracket module shared between the backend engine
 // (string ids) and the frontend LocalGame (number ids) — exercised here with

@@ -9,7 +9,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     code: "TEST1",
     name: "Sala de prueba",
     hostId: "p1",
-    gameType: "torneo-fifa",
+    gameType: "torneo-futbol",
     phase: "lobby",
     players: [
       { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
@@ -30,7 +30,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
   };
 }
 
-describe("Torneo FIFA ConfigPanel", () => {
+describe("Torneo de Fútbol ConfigPanel", () => {
   test("shows the configured teams", () => {
     render(<ConfigPanel room={makeRoom()} updateConfig={vi.fn()} />);
     expect(screen.getByText(/Equipos disponibles \(3\)/)).toBeInTheDocument();

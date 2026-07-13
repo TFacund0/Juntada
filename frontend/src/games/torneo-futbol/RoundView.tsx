@@ -6,7 +6,7 @@ import { RevealCountdown, useRevealCountdown } from "../../components/RevealCoun
 import type { RoundViewProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TORNEO FIFA — vista compartida del bracket en modo online. Todos los que
+// TORNEO DE FÚTBOL — vista compartida del bracket en modo online. Todos los que
 // están en la sala ven los mismos cruces y resultados en vivo; solo el
 // anfitrión puede cargar el resultado de un partido (send "report_result").
 // ═══════════════════════════════════════════════════════════════════════════════

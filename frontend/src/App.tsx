@@ -300,7 +300,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {gameId && !mode && !game?.comingSoon && (
+          {gameId && !mode && (
             <p
               style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}
             >
@@ -366,13 +366,6 @@ export default function App() {
             </p>
             <GamePicker games={GAME_LIST as GameDef[]} onPick={pickGame} />
           </div>
-        )}
-
-        {/* ── Juego todavía no jugable: placeholder directo, sin pedir modo ── */}
-        {gameId && game?.comingSoon && !mode && (
-          <Suspense fallback={<GameLoading />}>
-            <game.LocalGame />
-          </Suspense>
         )}
 
         {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}

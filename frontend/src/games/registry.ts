@@ -35,9 +35,26 @@ import { tutifrutiGame } from "./tutifruti";
 import { tatetiGame } from "./tateti";
 import { triviaGame } from "./trivia";
 import { ruletaGame } from "./ruleta";
-import { torneoFifaGame } from "./torneo-fifa";
+import { torneoFutbolGame } from "./torneo-futbol";
 import { limonLimonGame } from "./limon-limon";
-import { codenamesGame } from "./codenames";
+import { claveSecretaGame } from "./clave-secreta";
+import { emojiPeliculaGame } from "./emoji-pelicula";
+import { masProbableGame } from "./mas-probable";
+import { rayadoLibreGame } from "./rayado-libre";
+import { ahorcadoGame } from "./ahorcado";
+import { memotestGame } from "./memotest";
+import { quienSoyGame } from "./quien-soy";
+import { yoNuncaGame } from "./yo-nunca";
+import { terminaHistoriaGame } from "./termina-historia";
+import { confesionesAnonimasGame } from "./confesiones-anonimas";
+import { verdadORetoGame } from "./verdad-o-reto";
+import { mimicaGame } from "./mimica";
+import { reaccionGame } from "./reaccion";
+import { colorCorrectoGame } from "./color-correcto";
+import { spamTapGame } from "./spam-tap";
+import { ultimoEnTocarGame } from "./ultimo-en-tocar";
+import { bombaGame } from "./bomba";
+import { tiempoExactoGame } from "./tiempo-exacto";
 
 export const GAMES: Record<string, GameDef> = {
   [impostorGame.id]: impostorGame,
@@ -46,9 +63,26 @@ export const GAMES: Record<string, GameDef> = {
   [tatetiGame.id]: tatetiGame,
   [triviaGame.id]: triviaGame,
   [ruletaGame.id]: ruletaGame,
-  [torneoFifaGame.id]: torneoFifaGame,
+  [torneoFutbolGame.id]: torneoFutbolGame,
   [limonLimonGame.id]: limonLimonGame,
-  [codenamesGame.id]: codenamesGame,
+  [claveSecretaGame.id]: claveSecretaGame,
+  [emojiPeliculaGame.id]: emojiPeliculaGame,
+  [masProbableGame.id]: masProbableGame,
+  [rayadoLibreGame.id]: rayadoLibreGame,
+  [ahorcadoGame.id]: ahorcadoGame,
+  [memotestGame.id]: memotestGame,
+  [quienSoyGame.id]: quienSoyGame,
+  [yoNuncaGame.id]: yoNuncaGame,
+  [terminaHistoriaGame.id]: terminaHistoriaGame,
+  [confesionesAnonimasGame.id]: confesionesAnonimasGame,
+  [verdadORetoGame.id]: verdadORetoGame,
+  [mimicaGame.id]: mimicaGame,
+  [reaccionGame.id]: reaccionGame,
+  [colorCorrectoGame.id]: colorCorrectoGame,
+  [spamTapGame.id]: spamTapGame,
+  [ultimoEnTocarGame.id]: ultimoEnTocarGame,
+  [bombaGame.id]: bombaGame,
+  [tiempoExactoGame.id]: tiempoExactoGame,
 };
 
 export const GAME_LIST = Object.values(GAMES);

@@ -5,8 +5,8 @@ local** (un dispositivo que se pasa por turnos) o en **modo multijugador
 online** (cada uno desde su celular, conectados por código de sala o de
 grupo).
 
-Jugables hoy: El Impostor, Torneo FIFA, Ruleta, Ta-Te-Ti, Sintonía, Limón
-Limón y Tutifrutti. Trivia y Codenames están registrados pero marcados como
+Jugables hoy: El Impostor, Torneo de Fútbol, Ruleta, Ta-Te-Ti, Sintonía, Limón
+Limón y Tutifrutti. Trivia y Clave Secreta están registrados pero marcados como
 "Próximamente" — ver [Agregar un juego nuevo](#agregar-un-juego-nuevo).
 
 El primer uso pide un nombre de jugador una única vez (se guarda en el
@@ -45,7 +45,7 @@ juntada/
 │   │   │   ├── registry.ts        registro de motores de juego
 │   │   │   ├── engineTypes.ts     contrato GameEngine compartido por todos los motores
 │   │   │   ├── impostor/          motor específico de El Impostor
-│   │   │   ├── torneo-fifa/       motor específico de Torneo FIFA
+│   │   │   ├── torneo-futbol/     motor específico de Torneo de Fútbol
 │   │   │   ├── tateti/            motor específico de Ta-Te-Ti
 │   │   │   ├── sintonia/          motor específico de Sintonía
 │   │   │   ├── limon-limon/       motor específico de Limón Limón
@@ -63,7 +63,7 @@ juntada/
 │       │   ├── registry.ts        registro de juegos (frontend)
 │       │   ├── gameTypes.ts       contrato GameDef compartido por todos los juegos
 │       │   ├── impostor/          LocalGame, ConfigPanel, RoundView
-│       │   ├── torneo-fifa/       LocalGame, ConfigPanel, RoundView
+│       │   ├── torneo-futbol/     LocalGame, ConfigPanel, RoundView
 │       │   ├── tateti/            LocalGame, ConfigPanel, RoundView
 │       │   ├── ruleta/            LocalGame, ConfigPanel, RoundView, LobbyInfo
 │       │   ├── sintonia/          LocalGame, ConfigPanel, RoundView, Dial
@@ -238,9 +238,9 @@ cosas rompe el juego, solo hay que tenerlas en cuenta.
 
 Mientras se construye, se puede registrar con `comingSoon: true` y
 componentes placeholder (`components/ComingSoon.tsx`) para que aparezca en
-el menú sin ser jugable todavía — así están hoy Trivia y Codenames. Si el
+el menú sin ser jugable todavía — así están hoy Trivia y Clave Secreta. Si el
 juego todavía no tiene ni reglas claras, dejar un `DESIGN.md` en su carpeta
-con el contexto (ver `frontend/src/games/codenames/DESIGN.md`) para no tener
+con el contexto (ver `frontend/src/games/clave-secreta/DESIGN.md`) para no tener
 que volver a explicarlo desde cero más adelante.
 
 ---
@@ -260,9 +260,9 @@ palabras están habilitadas.
 
 ---
 
-## Torneo FIFA — cómo se juega
+## Torneo de Fútbol — cómo se juega
 
-Organizador de bracket para sesiones de FIFA entre amigos: sorteo de
+Organizador de bracket para sesiones de fútbol entre amigos: sorteo de
 equipos y eliminación directa, con estadísticas de goles opcionales.
 
 - Cada jugador queda asignado a un equipo (sorteado con una ruleta o elegido
@@ -278,7 +278,7 @@ equipos y eliminación directa, con estadísticas de goles opcionales.
 
 Disponible en modo local (un dispositivo) y online, cada uno viendo los
 cruces y resultados en vivo desde su celular
-(`backend/src/games/torneo-fifa/engine.ts`).
+(`backend/src/games/torneo-futbol/engine.ts`).
 
 ---
 

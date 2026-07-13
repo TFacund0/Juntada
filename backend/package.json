@@ -17,7 +17,7 @@
     "@juntada/sintonia-data": "workspace:*",
     "@juntada/sintonia-scoring": "workspace:*",
     "@juntada/tateti-board": "workspace:*",
-    "@juntada/torneo-fifa-bracket": "workspace:*",
+    "@juntada/torneo-futbol-bracket": "workspace:*",
     "@juntada/tutifruti-data": "workspace:*",
     "@juntada/tutifruti-words": "workspace:*",
     "compression": "^1.8.1",

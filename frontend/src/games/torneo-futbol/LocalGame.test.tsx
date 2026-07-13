@@ -26,7 +26,7 @@ async function assignTeamsManually(user: ReturnType<typeof userEvent.setup>) {
   await user.click(secondTeamOption);
 }
 
-describe("Torneo FIFA LocalGame", () => {
+describe("Torneo de Fútbol LocalGame", () => {
   test("renders the setup screen with 4 default players and 8 default teams", () => {
     render(<LocalGame />);
     expect(screen.getByText("Jugadores (4)")).toBeInTheDocument();

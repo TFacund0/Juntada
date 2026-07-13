@@ -19,7 +19,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}): 
     code: "TEST1",
     name: "Sala de prueba",
     hostId: "p1",
-    gameType: "torneo-fifa",
+    gameType: "torneo-futbol",
     phase,
     players: makePlayers(),
     maxPlayers: 16,
@@ -37,7 +37,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}): 
 
 afterEach(() => vi.useRealTimers());
 
-describe("Torneo FIFA RoundView — bracket phase", () => {
+describe("Torneo de Fútbol RoundView — bracket phase", () => {
   test("the host can load a score and it reports the result", async () => {
     const user = userEvent.setup();
     const send = vi.fn();
@@ -101,7 +101,7 @@ describe("Torneo FIFA RoundView — bracket phase", () => {
   });
 });
 
-describe("Torneo FIFA RoundView — champion phase", () => {
+describe("Torneo de Fútbol RoundView — champion phase", () => {
   beforeEach(() => vi.useFakeTimers());
 
   test("reveals the champion after the countdown", async () => {

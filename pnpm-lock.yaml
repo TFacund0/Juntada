@@ -62,9 +62,9 @@ importers:
       '@juntada/tateti-board':
         specifier: workspace:*
         version: link:../packages/tateti-board
-      '@juntada/torneo-fifa-bracket':
+      '@juntada/torneo-futbol-bracket':
         specifier: workspace:*
-        version: link:../packages/torneo-fifa-bracket
+        version: link:../packages/torneo-futbol-bracket
       '@juntada/tutifruti-data':
         specifier: workspace:*
         version: link:../packages/tutifruti-data
@@ -129,9 +129,9 @@ importers:
       '@juntada/tateti-board':
         specifier: workspace:*
         version: link:../packages/tateti-board
-      '@juntada/torneo-fifa-bracket':
+      '@juntada/torneo-futbol-bracket':
         specifier: workspace:*
-        version: link:../packages/torneo-fifa-bracket
+        version: link:../packages/torneo-futbol-bracket
       '@juntada/tutifruti-data':
         specifier: workspace:*
         version: link:../packages/tutifruti-data
@@ -201,7 +201,7 @@ importers:
 
   packages/tateti-board: {}
 
-  packages/torneo-fifa-bracket: {}
+  packages/torneo-futbol-bracket: {}
 
   packages/tutifruti-data: {}
 
