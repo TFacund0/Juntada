@@ -15,6 +15,14 @@ const CATEGORY_LABEL: Record<GameCategory, string> = {
 // Fixed order for category sections when there's no active search.
 const CATEGORY_ORDER: GameCategory[] = ["destacados", "grupo", "rapidos", "equipos", "otros"];
 
+type AvailabilityFilter = "available" | "soon" | "all";
+
+const AVAILABILITY_LABEL: Record<AvailabilityFilter, string> = {
+  available: "Disponibles",
+  soon: "Próximamente",
+  all: "Todos",
+};
+
 interface GamePickerProps {
   games: GameDef[];
   onPick: (id: string) => void;
@@ -32,6 +40,9 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
   // Tapping a card opens a preview instead of navigating straight into the
   // game — onPick(id) only fires once the player confirms from there.
   const [previewGame, setPreviewGame] = useState<GameDef | null>(null);
+  // Defaults to hiding comingSoon games so the catalog only shows what's
+  // actually playable; the chips let players peek at what's coming.
+  const [availFilter, setAvailFilter] = useState<AvailabilityFilter>("available");
 
   const toggleCategory = (cat: GameCategory) => {
     setCollapsed(prev => {
@@ -42,25 +53,39 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
     });
   };
 
+  const availableGames = useMemo(() => {
+    if (availFilter === "all") return games;
+    if (availFilter === "soon") return games.filter(g => g.comingSoon);
+    return games.filter(g => !g.comingSoon);
+  }, [games, availFilter]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return games;
-    return games.filter(g => g.label.toLowerCase().includes(q) || g.description.toLowerCase().includes(q));
-  }, [games, query]);
+    if (!q) return availableGames;
+    return availableGames.filter(g => g.label.toLowerCase().includes(q) || g.description.toLowerCase().includes(q));
+  }, [availableGames, query]);
 
   const grouped = useMemo(() => {
     if (query.trim()) return null; // searching: single "Resultados" grid instead
     const byCategory = new Map<GameCategory, GameDef[]>();
     for (const cat of CATEGORY_ORDER) byCategory.set(cat, []);
-    for (const g of games) byCategory.get(g.category ?? "otros")!.push(g);
+    for (const g of availableGames) byCategory.get(g.category ?? "otros")!.push(g);
     return CATEGORY_ORDER.map(cat => ({ cat, items: byCategory.get(cat)! })).filter(section => section.items.length > 0);
-  }, [games, query]);
+  }, [availableGames, query]);
 
   return (
     <div>
       <div style={S.searchBar}>
         <span style={{ opacity: 0.6 }}>🔍</span>
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar juego..." style={S.searchInput} />
+      </div>
+
+      <div style={{ display: "flex", gap: 8, margin: "10px 0 16px" }}>
+        {(Object.keys(AVAILABILITY_LABEL) as AvailabilityFilter[]).map(key => (
+          <button key={key} onClick={() => setAvailFilter(key)} style={availChipStyle(availFilter === key)}>
+            {AVAILABILITY_LABEL[key]}
+          </button>
+        ))}
       </div>
 
       {grouped ? (
@@ -122,6 +147,21 @@ function CategorySection({ title, count, open, onToggle, children }: CategorySec
       {open && children}
     </div>
   );
+}
+
+function availChipStyle(active: boolean): CSSProperties {
+  return {
+    flex: 1,
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: active ? "1px solid #7F77DD" : "1px solid rgba(127,119,221,0.25)",
+    background: active ? "rgba(127,119,221,0.2)" : "transparent",
+    color: active ? "#e8e4f0" : "#a49dc9",
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "inherit",
+  };
 }
 
 const categoryHeaderStyle: CSSProperties = {

@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const engine = require("../src/games/torneo-fifa/engine");
+const engine = require("../src/games/torneo-futbol/engine");
 
 interface TestPlayer {
   id: string;

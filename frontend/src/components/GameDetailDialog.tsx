@@ -49,7 +49,13 @@ export function GameDetailDialog({ game, onStart, onClose }: GameDetailDialogPro
         <div style={{ padding: "20px" }}>
           <p style={{ fontWeight: 800, fontSize: 22, margin: "0 0 10px", letterSpacing: "-0.01em" }}>{game.label}</p>
           <p style={{ color: "#a49dc9", fontSize: 14, margin: "0 0 22px", lineHeight: 1.5 }}>{game.description}</p>
-          <Btn onClick={onStart}>{game.comingSoon ? "Ver más" : "Jugar"}</Btn>
+          {game.comingSoon ? (
+            <Btn disabled variant="ghost">
+              Más información próximamente
+            </Btn>
+          ) : (
+            <Btn onClick={onStart}>Jugar</Btn>
+          )}
         </div>
       </div>
     </div>

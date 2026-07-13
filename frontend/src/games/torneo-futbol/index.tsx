@@ -8,15 +8,15 @@ const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.Local
 const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
 
-// Bracket/fixture organizer for FIFA sessions between friends: sorteo de
+// Bracket/fixture organizer for fútbol sessions between friends: sorteo de
 // equipos (ruleta aleatoria o manual) + eliminación directa con goles
 // opcionales. Modo local (un dispositivo) y modo online (cada uno desde su
 // celular, viendo los cruces y resultados en vivo).
-export const torneoFifaGame: GameDef = {
-  id: "torneo-fifa",
-  label: "Torneo FIFA",
+export const torneoFutbolGame: GameDef = {
+  id: "torneo-futbol",
+  label: "Torneo de Fútbol",
   icon: "🏆",
-  description: "Armá un torneo de FIFA entre amigos: sorteo de equipos, eliminación directa y estadísticas de goles.",
+  description: "Armá un torneo de fútbol entre amigos: sorteo de equipos, eliminación directa y estadísticas de goles.",
   minPlayers: 2,
   category: "grupo",
   rules: [

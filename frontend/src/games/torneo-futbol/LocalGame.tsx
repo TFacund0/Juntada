@@ -3,11 +3,11 @@ import { S } from "../../theme/styles";
 import { shuffle } from "../../utils/shuffle";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
-import { buildBracket, nextPowerOf2, propagateByes } from "@juntada/torneo-fifa-bracket";
-import type { Entrant, Match } from "@juntada/torneo-fifa-bracket";
+import { buildBracket, nextPowerOf2, propagateByes } from "@juntada/torneo-futbol-bracket";
+import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TORNEO FIFA — un solo dispositivo. Carga de jugadores + equipos, sorteo de
+// TORNEO DE FÚTBOL — un solo dispositivo. Carga de jugadores + equipos, sorteo de
 // equipos (aleatorio o manual), bracket de eliminación directa (con byes si el
 // número de jugadores no es potencia de 2), carga de resultados con goleador
 // opcional, y pantalla final con campeón + estadísticas.

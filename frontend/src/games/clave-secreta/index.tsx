@@ -7,9 +7,9 @@ import type { GameDef } from "../gameTypes";
 // equipo contrario. Ver DESIGN.md en esta carpeta para la especificación
 // completa (roles, flujo de turno, features de sala, etc.) antes de
 // implementarlo. Menu entry only for now — see ComingSoon.
-export const codenamesGame: GameDef = {
-  id: "codenames",
-  label: "Codenames",
+export const claveSecretaGame: GameDef = {
+  id: "clave-secreta",
+  label: "Clave Secreta",
   icon: "🗝️",
   description:
     "Por equipos: el spymaster da una pista (palabra + número) para que su equipo adivine las palabras del tablero sin caer en la del rival ni en la asesina.",
@@ -26,7 +26,7 @@ export const codenamesGame: GameDef = {
     "El equipo puede pasar el turno voluntariamente cuando quiera.",
     "Gana el equipo que revela primero las 9 palabras propias.",
   ],
-  LocalGame: () => <ComingSoon label="Codenames" />,
-  ConfigPanel: () => <ComingSoon label="Codenames" />,
-  RoundView: () => <ComingSoon label="Codenames" />,
+  LocalGame: () => <ComingSoon label="Clave Secreta" />,
+  ConfigPanel: () => <ComingSoon label="Clave Secreta" />,
+  RoundView: () => <ComingSoon label="Clave Secreta" />,
 };

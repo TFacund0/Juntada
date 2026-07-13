@@ -73,7 +73,7 @@ fase actual no acepta devuelve `INVALID_ACTION`, no un crash:
 | `new_game`              | `{}`                                                     | Sintonía                    |
 | `mark`                  | `{ index }` (0–8)                                        | Ta-Te-Ti                    |
 | `reset_score_vote`      | `{}`                                                     | Ta-Te-Ti                    |
-| `report_result`         | `{ roundIdx, matchIdx, goalsA?, goalsB?, winnerSide? }`  | Torneo FIFA (solo el host)  |
+| `report_result`         | `{ roundIdx, matchIdx, goalsA?, goalsB?, winnerSide? }`  | Torneo de Fútbol (solo el host) |
 | `reveal`                | `{}`                                                     | Limón Limón                 |
 | `assign`                | `{ targetId }`                                           | Limón Limón                 |
 | `vote_end`              | `{}`                                                     | Limón Limón                 |

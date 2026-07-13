@@ -1,4 +1,4 @@
-// ─── Torneo FIFA Game Engine ─────────────────────────────────────────────────
+// ─── Torneo de Fútbol Game Engine ────────────────────────────────────────────
 // Bracket tournament organizer: host assigns a team to each joined player
 // (config.assignments) and arranges the crossing order (config.seedOrder)
 // from the lobby, then starts the tournament — the bracket is built once and
@@ -12,12 +12,12 @@
 
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
-import type { Entrant, Match } from "@juntada/torneo-fifa-bracket";
+import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 
 const { shuffle } = require("../../utils/shuffle");
-const { buildBracket, propagateByes } = require("@juntada/torneo-fifa-bracket") as typeof import("@juntada/torneo-fifa-bracket");
+const { buildBracket, propagateByes } = require("@juntada/torneo-futbol-bracket") as typeof import("@juntada/torneo-futbol-bracket");
 
-interface TorneoFifaConfig {
+interface TorneoFutbolConfig {
   trackGoals: boolean;
   teams: string[];
   assignments: Record<string, string>;
@@ -25,17 +25,17 @@ interface TorneoFifaConfig {
   [key: string]: unknown;
 }
 
-interface TorneoFifaRound {
+interface TorneoFutbolRound {
   rounds: Match<string>[][];
   trackGoals: boolean;
 }
 
-function cfg(room: Room): TorneoFifaConfig {
-  return room.config as TorneoFifaConfig;
+function cfg(room: Room): TorneoFutbolConfig {
+  return room.config as TorneoFutbolConfig;
 }
 
-function round(room: Room): TorneoFifaRound {
-  return room.round as TorneoFifaRound;
+function round(room: Room): TorneoFutbolRound {
+  return room.round as TorneoFutbolRound;
 }
 
 const MIN_PLAYERS = 2;
@@ -55,7 +55,7 @@ const DEFAULT_TEAMS = [
   "Croacia",
 ];
 
-function createConfig(): TorneoFifaConfig {
+function createConfig(): TorneoFutbolConfig {
   return {
     trackGoals: true,
     teams: DEFAULT_TEAMS.slice(0, 8),
@@ -87,7 +87,7 @@ function startRound(room: Room): { success?: true; error?: string } {
   room.round = {
     rounds: buildBracket(entrants),
     trackGoals: !!cfg(room).trackGoals,
-  } satisfies TorneoFifaRound;
+  } satisfies TorneoFutbolRound;
   room.phase = "round";
   return { success: true };
 }
@@ -145,7 +145,7 @@ function getPrivateView(): null {
 }
 
 const engine: GameEngine = {
-  id: "torneo-fifa",
+  id: "torneo-futbol",
   minPlayers: MIN_PLAYERS,
   createConfig,
   startRound,

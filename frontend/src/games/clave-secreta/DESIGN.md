@@ -1,9 +1,9 @@
-# Codenames — especificación funcional
+# Clave Secreta — especificación funcional
 
 Contexto para cuando se implemente este juego, así no hay que re-explicar
 todo desde cero. El juego está registrado como `comingSoon: true` en
 `index.jsx` — no hay nada jugable todavía, ni frontend (`LocalGame`,
-`ConfigPanel`, `RoundView`) ni motor de backend (`backend/src/games/codenames/`
+`ConfigPanel`, `RoundView`) ni motor de backend (`backend/src/games/clave-secreta/`
 no existe aún).
 
 ## 1. Concepto general
@@ -60,9 +60,9 @@ Este proyecto ya tiene resuelto el 90% de lo que la spec original pide como
 "componentes técnicos sugeridos" (WS server, salas, sync de estado, validación
 en servidor) — no hace falta construir nada de eso de nuevo. Ver
 `backend/src/games/registry.js` y `frontend/src/games/registry.js` para el
-contrato completo. Puntos concretos para Codenames:
+contrato completo. Puntos concretos para Clave Secreta:
 
-- **Backend:** un `backend/src/games/codenames/engine.js` con
+- **Backend:** un `backend/src/games/clave-secreta/engine.js` con
   `createConfig`, `startRound`, `handleAction`, `getPublicRoundView`,
   `getPrivateView`, igual que cualquier otro juego. La asignación de colores
   (9/8/7/1) y el reparto de palabras del pack elegido pasan en `startRound`,
@@ -73,7 +73,7 @@ contrato completo. Puntos concretos para Codenames:
 - **Equipos y roles:** `room.players` hoy es genérico (id, name, ready,
   online) sin concepto de equipo. Habría que sumar `team` ("red"/"blue") y
   `role` ("spymaster"/"operative") por jugador — algo análogo a lo que hace
-  Torneo FIFA con `config.assignments` (playerId → equipo), pero acá además
+  Torneo de Fútbol con `config.assignments` (playerId → equipo), pero acá además
   define qué ve cada uno (ver `getPrivateView`).
 - **Validación de turno:** "no es tu turno" / "no es tu rol" se resuelve
   igual que en cualquier otro juego dentro de `handleAction(room, playerId,
@@ -93,7 +93,7 @@ action, payload)` — rechazar con `{ handled: false }` si el que manda la
 - **Mazo de palabras:** seguir el patrón de `@juntada/impostor-data` /
   `@juntada/sintonia-data` — un paquete en `packages/` con los word packs,
   compartido entre backend (reparto server-side) y frontend (si hace falta
-  para el modo local, si es que Codenames tiene sentido en modo local con un
+  para el modo local, si es que Clave Secreta tiene sentido en modo local con un
   solo dispositivo — hay que decidirlo, ver más abajo).
 
 ## 7. Decisiones pendientes para cuando se implemente
@@ -102,11 +102,11 @@ action, payload)` — rechazar con `{ handled: false }` si el que manda la
   cortos de 5 caracteres (`backend/src/rooms/roomCode.js`, sin 0/O/1/I para
   que se puedan decir en voz alta) pensados para compartir de palabra o
   mensaje de texto rápido. La spec pide un slug tipo "palabra-palabra" en la
-  URL. Decidir si Codenames usa el mismo esquema que el resto (consistencia)
+  URL. Decidir si Clave Secreta usa el mismo esquema que el resto (consistencia)
   o si amerita su propio esquema de slug — y si es lo segundo, si vale la
   pena generalizarlo para todos los juegos en vez de ser un caso especial.
 - **¿Tiene sentido un modo local?** Todo lo demás en Juntada tiene modo
-  local (pass-and-play) además de online. Codenames con roles ocultos
+  local (pass-and-play) además de online. Clave Secreta con roles ocultos
   (spymaster ve colores que el resto no debe ver) es más difícil de hacer
   "pasando el mismo dispositivo" sin que se hagan trampa — capaz este es el
   primer juego que solo tenga sentido online (`localOnly` inverso: sin

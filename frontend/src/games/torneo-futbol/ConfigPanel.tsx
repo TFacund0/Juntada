@@ -8,7 +8,7 @@ import type { ConfigPanelProps } from "../gameTypes";
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TORNEO FIFA — panel del anfitrión en el lobby multijugador. Acá se define la
+// TORNEO DE FÚTBOL — panel del anfitrión en el lobby multijugador. Acá se define la
 // lista de equipos, se sortea (ruleta) o elige a mano el equipo de cada
 // jugador conectado, y se arman los cruces de la primera ronda. Todo se
 // sincroniza al resto de la sala vía updateConfig; el bracket recién se arma
