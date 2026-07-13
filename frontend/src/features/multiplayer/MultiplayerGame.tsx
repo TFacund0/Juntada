@@ -33,6 +33,10 @@ interface MultiplayerGameProps {
   // shell never asks for it itself, so creating/joining rooms and groups
   // never re-prompts.
   playerName: string;
+  // Lets this screen update the stored name in place (e.g. after a "nombre
+  // ya está en uso" error) instead of forcing the player back to App.tsx's
+  // home screen just to retype it.
+  onChangeName?: (name: string) => void;
   initialJoinCode?: string;
   // Lets the parent (App.tsx) keep its own header/title in sync with the
   // game actually active — e.g. after scanning a QR/join link for room X,
@@ -53,7 +57,15 @@ function playableGames(): GameDef[] {
   return (GAME_LIST as GameDef[]).filter(g => !g.comingSoon && !g.localOnly);
 }
 
-export function MultiplayerGame({ entryKind, gameId, playerName, initialJoinCode, onGameTypeChange, onLeaveGroup }: MultiplayerGameProps) {
+export function MultiplayerGame({
+  entryKind,
+  gameId,
+  playerName,
+  onChangeName,
+  initialJoinCode,
+  onGameTypeChange,
+  onLeaveGroup,
+}: MultiplayerGameProps) {
   const {
     connectionPhase,
     setConnectionPhase,
@@ -71,6 +83,8 @@ export function MultiplayerGame({ entryKind, gameId, playerName, initialJoinCode
 
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(playerName);
   const [showQR, setShowQR] = useState(false);
   const [showCode, setShowCode] = useState(true);
   const [showCreateInstance, setShowCreateInstance] = useState(false);
@@ -97,6 +111,26 @@ export function MultiplayerGame({ entryKind, gameId, playerName, initialJoinCode
   useEffect(() => {
     setConfirmLeaveInstance(false);
   }, [room?.code]);
+
+  // A join rejected for having a name someone else already has in that
+  // room/group is recoverable right here — open the inline rename instead
+  // of leaving the player stuck re-reading the same error with no way to
+  // act on it short of abandoning this screen to edit the name elsewhere.
+  useEffect(() => {
+    if (error.includes("ya está en uso")) {
+      setNameDraft(playerName);
+      setEditingName(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
+
+  const saveName = () => {
+    const trimmed = nameDraft.trim();
+    if (!trimmed) return;
+    onChangeName?.(trimmed);
+    setEditingName(false);
+    setError("");
+  };
 
   const isHost = !!(me && room && room.hostId === me.playerId);
   const isGroupHost = !!(me && group && group.hostId === me.playerId);
@@ -176,7 +210,40 @@ export function MultiplayerGame({ entryKind, gameId, playerName, initialJoinCode
             {error}
           </div>
         )}
-        <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Jugás como <b style={{ color: "#AFA9EC" }}>{playerName}</b></p>
+        {editingName ? (
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <input
+              style={{ ...S.input, flex: 1 }}
+              placeholder="Tu nombre"
+              autoFocus
+              value={nameDraft}
+              onChange={e => setNameDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") saveName();
+                if (e.key === "Escape") {
+                  setNameDraft(playerName);
+                  setEditingName(false);
+                }
+              }}
+            />
+            <Btn onClick={saveName} disabled={!nameDraft.trim()} style={{ width: "auto", padding: "11px 18px" }}>
+              Guardar
+            </Btn>
+          </div>
+        ) : (
+          <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>
+            Jugás como <b style={{ color: "#AFA9EC" }}>{playerName}</b>{" "}
+            <button
+              onClick={() => {
+                setNameDraft(playerName);
+                setEditingName(true);
+              }}
+              style={{ background: "none", border: "none", color: "#7F77DD", fontSize: 13, cursor: "pointer", padding: 0 }}
+            >
+              Cambiar
+            </button>
+          </p>
+        )}
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
           <Btn
             variant={connectionPhase === "create" ? "primary" : "ghost"}

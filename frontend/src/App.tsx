@@ -173,7 +173,9 @@ export default function App() {
           <div style={S.header}>
             <img src={logo} alt="Juntada" style={{ width: 64, height: 64, borderRadius: 16 }} />
             <h1 style={S.title}>Juntada</h1>
-            <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>¿Cómo te llamás?</p>
+            <p style={{ color: "#9089c0", fontSize: 15, marginTop: 10, lineHeight: 1.4 }}>
+              Antes de ver los juegos, decinos cómo te llamás.
+            </p>
           </div>
           <div style={S.card}>
             <span style={S.label}>Tu nombre</span>
@@ -409,6 +411,7 @@ export default function App() {
             entryKind={groupFlow ? "group" : "room"}
             gameId={gameId}
             playerName={playerName}
+            onChangeName={savePlayerName}
             initialJoinCode={validJoinLink?.code}
             onGameTypeChange={handleRoomGameType}
             onLeaveGroup={goHome}
