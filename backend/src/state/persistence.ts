@@ -26,7 +26,10 @@ const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
 const { syncPhaseTimer } = require("../ws/shared");
 
-const SNAPSHOT_KEY = "juntada:snapshot";
+// Namespaced (see REDIS_NAMESPACE in env.ts) so staging and production can
+// share one Redis database without one environment's restart restoring the
+// other's rooms.
+const SNAPSHOT_KEY = `${env.REDIS_NAMESPACE}:snapshot`;
 // Bounds how long an abandoned deployment's snapshot lingers in Redis —
 // this is a safety net for stale data, not a meaningful expectation for how
 // long a game session should last.
