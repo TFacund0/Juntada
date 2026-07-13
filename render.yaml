@@ -15,3 +15,9 @@ services:
       # a realistic threat yet.
       # - key: CORS_ORIGIN
       #   value: https://your-domain.com
+      # Set this to a Sentry.io project DSN to get error tracking in prod.
+      # Left unset by default — error tracking is a no-op without it (see
+      # backend/src/sentry.ts). Set it as a secret env var in the Render
+      # dashboard, not here, so the DSN isn't committed to the repo.
+      # - key: SENTRY_DSN
+      #   sync: false

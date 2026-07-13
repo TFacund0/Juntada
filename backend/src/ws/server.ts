@@ -13,6 +13,7 @@ const { HANDLERS, handleDisconnect } = require("./handlers");
 const { validateMessage } = require("./validation");
 const { sendTo, sendError } = require("./messaging");
 const { isAllowed } = require("./rateLimiter");
+const { captureException } = require("../sentry");
 
 // ws doesn't type this — it's a property we stamp on each socket ourselves
 // for the heartbeat below (see HEARTBEAT_INTERVAL_MS).
@@ -140,6 +141,7 @@ function attachWebSocketServer(httpServer: Server) {
         handler(ws, data, info);
       } catch (err) {
         logger.error({ err, messageType: data.type }, "handler threw");
+        captureException(err, { messageType: data.type });
         sendError(ws, "INTERNAL_ERROR", "Ocurrió un error inesperado");
       }
     });

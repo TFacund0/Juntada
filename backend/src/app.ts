@@ -11,6 +11,7 @@ const compression = require("compression");
 const { createServer } = require("http");
 const { registerRoutes } = require("./http/routes");
 const { attachWebSocketServer } = require("./ws/server");
+const { Sentry, enabled: sentryEnabled } = require("./sentry");
 
 function createApp(): Server {
   const app = express();
@@ -26,6 +27,9 @@ function createApp(): Server {
   app.use(compression());
   app.use(express.json());
   registerRoutes(app);
+  // Must be wired after every route so it only catches what the routes
+  // themselves didn't handle — a no-op if SENTRY_DSN isn't set (see sentry.ts).
+  if (sentryEnabled) Sentry.setupExpressErrorHandler(app);
 
   const server = createServer(app);
   attachWebSocketServer(server);

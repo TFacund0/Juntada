@@ -12,6 +12,9 @@ const schema = z.object({
   // Left unset in dev/prod-behind-same-origin on purpose — see the comment
   // on its usage in app.ts. Only set once a custom domain fronts the app.
   CORS_ORIGIN: z.string().url().optional(),
+  // Optional — error tracking is a no-op until this is set (see sentry.ts).
+  // Get one by creating a free Sentry.io project (Node/Express platform).
+  SENTRY_DSN: z.string().url().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
