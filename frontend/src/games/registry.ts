@@ -16,8 +16,7 @@
 //   comingSoon    optional: true hides "start round" behind a placeholder
 //                 while the game is still being built (see games/trivia).
 //   localOnly     optional: true skips the local/multi mode picker and goes
-//                 straight into LocalGame — for games with no backend engine
-//                 (see games/ruleta).
+//                 straight into LocalGame — for games with no backend engine.
 //   rules         optional: string[] shown in the "¿Cómo se juega?" panel
 //                 (App.jsx, via components/GameRules.jsx) — plain sentences,
 //                 one per array entry; an entry starting with "- " joins the
