@@ -76,6 +76,18 @@ function rejoinGroup(ws: WebSocket, { groupCode, playerId }: { groupCode: string
   return { group, playerId };
 }
 
+// A member choosing to leave the group entirely (not just an instance under
+// it) — removes them from the roster. Doesn't touch any instance they might
+// currently be attached to; the caller (ws/handlers.ts) leaves that instance
+// first, same as switching instances does.
+function leaveGroup(group: Group, playerId: string): void {
+  group.members = group.members.filter(m => m.id !== playerId);
+  if (group.hostId === playerId) {
+    const candidate = group.members.find(m => m.online) || group.members[0];
+    if (candidate) group.hostId = candidate.id;
+  }
+}
+
 function markMemberOffline(group: Group, playerId: string): void {
   const m = group.members.find(m => m.id === playerId);
   if (m) m.online = false;
@@ -99,6 +111,7 @@ module.exports = {
   createGroup,
   joinGroup,
   rejoinGroup,
+  leaveGroup,
   markMemberOffline,
   isGroupFullyOffline,
   scheduleGroupCleanup,

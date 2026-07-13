@@ -64,6 +64,9 @@ export const SCHEMAS = {
   leave_instance: z.object({
     type: z.literal("leave_instance"),
   }),
+  leave_group: z.object({
+    type: z.literal("leave_group"),
+  }),
   update_config: z.object({
     type: z.literal("update_config"),
     config: z.record(z.string(), configValue).refine(cfg => Object.keys(cfg).length <= 50, "Config con demasiadas claves"),
@@ -271,6 +274,7 @@ export type ErrorCode =
   | "REJOIN_GROUP_FAILED"
   | "CREATE_INSTANCE_FAILED"
   | "JOIN_INSTANCE_FAILED"
+  | "LEAVE_GROUP_FAILED"
   | "NOT_ENOUGH_PLAYERS"
   | "START_ROUND_FAILED"
   | "INVALID_ACTION" // handleAction rejected it for the current phase/state
@@ -286,6 +290,7 @@ export type ServerMessage =
   | { type: "group_state"; group: GroupPublicState }
   | { type: "group_joined"; playerId: string; groupCode: string; group: GroupPublicState }
   | { type: "left_instance" }
+  | { type: "left_group" }
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }
   | { type: "pong" }

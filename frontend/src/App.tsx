@@ -319,6 +319,7 @@ export default function App() {
             gameId={gameId}
             initialJoinCode={validJoinLink?.code}
             onGameTypeChange={handleRoomGameType}
+            onLeaveGroup={goHome}
           />
         )}
       </div>

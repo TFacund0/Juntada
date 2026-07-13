@@ -252,6 +252,24 @@ function leaveInstance(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   sendTo(ws, { type: "left_instance" });
 }
 
+// A member choosing to leave the group entirely — first drops whatever
+// instance they're attached to (same as leaveInstance), then removes them
+// from the group's roster, deleting the group outright if that empties it.
+function leaveGroup(ws: WS, msg: ClientMessage, info: ClientInfo): void {
+  if (!info.groupCode || !info.playerId) return;
+  const group = groups.get(info.groupCode);
+  if (!group) return;
+
+  if (info.roomCode) leavePlayerFromInstance(info.roomCode, info.playerId, group);
+
+  groupService.leaveGroup(group, info.playerId);
+  clients.set(ws, { groupCode: null, roomCode: null, playerId: null });
+  sendTo(ws, { type: "left_group" });
+
+  if (group.members.length === 0) groups.delete(group.code);
+  else broadcastGroupState(group);
+}
+
 function updateConfig(ws: WS, msg: Extract<ClientMessage, { type: "update_config" }>, info: ClientInfo): void {
   const room = rooms.get(info.roomCode ?? "");
   if (!room || room.hostId !== info.playerId) return;
@@ -392,6 +410,7 @@ const HANDLERS: Record<string, Handler> = {
   create_instance: createInstance,
   join_instance: joinInstance,
   leave_instance: leaveInstance,
+  leave_group: leaveGroup,
   update_config: updateConfig,
   start_round: startRoundHandler,
   submit_clue: gameAction("submit_clue"),

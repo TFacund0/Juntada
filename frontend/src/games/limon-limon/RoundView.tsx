@@ -212,9 +212,12 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
             <Btn variant="success" onClick={() => send({ type: "start_round" })}>
               Jugar de nuevo
             </Btn>
-            <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })}>
-              Volver al lobby
-            </Btn>
+            {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
+            {room.groupCode === null && (
+              <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })}>
+                Volver al lobby
+              </Btn>
+            )}
           </div>
         ) : (
           <div style={{ ...S.card, textAlign: "center" }}>

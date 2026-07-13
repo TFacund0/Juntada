@@ -554,7 +554,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
             Siguiente ronda
           </Btn>
         )}
-        {isHost && (
+        {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
+        {isHost && room.groupCode === null && (
           <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>
             Volver al lobby
           </Btn>

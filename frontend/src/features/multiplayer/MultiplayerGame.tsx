@@ -37,13 +37,19 @@ interface MultiplayerGameProps {
   // game, not whatever the link happened to encode. Called with null when
   // there's no active instance (e.g. sitting on the group screen).
   onGameTypeChange?: (gameType: string | null) => void;
+  // Fires once the player has fully left the group (not just an instance
+  // under it) — the group's own "menu" screen is indistinguishable from the
+  // very first screen before ever connecting, so App.tsx needs this signal
+  // to know it should leave the whole group flow and go back to its home
+  // screen (pick a game / start a new group), not just re-render this shell.
+  onLeaveGroup?: () => void;
 }
 
 function playableGames(): GameDef[] {
   return (GAME_LIST as GameDef[]).filter(g => !g.comingSoon && !g.localOnly);
 }
 
-export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameTypeChange }: MultiplayerGameProps) {
+export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameTypeChange, onLeaveGroup }: MultiplayerGameProps) {
   const {
     connectionPhase,
     setConnectionPhase,
@@ -57,7 +63,7 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
     reconnecting,
     connect,
     send,
-  } = useMultiplayerSocket();
+  } = useMultiplayerSocket({ onLeftGroup: onLeaveGroup });
 
   const [playerName, setPlayerName] = useState("");
   const [roomName, setRoomName] = useState("");
@@ -69,6 +75,7 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
   // gets a confirm — same pattern as the pre-existing "volver al lobby"
   // confirms elsewhere. Leaving from the lobby (nothing to lose) doesn't.
   const [confirmLeaveInstance, setConfirmLeaveInstance] = useState(false);
+  const [confirmLeaveGroup, setConfirmLeaveGroup] = useState(false);
 
   // Scanned a "join this room/group" QR — skip straight to the join form
   // with the code already filled in, they just need to type their name.
@@ -350,6 +357,22 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
               ))}
             </div>
           </div>
+        )}
+
+        <Btn variant="ghost" onClick={() => setConfirmLeaveGroup(true)} style={{ marginTop: 14, opacity: 0.8 }}>
+          Salir del grupo
+        </Btn>
+        {confirmLeaveGroup && (
+          <ConfirmDialog
+            title="¿Salir del grupo?"
+            message="Dejás de formar parte de este grupo. Para volver vas a necesitar el código de nuevo."
+            confirmLabel="Sí, salir"
+            onConfirm={() => {
+              send({ type: "leave_group" });
+              setConfirmLeaveGroup(false);
+            }}
+            onCancel={() => setConfirmLeaveGroup(false)}
+          />
         )}
 
         {error && <p style={{ color: "#F09595", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}

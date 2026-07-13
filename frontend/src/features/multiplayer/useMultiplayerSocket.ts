@@ -72,6 +72,7 @@ type InboundMessage =
   | { type: "group_joined"; playerId: string; groupCode: string; group: GroupPublicState }
   | { type: "group_state"; group: GroupPublicState }
   | { type: "left_instance" }
+  | { type: "left_group" }
   | { type: "private_role"; [key: string]: unknown }
   | { type: "word_reveal"; [key: string]: unknown }
   | { type: "error"; code: ErrorCode; message: string }
@@ -79,7 +80,11 @@ type InboundMessage =
 
 // Encapsulates the WebSocket connection lifecycle (connect, reconnect/rejoin,
 // message dispatch) so the UI component only deals with plain state.
-export function useMultiplayerSocket() {
+// `onLeftGroup` fires once, right when a `left_group` confirmation comes in
+// — the caller (MultiplayerGame) uses it to tell App.tsx to leave the whole
+// group flow, since "menu" alone doesn't distinguish that from the very
+// first screen before ever joining anything.
+export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void } = {}) {
   // menu|create|join, then mirrors room.phase directly ("lobby" and whatever
   // in-game phases the active game defines — this hook doesn't know or care
   // what those are) once a room is attached, or "group" once a group is
@@ -101,6 +106,8 @@ export function useMultiplayerSocket() {
   const meRef = useRef(me);
   const groupMeRef = useRef(groupMe);
   const roomRef = useRef<RoomPublicState | null>(null);
+  const onLeftGroupRef = useRef(onLeftGroup);
+  onLeftGroupRef.current = onLeftGroup;
 
   useEffect(() => {
     meRef.current = me;
@@ -172,6 +179,16 @@ export function useMultiplayerSocket() {
         setWordReveal(null);
         setConnectionPhase("group");
         setError("");
+      } else if (msg.type === "left_group") {
+        setMe(null);
+        setRoom(null);
+        setGroupMe(null);
+        setGroup(null);
+        setMyRole(null);
+        setWordReveal(null);
+        setConnectionPhase("menu");
+        setError("");
+        onLeftGroupRef.current?.();
       } else if (msg.type === "private_role") {
         setMyRole(msg);
         setWordReveal(null);

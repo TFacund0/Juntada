@@ -86,6 +86,15 @@ test("rejoinGroup rejects a playerId not part of the group", () => {
   assert.match(error, /Ya no formás parte/i);
 });
 
+test("leaveGroup removes the member and hands off host if needed", () => {
+  const { group, playerId: hostId } = groupService.createGroup(fakeSocket(), { playerName: "Ana" });
+  const { playerId: betoId } = groupService.joinGroup(fakeSocket(), { code: group.code, playerName: "Beto" });
+
+  groupService.leaveGroup(group, hostId);
+  assert.equal(group.members.length, 1);
+  assert.equal(group.hostId, betoId);
+});
+
 test("markMemberOffline/isGroupFullyOffline track online status across members", () => {
   const { group, playerId: hostId } = groupService.createGroup(fakeSocket(), { playerName: "Ana" });
   const { playerId: betoId } = groupService.joinGroup(fakeSocket(), { code: group.code, playerName: "Beto" });
