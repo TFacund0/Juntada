@@ -15,6 +15,12 @@ para un juego puntual como a un grupo persistente donde varios juegos se
 abren y cierran sin perder al resto de los integrantes — ver
 [Salas y grupos](#salas-y-grupos).
 
+La selección de juego es un buscador + secciones colapsables por categoría
+(Destacados, Para competir, Juegos rápidos, Por equipos), con tarjetas tipo
+catálogo (imagen arriba, nombre abajo) pensado para escalar a muchos más
+juegos sin volverse una lista interminable — ver
+[Selección de juego](#selección-de-juego).
+
 Stack: TypeScript de punta a punta (backend y frontend), React + Vite,
 WebSocket + Express, sin base de datos.
 
@@ -67,7 +73,7 @@ juntada/
 │       │   ├── MultiplayerGame.tsx     UI de conectar/crear/unirse y el lobby de grupo
 │       │   ├── useMultiplayerSocket.ts hook de WebSocket (conexión, reconexión, sesión)
 │       │   └── playerName.ts           nombre de jugador persistido en localStorage
-│       ├── components/            UI reutilizable (Btn, Avatar, Timer, ...)
+│       ├── components/            UI reutilizable (Btn, Avatar, Timer, GamePicker, ...)
 │       ├── test/                  setup y mocks para Vitest
 │       └── theme/                 estilos
 │
@@ -115,6 +121,29 @@ lo expulsa automáticamente para no dejar trancado al resto.
 
 ---
 
+## Selección de juego
+
+La pantalla de inicio (`frontend/src/components/GamePicker.tsx`) agrupa los
+juegos en categorías fijas — Destacados, Para competir, Juegos rápidos, Por
+equipos, y Más juegos como cajón de sastre para lo que no encaje en las
+anteriores — cada una con su propio header colapsable (arranca expandida) y
+una grilla de 2 columnas con tarjetas tipo catálogo (imagen 4:3 arriba,
+nombre abajo). Un buscador arriba filtra por nombre o descripción en vivo; al
+escribir, las categorías se reemplazan por una única sección de "Resultados".
+
+Cada juego declara su categoría en su propio `index.tsx` con el campo
+opcional `category` (`frontend/src/games/gameTypes.ts`) — si no declara
+ninguna, cae en "Más juegos". Los marcados `comingSoon` se muestran igual,
+con menor opacidad y un badge "Próximamente", dentro de su categoría real.
+
+Tocar una tarjeta no navega directo al juego: abre un diálogo de preview
+(`frontend/src/components/GameDetailDialog.tsx`) con el nombre, la imagen, la
+descripción completa y un botón para confirmar ("Jugar" o "Ver más" si
+todavía es `comingSoon`) — cerrarlo con la ✕ o tocando afuera solo descarta
+el preview sin elegir el juego.
+
+---
+
 ## Desarrollo
 
 Requiere [pnpm](https://pnpm.io/).
@@ -158,6 +187,12 @@ pnpm lint            # eslint en todo el monorepo
 pnpm format          # prettier --write
 pnpm format:check
 ```
+
+### Integración continua
+
+`.github/workflows/ci.yml` corre lint, typecheck y los tests de frontend en
+cada push/PR. `.github/pull_request_template.md` estandariza la descripción
+de los pull requests del repo.
 
 ---
 
@@ -328,8 +363,14 @@ el castigo, mientras que en copa/espada/basto es un castigo simple. Esos
 significados son editables antes de arrancar (y desde el lobby en modo
 online).
 
-- **Local:** un dispositivo que se pasa por turnos. Se pueden sumar
-  jugadores en cualquier momento, incluso a mitad de partida.
+- **Local:** dos variantes. La clásica pasa el dispositivo por turnos y
+  permite sumar jugadores en cualquier momento, incluso a mitad de partida.
+  La de revelado carta por carta reparte el mazo de a una (se muestra, se
+  tapa y se desliza para exponer la siguiente) sin pasar el dispositivo, con
+  conteo manual opcional y confirmación antes de cortar la partida antes de
+  tiempo — pensada para jugar en ronda sin celular circulando. El mazo se
+  dibuja con una pila de cartas boca abajo cuyo grosor refleja cuántas
+  quedan de verdad.
 - **Online:** cada uno desde su celular
   (`backend/src/games/limon-limon/engine.ts`). El anfitrión puede reordenar
   el turno desde el lobby, y decide si el resto puede espiar el puntaje
@@ -353,13 +394,19 @@ todos marcan con tilde o cruz cada respuesta de los demás antes de sumar
 puntos.
 
 - Una palabra válida y no repetida vale 10 puntos.
+- Si es la única respuesta válida de toda la categoría, suma un bonus y vale
+  20 puntos en total.
 - Una palabra repetida con otro jugador vale la mitad.
-- Una palabra con más cruces que tildes no suma puntos.
+- Una palabra con votos empatados o con más cruces que tildes no suma
+  puntos (antes, un empate se resolvía a favor del jugador; ahora se
+  rechaza).
 
-Se juegan varias rondas (configurable por el anfitrión) y gana quien más
-puntos acumule. Disponible en modo local (sugerencia de letra y categorías,
-sin puntaje) y online, con puntaje y clasificación completos
-(`backend/src/games/tutifruti/engine.ts`).
+Se juegan varias rondas (configurable por el anfitrión), con el número de
+ronda actual siempre visible, y gana quien más puntos acumule. Volver al
+lobby desde la pantalla de resultado pide confirmación, para no cortar la
+partida por un toque accidental. Disponible en modo local (sugerencia de
+letra y categorías, sin puntaje) y online, con puntaje y clasificación
+completos (`backend/src/games/tutifruti/engine.ts`).
 
 ---
 

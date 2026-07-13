@@ -5,6 +5,7 @@ import type { GameDef } from "./games/gameTypes";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
 import { Btn } from "./components/Btn";
 import { Avatar } from "./components/Avatar";
+import { GamePicker } from "./components/GamePicker";
 import { GameRules } from "./components/GameRules";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { DevNoticeDialog } from "./components/DevNoticeDialog";
@@ -189,7 +190,9 @@ export default function App() {
                 if (e.key === "Enter") savePlayerName(nameDraft);
               }}
             />
-            <p style={{ ...S.muted, marginTop: 10 }}>Así te van a ver los demás jugadores. Lo guardamos en este dispositivo, no te lo va a volver a pedir.</p>
+            <p style={{ ...S.muted, marginTop: 10 }}>
+              Así te van a ver los demás jugadores. Lo guardamos en este dispositivo, no te lo va a volver a pedir.
+            </p>
           </div>
           <button onClick={() => savePlayerName(nameDraft)} disabled={!nameDraft.trim()} style={S.btn("primary", !nameDraft.trim())}>
             Continuar
@@ -342,31 +345,26 @@ export default function App() {
         {/* ── Paso 1: elegir juego, o crear/unirse a un grupo persistente ── */}
         {!gameId && !groupFlow && (
           <div>
-            <div
-              style={{ ...S.cardHighlight, cursor: "pointer", textAlign: "center" }}
-              onClick={startGroupFlow}
-            >
+            <div style={{ ...S.cardHighlight, cursor: "pointer", textAlign: "center" }} onClick={startGroupFlow}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
               <p style={{ fontWeight: 800, fontSize: 18, margin: "0 0 6px" }}>Crear o unirme a un grupo</p>
               <p style={{ color: "#6b6490", fontSize: 13, margin: 0 }}>
                 Armá una sala con tus amigos y jueguen varios juegos seguidos, sin crear una sala nueva cada vez.
               </p>
             </div>
-            <p style={{ ...S.muted, textAlign: "center", margin: "16px 0 10px", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p
+              style={{
+                ...S.muted,
+                textAlign: "center",
+                margin: "16px 0 10px",
+                fontSize: 12,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
               O elegí un juego para jugar directo
             </p>
-            {[...(GAME_LIST as GameDef[])]
-              .sort((a, b) => (a.comingSoon ? 1 : 0) - (b.comingSoon ? 1 : 0))
-              .map(g => (
-                <div key={g.id} style={{ ...S.card, cursor: "pointer" }} onClick={() => pickGame(g.id)}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>{g.icon}</div>
-                  <p style={{ fontWeight: 800, fontSize: 18, margin: "0 0 6px" }}>
-                    {g.label}
-                    {g.comingSoon && <span style={{ ...S.pill(false), marginLeft: 8, verticalAlign: "middle" }}>Próximamente</span>}
-                  </p>
-                  <p style={{ color: "#6b6490", fontSize: 13, margin: 0 }}>{g.description}</p>
-                </div>
-              ))}
+            <GamePicker games={GAME_LIST as GameDef[]} onPick={pickGame} />
           </div>
         )}
 

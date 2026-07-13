@@ -14,6 +14,7 @@ export const impostorGame: GameDef = {
   icon: "🕵️",
   description: "Todos reciben la misma palabra menos el impostor. Encontralo antes de que se salga con la suya.",
   minPlayers: 3,
+  category: "destacados",
   rules: [
     "Todos los jugadores reciben la misma palabra secreta, salvo el (o los) impostor, que no la ve — solo sabe la categoría, si las pistas están activadas.",
     "Por turno, cada uno dice o escribe una pista relacionada con la palabra, sin decirla directamente. El impostor tiene que inventar una pista creíble sin saber cuál es la palabra.",
