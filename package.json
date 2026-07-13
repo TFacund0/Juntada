@@ -11,7 +11,24 @@
     "dev:backend": "pnpm --filter @juntada/backend dev",
     "dev:frontend": "pnpm --filter @juntada/frontend dev",
     "build:frontend": "pnpm --filter @juntada/frontend build",
-    "start": "pnpm --filter @juntada/backend start"
+    "start": "pnpm --filter @juntada/backend start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.1",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.5",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.63.0"
+  }
 }

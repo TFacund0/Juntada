@@ -9,3 +9,9 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22.11.0
+      # Set this once a custom domain is pointed at the app, to restrict CORS
+      # to it (e.g. https://juntada.com). Left unset today since frontend and
+      # backend share the render.com origin, so cross-origin requests aren't
+      # a realistic threat yet.
+      # - key: CORS_ORIGIN
+      #   value: https://your-domain.com
