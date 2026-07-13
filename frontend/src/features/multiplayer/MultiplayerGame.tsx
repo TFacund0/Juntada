@@ -271,10 +271,10 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
           {group.members.map(m => (
             <div
               key={m.id}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
+              style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
             >
               <Avatar name={m.name} size={32} />
-              <span style={{ flex: 1, fontWeight: m.id === me?.playerId ? 800 : 600, color: m.id === me?.playerId ? "#fff" : undefined }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: m.id === me?.playerId ? 800 : 600, color: m.id === me?.playerId ? "#fff" : undefined }}>
                 {m.name}
                 {m.id === me?.playerId && " (vos)"}
               </span>
@@ -437,10 +437,10 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
           {room.players.map(p => (
             <div
               key={p.id}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
+              style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
             >
               <Avatar name={p.name} size={32} />
-              <span style={{ flex: 1, fontWeight: p.id === me?.playerId ? 800 : 600, color: p.id === me?.playerId ? "#fff" : undefined }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: p.id === me?.playerId ? 800 : 600, color: p.id === me?.playerId ? "#fff" : undefined }}>
                 {p.name}
                 {p.id === me?.playerId && " (vos)"}
               </span>

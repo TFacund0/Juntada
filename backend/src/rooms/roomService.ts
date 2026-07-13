@@ -65,7 +65,7 @@ function createRoom(
 // createRoom, just linked back to the group and without registering a
 // fresh websocket client entry (the caller's already attached to the group;
 // see groupService.createInstance for the client bookkeeping).
-function createInstanceRoom(groupCode: string, gameType: string, hostId: string, hostName: string): RoomResult {
+function createInstanceRoom(groupCode: string, gameType: string, hostId: string, hostName: string, groupName: string): RoomResult {
   const engine = getEngine(gameType);
   if (!engine) return { error: `Juego desconocido: ${gameType}` };
   if (rooms.size >= MAX_TOTAL_ROOMS) return { error: "El servidor está lleno, probá de nuevo en un rato" };
@@ -73,7 +73,7 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
   const code = generateUniqueRoomCode();
   const room: Room = {
     code,
-    name: "Sala sin nombre",
+    name: groupName,
     hostId,
     gameType,
     groupCode,
