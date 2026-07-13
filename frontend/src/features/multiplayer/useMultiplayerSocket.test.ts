@@ -282,10 +282,131 @@ describe("reconnection", () => {
 
     act(() => ws.simulateClose());
     expect(result.current.reconnecting).toBe(true);
+    expect(result.current.reconnectAttempt).toBe(1);
     expect(MockWebSocket.instances.length).toBe(1);
 
     act(() => vi.advanceTimersByTime(3000));
     expect(MockWebSocket.instances.length).toBe(2);
+  });
+
+  test("a successful reconnect resets the attempt count and briefly flags justReconnected, which clears itself after 3s", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useMultiplayerSocket());
+    act(() => result.current.connect());
+    act(() => lastSocket().simulateOpen());
+    act(() =>
+      lastSocket().simulateMessage({
+        type: "joined",
+        playerId: "p1",
+        roomCode: "ABCDE",
+        room: { code: "ABCDE", phase: "lobby", players: [] },
+      }),
+    );
+    // The very first connect of a session shouldn't flash "reconectado" —
+    // there was nothing to recover from.
+    expect(result.current.justReconnected).toBe(false);
+
+    act(() => lastSocket().simulateClose());
+    act(() => vi.advanceTimersByTime(3000));
+    act(() => lastSocket().simulateOpen());
+    act(() => lastSocket().simulateMessage({ type: "state", room: { code: "ABCDE", phase: "lobby", players: [] } }));
+
+    expect(result.current.reconnecting).toBe(false);
+    expect(result.current.reconnectAttempt).toBe(0);
+    expect(result.current.justReconnected).toBe(true);
+
+    act(() => vi.advanceTimersByTime(3000));
+    expect(result.current.justReconnected).toBe(false);
+  });
+
+  test("retries back off from 3s up to an 8s cap on repeated drops", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useMultiplayerSocket());
+    act(() => result.current.connect());
+    act(() => lastSocket().simulateOpen());
+    act(() =>
+      lastSocket().simulateMessage({
+        type: "joined",
+        playerId: "p1",
+        roomCode: "ABCDE",
+        room: { code: "ABCDE", phase: "lobby", players: [] },
+      }),
+    );
+
+    // 1st retry: 3000ms
+    act(() => lastSocket().simulateClose());
+    expect(result.current.reconnectAttempt).toBe(1);
+    act(() => vi.advanceTimersByTime(2999));
+    expect(MockWebSocket.instances.length).toBe(1);
+    act(() => vi.advanceTimersByTime(1));
+    expect(MockWebSocket.instances.length).toBe(2);
+
+    // 2nd retry: 3600ms
+    act(() => lastSocket().simulateClose());
+    expect(result.current.reconnectAttempt).toBe(2);
+    act(() => vi.advanceTimersByTime(3599));
+    expect(MockWebSocket.instances.length).toBe(2);
+    act(() => vi.advanceTimersByTime(1));
+    expect(MockWebSocket.instances.length).toBe(3);
+  });
+
+  test("gives up after the max attempts, stops retrying, and exposes reconnectFailed instead of reconnecting forever", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useMultiplayerSocket());
+    act(() => result.current.connect());
+    act(() => lastSocket().simulateOpen());
+    act(() =>
+      lastSocket().simulateMessage({
+        type: "joined",
+        playerId: "p1",
+        roomCode: "ABCDE",
+        room: { code: "ABCDE", phase: "lobby", players: [] },
+      }),
+    );
+
+    // Each close schedules the next retry (attempts 1..maxReconnectAttempts
+    // all still retry) — one more close past the limit (attempt 11) is what
+    // finally gives up, so this needs maxReconnectAttempts + 1 drops total.
+    // None of the retried sockets are ever opened, simulating a connection
+    // that keeps failing outright rather than dropping after succeeding.
+    for (let i = 1; i <= result.current.maxReconnectAttempts + 1; i++) {
+      act(() => lastSocket().simulateClose());
+      act(() => vi.advanceTimersByTime(8000));
+    }
+
+    expect(result.current.reconnectFailed).toBe(true);
+    expect(result.current.reconnecting).toBe(false);
+    const instancesAtGiveUp = MockWebSocket.instances.length;
+    act(() => vi.advanceTimersByTime(20000));
+    expect(MockWebSocket.instances.length).toBe(instancesAtGiveUp); // no further auto-retry
+  });
+
+  test("retryConnection resets reconnectFailed/attempt and opens a fresh socket", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useMultiplayerSocket());
+    act(() => result.current.connect());
+    act(() => lastSocket().simulateOpen());
+    act(() =>
+      lastSocket().simulateMessage({
+        type: "joined",
+        playerId: "p1",
+        roomCode: "ABCDE",
+        room: { code: "ABCDE", phase: "lobby", players: [] },
+      }),
+    );
+
+    for (let i = 0; i < result.current.maxReconnectAttempts + 1; i++) {
+      act(() => lastSocket().simulateClose());
+      act(() => vi.advanceTimersByTime(8000));
+    }
+    expect(result.current.reconnectFailed).toBe(true);
+
+    act(() => result.current.retryConnection());
+
+    expect(result.current.reconnectFailed).toBe(false);
+    expect(result.current.reconnectAttempt).toBe(0);
+    expect(MockWebSocket.instances.length).toBeGreaterThan(0);
+    expect(lastSocket().readyState).not.toBe(MockWebSocket.CLOSED);
   });
 });
 

@@ -345,11 +345,11 @@ export default function App() {
         {/* ── Paso 1: elegir juego, o crear/unirse a un grupo persistente ── */}
         {!gameId && !groupFlow && (
           <div>
-            <div style={{ ...S.cardHighlight, cursor: "pointer", textAlign: "center" }} onClick={startGroupFlow}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
-              <p style={{ fontWeight: 800, fontSize: 18, margin: "0 0 6px" }}>Crear o unirme a un grupo</p>
-              <p style={{ color: "#6b6490", fontSize: 13, margin: 0 }}>
-                Armá una sala con tus amigos y jueguen varios juegos seguidos, sin crear una sala nueva cada vez.
+            <div style={{ ...S.cardHighlight, cursor: "pointer", textAlign: "center", padding: "14px 16px" }} onClick={startGroupFlow}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>👥</div>
+              <p style={{ fontWeight: 800, fontSize: 15, margin: "0 0 4px" }}>Crear o unirme a un grupo</p>
+              <p style={{ color: "#6b6490", fontSize: 12, lineHeight: 1.4, margin: 0 }}>
+                Jugá varios juegos seguidos con los mismos amigos, sin repetir el código cada vez.
               </p>
             </div>
             <p
