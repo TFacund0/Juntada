@@ -274,7 +274,10 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
             >
               <Avatar name={m.name} size={32} />
-              <span style={{ flex: 1, fontWeight: 600 }}>{m.name}</span>
+              <span style={{ flex: 1, fontWeight: m.id === me?.playerId ? 800 : 600, color: m.id === me?.playerId ? "#fff" : undefined }}>
+                {m.name}
+                {m.id === me?.playerId && " (vos)"}
+              </span>
               {m.id === group.hostId && <span style={S.pill(false)}>Anfitrión</span>}
               {!m.online && <span style={S.pill(false)}>Desconectado</span>}
             </div>
@@ -437,7 +440,10 @@ export function MultiplayerGame({ entryKind, gameId, initialJoinCode, onGameType
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
             >
               <Avatar name={p.name} size={32} />
-              <span style={{ flex: 1, fontWeight: 600 }}>{p.name}</span>
+              <span style={{ flex: 1, fontWeight: p.id === me?.playerId ? 800 : 600, color: p.id === me?.playerId ? "#fff" : undefined }}>
+                {p.name}
+                {p.id === me?.playerId && " (vos)"}
+              </span>
               {p.id === room.hostId && <span style={S.pill(false)}>Anfitrión</span>}
               {!p.online && <span style={S.pill(false)}>Desconectado</span>}
               {isHost && p.id !== me?.playerId && (
