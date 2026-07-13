@@ -23,8 +23,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck frontend
+        run: pnpm --filter @juntada/frontend typecheck
+
       - name: Run backend tests
         run: pnpm --filter @juntada/backend test
+
+      - name: Run frontend tests
+        run: pnpm --filter @juntada/frontend test
 
       - name: Build frontend
         run: pnpm build:frontend
