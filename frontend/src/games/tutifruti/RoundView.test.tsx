@@ -213,8 +213,34 @@ describe("Tutifrutti RoundView — result phase", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Nueva ronda" }));
     expect(send).toHaveBeenCalledWith({ type: "start_round" });
+  });
+
+  test("'Volver al lobby' asks for confirmation before sending back_to_lobby", async () => {
+    const send = vi.fn();
+    render(
+      <RoundView
+        room={makeRoom("result", { pointsByPlayer: { p1: 10, p2: 5 } }, makePlayers(2))}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    const user = userEvent.setup();
 
     await user.click(screen.getByRole("button", { name: "Volver al lobby" }));
+    expect(send).not.toHaveBeenCalledWith({ type: "back_to_lobby" });
+    expect(screen.getByText("¿Volver al lobby?")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByText("¿Volver al lobby?")).not.toBeInTheDocument();
+    expect(send).not.toHaveBeenCalledWith({ type: "back_to_lobby" });
+
+    await user.click(screen.getByRole("button", { name: "Volver al lobby" }));
+    await user.click(screen.getAllByRole("button", { name: "Volver al lobby" })[1]);
     expect(send).toHaveBeenCalledWith({ type: "back_to_lobby" });
   });
 

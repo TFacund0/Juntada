@@ -171,9 +171,33 @@ test("confirm_review tallies points once every online player confirms", () => {
 
   engine.handleAction(room, "p2", "confirm_review", {});
   assert.equal(room.phase, "result");
-  assert.equal(room.round.pointsByPlayer.p1, 10); // valid, non-duplicate, no marks needed since crosses<=ticks(0<=0)
-  assert.equal(room.config.score.p1, 10);
+  assert.equal(room.round.pointsByPlayer.p1, 20); // only valid answer in the category (0 votes defaults to valid)
+  assert.equal(room.config.score.p1, 20);
   assert.equal(room.roundHistory.length, 1);
+});
+
+test("a tied vote (half invalid) rejects the word, and being the only valid answer earns 20", () => {
+  const room = makeRoom();
+  startAndConfirmLetter(room);
+  const catId = room.round.categories[0].id;
+  const letter = room.round.letter;
+  engine.handleAction(room, "p1", "submit_answers", { answers: { [catId]: `${letter}orro` } });
+  engine.handleAction(room, "p2", "submit_answers", { answers: { [catId]: `${letter}uto` } });
+  engine.handleAction(room, "p1", "player_ready", {});
+  engine.handleAction(room, "p2", "player_ready", {});
+
+  // p2's word gets one tick and one cross — a tie counts as half invalid, so it's rejected.
+  engine.handleAction(room, "p1", "mark_word", { targetPlayerId: "p2", categoryId: catId, valid: true });
+  engine.handleAction(room, "p2", "mark_word", { targetPlayerId: "p2", categoryId: catId, valid: false });
+
+  engine.handleAction(room, "p1", "confirm_review", {});
+  engine.handleAction(room, "p2", "confirm_review", {});
+
+  assert.equal(room.round.breakdown.p2[catId].valid, false);
+  assert.equal(room.round.pointsByPlayer.p2, 0);
+  // p1 is the only valid word in the category → bonus 20 instead of 10.
+  assert.equal(room.round.breakdown.p1[catId].valid, true);
+  assert.equal(room.round.pointsByPlayer.p1, 20);
 });
 
 test("finishRound flags a word that doesn't start with the round letter as invalid", () => {

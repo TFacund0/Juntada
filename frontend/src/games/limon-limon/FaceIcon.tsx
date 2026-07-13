@@ -4,38 +4,43 @@ interface FaceIconProps {
 }
 
 // Figuras estilizadas para las cartas de figura (10 Sota, 11 Caballo, 12
-// Rey), dibujadas en el mismo estilo de silueta lineal que los palos
-// (SuitGlyph.jsx) — no son ilustraciones realistas, pero cada una se
-// reconoce por su forma característica.
+// Rey) — formas geométricas simples (rectángulos, triángulos, círculos) en
+// vez de curvas libres, para que cada silueta se lea con claridad y no
+// dependan una de otra ni del color para distinguirse.
 export function FaceIcon({ value, color }: FaceIconProps) {
   if (value === 11) {
-    // Caballo: cabeza y cuello de caballo de perfil.
+    // Caballo: cuello + cabeza angular + oreja, de perfil mirando a la
+    // izquierda — la única figura no humana, así no se confunde con las
+    // otras dos.
     return (
       <g fill={color}>
-        <path d="M -6,18 C -12,12 -13,-2 -7,-10 C -3,-15 4,-18 11,-13 C 15,-10 15,-5 10,-5 L 5,-5 C 8,-2 8,4 3,6 L 3,18 Z" />
-        <path d="M -1,-16 L 3,-21 L 5,-14 Z" />
-        <circle cx={8} cy={-9} r={1.4} fill="#f2e9d3" />
+        <rect x={-3} y={0} width={12} height={20} />
+        <path d="M -3,0 L -17,4 L -14,-9 L -3,-15 Z" />
+        <path d="M -7,-15 L -2,-23 L 2,-14 Z" />
+        <circle cx={-9} cy={-3} r={1.6} fill="#f2e9d3" />
       </g>
     );
   }
 
   if (value === 12) {
-    // Rey: figura con corona.
+    // Rey: corona de 3 puntas (patrón clásico en zigzag) sobre un manto
+    // rectangular — la silueta más ancha de las tres, inconfundible.
     return (
       <g fill={color}>
-        <path d="M -7,-19 L -3.5,-13 L 0,-20 L 3.5,-13 L 7,-19 L 5,-13 L -5,-13 Z" />
-        <circle cx={0} cy={-6} r={6.5} />
-        <path d="M -9,4 Q 0,-2 9,4 L 9,19 Q 0,23 -9,19 Z" />
+        <path d="M -9,-12 L -9,-20 L -4.5,-15 L 0,-23 L 4.5,-15 L 9,-20 L 9,-12 Z" />
+        <circle cx={0} cy={-15} r={1.3} fill="#f2e9d3" />
+        <rect x={-9} y={-11} width={18} height={19} rx={1.5} />
       </g>
     );
   }
 
-  // Sota (10): figura de paje/soldado con una pequeña bandera.
+  // Sota (10): paje — cabeza redonda + torso rectangular + banda cruzada,
+  // sin corona ni orejas, la silueta más chica y sencilla de las tres.
   return (
     <g fill={color}>
-      <circle cx={-2} cy={-14} r={6} />
-      <path d="M -9,-6 Q -2,-10 6,-6 L 6,14 Q -2,18 -9,14 Z" />
-      <path d="M 6,-8 L 19,-3 L 6,2 Z" />
+      <circle cx={0} cy={-12} r={6.5} />
+      <rect x={-9} y={-1} width={18} height={20} rx={1.5} />
+      <rect x={-9} y={2} width={18} height={3} fill="#f2e9d3" opacity={0.55} transform="rotate(-14 0 3.5)" />
     </g>
   );
 }

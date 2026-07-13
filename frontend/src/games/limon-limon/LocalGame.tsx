@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { buildDeck, buildDefaultDescriptions, getDescription } from "./deck";
 import type { Card } from "./deck";
-import { CardView } from "./CardView";
+import { CardView, DeckStack } from "./CardView";
 import { DescriptionsEditor } from "./DescriptionsEditor";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -22,6 +23,7 @@ interface LocalPlayer {
 }
 
 const MIN_PLAYERS = 2;
+const SLIDE_MS = 350;
 
 function nextTurnId(players: LocalPlayer[], currentId: number | null): number {
   const ids = players.map(p => p.id);
@@ -30,8 +32,8 @@ function nextTurnId(players: LocalPlayer[], currentId: number | null): number {
   return ids[(idx + 1) % ids.length];
 }
 
-function Ranking({ players, piles }: { players: LocalPlayer[]; piles: Record<number, Card[]> }) {
-  const ranked = players.map(p => ({ ...p, count: (piles[p.id] || []).length })).sort((a, b) => b.count - a.count);
+function Ranking({ players, counts }: { players: LocalPlayer[]; counts: Record<number, number> }) {
+  const ranked = players.map(p => ({ ...p, count: counts[p.id] || 0 })).sort((a, b) => b.count - a.count);
   const maxCount = ranked[0]?.count ?? 0;
   return (
     <div style={S.card}>
@@ -69,6 +71,7 @@ function Ranking({ players, piles }: { players: LocalPlayer[]; piles: Record<num
 
 export function LocalGame() {
   const [phase, setPhase] = useState<"setup" | "play" | "result">("setup");
+  const [mode, setMode] = useState<"circle" | "reveal">("circle");
   const [players, setPlayers] = useState<LocalPlayer[]>([
     { id: 1, name: "Jugador 1" },
     { id: 2, name: "Jugador 2" },
@@ -86,6 +89,33 @@ export function LocalGame() {
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [votingEnd, setVotingEnd] = useState(false);
   const [endVotes, setEndVotes] = useState<number[]>([]); // ids que votaron terminar antes
+
+  // ── modo "revelar": mismo mazo para todos, sin turnos. Ciclo de 3 toques
+  // por carta: 1) se revela, 2) se tapa (sigue siendo la misma carta, por
+  // si alguien la quiere ver de nuevo), 3) recién ahí se desliza afuera y
+  // deja ver la que ya estaba debajo. Anotar quién se queda cada carta es
+  // opcional.
+  const [revealDeck, setRevealDeck] = useState<Card[]>([]);
+  const [revealIdx, setRevealIdx] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const [awaitingAdvance, setAwaitingAdvance] = useState(false);
+  // La carta que se acaba de tapar se va deslizando (y girando un poco)
+  // para dejar ver la que ya estaba debajo en el mazo — esa de abajo no se
+  // mueve ni entra de ningún lado, solo queda destapada al asentarse
+  // ("idle-instant", sin transición). "idle" es solo el estado inicial.
+  const [slideAnim, setSlideAnim] = useState<"idle" | "exit" | "idle-instant">("idle");
+  const [showDescription, setShowDescription] = useState(false);
+  const [manualCounts, setManualCounts] = useState<Record<number, number>>({});
+  const [showManualCounts, setShowManualCounts] = useState(false);
+  const [confirmEndReveal, setConfirmEndReveal] = useState(false);
+  const revealTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(
+    () => () => {
+      revealTimers.current.forEach(clearTimeout);
+    },
+    [],
+  );
 
   // Con la mitad (redondeando para arriba) de los jugadores votando, se corta
   // la partida ya y se muestra la tabla tal cual está en ese momento.
@@ -122,29 +152,34 @@ export function LocalGame() {
     setAddingPlayer(false);
   };
 
-  const startGame = () => {
-    setDeck(buildDeck());
-    setCurrent(null);
-    setPiles({});
-    setTurnId(players[0].id);
-    setShowRanking(false);
-    setAddingPlayer(false);
-    setVotingEnd(false);
-    setEndVotes([]);
+  const resetForMode = () => {
+    if (mode === "circle") {
+      setDeck(buildDeck());
+      setCurrent(null);
+      setPiles({});
+      setTurnId(players[0].id);
+      setShowRanking(false);
+      setAddingPlayer(false);
+      setVotingEnd(false);
+      setEndVotes([]);
+    } else {
+      revealTimers.current.forEach(clearTimeout);
+      revealTimers.current = [];
+      setRevealDeck(buildDeck());
+      setRevealIdx(0);
+      setRevealed(false);
+      setAwaitingAdvance(false);
+      setSlideAnim("idle");
+      setShowDescription(false);
+      setManualCounts({});
+      setShowManualCounts(false);
+      setConfirmEndReveal(false);
+    }
     setPhase("play");
   };
 
-  const playAgain = () => {
-    setDeck(buildDeck());
-    setCurrent(null);
-    setPiles({});
-    setTurnId(players[0].id);
-    setShowRanking(false);
-    setAddingPlayer(false);
-    setVotingEnd(false);
-    setEndVotes([]);
-    setPhase("play");
-  };
+  const startGame = resetForMode;
+  const playAgain = resetForMode;
 
   const reveal = () => {
     if (current || deck.length === 0) return;
@@ -169,6 +204,41 @@ export function LocalGame() {
   const turnPlayer = players.find(p => p.id === turnId);
   const endThreshold = Math.ceil(players.length / 2);
   const toggleEndVote = (id: number) => setEndVotes(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
+
+  // Ciclo de 3 toques por carta: 1) revela, 2) tapa (misma carta, por si la
+  // quieren volver a mirar), 3) recién ahí se desliza afuera y descubre la
+  // que ya estaba debajo — o termina la partida si era la última.
+  const revealClick = () => {
+    if (slideAnim === "exit") return;
+    setShowDescription(false);
+
+    if (!revealed && !awaitingAdvance) {
+      setRevealed(true);
+      return;
+    }
+    if (revealed) {
+      setRevealed(false);
+      setAwaitingAdvance(true);
+      return;
+    }
+
+    setAwaitingAdvance(false);
+    if (revealIdx + 1 >= revealDeck.length) {
+      setPhase("result");
+      return;
+    }
+    setSlideAnim("exit");
+    const t = setTimeout(() => {
+      setRevealIdx(i => i + 1);
+      // La que queda destapada ya estaba ahí, debajo — se asienta en su
+      // lugar sin ninguna animación de reaparición.
+      setSlideAnim("idle-instant");
+    }, SLIDE_MS);
+    revealTimers.current.push(t);
+  };
+
+  const bumpManualCount = (id: number, delta: number) =>
+    setManualCounts(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + delta) }));
 
   // ── SETUP ──
   if (phase === "setup")
@@ -207,6 +277,23 @@ export function LocalGame() {
 
         <DescriptionsEditor descriptions={descriptions} onChange={(key, value) => setDescriptions(d => ({ ...d, [key]: value }))} />
 
+        <div style={S.card}>
+          <span style={S.label}>Modo de juego</span>
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <button onClick={() => setMode("circle")} style={{ ...S.btn(mode === "circle" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
+              En círculo
+            </button>
+            <button onClick={() => setMode("reveal")} style={{ ...S.btn(mode === "reveal" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
+              Revelar cartas
+            </button>
+          </div>
+          <p style={{ ...S.muted, marginTop: 10, marginBottom: 0 }}>
+            {mode === "circle"
+              ? "Van pasando el mazo por turno y el grupo decide quién se come cada carta."
+              : "Se toca la carta para revelarla, se vuelve a tocar para pasar a la siguiente. Anotar quién se queda cada carta es opcional."}
+          </p>
+        </div>
+
         <Btn onClick={startGame} disabled={players.length < MIN_PLAYERS}>
           Empezar a jugar
         </Btn>
@@ -216,8 +303,102 @@ export function LocalGame() {
       </div>
     );
 
+  // ── PLAY (modo revelar cartas) ──
+  if (phase === "play" && mode === "reveal") {
+    const revealCard = revealed ? revealDeck[revealIdx] : null;
+    const cardsLeft = revealDeck.length - revealIdx - (revealed ? 1 : 0);
+    // A diferencia de cardsLeft (que cuenta la carta actual mientras no se
+    // revela), el volumen del mazo detrás solo debe contar las que están
+    // debajo de la actual — nunca la que se está mirando ahora.
+    const cardsUnderneath = revealDeck.length - revealIdx - 1;
+    return (
+      <div>
+        <p style={{ textAlign: "center", fontSize: 14, color: "#9089c0", marginBottom: 14 }}>
+          Carta {revealIdx + 1} de {revealDeck.length} —{" "}
+          {revealed ? "toquen para tapar" : awaitingAdvance ? "toquen para pasar a la siguiente" : "toquen para revelar"}
+        </p>
+
+        <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
+          <DeckStack cardsLeft={cardsUnderneath} />
+          <div
+            style={{
+              position: "relative",
+              transform: slideAnim === "exit" ? "translate(-26px, -16px) rotate(-10deg)" : "translate(0, 0) rotate(0deg)",
+              opacity: slideAnim === "exit" ? 0 : 1,
+              transition: slideAnim === "idle-instant" ? "none" : `transform ${SLIDE_MS}ms ease, opacity ${SLIDE_MS}ms ease`,
+            }}
+          >
+            <CardView card={revealCard} onClick={revealClick} />
+          </div>
+        </div>
+
+        {revealCard && getDescription(descriptions, revealCard) && (
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <button onClick={() => setShowDescription(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "8px 16px", fontSize: 12 }}>
+              {showDescription ? "Ocultar significado" : "Ver significado"}
+            </button>
+            {showDescription && (
+              <p style={{ fontSize: 13, color: "#b8b0d4", margin: "10px 0 0" }}>"{getDescription(descriptions, revealCard)}"</p>
+            )}
+          </div>
+        )}
+
+        <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {cardsLeft} cartas por revelar</p>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 14 }}>
+          <button onClick={() => setShowManualCounts(v => !v)} style={{ ...S.btn("ghost"), flex: 1, fontSize: 13 }}>
+            {showManualCounts ? "Ocultar cartas anotadas" : "Anotar cartas manualmente"}
+          </button>
+          <button onClick={() => setConfirmEndReveal(true)} style={{ ...S.btn("danger"), flex: 1, fontSize: 13 }}>
+            Terminar partida
+          </button>
+        </div>
+
+        {showManualCounts && (
+          <div style={S.card}>
+            <span style={S.label}>Cartas de cada uno (opcional)</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+              {players.map(p => (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Avatar name={p.name} size={26} />
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+                  <button
+                    onClick={() => bumpManualCount(p.id, -1)}
+                    style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 16 }}
+                  >
+                    −
+                  </button>
+                  <span style={{ minWidth: 22, textAlign: "center", fontWeight: 800 }}>{manualCounts[p.id] || 0}</span>
+                  <button
+                    onClick={() => bumpManualCount(p.id, 1)}
+                    style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 16 }}
+                  >
+                    +
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {confirmEndReveal && (
+          <ConfirmDialog
+            title="¿Terminar la partida?"
+            message="Se corta el juego ahora y se muestra el resultado tal como está."
+            confirmLabel="Terminar partida"
+            onConfirm={() => {
+              setConfirmEndReveal(false);
+              setPhase("result");
+            }}
+            onCancel={() => setConfirmEndReveal(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
   // ── PLAY (ronda en círculo) ──
-  if (phase === "play")
+  if (phase === "play" && mode === "circle")
     return (
       <div>
         {!current && (
@@ -226,7 +407,12 @@ export function LocalGame() {
           </p>
         )}
 
-        <CardView card={current} onClick={!current ? reveal : undefined} />
+        <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
+          <DeckStack cardsLeft={deck.length} />
+          <div style={{ position: "relative" }}>
+            <CardView card={current} onClick={!current ? reveal : undefined} />
+          </div>
+        </div>
 
         <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {deck.length} cartas en el mazo</p>
 
@@ -275,7 +461,9 @@ export function LocalGame() {
           </button>
         </div>
 
-        {showRanking && <Ranking players={players} piles={piles} />}
+        {showRanking && (
+          <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />
+        )}
 
         {addingPlayer && (
           <div style={S.card}>
@@ -338,7 +526,28 @@ export function LocalGame() {
       </div>
     );
 
-  // ── RESULT ──
+  // ── RESULT (modo revelar) ──
+  if (mode === "reveal") {
+    const hasManualCounts = Object.values(manualCounts).some(c => c > 0);
+    return (
+      <div>
+        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+          <p style={S.bigReveal}>Partida terminada</p>
+        </div>
+        {hasManualCounts && <Ranking players={players} counts={manualCounts} />}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+          <Btn variant="success" onClick={playAgain}>
+            Jugar de nuevo
+          </Btn>
+          <Btn variant="ghost" onClick={() => setPhase("setup")}>
+            Volver a jugadores
+          </Btn>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RESULT (modo círculo) ──
   return (
     <div>
       <div style={{ ...S.cardHighlight, textAlign: "center" }}>
@@ -353,7 +562,7 @@ export function LocalGame() {
           </p>
         </div>
       )}
-      <Ranking players={players} piles={piles} />
+      <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
         <Btn variant="success" onClick={playAgain}>
           Jugar de nuevo

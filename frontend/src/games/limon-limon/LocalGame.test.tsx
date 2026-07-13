@@ -42,6 +42,46 @@ describe("Limón Limón LocalGame", () => {
     expect(screen.getByText("Quedan 39 cartas en el mazo")).toBeInTheDocument();
   });
 
+  test("'Revelar cartas' mode uses a 3-tap cycle per card (reveal, hide, advance) and confirms before ending early", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<LocalGame />);
+    await user.click(screen.getByRole("button", { name: "Revelar cartas" }));
+    await user.click(screen.getByRole("button", { name: "Empezar a jugar" }));
+
+    expect(screen.getByText(/Carta 1 de 40/)).toBeInTheDocument();
+    expect(screen.getByText(/toquen para revelar/)).toBeInTheDocument();
+
+    await user.click(clickDeck(container));
+    expect(screen.getByText(/toquen para tapar/)).toBeInTheDocument();
+
+    await user.click(clickDeck(container));
+    expect(screen.getByText(/toquen para pasar a la siguiente/)).toBeInTheDocument();
+    expect(screen.getByText(/Carta 1 de 40/)).toBeInTheDocument(); // still the same card
+
+    // Only the 3rd tap slides the card away — that runs on a timer before
+    // "Carta 2" shows up.
+    await user.click(clickDeck(container));
+    expect(await screen.findByText(/Carta 2 de 40/, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByText(/toquen para revelar/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Anotar cartas manualmente" }));
+    const plusButtons = screen.getAllByRole("button", { name: "+" });
+    await user.click(plusButtons[0]);
+    await user.click(plusButtons[0]);
+    expect(screen.getByText("2")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Terminar partida" }));
+    expect(screen.getByText("¿Terminar la partida?")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByText("¿Terminar la partida?")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Terminar partida" }));
+    await user.click(screen.getAllByRole("button", { name: "Terminar partida" })[1]);
+    expect(screen.getByText("Partida terminada")).toBeInTheDocument();
+    expect(screen.getByText("Cartas acumuladas")).toBeInTheDocument();
+  });
+
   test("voting to end early with a majority cuts the game short and shows the ranking", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
