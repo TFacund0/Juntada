@@ -20,6 +20,7 @@
     "@juntada/torneo-futbol-bracket": "workspace:*",
     "@juntada/tutifruti-data": "workspace:*",
     "@juntada/tutifruti-words": "workspace:*",
+    "@sentry/node": "^10.65.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
