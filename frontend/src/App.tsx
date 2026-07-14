@@ -274,8 +274,41 @@ export default function App() {
                 <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{playerName}</span>
               </button>
               <div ref={groupMenuRef} style={{ position: "relative" }}>
-                <button onClick={() => setShowGroupMenu(v => !v)} aria-label="Crear o unirme a un grupo" style={S.roundIconButton}>
-                  +
+                <button
+                  onClick={() => setShowGroupMenu(v => !v)}
+                  aria-label="Crear o unirme a un grupo"
+                  style={{ ...S.roundIconButton, transform: showGroupMenu ? "rotate(45deg)" : "none" }}
+                >
+                  {/* Se dibuja con dos barras en vez de depender del glyph
+                      "+" de la fuente — así queda perfectamente centrado en
+                      cualquier dispositivo, sin el desvío vertical que trae
+                      el line-height del carácter de texto. */}
+                  <span style={{ position: "relative", width: 16, height: 16 }}>
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: 0,
+                        width: "100%",
+                        height: 2.5,
+                        background: "#fff",
+                        borderRadius: 2,
+                        transform: "translateY(-50%)",
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        top: 0,
+                        height: "100%",
+                        width: 2.5,
+                        background: "#fff",
+                        borderRadius: 2,
+                        transform: "translateX(-50%)",
+                      }}
+                    />
+                  </span>
                 </button>
                 {showGroupMenu && (
                   <div style={S.dropdownMenu}>
