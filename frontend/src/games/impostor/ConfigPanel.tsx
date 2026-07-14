@@ -174,41 +174,19 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </div>
 
           <div style={S.card}>
-            <span style={S.label}>¿Cuánto dura la discusión?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              <button
-                onClick={() => updateConfig({ discussionUnlimited: false })}
-                style={{ ...S.btn(!config.discussionUnlimited ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                Con tiempo
-              </button>
-              <button
-                onClick={() => updateConfig({ discussionUnlimited: true })}
-                style={{ ...S.btn(config.discussionUnlimited ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                Sin límite
-              </button>
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <span style={S.label}>
-                Tiempo de discusión:{" "}
-                {config.discussionUnlimited
-                  ? "Sin límite"
-                  : config.discussionTime === 0
-                    ? "Sin fase de discusión"
-                    : `${config.discussionTime}s`}
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="180"
-                step="15"
-                value={config.discussionTime}
-                disabled={config.discussionUnlimited}
-                onChange={e => updateConfig({ discussionTime: +e.target.value })}
-                style={{ width: "100%", marginTop: 8, opacity: config.discussionUnlimited ? 0.4 : 1 }}
-              />
-            </div>
+            <span style={S.label}>
+              Tiempo de discusión: {config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
+            </span>
+            <p style={{ ...S.muted, margin: "4px 0 0", lineHeight: 1.4 }}>Cuánto dura la charla antes de pasar a la votación.</p>
+            <input
+              type="range"
+              min="0"
+              max="180"
+              step="15"
+              value={config.discussionTime}
+              onChange={e => updateConfig({ discussionTime: +e.target.value, discussionUnlimited: false })}
+              style={{ width: "100%", marginTop: 8 }}
+            />
           </div>
         </>
       )}

@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "start": "tsx server.ts",
-    "dev": "tsx server.ts",
+    "dev": "tsx --env-file-if-exists=.env server.ts",
     "test": "tsx --test"
   },
   "license": "ISC",

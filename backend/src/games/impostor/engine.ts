@@ -84,6 +84,10 @@ interface ImpostorRound {
   revoteCandidates: string[] | null;
   revoteCount: number;
   tally?: Record<string, number>;
+  // Set when the match had to be cut short instead of resolving through a
+  // normal vote — currently only "impostor_disconnected" (see
+  // abortMatchImpostorLeft). Absent for a normally-resolved match.
+  abortedReason?: "impostor_disconnected";
 }
 
 function cfg(room: Room): ImpostorConfig {
@@ -231,28 +235,24 @@ function startRound(room: Room): { success?: true; error?: string } {
   return { success: true };
 }
 
-// Starts another round of clue-giving within the same match: a fresh word
-// and turn order (limited to whoever's still alive), but the same impostors
-// and elimination history as before — called after a vote that didn't
+// Starts another round of clue-giving within the same match: a fresh turn
+// order (limited to whoever's still alive) so there's another chance to
+// give clues and vote, but the *same* word/category as before — it's still
+// the same investigation, not a new one, so the word only changes when a
+// genuinely new match starts (see startRound). Same impostors and
+// elimination history carry over too — called after a vote that didn't
 // decide the match yet (see tallyVotes).
 function continueMatch(room: Room): { success?: true; error?: string } {
   if (!room.round) return { error: "No hay una partida en curso" };
   const prev = round(room);
   if (prev.matchOver) return { error: "La partida ya terminó" };
 
-  const activeCats = activeCategoryKeys(room);
-  if (activeCats.length === 0) return { error: "No hay categorías activas" };
-  const catKey = activeCats[Math.floor(Math.random() * activeCats.length)];
-  const cat = CATEGORIES[catKey];
-  const word = pickWord(room, catKey);
-  if (!word) return { error: `Sin palabras en ${cat.label}` };
-
   const alive = aliveIds(room);
   room.round = {
-    word,
-    categoryKey: catKey,
-    categoryLabel: cat.label,
-    categoryIcon: cat.icon,
+    word: prev.word,
+    categoryKey: prev.categoryKey,
+    categoryLabel: prev.categoryLabel,
+    categoryIcon: prev.categoryIcon,
     impostors: prev.impostors,
     clues: {},
     turnOrder: effectiveTurnOrder(room).filter(id => alive.includes(id)),
@@ -313,6 +313,34 @@ function rerollWord(room: Room): void {
   round(room).skipVotes = [];
   round(room).rerollCount += 1;
   round(room).timerEnd = turnTimerEnd(room);
+}
+
+// An impostor's clue/vote is the entire point of the round — if they've
+// disconnected there's no honest way to finish it (they can never give a
+// clue or be voted out again), so the match is cut short right away instead
+// of letting the innocents "win" a round that never actually got decided.
+// Called from maybeAdvance, which already runs immediately on every
+// disconnect (see roomService.markOffline).
+function abortMatchImpostorLeft(room: Room): void {
+  stopRoomTimer(room);
+  const r = round(room);
+  r.matchOver = true;
+  r.winner = null;
+  r.revealed = true;
+  r.abortedReason = "impostor_disconnected";
+  room.phase = "result";
+  room.roundHistory.push({
+    word: r.word,
+    categoryLabel: r.categoryLabel,
+    categoryIcon: r.categoryIcon,
+    impostors: r.impostors,
+    eliminated: r.eliminated,
+    wasImpostor: r.wasImpostor,
+    tally: r.tally || {},
+    matchOver: true,
+    winner: null,
+    abortedReason: "impostor_disconnected",
+  });
 }
 
 function tallyVotes(room: Room): void {
@@ -422,6 +450,21 @@ function advanceTurn(room: Room): void {
 // players are spectating, so only alive+online players' state ever counts.
 function maybeAdvance(room: Room): void {
   if (!room?.round) return;
+  const r0 = round(room);
+  if (r0.matchOver) return;
+
+  // Merely offline isn't enough to abort — that just means they dropped and
+  // might reconnect any second (see roomHandlers.ts's schedulePlayerKick,
+  // which gives every disconnected player a 5-minute grace period before
+  // actually removing them from room.players). Only a genuinely *gone*
+  // impostor (kicked, by timeout or by the host) makes the round impossible
+  // to finish honestly.
+  const goneImpostor = r0.impostors.find(id => !r0.matchEliminated.includes(id) && !room.players.some(p => p.id === id));
+  if (goneImpostor) {
+    abortMatchImpostorLeft(room);
+    return;
+  }
+
   const alive = aliveIds(room);
   const online = room.players.filter(p => p.online && alive.includes(p.id));
   if (online.length === 0) return;
@@ -559,6 +602,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     impostors: r.matchOver ? r.impostors : undefined,
     matchOver: r.matchOver,
     winner: r.winner,
+    abortedReason: r.abortedReason,
     skipVotes: activeSkipVotes(room).length,
     skipVotesNeeded: skipThreshold(room),
     rerollCount: r.rerollCount,

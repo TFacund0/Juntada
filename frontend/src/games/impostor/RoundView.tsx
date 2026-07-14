@@ -13,9 +13,9 @@ function PlayerReadyPills({ players }: { players: PublicPlayer[] }) {
       <span style={S.label}>Estado de jugadores</span>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {players.map(p => (
-          <div key={p.id} style={S.pill(p.ready)}>
+          <div key={p.id} style={{ ...S.pill(p.ready), opacity: p.online ? 1 : 0.55 }}>
             {p.name}
-            {p.ready ? " · listo" : ""}
+            {!p.online ? " · desconectado" : p.ready ? " · listo" : ""}
           </div>
         ))}
       </div>
@@ -97,38 +97,60 @@ function TurnCircle({
                 padding: 3,
                 border: isCurrent ? "2px solid #5DCAA5" : hasGone ? "2px solid rgba(127,119,221,0.45)" : "2px solid transparent",
                 boxShadow: isCurrent ? "0 0 14px rgba(93,202,165,0.55)" : "none",
-                opacity: hasGone && !isCurrent ? 0.55 : 1,
+                opacity: !p.online ? 0.4 : hasGone && !isCurrent ? 0.55 : 1,
                 transition: "all 0.2s",
               }}
             >
               <Avatar name={p.name} size={44} />
-              {hasGone && (
+              {!p.online ? (
                 <span
                   style={{
                     position: "absolute",
-                    bottom: -2,
+                    top: -2,
                     right: -2,
-                    background: "#5DCAA5",
-                    color: "#0f0c1d",
+                    background: "#6b6490",
+                    color: "#fff",
                     borderRadius: "50%",
                     width: 16,
                     height: 16,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 800,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  ✓
+                  ⏸
                 </span>
+              ) : (
+                hasGone && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: -2,
+                      right: -2,
+                      background: "#5DCAA5",
+                      color: "#0f0c1d",
+                      borderRadius: "50%",
+                      width: 16,
+                      height: 16,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    ✓
+                  </span>
+                )
               )}
             </div>
             <span
               style={{
                 fontSize: 11,
                 fontWeight: isCurrent ? 800 : 600,
-                color: isCurrent ? "#5DCAA5" : isMe ? "#fff" : "#9089c0",
+                color: !p.online ? "#6b6490" : isCurrent ? "#5DCAA5" : isMe ? "#fff" : "#9089c0",
                 textAlign: "center",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -137,6 +159,7 @@ function TurnCircle({
               }}
             >
               {isMe ? "Vos" : p.name}
+              {!p.online ? " (desc.)" : ""}
             </span>
           </div>
         );
@@ -359,7 +382,11 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   }
 
   if (room.phase === "voting") {
-    const totalVoted = room.players.filter(p => p.hasVoted).length;
+    // Only online players are ever required to vote (see engine.ts's
+    // maybeAdvance) — counting offline ones in the denominator would make
+    // the tally look permanently stuck a vote short.
+    const onlinePlayers = room.players.filter(p => p.online);
+    const totalVoted = onlinePlayers.filter(p => p.hasVoted).length;
     const revoteCandidates: string[] | undefined = round?.revoteCandidates;
     const isRevote = !!revoteCandidates;
     const suspects = room.players.filter(p => p.id !== me?.playerId && (!revoteCandidates || revoteCandidates.includes(p.id)));
@@ -375,7 +402,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
           <p style={{ fontSize: 12, color: "#7F77DD" }}>
-            {totalVoted}/{room.players.length} confirmaron su voto
+            {totalVoted}/{onlinePlayers.length} confirmaron su voto
           </p>
         </div>
 
@@ -407,7 +434,10 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                   }}
                 >
                   <Avatar name={p.name} size={36} />
-                  <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>{p.name}</span>
+                  <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>
+                    {p.name}
+                    {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
+                  </span>
                 </button>
               ))}
             </div>
@@ -419,7 +449,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ fontSize: 15, color: "#9089c0" }}>Voto confirmado. Esperando a los demás</p>
             <p style={{ fontSize: 13, color: "#5a5280", marginTop: 6 }}>
-              {totalVoted}/{room.players.length} confirmaron su voto
+              {totalVoted}/{onlinePlayers.length} confirmaron su voto
             </p>
           </div>
         )}
@@ -435,6 +465,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const wasImpostor: boolean | undefined = round?.wasImpostor ?? lastH?.wasImpostor;
     const matchOver: boolean = round?.matchOver ?? lastH?.matchOver ?? false;
     const winner: "innocents" | "impostors" | null = round?.winner ?? lastH?.winner ?? null;
+    const abortedReason: string | undefined = round?.abortedReason ?? lastH?.abortedReason;
     const matchEliminatedIds: string[] = round?.matchEliminated || [];
     const impostors = matchOver ? room.players.filter(p => (round?.impostors || lastH?.impostors || []).includes(p.id)) : [];
     // Who was actually eligible to vote/be voted this round — a stand-in for
@@ -446,7 +477,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
     if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando resultado..." />;
 
-    const winnerColor = winner === "innocents" ? "#5DCAA5" : "#F09595";
+    const winnerColor = abortedReason ? "#E2C44A" : winner === "innocents" ? "#5DCAA5" : "#F09595";
     const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
 
     return (
@@ -454,8 +485,17 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         {matchOver && (
           <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
             <p style={{ fontSize: 22, fontWeight: 800, color: winnerColor, marginTop: 8 }}>
-              {winner === "innocents" ? "Ganaron los inocentes" : "Ganaron los impostores"}
+              {abortedReason === "impostor_disconnected"
+                ? "🔌 El impostor se desconectó"
+                : winner === "innocents"
+                  ? "Ganaron los inocentes"
+                  : "Ganaron los impostores"}
             </p>
+            {abortedReason === "impostor_disconnected" && (
+              <p style={{ fontSize: 13, color: "#9089c0", marginTop: 4 }}>
+                La partida se cerró sin definir un ganador porque el impostor abandonó.
+              </p>
+            )}
           </div>
         )}
 
@@ -508,7 +548,10 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
             {impostors.map(p => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                 <Avatar name={p.name} size={32} />
-                <span style={{ fontWeight: 700, flex: 1 }}>{p.name}</span>
+                <span style={{ fontWeight: 700, flex: 1 }}>
+                  {p.name}
+                  {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
+                </span>
                 <span style={S.pill(matchEliminatedIds.includes(p.id))}>
                   {matchEliminatedIds.includes(p.id) ? "Atrapado" : "Sigue libre"}
                 </span>

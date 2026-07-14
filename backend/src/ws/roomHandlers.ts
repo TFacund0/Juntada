@@ -36,6 +36,15 @@ function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>
   sendTo(ws, { type: "joined", playerId: room.hostId, roomCode: room.code, room: getRoomPublicState(room) });
 }
 
+function checkRoomCode(ws: WS, msg: Extract<ClientMessage, { type: "check_room_code" }>): void {
+  const room = rooms.get(msg.code.toUpperCase());
+  if (!room) {
+    sendTo(ws, { type: "room_preview", code: msg.code, found: false });
+    return;
+  }
+  sendTo(ws, { type: "room_preview", code: msg.code, found: true, name: room.name, gameType: room.gameType });
+}
+
 function joinRoom(ws: WS, msg: Extract<ClientMessage, { type: "join_room" }>): void {
   const { room, playerId, error } = roomService.joinRoom(ws, { code: msg.code, playerName: msg.playerName });
   if (error) {
@@ -186,11 +195,12 @@ function schedulePlayerKick(roomCode: string, playerId: string): void {
       const group = groups.get(room.groupCode);
       if (group) broadcastGroupState(group);
     }
-  }, PLAYER_OFFLINE_TIMEOUT_MS);
+  }, PLAYER_OFFLINE_TIMEOUT_MS).unref();
 }
 
 module.exports = {
   createRoom,
+  checkRoomCode,
   joinRoom,
   rejoin,
   updateConfig,

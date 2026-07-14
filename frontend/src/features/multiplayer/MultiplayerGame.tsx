@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
@@ -38,6 +38,10 @@ interface MultiplayerGameProps {
   // home screen just to retype it.
   onChangeName?: (name: string) => void;
   initialJoinCode?: string;
+  // Only meaningful for entryKind "group" — lets the home screen's compact
+  // group menu (tap "+" → Crear grupo / Unirme a un grupo) land directly on
+  // the matching tab instead of the neutral menu screen.
+  initialGroupIntent?: "create" | "join";
   // Lets the parent (App.tsx) keep its own header/title in sync with the
   // game actually active — e.g. after scanning a QR/join link for room X,
   // joining a room whose real gameType turns out to differ (a stale link,
@@ -63,6 +67,7 @@ export function MultiplayerGame({
   playerName,
   onChangeName,
   initialJoinCode,
+  initialGroupIntent,
   onGameTypeChange,
   onLeaveGroup,
 }: MultiplayerGameProps) {
@@ -75,6 +80,8 @@ export function MultiplayerGame({
     group,
     myRole,
     wordReveal,
+    roomPreview,
+    setRoomPreview,
     error,
     setError,
     reconnecting,
@@ -86,25 +93,42 @@ export function MultiplayerGame({
     retryConnection,
     send,
     leave,
-  } = useMultiplayerSocket({ onLeftGroup: onLeaveGroup });
+  } = useMultiplayerSocket({ onLeftGroup: onLeaveGroup, entryKind });
 
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
+  const [joinGroupName, setJoinGroupName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(playerName);
   const [showQR, setShowQR] = useState(false);
-  const [showCode, setShowCode] = useState(true);
   const [showCreateInstance, setShowCreateInstance] = useState(false);
   // Leaving mid-game silently forfeits whatever's in progress, so that path
   // gets a confirm — same pattern as the pre-existing "volver al lobby"
   // confirms elsewhere. Leaving from the lobby (nothing to lose) doesn't.
   const [confirmLeaveInstance, setConfirmLeaveInstance] = useState(false);
   const [confirmLeaveGroup, setConfirmLeaveGroup] = useState(false);
+  // Host-only per-player actions (transfer host / kick) live behind a small
+  // "⋮" menu instead of two always-visible buttons — only one open at a
+  // time, keyed by playerId. Closed on outside click, same pattern as the
+  // home screen's "+" group menu (see App.tsx's groupMenuRef).
+  const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
+  const playerMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!openPlayerMenu) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (playerMenuRef.current && !playerMenuRef.current.contains(e.target as Node)) setOpenPlayerMenu(null);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [openPlayerMenu]);
 
   // Scanned a "join this room/group" QR — skip straight to the join form
   // with the code already filled in, they just need to type their name.
   useEffect(() => {
-    if (initialJoinCode && connectionPhase === "menu") setConnectionPhase("join");
+    if (connectionPhase !== "menu") return;
+    if (initialJoinCode) setConnectionPhase("join");
+    else if (initialGroupIntent) setConnectionPhase(initialGroupIntent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -118,6 +142,22 @@ export function MultiplayerGame({
   useEffect(() => {
     setConfirmLeaveInstance(false);
   }, [room?.code]);
+
+  // Live preview of a standalone room as soon as the code is fully typed —
+  // read-only lookup, no commitment (see checkRoomCode/room_preview on the
+  // backend). Groups skip this: joining one already requires the name to
+  // match the code (see joinRoom below), so there's no ambiguity left to
+  // preview there.
+  useEffect(() => {
+    if (entryKind === "group") return;
+    const code = joinCode.trim().toUpperCase();
+    if (code.length !== 5) {
+      setRoomPreview(null);
+      return;
+    }
+    connect(ws => ws.send(JSON.stringify({ type: "check_room_code", code })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joinCode, entryKind]);
 
   // A join rejected for having a name someone else already has in that
   // room/group is recoverable right here — open the inline rename instead
@@ -147,6 +187,11 @@ export function MultiplayerGame({
   const inGroup = entryKind === "group";
 
   const createRoom = () => {
+    // A room is created with one tap, no form: always an auto-generated
+    // code and a default name (the game's own name — good enough, since a
+    // room only lives for one match). Groups also always get an
+    // auto-generated code — letting the host pick their own invited
+    // collisions/weak codes like "1234" for no real benefit.
     connect(ws => {
       if (inGroup) {
         ws.send(JSON.stringify({ type: "create_group", playerName, groupName: roomName.trim() || undefined }));
@@ -155,7 +200,7 @@ export function MultiplayerGame({
           JSON.stringify({
             type: "create_room",
             playerName,
-            roomName: roomName.trim() || "Mi sala",
+            roomName: selectedGame?.label ?? "Mi sala",
             gameType: gameId,
           }),
         );
@@ -164,9 +209,19 @@ export function MultiplayerGame({
   };
 
   const joinRoom = () => {
+    if (inGroup && !joinGroupName.trim()) return setError("Ingresá el nombre del grupo");
     if (!joinCode.trim()) return setError("Ingresá el código");
     const code = joinCode.toUpperCase().trim();
-    connect(ws => ws.send(JSON.stringify({ type: inGroup ? "join_group" : "join_room", code, playerName })));
+    connect(ws =>
+      ws.send(
+        JSON.stringify({
+          type: inGroup ? "join_group" : "join_room",
+          code,
+          playerName,
+          ...(inGroup ? { groupName: joinGroupName.trim() } : {}),
+        }),
+      ),
+    );
   };
 
   const updateConfig = (patch: Record<string, unknown>) => {
@@ -218,6 +273,8 @@ export function MultiplayerGame({
     </div>
   );
 
+  // ── AUTO-CREATING A STANDALONE ROOM ── (see the auto-create effect above —
+  // no form for this case, just a brief loading state while the room spins up)
   // ── MENU ──
   if (connectionPhase === "menu" || connectionPhase === "create" || connectionPhase === "join")
     return (
@@ -239,70 +296,96 @@ export function MultiplayerGame({
             {error}
           </div>
         )}
-        {editingName ? (
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <input
-              style={{ ...S.input, flex: 1 }}
-              placeholder="Tu nombre"
-              autoFocus
-              value={nameDraft}
-              onChange={e => setNameDraft(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") saveName();
-                if (e.key === "Escape") {
-                  setNameDraft(playerName);
-                  setEditingName(false);
-                }
-              }}
-            />
-            <Btn onClick={saveName} disabled={!nameDraft.trim()} style={{ width: "auto", padding: "11px 18px" }}>
-              Guardar
-            </Btn>
-          </div>
-        ) : (
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>
-            Jugás como <b style={{ color: "#AFA9EC" }}>{playerName}</b>{" "}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          {editingName ? (
+            <div style={{ ...S.namePill, cursor: "default", paddingLeft: 12 }}>
+              <input
+                style={{
+                  background: "none",
+                  border: "none",
+                  outline: "none",
+                  color: "#e8e4f0",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                  width: 110,
+                }}
+                placeholder="Tu nombre"
+                autoFocus
+                value={nameDraft}
+                onChange={e => setNameDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") saveName();
+                  if (e.key === "Escape") {
+                    setNameDraft(playerName);
+                    setEditingName(false);
+                  }
+                }}
+              />
+              <button
+                onClick={saveName}
+                disabled={!nameDraft.trim()}
+                aria-label="Guardar nombre"
+                style={{
+                  background: "rgba(93,202,165,0.18)",
+                  border: "none",
+                  borderRadius: 999,
+                  color: "#5DCAA5",
+                  cursor: nameDraft.trim() ? "pointer" : "default",
+                  opacity: nameDraft.trim() ? 1 : 0.4,
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  fontWeight: 700,
+                  padding: "5px 10px",
+                }}
+              >
+                ✓
+              </button>
+            </div>
+          ) : (
             <button
               onClick={() => {
                 setNameDraft(playerName);
                 setEditingName(true);
               }}
-              style={{ background: "none", border: "none", color: "#7F77DD", fontSize: 13, cursor: "pointer", padding: 0 }}
+              style={S.namePill}
             >
-              Cambiar
+              <Avatar name={playerName} size={22} />
+              <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{playerName}</span>
+              <span style={{ color: "#7F77DD", fontSize: 13 }}>✎</span>
             </button>
-          </p>
-        )}
+          )}
+        </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-          <Btn
-            variant={connectionPhase === "create" ? "primary" : "ghost"}
-            onClick={() => setConnectionPhase("create")}
-            style={{ flex: 1 }}
-          >
-            {inGroup ? "Crear grupo" : "Crear sala"}
+          <Btn variant={connectionPhase === "create" ? "primary" : "ghost"} onClick={() => setConnectionPhase("create")} style={{ flex: 1 }}>
+            {inGroup ? "Crear grupo" : "Crear partida"}
           </Btn>
           <Btn variant={connectionPhase === "join" ? "primary" : "ghost"} onClick={() => setConnectionPhase("join")} style={{ flex: 1 }}>
             Unirse
           </Btn>
         </div>
+        {inGroup && connectionPhase === "create" && (
+          <div style={S.card}>
+            <span style={S.label}>Nombre del grupo</span>
+            <input style={S.input} placeholder="Ej: Los pibes" value={roomName} onChange={e => setRoomName(e.target.value)} />
+            <p style={{ ...S.muted, marginTop: 10 }}>Elegís qué jugar una vez adentro, con todo el grupo</p>
+          </div>
+        )}
         {connectionPhase === "create" && (
           <div style={S.card}>
-            <span style={S.label}>{inGroup ? "Nombre del grupo" : "Nombre de la sala"}</span>
-            <input
-              style={S.input}
-              placeholder={inGroup ? "Ej: Los pibes" : "Ej: Noche de juegos"}
-              value={roomName}
-              onChange={e => setRoomName(e.target.value)}
-            />
-            {!inGroup && selectedGame && (
-              <p style={{ ...S.muted, marginTop: 10 }}>
-                {selectedGame.icon} Vas a jugar {selectedGame.label}
-              </p>
-            )}
-            {inGroup && <p style={{ ...S.muted, marginTop: 10 }}>👥 Elegís qué jugar una vez adentro, con todo el grupo</p>}
-            <Btn onClick={createRoom} style={{ marginTop: 12 }}>
-              {inGroup ? "👥 Crear grupo" : "🚀 Crear sala"}
+            <span style={S.label}>Código de acceso</span>
+            <p style={{ ...S.muted, margin: 0 }}>
+              El servidor genera un código random de 5 caracteres (ej. XJ7K2), listo cuando toques "Crear".
+            </p>
+            <Btn onClick={createRoom} style={{ marginTop: 14 }}>
+              {inGroup ? "Crear grupo" : "Crear partida"}
             </Btn>
+          </div>
+        )}
+        {connectionPhase === "join" && inGroup && (
+          <div style={S.card}>
+            <span style={S.label}>Nombre del grupo</span>
+            <input style={S.input} placeholder="Ej: Los pibes" value={joinGroupName} onChange={e => setJoinGroupName(e.target.value)} />
           </div>
         )}
         {connectionPhase === "join" && (
@@ -315,6 +398,31 @@ export function MultiplayerGame({
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
             />
+            {!inGroup &&
+              roomPreview &&
+              roomPreview.code === joinCode.trim().toUpperCase() &&
+              (roomPreview.found ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    background: "rgba(93,202,165,0.1)",
+                    border: "1px solid rgba(93,202,165,0.3)",
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: 13, color: "#5DCAA5" }}>
+                    {getGame(roomPreview.gameType ?? "")?.icon} Vas a unirte a: <b>{roomPreview.name}</b>
+                  </p>
+                  {selectedGame && roomPreview.gameType !== selectedGame.id && (
+                    <p style={{ margin: "4px 0 0", fontSize: 11, color: "#EF9F27" }}>
+                      Ojo: esa sala es de {getGame(roomPreview.gameType ?? "")?.label ?? roomPreview.gameType}, no de {selectedGame.label}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p style={{ ...S.muted, marginTop: 10, fontSize: 12 }}>No encontramos ninguna sala con ese código</p>
+              ))}
             <Btn onClick={joinRoom} style={{ marginTop: 12 }}>
               Unirse →
             </Btn>
@@ -488,32 +596,19 @@ export function MultiplayerGame({
     return (
       <div style={isHost ? { paddingBottom: 88 } : undefined}>
         {reconnectBanner}
-        {room.name && (
-          <p style={{ textAlign: "center", fontSize: 18, fontWeight: 800, color: "#AFA9EC", margin: "0 0 12px" }}>{room.name}</p>
-        )}
         {/* A group instance isn't meant to be joined by raw code — group
             membership (join_instance from the group screen) is how people
             find it. A standalone room still shares its code here, since
             that's its only invite mechanism. */}
         {room.groupCode === null && (
           <>
-            {showCode ? (
-              <CodeDisplay code={room.code} />
-            ) : (
-              <p style={{ textAlign: "center", color: "#6b6490", fontSize: 13 }}>Código oculto</p>
-            )}
+            <CodeDisplay code={room.code} />
             <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 10 }}>
               <button
                 onClick={() => setShowQR(true)}
                 style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}
               >
                 Invitar
-              </button>
-              <button
-                onClick={() => setShowCode(v => !v)}
-                style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}
-              >
-                {showCode ? "Ocultar código" : "Mostrar código"}
               </button>
             </div>
             {showQR && (
@@ -545,21 +640,49 @@ export function MultiplayerGame({
               </span>
               {p.id === room.hostId && <span style={S.pill(false)}>Anfitrión</span>}
               {!p.online && <span style={S.pill(false)}>Desconectado</span>}
-              {isHost && p.id !== me?.playerId && p.online && (
-                <button
-                  onClick={() => send({ type: "transfer_host", targetId: p.id })}
-                  style={{ ...S.btn("ghost"), width: "auto", padding: "4px 10px", fontSize: 12, borderRadius: 6 }}
-                >
-                  Hacer anfitrión
-                </button>
-              )}
               {isHost && p.id !== me?.playerId && (
-                <button
-                  onClick={() => send({ type: "kick_player", targetId: p.id })}
-                  style={{ ...S.btn("danger"), width: "auto", padding: "4px 10px", fontSize: 12, borderRadius: 6 }}
-                >
-                  Expulsar
-                </button>
+                <div ref={openPlayerMenu === p.id ? playerMenuRef : undefined} style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setOpenPlayerMenu(v => (v === p.id ? null : p.id))}
+                    aria-label={`Opciones para ${p.name}`}
+                    style={{
+                      ...S.btn("ghost"),
+                      width: 30,
+                      height: 30,
+                      padding: 0,
+                      borderRadius: 8,
+                      fontSize: 16,
+                      lineHeight: 1,
+                      fontWeight: 800,
+                    }}
+                  >
+                    ⋮
+                  </button>
+                  {openPlayerMenu === p.id && (
+                    <div style={{ ...S.dropdownMenu, width: 170 }}>
+                      {p.online && (
+                        <button
+                          onClick={() => {
+                            send({ type: "transfer_host", targetId: p.id });
+                            setOpenPlayerMenu(null);
+                          }}
+                          style={S.dropdownMenuItem}
+                        >
+                          👑 Hacer anfitrión
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          send({ type: "kick_player", targetId: p.id });
+                          setOpenPlayerMenu(null);
+                        }}
+                        style={{ ...S.dropdownMenuItem, color: "#F09595" }}
+                      >
+                        🚫 Expulsar
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}

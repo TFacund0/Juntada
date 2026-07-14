@@ -99,13 +99,28 @@ export function LocalGame() {
   const [usedWords, setUsedWords] = useState<Record<string, string[]>>({});
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [tab, setTab] = useState<"players" | "config">("players");
+  const [tab, setTab] = useState<"players" | "cats" | "rules" | "order">("players");
 
   const activeCats = Object.keys(config.enabledCategories).filter(k => config.enabledCategories[k]);
 
   const isDuplicateName = (name: string, excludeId: number | null) => {
     const norm = name.trim().toLowerCase();
     return players.some(p => p.id !== excludeId && p.name.trim().toLowerCase() === norm);
+  };
+
+  // The players array's own order doubles as the turn order (see the reveal
+  // phase below, which just walks it in sequence) — same idea as online's
+  // ConfigPanel "Orden" tab, just reordering the roster directly instead of
+  // a separate turnOrder field since there's no separate join order to
+  // preserve here.
+  const movePlayer = (index: number, dir: number) => {
+    const target = index + dir;
+    if (target < 0 || target >= players.length) return;
+    setPlayers(prev => {
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   };
 
   const renamePlayer = (id: number, name: string) => {
@@ -174,19 +189,20 @@ export function LocalGame() {
     beginReveal();
   };
 
-  // Starts another round of clue-giving within the same match: a fresh word
-  // among whoever's still alive, but the same impostors and elimination
-  // history as before — called after a vote that didn't decide the match yet.
+  // Starts another round of clue-giving within the same match: a fresh turn
+  // among whoever's still alive, but the *same* word/category as before —
+  // it's still the same investigation, not a new one, so the word only
+  // changes when a genuinely new match starts (see startRound). Same
+  // impostors and elimination history carry over too — called after a vote
+  // that didn't decide the match yet.
   const continueMatch = () => {
     const prev = round;
     if (!prev) return;
-    const drawn = drawWord();
-    if (!drawn) return;
     const alive = players.filter(p => !prev.matchEliminated.includes(p.id)).map(p => p.id);
     setRound({
-      word: drawn.word,
-      categoryKey: drawn.catKey,
-      categoryLabel: drawn.catLabel,
+      word: prev.word,
+      categoryKey: prev.categoryKey,
+      categoryLabel: prev.categoryLabel,
       impostors: prev.impostors,
       matchEliminated: prev.matchEliminated,
       voters: alive,
@@ -265,9 +281,13 @@ export function LocalGame() {
     return (
       <div>
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {(["players", "config"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ ...S.btn(tab === t ? "primary" : "ghost"), flex: 1, padding: "10px" }}>
-              {t === "players" ? "Jugadores" : "Configuración"}
+          {(["players", "cats", "rules", "order"] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{ ...S.btn(tab === t ? "primary" : "ghost"), flex: 1, padding: "10px 4px", fontSize: 13 }}
+            >
+              {t === "players" ? "Jugadores" : t === "cats" ? "Categorías" : t === "rules" ? "Reglas" : "Orden"}
             </button>
           ))}
         </div>
@@ -307,7 +327,7 @@ export function LocalGame() {
           </>
         )}
 
-        {tab === "config" && (
+        {tab === "rules" && (
           <>
             <div style={S.card}>
               <span style={S.label}>Impostores</span>
@@ -419,52 +439,98 @@ export function LocalGame() {
                 style={{ width: "100%", marginTop: 8 }}
               />
             </div>
-            <div style={S.card}>
-              <span style={S.label}>Categorías</span>
-              <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
-                  const active = !!config.enabledCategories[k];
-                  return (
-                    <button
-                      key={k}
-                      onClick={() => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: !active } }))}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        padding: "10px 16px",
-                        borderRadius: 999,
-                        border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                        background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-                        color: active ? "#fff" : "#9089c0",
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <span>{cat.icon}</span>
-                      <span>{cat.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <p style={{ ...S.muted, marginTop: 12 }}>
-                {activeCats.length === 0
-                  ? "No elegiste ninguna categoría todavía."
-                  : `${activeCats.length} categoría${activeCats.length === 1 ? "" : "s"} activa${activeCats.length === 1 ? "" : "s"}.`}
-              </p>
-            </div>
           </>
+        )}
+
+        {tab === "cats" && (
+          <div style={S.card}>
+            <span style={S.label}>Categorías</span>
+            <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
+                const active = !!config.enabledCategories[k];
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: !active } }))}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 7,
+                      padding: "10px 16px",
+                      borderRadius: 999,
+                      border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
+                      background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
+                      color: active ? "#fff" : "#9089c0",
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{ ...S.muted, marginTop: 12 }}>
+              {activeCats.length === 0
+                ? "No elegiste ninguna categoría todavía."
+                : `${activeCats.length} categoría${activeCats.length === 1 ? "" : "s"} activa${activeCats.length === 1 ? "" : "s"}.`}
+            </p>
+          </div>
+        )}
+
+        {tab === "order" && (
+          <div style={S.card}>
+            <span style={S.label}>Orden de turno para dar la palabra</span>
+            <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>Así van a ir pasando el dispositivo y dando su palabra en la ronda.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {players.map((p, i) => (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+                  <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+                  <Avatar name={p.name} size={28} />
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+                  <button
+                    onClick={() => movePlayer(i, -1)}
+                    disabled={i === 0}
+                    style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 14, opacity: i === 0 ? 0.35 : 1 }}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => movePlayer(i, 1)}
+                    disabled={i === players.length - 1}
+                    style={{
+                      ...S.btn("ghost"),
+                      width: 32,
+                      height: 32,
+                      padding: 0,
+                      borderRadius: 8,
+                      fontSize: 14,
+                      opacity: i === players.length - 1 ? 0.35 : 1,
+                    }}
+                  >
+                    ↓
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         <Btn onClick={startRound} disabled={players.length < 3 || activeCats.length === 0} style={{ marginTop: 8 }}>
           Iniciar ronda
         </Btn>
         {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
+        {players.length >= 3 && activeCats.length === 0 && (
+          <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
+            Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar
+          </p>
+        )}
       </div>
     );
 

@@ -191,13 +191,16 @@ function isRoomFullyOffline(room: Room): boolean {
 }
 
 function scheduleRoomCleanup(roomCode: string): void {
+  // unref'd so this background grace-period timer never keeps the process
+  // itself alive (matters for clean shutdown / tests) — the server process
+  // otherwise stays up regardless, so the timer still fires normally.
   setTimeout(() => {
     const r = rooms.get(roomCode);
     if (r && isRoomFullyOffline(r)) {
       rooms.delete(roomCode);
       logger.info({ roomCode, remainingRooms: rooms.size }, "room closed: fully offline past grace period");
     }
-  }, ONLINE_CLEANUP_DELAY_MS);
+  }, ONLINE_CLEANUP_DELAY_MS).unref();
 }
 
 module.exports = {
