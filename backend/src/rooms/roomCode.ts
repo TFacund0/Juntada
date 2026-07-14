@@ -6,10 +6,11 @@ const { rooms, groups } = require("../state/roomStore") as {
 };
 
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sin 0/O/1/I para evitar confusión al leerlo en voz alta
+const CODE_LENGTH = 5;
 
 function generateCode(): string {
   let code = "";
-  for (let i = 0; i < 5; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
+  for (let i = 0; i < CODE_LENGTH; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
   return code;
 }
 

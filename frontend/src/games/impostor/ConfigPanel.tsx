@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
+import { maxImpostors } from "@juntada/impostor-match-rules";
 import { Avatar } from "../../components/Avatar";
+import { TabRow } from "../../components/TabRow";
 import type { ConfigPanelProps } from "../gameTypes";
 
 // The host's configured order, filtered to players still in the room, with
@@ -19,13 +21,6 @@ function effectiveOrder(players: { id: string }[], turnOrder: string[] | undefin
 // this game is active in the room (see games/registry.js contract). Each
 // question gets its own card — cramming them all into one made the whole
 // panel read as a single wall of text and buttons.
-// The most impostors a room of this size can start with while keeping them
-// a strict minority — otherwise the match could already be at (or past) the
-// impostors' win condition the moment a single innocent gets eliminated.
-// Mirrors backend/src/games/impostor/engine.ts's maxImpostors.
-function maxImpostors(playerCount: number): number {
-  return Math.max(1, Math.floor((playerCount - 1) / 2));
-}
 
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const [tab, setTab] = useState<"cats" | "rules" | "order">("cats");
@@ -47,17 +42,16 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
     <div>
       <div style={S.card}>
         <span style={S.label}>Configuración</span>
-        <div style={{ display: "flex", gap: 8 }}>
-          {(["cats", "rules", "order"] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{ ...S.btn(tab === t ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-            >
-              {t === "cats" ? "Categorías" : t === "rules" ? "Reglas" : "Orden"}
-            </button>
-          ))}
-        </div>
+        <TabRow
+          tabs={[
+            { key: "cats", label: "Categorías" },
+            { key: "rules", label: "Reglas" },
+            { key: "order", label: "Orden" },
+          ]}
+          active={tab}
+          onChange={setTab}
+          buttonPadding="8px"
+        />
       </div>
 
       {tab === "rules" && (
@@ -174,41 +168,19 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </div>
 
           <div style={S.card}>
-            <span style={S.label}>¿Cuánto dura la discusión?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              <button
-                onClick={() => updateConfig({ discussionUnlimited: false })}
-                style={{ ...S.btn(!config.discussionUnlimited ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                Con tiempo
-              </button>
-              <button
-                onClick={() => updateConfig({ discussionUnlimited: true })}
-                style={{ ...S.btn(config.discussionUnlimited ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                Sin límite
-              </button>
-            </div>
-            <div style={{ marginTop: 14 }}>
-              <span style={S.label}>
-                Tiempo de discusión:{" "}
-                {config.discussionUnlimited
-                  ? "Sin límite"
-                  : config.discussionTime === 0
-                    ? "Sin fase de discusión"
-                    : `${config.discussionTime}s`}
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="180"
-                step="15"
-                value={config.discussionTime}
-                disabled={config.discussionUnlimited}
-                onChange={e => updateConfig({ discussionTime: +e.target.value })}
-                style={{ width: "100%", marginTop: 8, opacity: config.discussionUnlimited ? 0.4 : 1 }}
-              />
-            </div>
+            <span style={S.label}>
+              Tiempo de discusión: {config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
+            </span>
+            <p style={{ ...S.muted, margin: "4px 0 0", lineHeight: 1.4 }}>Cuánto dura la charla antes de pasar a la votación.</p>
+            <input
+              type="range"
+              min="0"
+              max="180"
+              step="15"
+              value={config.discussionTime}
+              onChange={e => updateConfig({ discussionTime: +e.target.value, discussionUnlimited: false })}
+              style={{ width: "100%", marginTop: 8 }}
+            />
           </div>
         </>
       )}

@@ -87,7 +87,8 @@ type InboundMessage =
   | { type: "private_role"; [key: string]: unknown }
   | { type: "word_reveal"; [key: string]: unknown }
   | { type: "error"; code: ErrorCode; message: string }
-  | { type: "kicked" };
+  | { type: "kicked" }
+  | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string };
 
 // Encapsulates the WebSocket connection lifecycle (connect, reconnect/rejoin,
 // message dispatch) so the UI component only deals with plain state.
@@ -95,7 +96,10 @@ type InboundMessage =
 // — the caller (MultiplayerGame) uses it to tell App.tsx to leave the whole
 // group flow, since "menu" alone doesn't distinguish that from the very
 // first screen before ever joining anything.
-export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void } = {}) {
+export function useMultiplayerSocket({
+  onLeftGroup,
+  entryKind,
+}: { onLeftGroup?: () => void; entryKind?: "room" | "group" } = {}) {
   // menu|create|join, then mirrors room.phase directly ("lobby" and whatever
   // in-game phases the active game defines — this hook doesn't know or care
   // what those are) once a room is attached, or "group" once a group is
@@ -103,10 +107,22 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
   const [connectionPhase, setConnectionPhase] = useState("menu");
   const [me, setMe] = useState<RoomSession | null>(() => loadSession()?.room ?? null);
   const [groupMe, setGroupMe] = useState<GroupSession | null>(() => loadSession()?.group ?? null);
+  // A persisted group session should only drive auto-rejoin behavior when
+  // this screen was actually opened for the group flow — otherwise a stale
+  // group session from a past visit races its own rejoin_group against this
+  // screen's create_room/join_room on mount, and whichever socket loses gets
+  // orphaned mid-handshake (surfaces as a bogus "No se pudo conectar al
+  // servidor"). The session itself is still kept/persisted untouched so a
+  // real group elsewhere isn't affected by visiting a standalone room.
+  const groupSessionEnabled = entryKind !== "room";
   const [room, setRoom] = useState<RoomPublicState | null>(null);
   const [group, setGroup] = useState<GroupPublicState | null>(null);
   const [myRole, setMyRole] = useState<Record<string, unknown> | null>(null); // { isImpostor, word, hint }
   const [wordReveal, setWordReveal] = useState<Record<string, unknown> | null>(null);
+  // Result of the join screen's live "check_room_code" lookup — a read-only
+  // preview of what a typed code points to, shown before the player commits
+  // to actually joining (see MultiplayerGame's join-room form).
+  const [roomPreview, setRoomPreview] = useState<{ code: string; found: boolean; name?: string; gameType?: string } | null>(null);
   const [error, setError] = useState("");
   // True while a dropped socket is being retried in the background (flaky
   // connection, tab was suspended, etc.) — lets the UI show a "reconectando"
@@ -177,7 +193,7 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
     wsRef.current = ws;
     ws.onopen = () => {
       if (onOpen) onOpen(ws);
-      else if (groupMeRef.current)
+      else if (groupSessionEnabled && groupMeRef.current)
         ws.send(JSON.stringify({ type: "rejoin_group", groupCode: groupMeRef.current.groupCode, playerId: groupMeRef.current.playerId }));
       else if (meRef.current) ws.send(JSON.stringify({ type: "rejoin", roomCode: meRef.current.roomCode, playerId: meRef.current.playerId }));
     };
@@ -255,6 +271,8 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
           setGroup(null);
           setConnectionPhase("menu");
         }
+      } else if (msg.type === "room_preview") {
+        setRoomPreview(msg);
       } else if (msg.type === "kicked") {
         setConnectionPhase(groupMeRef.current ? "group" : "menu");
         setMe(null);
@@ -265,7 +283,7 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
       }
     };
     ws.onclose = () => {
-      if (!meRef.current && !groupMeRef.current) return;
+      if (!meRef.current && !(groupSessionEnabled && groupMeRef.current)) return;
       setReconnecting(true);
       // A fresh drop mid-retry-loop shouldn't still show a stale
       // "Reconectado" from an earlier, unrelated recovery.
@@ -279,7 +297,7 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
           return prevAttempt;
         }
         reconnectRef.current = setTimeout(() => {
-          if (meRef.current || groupMeRef.current) connect();
+          if (meRef.current || (groupSessionEnabled && groupMeRef.current)) connect();
         }, reconnectDelayMs(attempt));
         return attempt;
       });
@@ -300,7 +318,7 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
   // mobile browser fully discarded the page while backgrounded, so the app
   // remounted from scratch instead of just dropping the socket).
   useEffect(() => {
-    if (meRef.current || groupMeRef.current) connect();
+    if (meRef.current || (groupSessionEnabled && groupMeRef.current)) connect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -312,7 +330,7 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
     const onVisible = () => {
       if (
         document.visibilityState === "visible" &&
-        (meRef.current || groupMeRef.current) &&
+        (meRef.current || (groupSessionEnabled && groupMeRef.current)) &&
         wsRef.current?.readyState !== WebSocket.OPEN
       ) {
         if (reconnectRef.current) clearTimeout(reconnectRef.current);
@@ -370,6 +388,8 @@ export function useMultiplayerSocket({ onLeftGroup }: { onLeftGroup?: () => void
     group,
     myRole,
     wordReveal,
+    roomPreview,
+    setRoomPreview,
     error,
     setError,
     reconnecting,

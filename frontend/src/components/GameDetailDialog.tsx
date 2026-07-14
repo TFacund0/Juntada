@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { GameDef } from "../games/gameTypes";
+import { isUnderMaintenance } from "../games/maintenance";
 import { S } from "../theme/styles";
 import { Btn } from "./Btn";
 
@@ -49,7 +50,7 @@ export function GameDetailDialog({ game, onStart, onClose }: GameDetailDialogPro
         <div style={{ padding: "20px" }}>
           <p style={{ fontWeight: 800, fontSize: 22, margin: "0 0 10px", letterSpacing: "-0.01em" }}>{game.label}</p>
           <p style={{ color: "#a49dc9", fontSize: 14, margin: "0 0 22px", lineHeight: 1.5 }}>{game.description}</p>
-          {game.maintenance ? (
+          {isUnderMaintenance(game) ? (
             <Btn disabled variant="ghost">
               En mantenimiento
             </Btn>

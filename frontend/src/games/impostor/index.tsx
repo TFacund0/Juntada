@@ -29,4 +29,5 @@ export const impostorGame: GameDef = {
   LocalGame,
   ConfigPanel,
   RoundView,
+  tabbedLobby: true,
 };

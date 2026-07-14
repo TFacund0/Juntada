@@ -26,7 +26,10 @@ const { sendTo, sendError, broadcast, getRoomPublicState, getGroupPublicState, s
 const { syncPhaseTimer, cleanupRoomIfEmpty } = require("./shared");
 
 function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" }>): void {
-  const { group, playerId, error } = groupService.createGroup(ws, { playerName: msg.playerName, groupName: msg.groupName });
+  const { group, playerId, error } = groupService.createGroup(ws, {
+    playerName: msg.playerName,
+    groupName: msg.groupName,
+  });
   if (error) {
     sendError(ws, "CREATE_GROUP_FAILED", error);
     return;
@@ -35,7 +38,11 @@ function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" 
 }
 
 function joinGroup(ws: WS, msg: Extract<ClientMessage, { type: "join_group" }>): void {
-  const { group, playerId, error } = groupService.joinGroup(ws, { code: msg.code, playerName: msg.playerName });
+  const { group, playerId, error } = groupService.joinGroup(ws, {
+    code: msg.code,
+    playerName: msg.playerName,
+    groupName: msg.groupName,
+  });
   if (error) {
     sendError(ws, "JOIN_GROUP_FAILED", error);
     return;
@@ -172,7 +179,7 @@ function scheduleGroupMemberKick(groupCode: string, playerId: string): void {
     logger.info({ groupCode, playerId }, "member auto-removed from group after disconnect timeout");
     if (group.members.length === 0) groups.delete(group.code);
     else broadcastGroupState(group);
-  }, PLAYER_OFFLINE_TIMEOUT_MS);
+  }, PLAYER_OFFLINE_TIMEOUT_MS).unref();
 }
 
 // Mirrors roomHandlers.ts's PLAYER_OFFLINE_TIMEOUT_MS — kept as a separate

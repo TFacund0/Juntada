@@ -16,7 +16,6 @@ export const tutifrutiGame: GameDef = {
     "Sale una letra al azar y todos completan categorías (país, animal, color...) con una palabra que empiece con esa letra, contrarreloj.",
   minPlayers: 2,
   category: "rapidos",
-  // Temporarily blocked while we make some fixes to the game.
   maintenance: true,
   rules: [
     "Se sortea una letra al azar; el anfitrión puede cambiarla antes de arrancar.",

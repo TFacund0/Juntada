@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { GameCategory, GameDef } from "../games/gameTypes";
+import { isUnderMaintenance } from "../games/maintenance";
 import { S } from "../theme/styles";
 import { GameDetailDialog } from "./GameDetailDialog";
 
@@ -53,8 +54,8 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
   };
 
   const availableGames = useMemo(() => {
-    if (availFilter === "soon") return games.filter(g => g.comingSoon && !g.maintenance);
-    return games.filter(g => !g.comingSoon || g.maintenance);
+    if (availFilter === "soon") return games.filter(g => g.comingSoon && !isUnderMaintenance(g));
+    return games.filter(g => !g.comingSoon || isUnderMaintenance(g));
   }, [games, availFilter]);
 
   const filtered = useMemo(() => {
@@ -179,10 +180,10 @@ function GameGrid({ games, onSelect }: { games: GameDef[]; onSelect: (game: Game
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
       {games.map(g => (
-        <div key={g.id} style={{ ...S.catalogCard, opacity: g.comingSoon || g.maintenance ? 0.55 : 1 }} onClick={() => onSelect(g)}>
+        <div key={g.id} style={{ ...S.catalogCard, opacity: g.comingSoon || isUnderMaintenance(g) ? 0.55 : 1 }} onClick={() => onSelect(g)}>
           <div style={S.catalogThumb}>
             {g.icon}
-            {g.maintenance ? (
+            {isUnderMaintenance(g) ? (
               <span style={{ ...S.soonBadge, color: "#EF9F27" }}>En mantenimiento</span>
             ) : (
               g.comingSoon && <span style={S.soonBadge}>Próximamente</span>
