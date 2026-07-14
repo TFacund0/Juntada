@@ -4,6 +4,7 @@ import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
+import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
 
@@ -478,7 +479,6 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando resultado..." />;
 
     const winnerColor = abortedReason ? "#E2C44A" : winner === "innocents" ? "#5DCAA5" : "#F09595";
-    const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
 
     return (
       <div>
@@ -499,40 +499,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           </div>
         )}
 
-        {eliminated && (
-          <div
-            style={{
-              ...S.cardHighlight,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              border: `1px solid ${wasImpostor == null ? "rgba(127,119,221,0.35)" : roleColor}66`,
-            }}
-          >
-            <Avatar name={eliminated.name} size={44} />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{eliminated.name}</p>
-              <p style={{ ...S.muted, margin: 0 }}>quedó eliminado/a</p>
-            </div>
-            {wasImpostor != null && (
-              <span
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: "0.02em",
-                  color: roleColor,
-                  background: wasImpostor ? "rgba(240,149,149,0.15)" : "rgba(93,202,165,0.15)",
-                  border: `1px solid ${wasImpostor ? "rgba(240,149,149,0.4)" : "rgba(93,202,165,0.4)"}`,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {wasImpostor ? "ERA EL IMPOSTOR" : "ERA INOCENTE"}
-              </span>
-            )}
-          </div>
-        )}
+        {eliminated && <EliminatedPlayerCard name={eliminated.name} wasImpostor={wasImpostor} />}
 
         {matchOver && word && (
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>

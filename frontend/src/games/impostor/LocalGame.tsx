@@ -7,6 +7,7 @@ import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { TabRow } from "../../components/TabRow";
 import { StickyActionBar } from "../../components/StickyActionBar";
+import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOCAL GAME MODE — un solo dispositivo, se pasa de mano en mano.
@@ -724,7 +725,6 @@ export function LocalGame() {
     // there's nothing left to protect, so the outcome always shows.
     const reveal = config.revealOnElimination || matchOver;
     const wasImpostor = reveal ? round.wasImpostor : undefined;
-    const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
     const winnerColor = winner === "innocents" ? "#5DCAA5" : "#F09595";
 
     return (
@@ -737,40 +737,7 @@ export function LocalGame() {
           </div>
         )}
 
-        {eliminated && (
-          <div
-            style={{
-              ...S.cardHighlight,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              border: `1px solid ${wasImpostor == null ? "rgba(127,119,221,0.35)" : roleColor}66`,
-            }}
-          >
-            <Avatar name={eliminated.name} size={44} />
-            <div style={{ flex: 1 }}>
-              <p style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{eliminated.name}</p>
-              <p style={{ ...S.muted, margin: 0 }}>quedó eliminado/a</p>
-            </div>
-            {wasImpostor != null && (
-              <span
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: "0.02em",
-                  color: roleColor,
-                  background: wasImpostor ? "rgba(240,149,149,0.15)" : "rgba(93,202,165,0.15)",
-                  border: `1px solid ${wasImpostor ? "rgba(240,149,149,0.4)" : "rgba(93,202,165,0.4)"}`,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {wasImpostor ? "ERA EL IMPOSTOR" : "ERA INOCENTE"}
-              </span>
-            )}
-          </div>
-        )}
+        {eliminated && <EliminatedPlayerCard name={eliminated.name} wasImpostor={wasImpostor} />}
 
         {matchOver && (
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
