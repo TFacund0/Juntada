@@ -8,6 +8,7 @@ import { LocalGame } from "./LocalGame";
 // round can't start with none active, so every test that needs to actually
 // play a round picks the first one first.
 async function enableFirstCategory(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Configuración" }));
   await user.click(screen.getByRole("button", { name: "Categorías" }));
   const firstLabel = Object.values(CATEGORIES)[0].label;
   await user.click(screen.getByText(firstLabel));
@@ -77,6 +78,7 @@ describe("Impostor LocalGame", () => {
     render(<LocalGame />);
     await enableFirstCategory(user);
 
+    await user.click(screen.getByRole("button", { name: "Configuración" }));
     await user.click(screen.getByRole("button", { name: "Orden" }));
     const rows = screen.getAllByText(/^Jugador \d$/);
     expect(rows.map(r => r.textContent)).toEqual(["Jugador 1", "Jugador 2", "Jugador 3", "Jugador 4"]);

@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
+import { maxImpostors, matchWinner } from "@juntada/impostor-match-rules";
 import { shuffle } from "../../utils/shuffle";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
+import { TabRow } from "../../components/TabRow";
+import { StickyActionBar } from "../../components/StickyActionBar";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOCAL GAME MODE — un solo dispositivo, se pasa de mano en mano.
@@ -15,12 +18,6 @@ import { Avatar } from "../../components/Avatar";
 interface LocalPlayer {
   id: number;
   name: string;
-}
-
-// The most impostors a room of this size can start with while keeping them
-// a strict minority — mirrors backend/src/games/impostor/engine.ts.
-function maxImpostors(playerCount: number): number {
-  return Math.max(1, Math.floor((playerCount - 1) / 2));
 }
 
 interface Round {
@@ -99,7 +96,10 @@ export function LocalGame() {
   const [usedWords, setUsedWords] = useState<Record<string, string[]>>({});
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [tab, setTab] = useState<"players" | "cats" | "rules" | "order">("players");
+  const [tab, setTab] = useState<"players" | "config">("players");
+  // Mirrors online's ConfigPanel.tsx sub-tabs so both modes organize the
+  // rules the same way.
+  const [configTab, setConfigTab] = useState<"cats" | "rules" | "order">("cats");
 
   const activeCats = Object.keys(config.enabledCategories).filter(k => config.enabledCategories[k]);
 
@@ -259,16 +259,9 @@ export function LocalGame() {
       const wasImpostor = round!.impostors.includes(eliminated);
       const matchEliminated = [...round!.matchEliminated, eliminated];
 
-      // The match ends the moment every impostor's been caught (innocents
-      // win) or the surviving impostors are at least as many as the
-      // surviving innocents (impostors win) — otherwise there's another
-      // round of clue-giving to go (continueMatch).
-      const aliveImpostorCount = round!.impostors.filter(id => !matchEliminated.includes(id)).length;
-      const aliveTotal = players.length - matchEliminated.length;
-      const aliveInnocentCount = aliveTotal - aliveImpostorCount;
-      let winner: "innocents" | "impostors" | null = null;
-      if (aliveImpostorCount === 0) winner = "innocents";
-      else if (aliveImpostorCount >= aliveInnocentCount) winner = "impostors";
+      // otherwise there's another round of clue-giving to go (continueMatch)
+      // — see @juntada/impostor-match-rules for the actual win condition.
+      const winner = matchWinner(round!.impostors, matchEliminated, players.length);
 
       const resolved: Round = { ...round!, eliminated, wasImpostor, tally, matchEliminated, matchOver: winner !== null, winner };
       setRound(resolved);
@@ -279,18 +272,30 @@ export function LocalGame() {
   // ── SETUP ──
   if (phase === "setup")
     return (
-      <div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-          {(["players", "cats", "rules", "order"] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{ ...S.btn(tab === t ? "primary" : "ghost"), flex: 1, padding: "10px 4px", fontSize: 13 }}
-            >
-              {t === "players" ? "Jugadores" : t === "cats" ? "Categorías" : t === "rules" ? "Reglas" : "Orden"}
-            </button>
-          ))}
-        </div>
+      <div style={{ paddingBottom: 88 }}>
+        <TabRow
+          tabs={[
+            { key: "players", label: "Jugadores" },
+            { key: "config", label: "Configuración" },
+          ]}
+          active={tab}
+          onChange={setTab}
+          style={{ marginBottom: 14 }}
+        />
+
+        {tab === "config" && (
+          <TabRow
+            tabs={[
+              { key: "cats", label: "Categorías" },
+              { key: "rules", label: "Reglas" },
+              { key: "order", label: "Orden" },
+            ]}
+            active={configTab}
+            onChange={setConfigTab}
+            style={{ marginBottom: 14 }}
+            buttonPadding="8px"
+          />
+        )}
 
         {tab === "players" && (
           <>
@@ -327,7 +332,7 @@ export function LocalGame() {
           </>
         )}
 
-        {tab === "rules" && (
+        {tab === "config" && configTab === "rules" && (
           <>
             <div style={S.card}>
               <span style={S.label}>Impostores</span>
@@ -442,7 +447,7 @@ export function LocalGame() {
           </>
         )}
 
-        {tab === "cats" && (
+        {tab === "config" && configTab === "cats" && (
           <div style={S.card}>
             <span style={S.label}>Categorías</span>
             <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
@@ -484,7 +489,7 @@ export function LocalGame() {
           </div>
         )}
 
-        {tab === "order" && (
+        {tab === "config" && configTab === "order" && (
           <div style={S.card}>
             <span style={S.label}>Orden de turno para dar la palabra</span>
             <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>Así van a ir pasando el dispositivo y dando su palabra en la ronda.</p>
@@ -522,15 +527,17 @@ export function LocalGame() {
           </div>
         )}
 
-        <Btn onClick={startRound} disabled={players.length < 3 || activeCats.length === 0} style={{ marginTop: 8 }}>
-          Iniciar ronda
-        </Btn>
-        {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
-        {players.length >= 3 && activeCats.length === 0 && (
-          <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
-            Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar
-          </p>
-        )}
+        <StickyActionBar>
+          <Btn variant="success" onClick={startRound} disabled={players.length < 3 || activeCats.length === 0}>
+            Iniciar ronda
+          </Btn>
+          {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
+          {players.length >= 3 && activeCats.length === 0 && (
+            <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
+              Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar
+            </p>
+          )}
+        </StickyActionBar>
       </div>
     );
 

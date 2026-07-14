@@ -35,4 +35,10 @@ export const ruletaGame: GameDef = {
   ConfigPanel,
   RoundView,
   LobbyInfo,
+  tabbedLobby: true,
+  // Mirrors LocalGame.tsx's own `disabled={entries.length < 2}` check on
+  // "Empezar a girar" — online and local should never disagree on when the
+  // wheel is actually startable.
+  canStart: room => (((room.config as { entries?: unknown[] })?.entries?.length ?? 0) < 2 ? "Cargá al menos 2 entradas" : null),
+  startLabel: "Empezar a girar",
 };

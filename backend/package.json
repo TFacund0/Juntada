@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@juntada/impostor-data": "workspace:*",
+    "@juntada/impostor-match-rules": "workspace:*",
     "@juntada/limon-limon-deck": "workspace:*",
     "@juntada/shared-types": "workspace:*",
     "@juntada/sintonia-data": "workspace:*",

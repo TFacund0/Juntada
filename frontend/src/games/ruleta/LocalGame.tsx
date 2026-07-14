@@ -1,6 +1,10 @@
 import { useRef, useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { TabRow } from "../../components/TabRow";
+import { StickyActionBar } from "../../components/StickyActionBar";
+import { EntriesEditor } from "./EntriesEditor";
+import { ModeSelector } from "./ModeSelector";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RULETA — cargás entradas (un nombre, y opcionalmente una descripción más larga
@@ -32,9 +36,8 @@ function slicePath(cx: number, cy: number, r: number, startAngle: number, endAng
 
 export function LocalGame() {
   const [phase, setPhase] = useState<"setup" | "wheel">("setup");
+  const [setupTab, setSetupTab] = useState<"entries" | "mode">("entries");
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [name, setName] = useState("");
-  const [desc, setDesc] = useState("");
   const [mode, setMode] = useState<"keep" | "eliminate">("keep");
 
   const [pool, setPool] = useState<Entry[]>([]);
@@ -47,13 +50,7 @@ export function LocalGame() {
   const rotationRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const addEntry = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setEntries(prev => [...prev, { id: Date.now(), name: trimmed, description: desc.trim() }]);
-    setName("");
-    setDesc("");
-  };
+  const addEntry = (name: string, description: string) => setEntries(prev => [...prev, { id: Date.now(), name, description }]);
 
   const removeEntry = (id: number) => setEntries(prev => prev.filter(e => e.id !== id));
 
@@ -109,63 +106,29 @@ export function LocalGame() {
   // ── SETUP ──
   if (phase === "setup")
     return (
-      <div>
-        <div style={S.card}>
-          <span style={S.label}>Entradas ({entries.length})</span>
-          {entries.map(e => (
-            <div key={e.id} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>{e.name}</p>
-                {e.description && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#9089c0" }}>{e.description}</p>}
-              </div>
-              <button
-                onClick={() => removeEntry(e.id)}
-                style={{ ...S.btn("danger"), width: 32, height: 32, padding: 0, borderRadius: 8, flexShrink: 0 }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
+      <div style={{ paddingBottom: 88 }}>
+        <TabRow
+          tabs={[
+            { key: "entries", label: "Entradas" },
+            { key: "mode", label: "Modo" },
+          ]}
+          active={setupTab}
+          onChange={setSetupTab}
+          style={{ marginBottom: 14 }}
+        />
 
-          <input
-            style={{ ...S.input, marginBottom: 8 }}
-            placeholder="Nombre (ej: Juan, o 'Prenda 1')"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" && !e.shiftKey) addEntry();
-            }}
-          />
-          <textarea
-            style={{ ...S.input, marginBottom: 8, resize: "vertical", minHeight: 60 }}
-            placeholder="Descripción / castigo (opcional)"
-            value={desc}
-            onChange={e => setDesc(e.target.value)}
-          />
-          <Btn variant="ghost" onClick={addEntry}>
-            Agregar a la ruleta
+        {setupTab === "entries" && <EntriesEditor entries={entries} onAdd={addEntry} onRemove={removeEntry} />}
+
+        {setupTab === "mode" && (
+          <ModeSelector mode={mode} onChange={setMode} keepLabel="Repetir — se mantienen todas las entradas, girá las veces que quieras" />
+        )}
+
+        <StickyActionBar>
+          <Btn variant="success" onClick={startWheel} disabled={entries.length < 2}>
+            Empezar a girar
           </Btn>
-        </div>
-
-        <div style={S.card}>
-          <span style={S.label}>Modo</span>
-          <label
-            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 10 }}
-            onClick={() => setMode("keep")}
-          >
-            <input type="radio" readOnly checked={mode === "keep"} />
-            <span style={{ fontSize: 13 }}>Repetir — se mantienen todas las entradas, girá las veces que quieras</span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setMode("eliminate")}>
-            <input type="radio" readOnly checked={mode === "eliminate"} />
-            <span style={{ fontSize: 13 }}>Eliminación — la que sale se saca de la ruleta</span>
-          </label>
-        </div>
-
-        <Btn onClick={startWheel} disabled={entries.length < 2}>
-          Empezar a girar
-        </Btn>
-        {entries.length < 2 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Cargá al menos 2 entradas</p>}
+          {entries.length < 2 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Cargá al menos 2 entradas</p>}
+        </StickyActionBar>
       </div>
     );
 

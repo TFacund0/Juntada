@@ -47,6 +47,7 @@ describe("Ruleta LocalGame", () => {
     await user.type(screen.getByPlaceholderText("Nombre (ej: Juan, o 'Prenda 1')"), "Ana");
     await user.click(screen.getByRole("button", { name: "Agregar a la ruleta" }));
 
+    await user.click(screen.getByRole("button", { name: "Modo" }));
     await user.click(screen.getByText(/Eliminación/));
     await user.click(screen.getByRole("button", { name: "Empezar a girar" }));
 
