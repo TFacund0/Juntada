@@ -447,7 +447,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando resultado..." />;
 
     const winnerColor = winner === "innocents" ? "#5DCAA5" : "#F09595";
-    const roleColor = wasImpostor ? "#5DCAA5" : "#F09595";
+    const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
 
     return (
       <div>
@@ -483,8 +483,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                   fontWeight: 800,
                   letterSpacing: "0.02em",
                   color: roleColor,
-                  background: wasImpostor ? "rgba(93,202,165,0.15)" : "rgba(240,149,149,0.15)",
-                  border: `1px solid ${wasImpostor ? "rgba(93,202,165,0.4)" : "rgba(240,149,149,0.4)"}`,
+                  background: wasImpostor ? "rgba(240,149,149,0.15)" : "rgba(93,202,165,0.15)",
+                  border: `1px solid ${wasImpostor ? "rgba(240,149,149,0.4)" : "rgba(93,202,165,0.4)"}`,
                   whiteSpace: "nowrap",
                 }}
               >
@@ -494,7 +494,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           </div>
         )}
 
-        {word && (
+        {matchOver && word && (
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
             <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{String(word)}</p>

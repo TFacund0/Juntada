@@ -27,10 +27,18 @@ interface Round {
   word: string;
   categoryKey: string;
   categoryLabel: string;
+  // Fixed for the whole match — set once by startRound, carried over
+  // unchanged by continueMatch across every subsequent vote.
   impostors: number[];
+  // Cumulative across the whole match.
+  matchEliminated: number[];
+  // Whoever was still alive at the start of this round's vote.
+  voters: number[];
   eliminated?: number;
   wasImpostor?: boolean;
   tally?: Record<number, number>;
+  matchOver: boolean;
+  winner: "innocents" | "impostors" | null;
 }
 
 interface Config {
@@ -38,6 +46,7 @@ interface Config {
   hintsEnabled: boolean;
   writtenClues: boolean;
   discussionTime: number;
+  revealOnElimination: boolean;
   enabledCategories: Record<string, boolean>;
 }
 
@@ -75,6 +84,7 @@ export function LocalGame() {
     hintsEnabled: true,
     writtenClues: false,
     discussionTime: 30,
+    revealOnElimination: true,
     // Off by default — you have to actively pick which categories are in
     // play rather than opt out of a preselected set.
     enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {} as Record<string, boolean>),
@@ -87,7 +97,6 @@ export function LocalGame() {
   const [selection, setSelection] = useState<Record<number, number>>({}); // voterId -> suspectId not yet confirmed
   const [votes, setVotes] = useState<Record<number, number>>({});
   const [usedWords, setUsedWords] = useState<Record<string, string[]>>({});
-  const [history, setHistory] = useState<Round[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [tab, setTab] = useState<"players" | "config">("players");
@@ -120,17 +129,23 @@ export function LocalGame() {
     setNewName("");
   };
 
-  const startRound = () => {
+  // Picks a fresh word from a random active category, marking it used —
+  // shared by both a brand-new match and another round within one.
+  const drawWord = (): { word: string; catKey: string; catLabel: string } | null => {
     const catKey = activeCats[Math.floor(Math.random() * activeCats.length)];
     const cat = (CATEGORIES as any)[catKey];
     const used = usedWords[catKey] || [];
     const available = cat.words.filter((w: string) => !used.includes(w));
-    if (!available.length) return alert(`Sin palabras disponibles en ${cat.label}`);
+    if (!available.length) {
+      alert(`Sin palabras disponibles en ${cat.label}`);
+      return null;
+    }
     const word = available[Math.floor(Math.random() * available.length)];
     setUsedWords(prev => ({ ...prev, [catKey]: [...(prev[catKey] || []), word] }));
-    const ids = shuffle(players.map(p => p.id));
-    const impostors = ids.slice(0, Math.min(config.numImpostors, maxImpostors(players.length)));
-    setRound({ word, categoryKey: catKey, categoryLabel: cat.label, impostors });
+    return { word, catKey, catLabel: cat.label };
+  };
+
+  const beginReveal = () => {
     setRevealIdx(0);
     setWordVisible(false);
     setClueInput("");
@@ -138,6 +153,47 @@ export function LocalGame() {
     setSelection({});
     setVotes({});
     setPhase("reveal");
+  };
+
+  // Starts a brand-new match: fresh impostors, empty elimination history.
+  const startRound = () => {
+    const drawn = drawWord();
+    if (!drawn) return;
+    const ids = shuffle(players.map(p => p.id));
+    const impostors = ids.slice(0, Math.min(config.numImpostors, maxImpostors(players.length)));
+    setRound({
+      word: drawn.word,
+      categoryKey: drawn.catKey,
+      categoryLabel: drawn.catLabel,
+      impostors,
+      matchEliminated: [],
+      voters: players.map(p => p.id),
+      matchOver: false,
+      winner: null,
+    });
+    beginReveal();
+  };
+
+  // Starts another round of clue-giving within the same match: a fresh word
+  // among whoever's still alive, but the same impostors and elimination
+  // history as before — called after a vote that didn't decide the match yet.
+  const continueMatch = () => {
+    const prev = round;
+    if (!prev) return;
+    const drawn = drawWord();
+    if (!drawn) return;
+    const alive = players.filter(p => !prev.matchEliminated.includes(p.id)).map(p => p.id);
+    setRound({
+      word: drawn.word,
+      categoryKey: drawn.catKey,
+      categoryLabel: drawn.catLabel,
+      impostors: prev.impostors,
+      matchEliminated: prev.matchEliminated,
+      voters: alive,
+      matchOver: false,
+      winner: null,
+    });
+    beginReveal();
   };
 
   const goToDiscussion = () => {
@@ -171,10 +227,10 @@ export function LocalGame() {
     if (!suspectId) return;
     const next = { ...votes, [voterId]: suspectId };
     setVotes(next);
-    if (Object.keys(next).length >= players.length) {
+    if (Object.keys(next).length >= round!.voters.length) {
       const tally: Record<number, number> = {};
-      players.forEach(p => {
-        tally[p.id] = 0;
+      round!.voters.forEach(id => {
+        tally[id] = 0;
       });
       Object.values(next).forEach(id => {
         tally[id] = (tally[id] || 0) + 1;
@@ -185,9 +241,21 @@ export function LocalGame() {
         .map(([id]) => Number(id));
       const eliminated = top[Math.floor(Math.random() * top.length)];
       const wasImpostor = round!.impostors.includes(eliminated);
-      const resolved: Round = { ...round!, eliminated, wasImpostor, tally };
+      const matchEliminated = [...round!.matchEliminated, eliminated];
+
+      // The match ends the moment every impostor's been caught (innocents
+      // win) or the surviving impostors are at least as many as the
+      // surviving innocents (impostors win) — otherwise there's another
+      // round of clue-giving to go (continueMatch).
+      const aliveImpostorCount = round!.impostors.filter(id => !matchEliminated.includes(id)).length;
+      const aliveTotal = players.length - matchEliminated.length;
+      const aliveInnocentCount = aliveTotal - aliveImpostorCount;
+      let winner: "innocents" | "impostors" | null = null;
+      if (aliveImpostorCount === 0) winner = "innocents";
+      else if (aliveImpostorCount >= aliveInnocentCount) winner = "impostors";
+
+      const resolved: Round = { ...round!, eliminated, wasImpostor, tally, matchEliminated, matchOver: winner !== null, winner };
       setRound(resolved);
-      setHistory(h => [...h, resolved]);
       setPhase("result");
     }
   };
@@ -294,6 +362,28 @@ export function LocalGame() {
               </p>
             </div>
             <div style={S.card}>
+              <span style={S.label}>¿Se revela el rol al eliminar a alguien?</span>
+              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, revealOnElimination: true }))}
+                  style={{ ...S.btn(config.revealOnElimination ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                >
+                  Sí, se revela
+                </button>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, revealOnElimination: false }))}
+                  style={{ ...S.btn(!config.revealOnElimination ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                >
+                  No, queda en duda
+                </button>
+              </div>
+              <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                {config.revealOnElimination
+                  ? "Al eliminar a alguien se muestra si era el impostor o no."
+                  : "Al eliminar a alguien no se revela su rol — sigan jugando con la duda."}
+              </p>
+            </div>
+            <div style={S.card}>
               <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <button
@@ -375,37 +465,15 @@ export function LocalGame() {
           Iniciar ronda
         </Btn>
         {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
-
-        {history.length > 0 && (
-          <div style={{ ...S.card, marginTop: 20 }}>
-            <span style={S.label}>Historial</span>
-            {history.map((r, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "8px 0",
-                  borderBottom: "1px solid rgba(127,119,221,0.08)",
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "#b8b0d4" }}>{r.categoryLabel}</span>
-                <span style={{ color: r.wasImpostor ? "#5DCAA5" : "#F09595" }}>
-                  {r.wasImpostor ? "Atrapado" : "Escapó"} · "{r.word}"
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     );
 
   // ── REVEAL ──
   if (phase === "reveal" && round) {
-    const player = players[revealIdx];
+    const alive = players.filter(p => round.voters.includes(p.id));
+    const player = alive[revealIdx];
     const isImpostor = round.impostors.includes(player.id);
-    const isLast = revealIdx === players.length - 1;
+    const isLast = revealIdx === alive.length - 1;
     const needsClue = config.writtenClues && !clueInput.trim();
 
     const advance = () => {
@@ -419,7 +487,7 @@ export function LocalGame() {
     return (
       <div>
         <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>
-          Jugador {revealIdx + 1} de {players.length}
+          Jugador {revealIdx + 1} de {alive.length}
         </p>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 20 }}>
           <Avatar name={player.name} size={56} />
@@ -522,11 +590,12 @@ export function LocalGame() {
     );
 
   // ── VOTE ──
-  if (phase === "vote")
+  if (phase === "vote" && round) {
+    const alive = players.filter(p => round.voters.includes(p.id));
     return (
       <div>
         <CluesReview clues={clues} players={players} />
-        {players.map(voter => {
+        {alive.map(voter => {
           const confirmed = votes[voter.id] != null;
           const pending = selection[voter.id];
           return (
@@ -539,7 +608,7 @@ export function LocalGame() {
               {!confirmed && (
                 <>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {players
+                    {alive
                       .filter(p => p.id !== voter.id)
                       .map(suspect => (
                         <button
@@ -565,47 +634,99 @@ export function LocalGame() {
             </div>
           );
         })}
-        <p style={{ ...S.muted, textAlign: "center" }}>Faltan {players.length - Object.keys(votes).length} confirmaciones</p>
+        <p style={{ ...S.muted, textAlign: "center" }}>Faltan {alive.length - Object.keys(votes).length} confirmaciones</p>
       </div>
     );
+  }
 
   // ── RESULT ──
   if (phase === "result" && round) {
     const eliminated = players.find(p => p.id === round.eliminated);
     const impostorPlayers = players.filter(p => round.impostors.includes(p.id));
+    const voters = players.filter(p => round.voters.includes(p.id));
+    const matchOver = round.matchOver;
+    const winner = round.winner;
+    // Each elimination reveals the eliminated player's role only if the
+    // "revealOnElimination" setting is on — but once the match is over
+    // there's nothing left to protect, so the outcome always shows.
+    const reveal = config.revealOnElimination || matchOver;
+    const wasImpostor = reveal ? round.wasImpostor : undefined;
+    const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
+    const winnerColor = winner === "innocents" ? "#5DCAA5" : "#F09595";
+
     return (
       <div>
-        <div style={{ textAlign: "center", padding: "20px 0" }}>
-          <p style={{ ...S.title, fontSize: 26, display: "block" }}>{round.wasImpostor ? "Impostor atrapado" : "El impostor escapó"}</p>
-        </div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
-          <p style={{ fontSize: 32, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round.word}</p>
-          <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryLabel}</p>
-        </div>
-        <div style={S.card}>
-          <span style={S.label}>Impostores</span>
-          {impostorPlayers.map(p => (
-            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <Avatar name={p.name} size={32} />
-              <span style={{ fontWeight: 700 }}>{p.name}</span>
-            </div>
-          ))}
-        </div>
-        {eliminated && (
-          <div style={S.card}>
-            <span style={S.label}>Eliminado</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Avatar name={eliminated.name} size={36} />
-              <span style={{ fontWeight: 700 }}>{eliminated.name}</span>
-              <span style={S.pill(!!round.wasImpostor)}>{round.wasImpostor ? "Era el impostor" : "Era inocente"}</span>
-            </div>
+        {matchOver && (
+          <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+            <p style={{ fontSize: 22, fontWeight: 800, color: winnerColor, marginTop: 8 }}>
+              {winner === "innocents" ? "Ganaron los inocentes" : "Ganaron los impostores"}
+            </p>
           </div>
         )}
+
+        {eliminated && (
+          <div
+            style={{
+              ...S.cardHighlight,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              border: `1px solid ${wasImpostor == null ? "rgba(127,119,221,0.35)" : roleColor}66`,
+            }}
+          >
+            <Avatar name={eliminated.name} size={44} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontWeight: 800, fontSize: 16, margin: 0 }}>{eliminated.name}</p>
+              <p style={{ ...S.muted, margin: 0 }}>quedó eliminado/a</p>
+            </div>
+            {wasImpostor != null && (
+              <span
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.02em",
+                  color: roleColor,
+                  background: wasImpostor ? "rgba(240,149,149,0.15)" : "rgba(93,202,165,0.15)",
+                  border: `1px solid ${wasImpostor ? "rgba(240,149,149,0.4)" : "rgba(93,202,165,0.4)"}`,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {wasImpostor ? "ERA EL IMPOSTOR" : "ERA INOCENTE"}
+              </span>
+            )}
+          </div>
+        )}
+
+        {matchOver && (
+          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
+            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round.word}</p>
+            <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryLabel}</p>
+          </div>
+        )}
+
+        {matchOver && (
+          <div style={S.card}>
+            <span style={S.label}>Impostores</span>
+            {impostorPlayers.map(p => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <Avatar name={p.name} size={32} />
+                <span style={{ fontWeight: 700, flex: 1 }}>{p.name}</span>
+                <span style={S.pill(round.matchEliminated.includes(p.id))}>
+                  {round.matchEliminated.includes(p.id) ? "Atrapado" : "Sigue libre"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={S.card}>
           <span style={S.label}>Votos</span>
-          {players.map(p => {
+          {voters.map(p => {
             const count = (round.tally || {})[p.id] || 0;
+            const total = Math.max(1, voters.length - 1);
             return (
               <div key={p.id} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -617,8 +738,8 @@ export function LocalGame() {
                     style={{
                       height: "100%",
                       borderRadius: 3,
-                      width: `${players.length > 1 ? Math.round((count / (players.length - 1)) * 100) : 0}%`,
-                      background: round.impostors.includes(p.id) ? "#E24B4A" : "#534AB7",
+                      width: `${Math.round((count / total) * 100)}%`,
+                      background: p.id === round.eliminated ? "#E24B4A" : "#534AB7",
                       transition: "width 0.6s",
                     }}
                   />
@@ -627,10 +748,17 @@ export function LocalGame() {
             );
           })}
         </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <Btn variant="success" onClick={startRound}>
-            Nueva ronda
-          </Btn>
+          {matchOver ? (
+            <Btn variant="success" onClick={startRound}>
+              Nueva partida
+            </Btn>
+          ) : (
+            <Btn variant="success" onClick={continueMatch}>
+              Siguiente ronda
+            </Btn>
+          )}
           <Btn variant="ghost" onClick={() => setPhase("setup")}>
             Configuración
           </Btn>
