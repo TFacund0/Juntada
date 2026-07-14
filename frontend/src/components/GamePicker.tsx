@@ -15,12 +15,11 @@ const CATEGORY_LABEL: Record<GameCategory, string> = {
 // Fixed order for category sections when there's no active search.
 const CATEGORY_ORDER: GameCategory[] = ["destacados", "grupo", "rapidos", "equipos", "otros"];
 
-type AvailabilityFilter = "available" | "soon" | "all";
+type AvailabilityFilter = "available" | "soon";
 
 const AVAILABILITY_LABEL: Record<AvailabilityFilter, string> = {
   available: "Disponibles",
   soon: "Próximamente",
-  all: "Todos",
 };
 
 interface GamePickerProps {
@@ -54,9 +53,8 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
   };
 
   const availableGames = useMemo(() => {
-    if (availFilter === "all") return games;
-    if (availFilter === "soon") return games.filter(g => g.comingSoon);
-    return games.filter(g => !g.comingSoon);
+    if (availFilter === "soon") return games.filter(g => g.comingSoon && !g.maintenance);
+    return games.filter(g => !g.comingSoon || g.maintenance);
   }, [games, availFilter]);
 
   const filtered = useMemo(() => {
@@ -181,10 +179,14 @@ function GameGrid({ games, onSelect }: { games: GameDef[]; onSelect: (game: Game
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
       {games.map(g => (
-        <div key={g.id} style={{ ...S.catalogCard, opacity: g.comingSoon ? 0.55 : 1 }} onClick={() => onSelect(g)}>
+        <div key={g.id} style={{ ...S.catalogCard, opacity: g.comingSoon || g.maintenance ? 0.55 : 1 }} onClick={() => onSelect(g)}>
           <div style={S.catalogThumb}>
             {g.icon}
-            {g.comingSoon && <span style={S.soonBadge}>Próximamente</span>}
+            {g.maintenance ? (
+              <span style={{ ...S.soonBadge, color: "#EF9F27" }}>En mantenimiento</span>
+            ) : (
+              g.comingSoon && <span style={S.soonBadge}>Próximamente</span>
+            )}
           </div>
           <div style={S.catalogName}>{g.label}</div>
         </div>

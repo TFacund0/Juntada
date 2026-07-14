@@ -369,14 +369,14 @@ export default function App() {
         )}
 
         {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}
-        {gameId && game?.localOnly && !game.comingSoon && !mode && (
+        {gameId && game?.localOnly && !game.comingSoon && !game.maintenance && !mode && (
           <Suspense fallback={<GameLoading />}>
             <game.LocalGame />
           </Suspense>
         )}
 
         {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
-        {gameId && !mode && game && !game.comingSoon && !game.localOnly && (
+        {gameId && !mode && game && !game.comingSoon && !game.maintenance && !game.localOnly && (
           <div>
             <div style={{ ...S.card, cursor: "pointer", transition: "border 0.15s" }} onClick={() => setMode("multi")}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🌐</div>

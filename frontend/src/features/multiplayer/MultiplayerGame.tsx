@@ -54,7 +54,7 @@ interface MultiplayerGameProps {
 }
 
 function playableGames(): GameDef[] {
-  return (GAME_LIST as GameDef[]).filter(g => !g.comingSoon && !g.localOnly);
+  return (GAME_LIST as GameDef[]).filter(g => !g.comingSoon && !g.maintenance && !g.localOnly);
 }
 
 export function MultiplayerGame({

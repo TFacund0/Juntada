@@ -42,6 +42,10 @@ export interface GameDef {
   RoundView?: ComponentType<RoundViewProps>;
   LobbyInfo?: ComponentType<LobbyInfoProps>;
   comingSoon?: boolean;
+  // Already released but temporarily blocked from being played while it's
+  // being reworked — distinct from comingSoon (never launched yet). Gated
+  // the same way (no "start round"), but labeled "En mantenimiento".
+  maintenance?: boolean;
   localOnly?: boolean;
   rules?: string[];
 }
