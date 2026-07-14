@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { S } from "./theme/styles";
 import { GAME_LIST, getGame } from "./games/registry";
 import type { GameDef } from "./games/gameTypes";
+import { isUnderMaintenance } from "./games/maintenance";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
 import { Btn } from "./components/Btn";
 import { Avatar } from "./components/Avatar";
@@ -393,14 +394,14 @@ export default function App() {
         )}
 
         {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}
-        {gameId && game?.localOnly && !game.comingSoon && !mode && (
+        {gameId && game?.localOnly && !game.comingSoon && !isUnderMaintenance(game) && !mode && (
           <Suspense fallback={<GameLoading />}>
             <game.LocalGame />
           </Suspense>
         )}
 
         {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
-        {gameId && !mode && game && !game.comingSoon && !game.localOnly && (
+        {gameId && !mode && game && !game.comingSoon && !isUnderMaintenance(game) && !game.localOnly && (
           <div>
             <div style={{ ...S.modeRow, borderLeft: "3px solid #7F77DD" }} onClick={() => setMode("multi")}>
               <div style={{ ...S.modeIconBadge, background: "rgba(127,119,221,0.18)" }}>🌐</div>

@@ -19,6 +19,7 @@ export const sintoniaGame: GameDef = {
   description: "Uno ve un punto secreto entre dos conceptos opuestos y da una pista. Los demás intentan adivinar dónde quedó.",
   minPlayers: 2,
   category: "rapidos",
+  maintenance: true,
   rules: [
     'En cada ronda alguien es el "psíquico" y ve un punto secreto en un dial entre dos conceptos opuestos (por ejemplo "Frío" ↔ "Caliente").',
     "El psíquico da (o escribe) una pista relacionada con ese punto, sin nombrarlo directamente.",

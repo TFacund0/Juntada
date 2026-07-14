@@ -19,6 +19,7 @@ export const torneoFutbolGame: GameDef = {
   description: "Armá un torneo de fútbol entre amigos: sorteo de equipos, eliminación directa y estadísticas de goles.",
   minPlayers: 2,
   category: "grupo",
+  maintenance: true,
   rules: [
     "Cada jugador queda asignado a un equipo (sorteado con una ruleta o elegido a mano) antes de arrancar.",
     'Se arma un cuadro de eliminación directa: si la cantidad de jugadores no es una potencia de 2, algunos pasan directo a la siguiente ronda ("bye").',

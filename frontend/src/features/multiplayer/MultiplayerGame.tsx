@@ -8,6 +8,7 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { TabRow } from "../../components/TabRow";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { getGame, GAME_LIST } from "../../games/registry";
+import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
 import { buildRoomJoinUrl, buildGroupJoinUrl } from "./joinLink";
@@ -60,7 +61,7 @@ interface MultiplayerGameProps {
 }
 
 function playableGames(): GameDef[] {
-  return (GAME_LIST as GameDef[]).filter(g => !g.comingSoon && !g.localOnly);
+  return (GAME_LIST as GameDef[]).filter(g => !g.comingSoon && !isUnderMaintenance(g) && !g.localOnly);
 }
 
 export function MultiplayerGame({
