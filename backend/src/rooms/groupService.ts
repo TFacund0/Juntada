@@ -49,9 +49,19 @@ function isNameTaken(group: Group, name: string): boolean {
   return group.members.some(m => m.name.toLowerCase() === name.toLowerCase());
 }
 
-function joinGroup(ws: WebSocket, { code, playerName }: { code?: string; playerName?: string }): GroupResult {
+function joinGroup(
+  ws: WebSocket,
+  { code, playerName, groupName }: { code?: string; playerName?: string; groupName?: string },
+): GroupResult {
   const group = groups.get(code?.toUpperCase() ?? "");
   if (!group) return { error: "No existe ningún grupo con ese código" };
+  // The join form asks for the group's name alongside its code (not just the
+  // code alone) so a mistyped/mismatched code that happens to hit a real,
+  // unrelated group fails loudly here instead of dropping the player into
+  // the wrong group.
+  if (groupName?.trim() && groupName.trim().toLowerCase() !== group.name.toLowerCase()) {
+    return { error: "El nombre no coincide con el grupo de ese código" };
+  }
   if (group.members.length >= MAX_MEMBERS_PER_GROUP) return { error: "El grupo está lleno" };
 
   const name = playerName || "Jugador";
@@ -98,13 +108,16 @@ function isGroupFullyOffline(group: Group): boolean {
 }
 
 function scheduleGroupCleanup(groupCode: string): void {
+  // unref'd so this background grace-period timer never keeps the process
+  // itself alive (matters for clean shutdown / tests) — the server process
+  // otherwise stays up regardless, so the timer still fires normally.
   setTimeout(() => {
     const g = groups.get(groupCode);
     if (g && isGroupFullyOffline(g)) {
       groups.delete(groupCode);
       logger.info({ groupCode, remainingGroups: groups.size }, "group closed: fully offline past grace period");
     }
-  }, ONLINE_CLEANUP_DELAY_MS);
+  }, ONLINE_CLEANUP_DELAY_MS).unref();
 }
 
 module.exports = {

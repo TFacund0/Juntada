@@ -6,12 +6,13 @@
   "private": true,
   "scripts": {
     "start": "tsx server.ts",
-    "dev": "tsx server.ts",
+    "dev": "tsx --env-file-if-exists=.env server.ts",
     "test": "tsx --test"
   },
   "license": "ISC",
   "dependencies": {
     "@juntada/impostor-data": "workspace:*",
+    "@juntada/impostor-match-rules": "workspace:*",
     "@juntada/limon-limon-deck": "workspace:*",
     "@juntada/shared-types": "workspace:*",
     "@juntada/sintonia-data": "workspace:*",

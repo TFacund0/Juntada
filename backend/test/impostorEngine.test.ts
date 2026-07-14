@@ -221,6 +221,88 @@ test("an offline player's turn is skipped automatically", () => {
   assert.equal(room.round.turnIndex, 2, "turn 1 (offline) was skipped");
 });
 
+test("a disconnected impostor merely going offline does NOT abort the match — they get a grace period to reconnect", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+  room.players.find((p: TestPlayer) => p.id === impostorId)!.online = false;
+
+  engine.maybeAdvance(room); // what markOffline calls right after flipping online=false
+
+  assert.equal(room.round.matchOver, false);
+  assert.equal(room.round.abortedReason, undefined);
+});
+
+test("the match aborts once the offline impostor is actually removed (grace period expired)", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+  room.players.find((p: TestPlayer) => p.id === impostorId)!.online = false;
+  engine.maybeAdvance(room); // still within the grace period, no-op
+
+  // Mirrors what roomHandlers.ts's schedulePlayerKick does once the 5-minute
+  // grace period elapses: remove them from room.players, then re-check.
+  room.players = room.players.filter((p: TestPlayer) => p.id !== impostorId);
+  engine.maybeAdvance(room);
+
+  assert.equal(room.phase, "result");
+  assert.equal(room.round.matchOver, true);
+  assert.equal(room.round.winner, null);
+  assert.equal(room.round.abortedReason, "impostor_disconnected");
+  assert.equal(room.roundHistory.at(-1).abortedReason, "impostor_disconnected");
+});
+
+test("the match keeps going if a non-impostor disconnects mid-round", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+  const bystanderId = room.players.find((p: TestPlayer) => p.id !== impostorId)!.id;
+  room.players.find((p: TestPlayer) => p.id === bystanderId)!.online = false;
+
+  engine.maybeAdvance(room);
+
+  assert.equal(room.round.matchOver, false);
+  assert.equal(room.round.abortedReason, undefined);
+});
+
+test("a reconnected impostor (online again within the grace period) never triggers the abort", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+  const p = room.players.find((p: TestPlayer) => p.id === impostorId)!;
+  p.online = false;
+  engine.maybeAdvance(room);
+  p.online = true; // rejoin, same as roomService.rejoinRoom flipping it back
+  engine.maybeAdvance(room);
+
+  assert.equal(room.round.matchOver, false);
+  assert.equal(room.round.abortedReason, undefined);
+});
+
+test("an already-eliminated impostor going offline doesn't abort the match", () => {
+  const room = makeRoom({
+    players: [
+      { id: "p1", name: "Ana", ready: false, online: true },
+      { id: "p2", name: "Beto", ready: false, online: true },
+      { id: "p3", name: "Caro", ready: false, online: true },
+      { id: "p4", name: "Dana", ready: false, online: true },
+    ],
+    config: { ...engine.createConfig(), enabledCategories: allCategoriesEnabled(), numImpostors: 1 },
+  });
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+  // Force-eliminate the impostor via a normal vote so the match keeps going
+  // (an innocent-majority match doesn't end on the first catch by itself
+  // here since there's only ever been one impostor to begin with — catching
+  // them alone always ends it). Simulate that directly on the round instead.
+  room.round.matchEliminated = [impostorId];
+  room.players.find((p: TestPlayer) => p.id === impostorId)!.online = false;
+
+  engine.maybeAdvance(room);
+
+  assert.notEqual(room.round.abortedReason, "impostor_disconnected");
+});
+
 test("player_ready only works during the discussion phase", () => {
   const room = makeRoom();
   engine.startRound(room);
@@ -304,6 +386,23 @@ test("continue_round starts a fresh round among the survivors, keeping the same 
   assert.deepEqual(room.round.matchEliminated, [innocentId]);
   assert.equal(room.round.turnOrder.length, 3, "the eliminated player isn't in this round's turn order");
   assert.ok(!room.round.turnOrder.includes(innocentId));
+});
+
+test("continue_round keeps the same word/category — it's still the same match, only a new match draws a fresh one", () => {
+  const room = makeRoom({
+    players: [1, 2, 3, 4].map(n => ({ id: `p${n}`, name: `P${n}`, ready: false, online: true })),
+  });
+  engine.startRound(room);
+  const { word, categoryKey } = room.round;
+  const impostorId = room.round.impostors[0];
+  const innocentId = room.players.find((p: TestPlayer) => p.id !== impostorId)!.id;
+
+  room.phase = "voting";
+  for (const p of room.players) engine.handleAction(room, p.id, "vote", { suspectId: innocentId });
+  engine.handleAction(room, room.hostId, "continue_round", {});
+
+  assert.equal(room.round.word, word);
+  assert.equal(room.round.categoryKey, categoryKey);
 });
 
 test("eliminating enough innocents that impostors reach parity ends the match with impostors winning", () => {

@@ -47,6 +47,9 @@ importers:
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
+      '@juntada/impostor-match-rules':
+        specifier: workspace:*
+        version: link:../packages/impostor-match-rules
       '@juntada/limon-limon-deck':
         specifier: workspace:*
         version: link:../packages/limon-limon-deck
@@ -120,6 +123,9 @@ importers:
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
+      '@juntada/impostor-match-rules':
+        specifier: workspace:*
+        version: link:../packages/impostor-match-rules
       '@juntada/limon-limon-deck':
         specifier: workspace:*
         version: link:../packages/limon-limon-deck
@@ -192,6 +198,8 @@ importers:
         version: 2.1.9(@types/node@26.1.1)(jsdom@29.1.1)(terser@5.49.0)
 
   packages/impostor-data: {}
+
+  packages/impostor-match-rules: {}
 
   packages/limon-limon-deck: {}
 

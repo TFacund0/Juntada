@@ -33,6 +33,7 @@ function clientIp(req: IncomingMessage): string {
 const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   create_room: { limit: 5, windowMs: 60_000 },
   join_room: { limit: 20, windowMs: 60_000 },
+  check_room_code: { limit: 30, windowMs: 60_000 },
   create_group: { limit: 5, windowMs: 60_000 },
   join_group: { limit: 20, windowMs: 60_000 },
 };
@@ -88,6 +89,10 @@ function attachWebSocketServer(httpServer: Server) {
       ws.ping();
     }
   }, HEARTBEAT_INTERVAL_MS);
+  // Doesn't keep the process (or, in tests, the test runner) alive on its
+  // own — the server closing is what should end the process, not a
+  // still-ticking background interval with nothing left to ping.
+  heartbeat.unref();
   wss.on("close", () => clearInterval(heartbeat));
 
   wss.on("connection", (ws: HeartbeatSocket, req: IncomingMessage) => {

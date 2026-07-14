@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { S } from "./theme/styles";
 import { GAME_LIST, getGame } from "./games/registry";
 import type { GameDef } from "./games/gameTypes";
@@ -72,6 +72,12 @@ export default function App() {
   // saveActive below): once inside an instance, its gameType drives
   // onGameTypeChange and normal session restore (rejoin_group) takes over.
   const [groupFlow, setGroupFlow] = useState(() => validJoinLink?.kind === "group");
+  // Which tab the multiplayer shell should land on when entering via the
+  // home screen's compact group menu (tap "+" → Crear grupo / Unirme a un
+  // grupo) — lets it skip the neutral menu screen and go straight there.
+  const [groupIntent, setGroupIntent] = useState<"create" | "join" | undefined>(undefined);
+  const [showGroupMenu, setShowGroupMenu] = useState(false);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
   const [showRules, setShowRules] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDevNotice, setShowDevNotice] = useState(() => {
@@ -130,6 +136,15 @@ export default function App() {
     saveActive(mode === "multi" && gameId ? { gameId, mode } : null);
   }, [gameId, mode]);
 
+  useEffect(() => {
+    if (!showGroupMenu) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (groupMenuRef.current && !groupMenuRef.current.contains(e.target as Node)) setShowGroupMenu(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [showGroupMenu]);
+
   const goBack = () => {
     if (mode) {
       if (mode === "multi") clearMultiplayerSession();
@@ -158,11 +173,13 @@ export default function App() {
     setShowRules(false);
   };
 
-  const startGroupFlow = () => {
+  const startGroupFlow = (intent: "create" | "join") => {
     setGameId(null);
+    setGroupIntent(intent);
     setGroupFlow(true);
     setMode("multi");
     setShowRules(false);
+    setShowGroupMenu(false);
   };
 
   // First thing the app ever asks — before picking a game, before anything
@@ -245,39 +262,32 @@ export default function App() {
           <h1 style={S.title}>{game?.label ?? "Juntada"}</h1>
           {!gameId && !groupFlow && <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>Elegí un juego para arrancar</p>}
           {!gameId && !groupFlow && !editingName && (
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 10,
-                marginTop: 14,
-                padding: "6px 8px 6px 10px",
-                borderRadius: 999,
-                background: "rgba(127,119,221,0.1)",
-                border: "1px solid rgba(127,119,221,0.3)",
-              }}
-            >
-              <Avatar name={playerName} size={26} />
-              <span style={{ fontWeight: 700, fontSize: 14 }}>{playerName}</span>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 14, position: "relative" }}>
               <button
                 onClick={() => {
                   setNameDraft(playerName);
                   setEditingName(true);
                 }}
-                style={{
-                  background: "rgba(127,119,221,0.18)",
-                  border: "none",
-                  borderRadius: 999,
-                  color: "#AFA9EC",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontFamily: "inherit",
-                  fontWeight: 700,
-                  padding: "5px 12px",
-                }}
+                style={S.namePill}
               >
-                Cambiar
+                <Avatar name={playerName} size={26} />
+                <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{playerName}</span>
               </button>
+              <div ref={groupMenuRef} style={{ position: "relative" }}>
+                <button onClick={() => setShowGroupMenu(v => !v)} aria-label="Crear o unirme a un grupo" style={S.roundIconButton}>
+                  +
+                </button>
+                {showGroupMenu && (
+                  <div style={S.dropdownMenu}>
+                    <button onClick={() => startGroupFlow("create")} style={S.dropdownMenuItem}>
+                      ➕ Crear grupo
+                    </button>
+                    <button onClick={() => startGroupFlow("join")} style={S.dropdownMenuItem}>
+                      🔗 Unirme a un grupo
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {!gameId && !groupFlow && editingName && (
@@ -342,28 +352,9 @@ export default function App() {
 
         {showRules && (game?.rules?.length ?? 0) > 0 && <GameRules rules={game!.rules} />}
 
-        {/* ── Paso 1: elegir juego, o crear/unirse a un grupo persistente ── */}
+        {/* ── Paso 1: elegir juego (crear/unirse a un grupo vive en el "+" del header) ── */}
         {!gameId && !groupFlow && (
           <div>
-            <div style={{ ...S.cardHighlight, cursor: "pointer", textAlign: "center", padding: "14px 16px" }} onClick={startGroupFlow}>
-              <div style={{ fontSize: 22, marginBottom: 4 }}>👥</div>
-              <p style={{ fontWeight: 800, fontSize: 15, margin: "0 0 4px" }}>Crear o unirme a un grupo</p>
-              <p style={{ color: "#6b6490", fontSize: 12, lineHeight: 1.4, margin: 0 }}>
-                Jugá varios juegos seguidos con los mismos amigos, sin repetir el código cada vez.
-              </p>
-            </div>
-            <p
-              style={{
-                ...S.muted,
-                textAlign: "center",
-                margin: "16px 0 10px",
-                fontSize: 12,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}
-            >
-              O elegí un juego para jugar directo
-            </p>
             <GamePicker games={GAME_LIST as GameDef[]} onPick={pickGame} />
           </div>
         )}
@@ -378,15 +369,21 @@ export default function App() {
         {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
         {gameId && !mode && game && !game.comingSoon && !game.localOnly && (
           <div>
-            <div style={{ ...S.card, cursor: "pointer", transition: "border 0.15s" }} onClick={() => setMode("multi")}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🌐</div>
-              <p style={{ fontWeight: 800, fontSize: 18, margin: "0 0 6px" }}>Multijugador online</p>
-              <p style={{ color: "#6b6490", fontSize: 13, margin: 0 }}>Cada uno desde su celular. Código de sala para unirse.</p>
+            <div style={{ ...S.modeRow, borderLeft: "3px solid #7F77DD" }} onClick={() => setMode("multi")}>
+              <div style={{ ...S.modeIconBadge, background: "rgba(127,119,221,0.18)" }}>🌐</div>
+              <div style={{ flex: 1 }}>
+                <p style={S.modeRowTitle}>Multijugador online</p>
+                <p style={S.modeRowSubtitle}>Código de sala, cada uno desde su celular</p>
+              </div>
+              <div style={{ color: "#7F77DD", fontSize: 20 }}>›</div>
             </div>
-            <div style={{ ...S.card, cursor: "pointer" }} onClick={() => setMode("local")}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📱</div>
-              <p style={{ fontWeight: 800, fontSize: 18, margin: "0 0 6px" }}>Modo local · Un dispositivo</p>
-              <p style={{ color: "#6b6490", fontSize: 13, margin: 0 }}>Todos pasan el celular por turnos.</p>
+            <div style={{ ...S.modeRow, borderLeft: "3px solid #5DCAA5" }} onClick={() => setMode("local")}>
+              <div style={{ ...S.modeIconBadge, background: "rgba(93,202,165,0.15)" }}>📱</div>
+              <div style={{ flex: 1 }}>
+                <p style={S.modeRowTitle}>Modo local</p>
+                <p style={S.modeRowSubtitle}>Un dispositivo, se pasa por turnos</p>
+              </div>
+              <div style={{ color: "#5DCAA5", fontSize: 20 }}>›</div>
             </div>
           </div>
         )}
@@ -404,6 +401,7 @@ export default function App() {
             playerName={playerName}
             onChangeName={savePlayerName}
             initialJoinCode={validJoinLink?.code}
+            initialGroupIntent={groupIntent}
             onGameTypeChange={handleRoomGameType}
             onLeaveGroup={goHome}
           />

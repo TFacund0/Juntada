@@ -33,6 +33,13 @@ export const SCHEMAS = {
     code: roomCode,
     playerName: name,
   }),
+  // Read-only lookup so the join form can preview which room a code points
+  // to (name + game) before the player commits to joining it — no side
+  // effects, doesn't register a client/player.
+  check_room_code: z.object({
+    type: z.literal("check_room_code"),
+    code: roomCode,
+  }),
   rejoin: z.object({
     type: z.literal("rejoin"),
     roomCode,
@@ -47,6 +54,7 @@ export const SCHEMAS = {
     type: z.literal("join_group"),
     code: roomCode,
     playerName: name,
+    groupName: z.string().trim().max(60).optional(),
   }),
   rejoin_group: z.object({
     type: z.literal("rejoin_group"),
@@ -307,4 +315,5 @@ export type ServerMessage =
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }
   | { type: "pong" }
+  | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string }
   | ({ type: string } & Record<string, unknown>);

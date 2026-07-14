@@ -85,6 +85,7 @@ type Handler = (ws: WS, msg: any, info: ClientInfo) => void;
 const HANDLERS: Record<string, Handler> = {
   create_room: (ws, msg) => roomHandlers.createRoom(ws, msg),
   join_room: (ws, msg) => roomHandlers.joinRoom(ws, msg),
+  check_room_code: (ws, msg) => roomHandlers.checkRoomCode(ws, msg),
   rejoin: (ws, msg) => roomHandlers.rejoin(ws, msg),
   create_group: (ws, msg) => groupHandlers.createGroup(ws, msg),
   join_group: (ws, msg) => groupHandlers.joinGroup(ws, msg),

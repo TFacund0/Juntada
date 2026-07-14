@@ -9,6 +9,7 @@ import { LocalGame } from "./LocalGame";
 // play a round picks the first one first.
 async function enableFirstCategory(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Configuración" }));
+  await user.click(screen.getByRole("button", { name: "Categorías" }));
   const firstLabel = Object.values(CATEGORIES)[0].label;
   await user.click(screen.getByText(firstLabel));
   await user.click(screen.getByRole("button", { name: "Jugadores" }));
@@ -19,23 +20,33 @@ async function enableFirstCategory(user: ReturnType<typeof userEvent.setup>) {
 // player would. Covers the state machine the component is built around, not
 // just that it renders.
 
-async function revealAllPlayers(user: ReturnType<typeof userEvent.setup>) {
-  // 4 default players: reveal each one's card, then either "Siguiente
-  // jugador" or, on the last one, "Todos listos, empezar".
+// 4 default players: reveal each one's card, then either "Siguiente
+// jugador" or, on the last one, "Todos listos, empezar". Returns the
+// revealed impostor's display name ("Jugador N") so a caller can vote
+// deterministically instead of relying on chance — with numImpostors: 1
+// and 4 players, eliminating anyone else leaves the match undecided (see
+// engine.ts's tallyVotes parity rule), which is a real, valid outcome but
+// not one these tests care to exercise.
+async function revealAllPlayers(user: ReturnType<typeof userEvent.setup>): Promise<string> {
+  let impostorName = "";
   for (let i = 0; i < 4; i++) {
     await user.click(screen.getByText("Tocá para revelar tu palabra"));
+    if (screen.queryByText("Sos el impostor")) impostorName = `Jugador ${i + 1}`;
     const isLast = i === 3;
     await user.click(screen.getByRole("button", { name: isLast ? "Todos listos, empezar" : "Siguiente jugador" }));
   }
+  return impostorName;
 }
 
-async function voteAllPlayers(user: ReturnType<typeof userEvent.setup>) {
-  // Cards render in player order and a voter's card (with its suspect
-  // buttons) disappears once confirmed, so "the first suspect-name button
-  // still in the DOM" always belongs to whichever voter hasn't gone yet.
+// Every voter (except the impostor themselves, who can't vote for their own
+// name) votes for `targetName` — guarantees that player gets eliminated
+// with no possibility of a tie among 4 voters, so the match's outcome is
+// deterministic for tests that need one.
+async function voteAllPlayers(user: ReturnType<typeof userEvent.setup>, targetName: string) {
   for (let i = 0; i < 4; i++) {
     const suspectButtons = screen.getAllByRole("button", { name: /^Jugador \d$/ });
-    await user.click(suspectButtons[0]);
+    const target = suspectButtons.find(b => b.textContent === targetName) ?? suspectButtons[0];
+    await user.click(target);
     const confirmButtons = screen.getAllByRole("button", { name: "Confirmar voto" });
     const enabled = confirmButtons.find(b => !b.hasAttribute("disabled"));
     expect(enabled).toBeDefined();
@@ -51,13 +62,36 @@ describe("Impostor LocalGame", () => {
     expect(screen.getByDisplayValue("Jugador 4")).toBeInTheDocument();
   });
 
-  test("'Iniciar ronda' stays disabled until at least one category is picked", async () => {
+  test("'Iniciar ronda' stays disabled until at least one category is picked, with a hint saying why", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
     expect(screen.getByRole("button", { name: "Iniciar ronda" })).toBeDisabled();
+    expect(screen.getByText('Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar')).toBeInTheDocument();
 
     await enableFirstCategory(user);
     expect(screen.getByRole("button", { name: "Iniciar ronda" })).toBeEnabled();
+    expect(screen.queryByText('Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar')).not.toBeInTheDocument();
+  });
+
+  test("the 'Orden' tab lets the host reorder players, which drives the reveal order", async () => {
+    const user = userEvent.setup();
+    render(<LocalGame />);
+    await enableFirstCategory(user);
+
+    await user.click(screen.getByRole("button", { name: "Configuración" }));
+    await user.click(screen.getByRole("button", { name: "Orden" }));
+    const rows = screen.getAllByText(/^Jugador \d$/);
+    expect(rows.map(r => r.textContent)).toEqual(["Jugador 1", "Jugador 2", "Jugador 3", "Jugador 4"]);
+
+    // Move "Jugador 1" down one spot — it should now reveal second.
+    const downButtons = screen.getAllByRole("button", { name: "↓" });
+    await user.click(downButtons[0]);
+    expect(screen.getAllByText(/^Jugador \d$/).map(r => r.textContent)).toEqual(["Jugador 2", "Jugador 1", "Jugador 3", "Jugador 4"]);
+
+    await user.click(screen.getByRole("button", { name: "Jugadores" }));
+    await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
+    await user.click(screen.getByText("Tocá para revelar tu palabra")); // reveal player 1's card
+    expect(screen.getByText("Jugador 2")).toBeInTheDocument(); // reordered player now goes first
   });
 
   test("disables 'Iniciar ronda' below the 3-player minimum", async () => {
@@ -89,19 +123,20 @@ describe("Impostor LocalGame", () => {
     await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
     expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
 
-    await revealAllPlayers(user);
+    const impostorName = await revealAllPlayers(user);
     expect(screen.getByText("Pista para el impostor")).toBeInTheDocument(); // hintsEnabled defaults to true
 
     await user.click(screen.getByRole("button", { name: "Ir a votación" }));
     expect(screen.getByText("Faltan 4 confirmaciones")).toBeInTheDocument();
 
-    await voteAllPlayers(user);
+    // Every voter targets the impostor (revealed above), so with a single
+    // impostor among 4 players this always ends the match — innocents win
+    // the moment the last impostor is caught (see engine.ts's tallyVotes).
+    await voteAllPlayers(user, impostorName);
 
-    // Result phase: one of these two outcomes, plus the eliminated player and vote tally.
-    const outcome = screen.queryByText("Impostor atrapado") ?? screen.queryByText("El impostor escapó");
-    expect(outcome).not.toBeNull();
+    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
     expect(screen.getByText("La palabra era")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nueva ronda" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nueva partida" })).toBeInTheDocument();
   });
 
   test("starting a new round from the result screen resets reveal/vote state", async () => {
@@ -110,11 +145,11 @@ describe("Impostor LocalGame", () => {
     await enableFirstCategory(user);
 
     await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
-    await revealAllPlayers(user);
+    const impostorName = await revealAllPlayers(user);
     await user.click(screen.getByRole("button", { name: "Ir a votación" }));
-    await voteAllPlayers(user);
+    await voteAllPlayers(user, impostorName);
 
-    await user.click(screen.getByRole("button", { name: "Nueva ronda" }));
+    await user.click(screen.getByRole("button", { name: "Nueva partida" }));
     expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
   });
 });

@@ -84,6 +84,10 @@ interface ImpostorRound {
   revoteCandidates: string[] | null;
   revoteCount: number;
   tally?: Record<string, number>;
+  // Set when the match had to be cut short instead of resolving through a
+  // normal vote — currently only "impostor_disconnected" (see
+  // abortMatchImpostorLeft). Absent for a normally-resolved match.
+  abortedReason?: "impostor_disconnected";
 }
 
 function cfg(room: Room): ImpostorConfig {
@@ -96,14 +100,14 @@ function round(room: Room): ImpostorRound {
 
 const MIN_PLAYERS = 3;
 
-// The most impostors a room of this size can start with while keeping them
-// a strict minority (impostors < innocents) — otherwise the match could open
-// already at or past the impostors' win condition (see tallyVotes) the
-// moment a single innocent gets eliminated. Mirrored in ConfigPanel.tsx so
-// the host can't even pick an unfavorable count in the first place.
-function maxImpostors(playerCount: number): number {
-  return Math.max(1, Math.floor((playerCount - 1) / 2));
-}
+// maxImpostors/matchWinner live in @juntada/impostor-match-rules — shared
+// with ConfigPanel.tsx (mirrors the same cap client-side) and LocalGame.tsx
+// (re-implements the whole match offline), so a rule change can't drift
+// between the three.
+const { maxImpostors, matchWinner } = require("@juntada/impostor-match-rules") as {
+  maxImpostors: (playerCount: number) => number;
+  matchWinner: (impostors: string[], matchEliminated: string[], totalPlayers: number) => "innocents" | "impostors" | null;
+};
 // A tie at the top keeps re-voting among just the tied suspects rather than
 // eliminating one at random — but cap it so a stubborn 1-1 tie between two
 // players (who can just keep voting for each other) doesn't loop forever.
@@ -231,28 +235,24 @@ function startRound(room: Room): { success?: true; error?: string } {
   return { success: true };
 }
 
-// Starts another round of clue-giving within the same match: a fresh word
-// and turn order (limited to whoever's still alive), but the same impostors
-// and elimination history as before — called after a vote that didn't
+// Starts another round of clue-giving within the same match: a fresh turn
+// order (limited to whoever's still alive) so there's another chance to
+// give clues and vote, but the *same* word/category as before — it's still
+// the same investigation, not a new one, so the word only changes when a
+// genuinely new match starts (see startRound). Same impostors and
+// elimination history carry over too — called after a vote that didn't
 // decide the match yet (see tallyVotes).
 function continueMatch(room: Room): { success?: true; error?: string } {
   if (!room.round) return { error: "No hay una partida en curso" };
   const prev = round(room);
   if (prev.matchOver) return { error: "La partida ya terminó" };
 
-  const activeCats = activeCategoryKeys(room);
-  if (activeCats.length === 0) return { error: "No hay categorías activas" };
-  const catKey = activeCats[Math.floor(Math.random() * activeCats.length)];
-  const cat = CATEGORIES[catKey];
-  const word = pickWord(room, catKey);
-  if (!word) return { error: `Sin palabras en ${cat.label}` };
-
   const alive = aliveIds(room);
   room.round = {
-    word,
-    categoryKey: catKey,
-    categoryLabel: cat.label,
-    categoryIcon: cat.icon,
+    word: prev.word,
+    categoryKey: prev.categoryKey,
+    categoryLabel: prev.categoryLabel,
+    categoryIcon: prev.categoryIcon,
     impostors: prev.impostors,
     clues: {},
     turnOrder: effectiveTurnOrder(room).filter(id => alive.includes(id)),
@@ -315,6 +315,34 @@ function rerollWord(room: Room): void {
   round(room).timerEnd = turnTimerEnd(room);
 }
 
+// An impostor's clue/vote is the entire point of the round — if they've
+// disconnected there's no honest way to finish it (they can never give a
+// clue or be voted out again), so the match is cut short right away instead
+// of letting the innocents "win" a round that never actually got decided.
+// Called from maybeAdvance, which already runs immediately on every
+// disconnect (see roomService.markOffline).
+function abortMatchImpostorLeft(room: Room): void {
+  stopRoomTimer(room);
+  const r = round(room);
+  r.matchOver = true;
+  r.winner = null;
+  r.revealed = true;
+  r.abortedReason = "impostor_disconnected";
+  room.phase = "result";
+  room.roundHistory.push({
+    word: r.word,
+    categoryLabel: r.categoryLabel,
+    categoryIcon: r.categoryIcon,
+    impostors: r.impostors,
+    eliminated: r.eliminated,
+    wasImpostor: r.wasImpostor,
+    tally: r.tally || {},
+    matchOver: true,
+    winner: null,
+    abortedReason: "impostor_disconnected",
+  });
+}
+
 function tallyVotes(room: Room): void {
   const r = round(room);
   const alive = aliveIds(room);
@@ -348,16 +376,9 @@ function tallyVotes(room: Room): void {
   r.tally = tally;
   r.wasImpostor = wasImpostor;
 
-  // The match ends the moment every impostor's been caught (innocents win)
-  // or the surviving impostors are at least as many as the surviving
-  // innocents (impostors win, since they can no longer be outvoted) —
-  // otherwise there's another round of clue-giving to go (continueMatch).
-  const aliveImpostorCount = r.impostors.filter(id => !r.matchEliminated.includes(id)).length;
-  const aliveTotal = room.players.length - r.matchEliminated.length;
-  const aliveInnocentCount = aliveTotal - aliveImpostorCount;
-  let winner: "innocents" | "impostors" | null = null;
-  if (aliveImpostorCount === 0) winner = "innocents";
-  else if (aliveImpostorCount >= aliveInnocentCount) winner = "impostors";
+  // otherwise there's another round of clue-giving to go (continueMatch) —
+  // see @juntada/impostor-match-rules for the actual win condition.
+  const winner = matchWinner(r.impostors, r.matchEliminated, room.players.length);
 
   r.matchOver = winner !== null;
   r.winner = winner;
@@ -422,6 +443,21 @@ function advanceTurn(room: Room): void {
 // players are spectating, so only alive+online players' state ever counts.
 function maybeAdvance(room: Room): void {
   if (!room?.round) return;
+  const r0 = round(room);
+  if (r0.matchOver) return;
+
+  // Merely offline isn't enough to abort — that just means they dropped and
+  // might reconnect any second (see roomHandlers.ts's schedulePlayerKick,
+  // which gives every disconnected player a 5-minute grace period before
+  // actually removing them from room.players). Only a genuinely *gone*
+  // impostor (kicked, by timeout or by the host) makes the round impossible
+  // to finish honestly.
+  const goneImpostor = r0.impostors.find(id => !r0.matchEliminated.includes(id) && !room.players.some(p => p.id === id));
+  if (goneImpostor) {
+    abortMatchImpostorLeft(room);
+    return;
+  }
+
   const alive = aliveIds(room);
   const online = room.players.filter(p => p.online && alive.includes(p.id));
   if (online.length === 0) return;
@@ -559,6 +595,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     impostors: r.matchOver ? r.impostors : undefined,
     matchOver: r.matchOver,
     winner: r.winner,
+    abortedReason: r.abortedReason,
     skipVotes: activeSkipVotes(room).length,
     skipVotesNeeded: skipThreshold(room),
     rerollCount: r.rerollCount,

@@ -286,16 +286,19 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
       )}
 
       {finished && isHost && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-          <Btn variant="success" onClick={() => send({ type: "start_round" })}>
-            Jugar de nuevo
-          </Btn>
-          {room.groupCode === null && (
-            <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })}>
-              Volver al lobby
-            </Btn>
-          )}
-        </div>
+        <Btn variant="success" onClick={() => send({ type: "start_round" })} style={{ marginTop: 14 }}>
+          Jugar de nuevo
+        </Btn>
+      )}
+      {/* Mismo botón que el modo local (setPhase("setup")) — siempre
+          disponible para el anfitrión, no solo cuando termina la rueda, así
+          puede volver a la carga de entradas (que ahora vive en la pestaña
+          "Configuración" del lobby) en cualquier momento. En un grupo no
+          aplica: el grupo tiene su propio "Volver al grupo" en el shell. */}
+      {isHost && room.groupCode === null && (
+        <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>
+          Volver a cargar entradas
+        </Btn>
       )}
     </div>
   );

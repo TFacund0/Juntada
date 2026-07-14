@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CATEGORIES } from "@juntada/impostor-data";
 import type { RoomPublicState } from "@juntada/shared-types";
@@ -102,12 +102,16 @@ describe("Impostor ConfigPanel", () => {
     });
   });
 
-  test("the discussion-time slider is disabled when discussion is set to unlimited", async () => {
-    const user = userEvent.setup();
-    render(<ConfigPanel room={makeRoom({ discussionUnlimited: true })} updateConfig={vi.fn()} />);
+  test("moving the discussion-time slider reports the new time and clears unlimited", async () => {
+    const updateConfig = vi.fn();
+    render(<ConfigPanel room={makeRoom()} updateConfig={updateConfig} />);
 
-    await user.click(screen.getByRole("button", { name: "Reglas" }));
-    expect(screen.getByText("Tiempo de discusión: Sin límite")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reglas" }));
+    // clueTime's slider renders first, discussionTime's second.
+    const [, discussionSlider] = screen.getAllByRole("slider");
+    fireEvent.change(discussionSlider, { target: { value: "60" } });
+
+    expect(updateConfig).toHaveBeenCalledWith({ discussionTime: 60, discussionUnlimited: false });
   });
 
   test("moving a player down in the turn order sends the swapped order", async () => {
