@@ -23,7 +23,6 @@ export const ruletaGame: GameDef = {
   description: "Cargá las opciones que quieras y girala para que el grupo decida algo al azar.",
   minPlayers: 1,
   category: "destacados",
-  maintenance: true,
   rules: [
     "Cargá entradas: un nombre (una persona, una comida, lo que sea) y, opcionalmente, una descripción más larga como un castigo o prenda.",
     "Elegí el modo antes de girar:",
