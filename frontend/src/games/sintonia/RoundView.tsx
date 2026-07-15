@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { Dial, MARKER_COLORS } from "./Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Collapsible } from "../../components/Collapsible";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
 
@@ -65,7 +64,6 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   const [spectrumMode, setSpectrumMode] = useState<"random" | "manual" | "same">("random");
   const [spectrumLeft, setSpectrumLeft] = useState("");
   const [spectrumRight, setSpectrumRight] = useState("");
-  const [confirmLobby, setConfirmLobby] = useState(false);
   const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
   const roundSetup = room.round as any;
@@ -414,23 +412,20 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
             <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
           ))}
         {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
+        {isHost && room.groupCode === null && (
+          <ConfirmBackButton
+            title="¿Volver al lobby?"
+            message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
+            confirmLabel="Volver al lobby"
+            onConfirm={() => send({ type: "back_to_lobby" })}
+          >
+            Volver al lobby
+          </ConfirmBackButton>
+        )}
         {!isHost && (
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
           </div>
-        )}
-        {confirmLobby && (
-          <ConfirmDialog
-            title="¿Volver al lobby?"
-            message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
-            confirmLabel="Volver al lobby"
-            onConfirm={() => {
-              setConfirmLobby(false);
-              send({ type: "back_to_lobby" });
-            }}
-            onCancel={() => setConfirmLobby(false)}
-          />
         )}
       </div>
     );
