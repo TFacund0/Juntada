@@ -67,9 +67,17 @@ function rejoinGroup(ws: WS, msg: Extract<ClientMessage, { type: "rejoin_group" 
     const player = instance.players.find(p => p.id === playerId)!;
     player.online = true;
     clients.set(ws, { groupCode: group.code, roomCode: instance.code, playerId });
+
+    // Same re-check as the standalone-room rejoin (see roomHandlers.rejoin):
+    // reconnecting can be exactly what a phase was waiting on.
+    const engine = getEngine(instance.gameType);
+    engine?.maybeAdvance(instance);
+
     sendTo(ws, { type: "joined", playerId, roomCode: instance.code, room: getRoomPublicState(instance) });
     if (instance.round) sendPrivateInfo(ws, instance, playerId);
     broadcast(instance.code, { type: "state", room: getRoomPublicState(instance) }, ws);
+    if (instance.phase === "result") broadcastRoundReveal(instance);
+    syncPhaseTimer(instance);
   }
 
   broadcastGroupState(group);

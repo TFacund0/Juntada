@@ -8,9 +8,23 @@ import { S } from "../theme/styles";
 // unrelated re-render while phase stays "result".
 export function useRevealCountdown(resetKey: unknown, seconds = 3): number {
   const [count, setCount] = useState(seconds);
+  // Tracks the resetKey seen on the last render so a change can be caught
+  // synchronously during render (see below) rather than only in an effect,
+  // which runs *after* the browser has already painted this render's
+  // (stale) count — that gap is what let the previous round's finished
+  // countdown (0) flash the real result for a frame before resetting to 3.
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+
+  // "Adjusting state during rendering" (see React docs): updating state
+  // here, mid-render, immediately triggers a re-render before paint, so the
+  // very first render for a new round already shows the reset count instead
+  // of leaking last round's finished value.
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setCount(seconds);
+  }
 
   useEffect(() => {
-    setCount(seconds);
     if (seconds <= 0) return;
     const interval = setInterval(() => {
       setCount(c => {
@@ -22,8 +36,7 @@ export function useRevealCountdown(resetKey: unknown, seconds = 3): number {
       });
     }, 1000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetKey]);
+  }, [resetKey, seconds]);
 
   return count; // 0 once the countdown finished — safe to reveal
 }

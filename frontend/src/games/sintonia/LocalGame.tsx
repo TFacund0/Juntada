@@ -5,6 +5,10 @@ import { StartButton } from "../../components/StartButton";
 import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { Toggle } from "../../components/Toggle";
+import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
+import { StickyActionBar } from "../../components/StickyActionBar";
+import { ConfirmBackButton } from "../../components/ConfirmBackButton";
+import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { shuffle } from "../../utils/shuffle";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";
@@ -112,6 +116,9 @@ export function LocalGame() {
   const [guessValue, setGuessValue] = useState(50);
   const [totalScore, setTotalScore] = useState(0);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const revealCount = useRevealCountdown(history.length);
+
+  const [tab, setTab] = useState<SetupTab>("players");
 
   const [setupPsychicId, setSetupPsychicId] = useState<number | "random" | null>(null); // null = sugerido, "random", o un id
   // Elegidos por el propio psíquico, una vez que tiene el dispositivo en mano
@@ -256,111 +263,106 @@ export function LocalGame() {
   // ── SETUP (jugadores y configuración general) ──
   if (phase === "setup")
     return (
-      <div>
-        <div style={S.card}>
-          <span style={S.label}>Jugadores ({players.length})</span>
-          {players.map(p => (
-            <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-              <Avatar name={p.name} size={32} />
-              <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-              <button
-                onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <input
-              style={{ ...S.input, flex: 1 }}
-              placeholder="Nombre"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") addPlayer();
-              }}
-            />
-            <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
-              Agregar
-            </Btn>
-          </div>
-          {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
-        </div>
+      <div style={{ paddingBottom: 88 }}>
+        <SetupTabs tab={tab} onChange={setTab} />
 
-        <div style={S.card}>
-          <Toggle
-            label={config.writtenClues ? "Pistas escritas (se escriben en el dispositivo)" : "Pistas dichas en voz alta"}
-            value={config.writtenClues}
-            onChange={v => setConfig(c => ({ ...c, writtenClues: v }))}
-          />
-        </div>
-
-        <div style={S.card}>
-          <span style={S.label}>¿Cómo se juega?</span>
-          <div style={{ display: "flex", gap: 8, marginBottom: config.playMode === "rounds" ? 14 : 0 }}>
-            <button
-              onClick={() => setConfig(c => ({ ...c, playMode: "endless" }))}
-              style={{ ...S.btn(config.playMode === "endless" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-            >
-              Libre (sin límite)
-            </button>
-            <button
-              onClick={() => setConfig(c => ({ ...c, playMode: "rounds" }))}
-              style={{ ...S.btn(config.playMode === "rounds" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-            >
-              Por rondas
-            </button>
-          </div>
-          {config.playMode === "rounds" && (
-            <div>
-              <span style={S.label}>Cantidad de rondas: {config.roundLimit}</span>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                step="1"
-                value={config.roundLimit}
-                onChange={e => setConfig(c => ({ ...c, roundLimit: +e.target.value }))}
-                style={{ width: "100%" }}
-              />
-            </div>
-          )}
-        </div>
-
-        <StartButton onClick={startGame} disabled={players.length < MIN_PLAYERS}>
-          Iniciar partida
-        </StartButton>
-        {players.length < MIN_PLAYERS && (
-          <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
-        )}
-
-        {history.length > 0 && <Scoreboard players={players} history={history} totalScore={totalScore} />}
-
-        {history.length > 0 && (
-          <div style={{ ...S.card, marginTop: 14 }}>
-            <span style={S.label}>Historial de rondas</span>
-            {history.map((r, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "8px 0",
-                  borderBottom: "1px solid rgba(127,119,221,0.08)",
-                  fontSize: 13,
-                }}
-              >
-                <span style={{ color: "#b8b0d4" }}>
-                  {r.psychicName} · {r.left} / {r.right}
-                </span>
-                <span style={{ color: (r.pointsByPlayer[r.psychicId] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>
-                  psíquico +{r.pointsByPlayer[r.psychicId] || 0}
-                </span>
+        {tab === "players" && (
+          <>
+            <div style={S.card}>
+              <span style={S.label}>Jugadores ({players.length})</span>
+              {players.map(p => (
+                <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <Avatar name={p.name} size={32} />
+                  <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                  <button
+                    onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
+                    style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <input
+                  style={{ ...S.input, flex: 1 }}
+                  placeholder="Nombre"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") addPlayer();
+                  }}
+                />
+                <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
+                  Agregar
+                </Btn>
               </div>
-            ))}
-          </div>
+              {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
+            </div>
+
+            {history.length > 0 && <Scoreboard players={players} history={history} totalScore={totalScore} />}
+          </>
         )}
+
+        {tab === "config" && (
+          <>
+            <div style={S.card}>
+              <Toggle
+                label={config.writtenClues ? "Pistas escritas (se escriben en el dispositivo)" : "Pistas dichas en voz alta"}
+                value={config.writtenClues}
+                onChange={v => setConfig(c => ({ ...c, writtenClues: v }))}
+              />
+              <p style={{ ...S.muted, margin: "10px 0 0", lineHeight: 1.4 }}>
+                Con pistas escritas, el psíquico la tipea en el dispositivo antes de pasarlo. Sin esto, la dice en voz alta y
+                el dispositivo pasa directo a que el resto adivine.
+              </p>
+            </div>
+
+            <div style={S.card}>
+              <span style={S.label}>¿Cómo se juega?</span>
+              <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>
+                Define cuándo termina la partida: sigue rotando de psíquico ronda tras ronda sin parar, o corta después de
+                una cantidad fija de rondas y muestra quién ganó.
+              </p>
+              <div style={{ display: "flex", gap: 8, marginBottom: config.playMode === "rounds" ? 14 : 0 }}>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, playMode: "endless" }))}
+                  style={{ ...S.btn(config.playMode === "endless" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
+                >
+                  Libre (sin límite)
+                </button>
+                <button
+                  onClick={() => setConfig(c => ({ ...c, playMode: "rounds" }))}
+                  style={{ ...S.btn(config.playMode === "rounds" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
+                >
+                  Por rondas
+                </button>
+              </div>
+              {config.playMode === "rounds" && (
+                <div>
+                  <span style={S.label}>Cantidad de rondas: {config.roundLimit}</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="20"
+                    step="1"
+                    value={config.roundLimit}
+                    onChange={e => setConfig(c => ({ ...c, roundLimit: +e.target.value }))}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        <StickyActionBar>
+          <StartButton onClick={startGame} disabled={players.length < MIN_PLAYERS}>
+            Iniciar partida
+          </StartButton>
+          {players.length < MIN_PLAYERS && (
+            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
+          )}
+        </StickyActionBar>
       </div>
     );
 
@@ -416,8 +418,10 @@ export function LocalGame() {
       return (
         <div>
           <div style={{ textAlign: "center", marginBottom: 16 }}>
-            <Avatar name={psychic.name} size={56} />
-            <p style={{ fontWeight: 800, fontSize: 20, marginTop: 10 }}>{psychic.name}</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+              <Avatar name={psychic.name} size={56} />
+              <p style={{ fontWeight: 800, fontSize: 20, margin: 0 }}>{psychic.name}</p>
+            </div>
             <p style={S.muted}>Pasále el dispositivo solo a esta persona</p>
           </div>
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
@@ -475,8 +479,10 @@ export function LocalGame() {
     return (
       <div>
         <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <Avatar name={psychic.name} size={56} />
-          <p style={{ fontWeight: 800, fontSize: 20, marginTop: 10 }}>{psychic.name}</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+            <Avatar name={psychic.name} size={56} />
+            <p style={{ fontWeight: 800, fontSize: 20, margin: 0 }}>{psychic.name}</p>
+          </div>
           <p style={S.muted}>Pasále el dispositivo solo a esta persona</p>
         </div>
         <div
@@ -528,8 +534,10 @@ export function LocalGame() {
     return (
       <div>
         <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <Avatar name={guesser.name} size={56} />
-          <p style={{ fontWeight: 800, fontSize: 20, marginTop: 10 }}>{guesser.name}</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+            <Avatar name={guesser.name} size={56} />
+            <p style={{ fontWeight: 800, fontSize: 20, margin: 0 }}>{guesser.name}</p>
+          </div>
           <p style={S.muted}>
             Turno {guessIdx + 1} de {guessOrder.length} — pasále el dispositivo a esta persona
           </p>
@@ -562,6 +570,8 @@ export function LocalGame() {
 
   // ── RESULT ──
   if (phase === "result" && round) {
+    if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando el objetivo..." />;
+
     const points = round.pointsByPlayer || {};
     const guessers = players.filter(p => p.id !== round.psychicId && round.guesses[p.id] != null);
     const markers = guessers.map((p, i) => ({
@@ -638,7 +648,13 @@ export function LocalGame() {
           ) : (
             <StartButton onClick={goToRoundSetup}>Siguiente ronda</StartButton>
           )}
-          <BackButton onClick={() => setPhase("setup")}>Terminar partida</BackButton>
+          <ConfirmBackButton
+            title="¿Terminar la partida?"
+            message="Se interrumpe la partida. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
+            onConfirm={() => setPhase("setup")}
+          >
+            Terminar partida
+          </ConfirmBackButton>
         </div>
       </div>
     );

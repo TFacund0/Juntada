@@ -12,6 +12,10 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   return (
     <div style={S.card}>
       <span style={S.label}>¿Cómo se juega?</span>
+      <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>
+        Define cuándo termina la partida: sigue rotando de psíquico ronda tras ronda sin parar, o corta después de una
+        cantidad fija de rondas y muestra quién ganó.
+      </p>
       <div style={{ display: "flex", gap: 8, marginBottom: playMode === "rounds" ? 14 : 0 }}>
         <button
           onClick={() => updateConfig({ playMode: "endless" })}

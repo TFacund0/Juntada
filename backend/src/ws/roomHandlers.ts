@@ -63,9 +63,21 @@ function rejoin(ws: WS, msg: Extract<ClientMessage, { type: "rejoin" }>): void {
     sendError(ws, "REJOIN_FAILED", error);
     return;
   }
+  // Coming back online can be exactly what a phase was waiting on — e.g. this
+  // player was the last (or only) guesser still marked online when they
+  // dropped mid-round, which made markOffline's online-count check bail out
+  // without finishing the round even though their answer was already in. Left
+  // unchecked here, the round would stay stuck forever since nothing else
+  // re-triggers maybeAdvance until another player acts. Same re-check kick
+  // and disconnect already do.
+  const engine = getEngine(room.gameType);
+  engine?.maybeAdvance(room);
+
   sendTo(ws, { type: "joined", playerId, roomCode: room.code, room: getRoomPublicState(room) });
   if (room.round) sendPrivateInfo(ws, room, playerId);
   broadcast(room.code, { type: "state", room: getRoomPublicState(room) }, ws);
+  if (room.phase === "result") broadcastRoundReveal(room);
+  syncPhaseTimer(room);
 }
 
 function updateConfig(ws: WS, msg: Extract<ClientMessage, { type: "update_config" }>, info: ClientInfo): void {
