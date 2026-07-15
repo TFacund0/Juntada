@@ -2,11 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { buildDeck, buildDefaultDescriptions, getDescription } from "./deck";
+import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
+import { StickyActionBar } from "../../components/StickyActionBar";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
+import { buildDeck, buildDefaultDescriptions, cardKey, getDescription } from "./deck";
 import type { Card } from "./deck";
 import { CardView, DeckStack } from "./CardView";
+import { AssignPicker } from "./AssignPicker";
+import { DescriptionToggle } from "./DescriptionToggle";
 import { DescriptionsEditor } from "./DescriptionsEditor";
+import { ScoreToggleButton } from "./ScoreToggleButton";
+import { AddPlayerForm } from "./AddPlayerForm";
+import { EndMatchButton } from "./EndMatchButton";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIMÓN LIMÓN — un solo dispositivo en el centro de la ronda, jugando con un
@@ -80,6 +88,7 @@ export function LocalGame() {
   const [newName, setNewName] = useState("");
   const [nameError, setNameError] = useState("");
   const [descriptions, setDescriptions] = useState(buildDefaultDescriptions());
+  const [tab, setTab] = useState<SetupTab>("players");
 
   const [deck, setDeck] = useState<Card[]>([]);
   const [current, setCurrent] = useState<Card | null>(null);
@@ -87,8 +96,7 @@ export function LocalGame() {
   const [piles, setPiles] = useState<Record<number, Card[]>>({});
   const [showRanking, setShowRanking] = useState(false);
   const [addingPlayer, setAddingPlayer] = useState(false);
-  const [votingEnd, setVotingEnd] = useState(false);
-  const [endVotes, setEndVotes] = useState<number[]>([]); // ids que votaron terminar antes
+  const [selectedAssignee, setSelectedAssignee] = useState<number | null>(null); // modo círculo: elegido, no confirmado todavía
 
   // ── modo "revelar": mismo mazo para todos, sin turnos. Ciclo de 3 toques
   // por carta: 1) se revela, 2) se tapa (sigue siendo la misma carta, por
@@ -104,10 +112,8 @@ export function LocalGame() {
   // mueve ni entra de ningún lado, solo queda destapada al asentarse
   // ("idle-instant", sin transición). "idle" es solo el estado inicial.
   const [slideAnim, setSlideAnim] = useState<"idle" | "exit" | "idle-instant">("idle");
-  const [showDescription, setShowDescription] = useState(false);
   const [manualCounts, setManualCounts] = useState<Record<number, number>>({});
   const [showManualCounts, setShowManualCounts] = useState(false);
-  const [confirmEndReveal, setConfirmEndReveal] = useState(false);
   const revealTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(
@@ -116,14 +122,6 @@ export function LocalGame() {
     },
     [],
   );
-
-  // Con la mitad (redondeando para arriba) de los jugadores votando, se corta
-  // la partida ya y se muestra la tabla tal cual está en ese momento.
-  useEffect(() => {
-    if (phase === "play" && endVotes.length > 0 && endVotes.length >= Math.ceil(players.length / 2)) {
-      setPhase("result");
-    }
-  }, [endVotes, players.length, phase]);
 
   const isDuplicateName = (name: string, excludeId: number | null) => {
     const norm = name.trim().toLowerCase();
@@ -160,8 +158,6 @@ export function LocalGame() {
       setTurnId(players[0].id);
       setShowRanking(false);
       setAddingPlayer(false);
-      setVotingEnd(false);
-      setEndVotes([]);
     } else {
       revealTimers.current.forEach(clearTimeout);
       revealTimers.current = [];
@@ -170,10 +166,9 @@ export function LocalGame() {
       setRevealed(false);
       setAwaitingAdvance(false);
       setSlideAnim("idle");
-      setShowDescription(false);
       setManualCounts({});
       setShowManualCounts(false);
-      setConfirmEndReveal(false);
+      setAddingPlayer(false);
     }
     setPhase("play");
   };
@@ -187,6 +182,7 @@ export function LocalGame() {
     const card = next.pop()!;
     setDeck(next);
     setCurrent(card);
+    setSelectedAssignee(null);
   };
 
   const assign = (targetId: number) => {
@@ -194,6 +190,7 @@ export function LocalGame() {
     setPiles(prev => ({ ...prev, [targetId]: [...(prev[targetId] || []), current] }));
     const finishedTurnId = turnId;
     setCurrent(null);
+    setSelectedAssignee(null);
     if (deck.length === 0) {
       setPhase("result");
     } else {
@@ -201,16 +198,18 @@ export function LocalGame() {
     }
   };
 
+  const confirmAssign = () => {
+    if (selectedAssignee == null) return;
+    assign(selectedAssignee);
+  };
+
   const turnPlayer = players.find(p => p.id === turnId);
-  const endThreshold = Math.ceil(players.length / 2);
-  const toggleEndVote = (id: number) => setEndVotes(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
 
   // Ciclo de 3 toques por carta: 1) revela, 2) tapa (misma carta, por si la
   // quieren volver a mirar), 3) recién ahí se desliza afuera y descubre la
   // que ya estaba debajo — o termina la partida si era la última.
   const revealClick = () => {
     if (slideAnim === "exit") return;
-    setShowDescription(false);
 
     if (!revealed && !awaitingAdvance) {
       setRevealed(true);
@@ -243,63 +242,73 @@ export function LocalGame() {
   // ── SETUP ──
   if (phase === "setup")
     return (
-      <div>
-        <div style={S.card}>
-          <span style={S.label}>Jugadores ({players.length})</span>
-          {players.map(p => (
-            <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-              <Avatar name={p.name} size={32} />
-              <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-              <button
-                onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
-              >
-                ×
-              </button>
+      <div style={{ paddingBottom: 88 }}>
+        <SetupTabs tab={tab} onChange={setTab} />
+
+        {tab === "players" && (
+          <div style={S.card}>
+            <span style={S.label}>Jugadores ({players.length})</span>
+            {players.map(p => (
+              <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                <Avatar name={p.name} size={32} />
+                <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                <button
+                  onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
+                  style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <input
+                style={{ ...S.input, flex: 1 }}
+                placeholder="Nombre"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") addPlayer();
+                }}
+              />
+              <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
+                Agregar
+              </Btn>
             </div>
-          ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <input
-              style={{ ...S.input, flex: 1 }}
-              placeholder="Nombre"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") addPlayer();
-              }}
-            />
-            <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
-              Agregar
-            </Btn>
+            {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
           </div>
-          {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
-        </div>
-
-        <DescriptionsEditor descriptions={descriptions} onChange={(key, value) => setDescriptions(d => ({ ...d, [key]: value }))} />
-
-        <div style={S.card}>
-          <span style={S.label}>Modo de juego</span>
-          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-            <button onClick={() => setMode("circle")} style={{ ...S.btn(mode === "circle" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
-              En círculo
-            </button>
-            <button onClick={() => setMode("reveal")} style={{ ...S.btn(mode === "reveal" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
-              Revelar cartas
-            </button>
-          </div>
-          <p style={{ ...S.muted, marginTop: 10, marginBottom: 0 }}>
-            {mode === "circle"
-              ? "Van pasando el mazo por turno y el grupo decide quién se come cada carta."
-              : "Se toca la carta para revelarla, se vuelve a tocar para pasar a la siguiente. Anotar quién se queda cada carta es opcional."}
-          </p>
-        </div>
-
-        <Btn onClick={startGame} disabled={players.length < MIN_PLAYERS}>
-          Empezar a jugar
-        </Btn>
-        {players.length < MIN_PLAYERS && (
-          <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
         )}
+
+        {tab === "config" && (
+          <>
+            <div style={S.card}>
+              <span style={S.label}>Modo de juego</span>
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <button onClick={() => setMode("circle")} style={{ ...S.btn(mode === "circle" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
+                  En círculo
+                </button>
+                <button onClick={() => setMode("reveal")} style={{ ...S.btn(mode === "reveal" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
+                  Revelar cartas
+                </button>
+              </div>
+              <p style={{ ...S.muted, marginTop: 10, marginBottom: 0 }}>
+                {mode === "circle"
+                  ? "Van pasando el mazo por turno y el grupo decide quién se come cada carta."
+                  : "Se toca la carta para revelarla, se vuelve a tocar para pasar a la siguiente. Anotar quién se queda cada carta es opcional."}
+              </p>
+            </div>
+
+            <DescriptionsEditor descriptions={descriptions} onChange={(key, value) => setDescriptions(d => ({ ...d, [key]: value }))} />
+          </>
+        )}
+
+        <StickyActionBar>
+          <StartButton onClick={startGame} disabled={players.length < MIN_PLAYERS}>
+            Empezar a jugar
+          </StartButton>
+          {players.length < MIN_PLAYERS && (
+            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
+          )}
+        </StickyActionBar>
       </div>
     );
 
@@ -332,32 +341,23 @@ export function LocalGame() {
           </div>
         </div>
 
-        {revealCard && getDescription(descriptions, revealCard) && (
-          <div style={{ textAlign: "center", marginTop: 14 }}>
-            <button onClick={() => setShowDescription(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "8px 16px", fontSize: 12 }}>
-              {showDescription ? "Ocultar significado" : "Ver significado"}
-            </button>
-            {showDescription && (
-              <p style={{ fontSize: 13, color: "#b8b0d4", margin: "10px 0 0" }}>"{getDescription(descriptions, revealCard)}"</p>
-            )}
+        <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {cardsLeft} cartas por revelar</p>
+
+        {revealCard && (
+          <div style={{ marginTop: 14 }}>
+            <DescriptionToggle key={revealIdx} description={getDescription(descriptions, revealCard)} />
           </div>
         )}
 
-        <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {cardsLeft} cartas por revelar</p>
-
-        <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 14 }}>
-          <button onClick={() => setShowManualCounts(v => !v)} style={{ ...S.btn("ghost"), flex: 1, fontSize: 13 }}>
-            {showManualCounts ? "Ocultar cartas anotadas" : "Anotar cartas manualmente"}
-          </button>
-          <button onClick={() => setConfirmEndReveal(true)} style={{ ...S.btn("danger"), flex: 1, fontSize: 13 }}>
-            Terminar partida
-          </button>
-        </div>
+        <ScoreToggleButton show={showManualCounts} onToggle={() => setShowManualCounts(v => !v)} />
 
         {showManualCounts && (
           <div style={S.card}>
-            <span style={S.label}>Cartas de cada uno (opcional)</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+            <span style={S.label}>Cartas de cada uno</span>
+            <p style={{ ...S.muted, margin: "4px 0 10px", lineHeight: 1.4 }}>
+              En este modo nadie se asigna cartas automáticamente — sumalas vos a mano a medida que se deciden en voz alta.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {players.map(p => (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <Avatar name={p.name} size={26} />
@@ -381,18 +381,14 @@ export function LocalGame() {
           </div>
         )}
 
-        {confirmEndReveal && (
-          <ConfirmDialog
-            title="¿Terminar la partida?"
-            message="Se corta el juego ahora y se muestra el resultado tal como está."
-            confirmLabel="Terminar partida"
-            onConfirm={() => {
-              setConfirmEndReveal(false);
-              setPhase("result");
-            }}
-            onCancel={() => setConfirmEndReveal(false)}
-          />
-        )}
+        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} />}
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
+          <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>
+            {addingPlayer ? "Cancelar" : "+ Sumar jugador"}
+          </button>
+          <EndMatchButton onConfirm={() => setPhase("result")} />
+        </div>
       </div>
     );
   }
@@ -417,112 +413,31 @@ export function LocalGame() {
         <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {deck.length} cartas en el mazo</p>
 
         {current && (
-          <div style={{ ...S.cardHighlight, marginTop: 14 }}>
-            {getDescription(descriptions, current) && (
-              <p style={{ textAlign: "center", fontSize: 13, color: "#b8b0d4", margin: "0 0 12px" }}>
-                "{getDescription(descriptions, current)}"
-              </p>
-            )}
-            <span style={{ ...S.label, textAlign: "center", display: "block" }}>¿Quién se la queda?</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
-              {players.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => assign(p.id)}
-                  style={{
-                    ...S.btn("ghost"),
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    justifyContent: "flex-start",
-                    padding: "10px 14px",
-                  }}
-                >
-                  <Avatar name={p.name} size={26} />
-                  <span>{p.name}</span>
-                </button>
-              ))}
-            </div>
+          <div style={{ marginTop: 14 }}>
+            <DescriptionToggle key={cardKey(current.suit, current.value)} description={getDescription(descriptions, current)} />
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, marginTop: 14, marginBottom: 14 }}>
-          <button onClick={() => setShowRanking(v => !v)} style={{ ...S.btn("ghost"), flex: 1, fontSize: 13 }}>
-            {showRanking ? "Ocultar puntaje" : "Ver puntaje"}
-          </button>
-          <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), flex: 1, fontSize: 13 }}>
-            + Sumar jugador
-          </button>
-          <button
-            onClick={() => setVotingEnd(v => !v)}
-            style={{ ...S.btn(endVotes.length > 0 ? "danger" : "ghost"), flex: 1, fontSize: 13 }}
-          >
-            Terminar antes {endVotes.length > 0 ? `(${endVotes.length}/${endThreshold})` : ""}
-          </button>
-        </div>
+        {current && (
+          <div style={{ ...S.cardHighlight, marginTop: 14 }}>
+            <AssignPicker players={players} selected={selectedAssignee} onSelect={setSelectedAssignee} onConfirm={confirmAssign} />
+          </div>
+        )}
+
+        <ScoreToggleButton show={showRanking} onToggle={() => setShowRanking(v => !v)} />
 
         {showRanking && (
           <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />
         )}
 
-        {addingPlayer && (
-          <div style={S.card}>
-            <span style={S.label}>Sumar jugador</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input
-                style={{ ...S.input, flex: 1 }}
-                placeholder="Nombre"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") addPlayer();
-                }}
-              />
-              <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
-                Sumar
-              </Btn>
-            </div>
-            {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
-          </div>
-        )}
+        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} />}
 
-        {votingEnd && (
-          <div style={S.card}>
-            <span style={S.label}>
-              Votar terminar antes ({endVotes.length}/{endThreshold})
-            </span>
-            <p style={{ ...S.muted, marginTop: -6, marginBottom: 10 }}>
-              Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {players.map(p => {
-                const voted = endVotes.includes(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => toggleEndVote(p.id)}
-                    style={{
-                      ...S.btn(voted ? "danger" : "ghost"),
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      justifyContent: "flex-start",
-                      padding: "10px 14px",
-                    }}
-                  >
-                    <Avatar name={p.name} size={26} />
-                    <span>{p.name}</span>
-                    {voted && <span style={{ marginLeft: "auto", fontSize: 12 }}>votó ✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <Btn variant="ghost" onClick={() => setPhase("setup")} style={{ marginTop: 4 }}>
-          Abandonar partida
-        </Btn>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
+          <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>
+            {addingPlayer ? "Cancelar" : "+ Sumar jugador"}
+          </button>
+          <EndMatchButton onConfirm={() => setPhase("result")} />
+        </div>
       </div>
     );
 
@@ -536,12 +451,8 @@ export function LocalGame() {
         </div>
         {hasManualCounts && <Ranking players={players} counts={manualCounts} />}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-          <Btn variant="success" onClick={playAgain}>
-            Jugar de nuevo
-          </Btn>
-          <Btn variant="ghost" onClick={() => setPhase("setup")}>
-            Volver a jugadores
-          </Btn>
+          <StartButton onClick={playAgain}>Jugar de nuevo</StartButton>
+          <BackButton onClick={() => setPhase("setup")}>Volver al lobby</BackButton>
         </div>
       </div>
     );
@@ -551,25 +462,21 @@ export function LocalGame() {
   return (
     <div>
       <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-        <p style={S.bigReveal}>{deck.length > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
+        <p style={S.bigReveal}>{deck.length > 0 ? "Partida terminada" : "Se acabó el mazo"}</p>
       </div>
       {current && (
         <div style={{ ...S.card, textAlign: "center" }}>
           <span style={S.label}>Quedó sin repartir</span>
           <CardView card={current} size="small" />
           <p style={{ ...S.muted, marginTop: 8 }}>
-            Se votó terminar justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.
+            Se cortó la partida justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.
           </p>
         </div>
       )}
       <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-        <Btn variant="success" onClick={playAgain}>
-          Jugar de nuevo
-        </Btn>
-        <Btn variant="ghost" onClick={() => setPhase("setup")}>
-          Volver a jugadores
-        </Btn>
+        <StartButton onClick={playAgain}>Jugar de nuevo</StartButton>
+        <BackButton onClick={() => setPhase("setup")}>Volver al lobby</BackButton>
       </div>
     </div>
   );

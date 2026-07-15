@@ -1,5 +1,7 @@
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Board } from "./Board";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import type { RoundViewProps } from "../gameTypes";
@@ -103,17 +105,13 @@ export function RoundView({ room, me, myPlayer, isHost, send }: RoundViewProps) 
               <p style={{ color: "#5DCAA5" }}>Listo — esperando a {opponent?.name} para la revancha</p>
             </div>
           ) : (
-            <Btn variant="success" onClick={() => send({ type: "player_ready" })}>
-              Jugar de nuevo
-            </Btn>
+            <StartButton onClick={() => send({ type: "player_ready" })}>Jugar de nuevo</StartButton>
           )}
         </div>
         {ResetScoreControl}
         {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
         {isHost && room.groupCode === null && (
-          <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>
-            Volver al lobby
-          </Btn>
+          <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
         )}
       </div>
     );

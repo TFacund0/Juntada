@@ -22,7 +22,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, c
     players: makePlayers(),
     maxPlayers: 16,
     groupCode: null,
-    config: { descriptions: buildDefaultDescriptions(), turnOrder: ["p1", "p2"], showScoreToPlayers: true, ...configOverrides },
+    config: { descriptions: buildDefaultDescriptions(), turnOrder: ["p1", "p2"], ...configOverrides },
     round: {
       order: ["p1", "p2"],
       turnId: "p1",
@@ -82,6 +82,7 @@ describe("Limón Limón RoundView — round phase", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /Jugador 2/ }));
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
     expect(send).toHaveBeenCalledWith({ type: "assign", targetId: "p2" });
   });
 
@@ -116,6 +117,7 @@ describe("Limón Limón RoundView — round phase", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Terminar antes" }));
     await user.click(screen.getByRole("button", { name: "Votar para terminar" }));
     expect(send).toHaveBeenCalledWith({ type: "vote_end" });
   });

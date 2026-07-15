@@ -154,3 +154,44 @@ test("getPublicRoundView returns null before the round starts", () => {
   const room = makeRoom();
   assert.equal(engine.getPublicRoundView(room), null);
 });
+
+test("maybeAdvance hands the turn to the next online player once the current turn holder goes offline", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  assert.equal(room.round.turnId, "p1");
+
+  room.players.find((p: TestPlayer) => p.id === "p1")!.online = false;
+  engine.maybeAdvance(room);
+  assert.equal(room.round.turnId, "p2", "p1 is offline, so it skips to p2");
+});
+
+test("maybeAdvance skips multiple consecutive offline players in one pass", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  room.players.find((p: TestPlayer) => p.id === "p1")!.online = false;
+  room.players.find((p: TestPlayer) => p.id === "p2")!.online = false;
+
+  engine.maybeAdvance(room);
+  assert.equal(room.round.turnId, "p3");
+});
+
+test("maybeAdvance leaves the turn alone if everyone is offline (nothing to hand it to)", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  room.players.forEach((p: TestPlayer) => (p.online = false));
+
+  engine.maybeAdvance(room);
+  assert.equal(room.round.turnId, "p1");
+});
+
+test("maybeAdvance is a no-op once the round has ended", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  room.round.deck = [{ suit: "oro", value: 1 }];
+  engine.handleAction(room, "p1", "reveal", {});
+  engine.handleAction(room, "p1", "assign", { targetId: "p1" });
+  assert.equal(room.phase, "result");
+
+  room.players.find((p: TestPlayer) => p.id === "p2")!.online = false;
+  assert.doesNotThrow(() => engine.maybeAdvance(room));
+});

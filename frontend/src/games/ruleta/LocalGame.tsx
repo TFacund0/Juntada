@@ -3,6 +3,8 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { TabRow } from "../../components/TabRow";
 import { StickyActionBar } from "../../components/StickyActionBar";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { EntriesEditor } from "./EntriesEditor";
 import { ModeSelector } from "./ModeSelector";
 
@@ -124,9 +126,9 @@ export function LocalGame() {
         )}
 
         <StickyActionBar>
-          <Btn variant="success" onClick={startWheel} disabled={entries.length < 2}>
+          <StartButton onClick={startWheel} disabled={entries.length < 2}>
             Empezar a girar
-          </Btn>
+          </StartButton>
           {entries.length < 2 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Cargá al menos 2 entradas</p>}
         </StickyActionBar>
       </div>
@@ -234,13 +236,9 @@ export function LocalGame() {
 
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             {mode === "eliminate" ? (
-              <Btn variant="success" onClick={confirmEliminate}>
-                Continuar
-              </Btn>
+              <StartButton onClick={confirmEliminate}>Continuar</StartButton>
             ) : (
-              <Btn variant="success" onClick={spinAgain}>
-                Girar de nuevo
-              </Btn>
+              <StartButton onClick={spinAgain}>Girar de nuevo</StartButton>
             )}
           </div>
         </div>
@@ -336,9 +334,7 @@ export function LocalGame() {
         </div>
       )}
 
-      <Btn variant="ghost" onClick={() => setPhase("setup")} style={{ marginTop: 10 }}>
-        Volver a cargar entradas
-      </Btn>
+      <BackButton onClick={() => setPhase("setup")}>Volver a cargar entradas</BackButton>
     </div>
   );
 }

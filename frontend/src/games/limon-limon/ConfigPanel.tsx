@@ -1,15 +1,13 @@
 import { S } from "../../theme/styles";
 import { Avatar } from "../../components/Avatar";
-import { Toggle } from "../../components/Toggle";
 import { effectiveOrder } from "./deck";
 import { DescriptionsEditor } from "./DescriptionsEditor";
 import type { ConfigPanelProps } from "../gameTypes";
 
 // Host-only, se muestra en el lobby: define el orden de turno (arranca en
-// orden de llegada, pero se puede reordenar), si el resto puede espiar el
-// puntaje durante la ronda, y el significado de cada carta.
+// orden de llegada, pero se puede reordenar) y el significado de cada carta.
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
-  const config = room.config as { descriptions?: Record<string, string>; turnOrder?: string[]; showScoreToPlayers?: boolean };
+  const config = room.config as { descriptions?: Record<string, string>; turnOrder?: string[] };
   const descriptions = config.descriptions || {};
   const order = effectiveOrder(room.players, config.turnOrder);
   const players = order.map(id => room.players.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
@@ -60,18 +58,6 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             </div>
           ))}
         </div>
-      </div>
-
-      <div style={S.card}>
-        <Toggle
-          label={
-            config.showScoreToPlayers
-              ? "Todos pueden ver el puntaje durante la ronda"
-              : "Solo el anfitrión puede ver el puntaje durante la ronda"
-          }
-          value={!!config.showScoreToPlayers}
-          onChange={v => updateConfig({ showScoreToPlayers: v })}
-        />
       </div>
 
       <DescriptionsEditor
