@@ -21,7 +21,6 @@ const MIN_PLAYERS = 2;
 interface LimonLimonConfig {
   descriptions: Record<string, string>;
   turnOrder: string[];
-  showScoreToPlayers: boolean;
   [key: string]: unknown;
 }
 
@@ -47,7 +46,7 @@ function buildDeck(): Card[] {
 }
 
 function createConfig(): LimonLimonConfig {
-  return { descriptions: buildDefaultDescriptions(), turnOrder: [], showScoreToPlayers: false };
+  return { descriptions: buildDefaultDescriptions(), turnOrder: [] };
 }
 
 // El anfitrión puede reordenar el turno (config.turnOrder) desde el lobby.
@@ -148,8 +147,28 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
   }
 }
 
-function maybeAdvance(): void {
-  // No hay condición de auto-avance: cada carta se resuelve con "assign".
+// Reveal/assign both require the current turn holder's own device (r.turnId
+// === playerId) — if that specific player goes offline, nobody else can ever
+// submit either action, and the round stalls forever waiting on a turn that
+// may never come back (worse yet if they're later auto-kicked entirely: kept
+// as-is, r.turnId would point at a player id that no longer even exists in
+// room.players). So as soon as an offline player is up, hand the turn to the
+// next player who's actually online — same idea as impostor's
+// skipOfflineTurns. If they reconnect, the circular order still comes back
+// around to them on a later lap; nothing here removes them from it.
+function maybeAdvance(room: Room): void {
+  if (!room.round || room.phase !== "round") return;
+  const r = round(room);
+  const order = getOrder(room);
+  if (order.length === 0) return;
+  const online = room.players.filter(p => p.online);
+  if (online.length === 0) return;
+
+  let turnId = r.turnId;
+  for (let i = 0; i < order.length && !room.players.find(p => p.id === turnId)?.online; i++) {
+    turnId = nextTurnId(room, turnId);
+  }
+  r.turnId = turnId;
 }
 
 function getPublicRoundView(room: Room): Record<string, unknown> | null {

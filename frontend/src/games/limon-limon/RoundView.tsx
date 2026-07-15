@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
-import { CardView } from "./CardView";
-import { getDescription } from "./deck";
+import { CardView, DeckStack } from "./CardView";
+import { AssignPicker } from "./AssignPicker";
+import { DescriptionToggle } from "./DescriptionToggle";
+import { ScoreToggleButton } from "./ScoreToggleButton";
+import { cardKey, getDescription } from "./deck";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
@@ -85,17 +90,23 @@ function Ranking({ players, pileCounts }: { players: PublicPlayer[]; pileCounts:
 // grupo en voz/chat) quién se la come.
 export function RoundView({ room, me, isHost, send }: RoundViewProps) {
   const [showRanking, setShowRanking] = useState(false);
+  const [showEndVote, setShowEndVote] = useState(false);
+  const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null); // elegido, no confirmado todavía
   const round = room.round as any;
   // No standalone match counter on this engine — the pile distribution is a
   // stable stand-in: it only changes once a new deck starts.
   const revealCount = useRevealCountdown(round ? JSON.stringify(round.pileCounts) : "");
+  // La carta actual la decide el server — si cambia (nueva carta revelada, o
+  // se acaba de asignar la anterior) cualquier selección pendiente quedó
+  // obsoleta.
+  useEffect(() => {
+    setSelectedAssignee(null);
+  }, [round?.current]);
   if (!round) return null;
 
   const turnPlayer = room.players.find(p => p.id === round.turnId);
   const myTurn = !!me && round.turnId === me.playerId;
   const descriptions: Record<string, string> = (room.config.descriptions as Record<string, string>) || {};
-
-  const canSeeScore = isHost || !!room.config.showScoreToPlayers;
 
   if (room.phase === "round") {
     return (
@@ -116,39 +127,34 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
           </p>
         )}
 
-        <CardView card={round.current} onClick={myTurn && !round.current ? () => send({ type: "reveal" }) : undefined} />
+        <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
+          <DeckStack cardsLeft={round.remaining} />
+          <div style={{ position: "relative" }}>
+            <CardView card={round.current} onClick={myTurn && !round.current ? () => send({ type: "reveal" }) : undefined} />
+          </div>
+        </div>
 
         <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {round.remaining} cartas en el mazo</p>
 
         {round.current && (
+          <div style={{ marginTop: 14 }}>
+            <DescriptionToggle
+              key={cardKey(round.current.suit, round.current.value)}
+              description={getDescription(descriptions, round.current)}
+            />
+          </div>
+        )}
+
+        {round.current && (
           <div style={{ ...S.cardHighlight, marginTop: 14 }}>
-            {getDescription(descriptions, round.current) && (
-              <p style={{ textAlign: "center", fontSize: 13, color: "#b8b0d4", margin: "0 0 12px" }}>
-                "{getDescription(descriptions, round.current)}"
-              </p>
-            )}
             {myTurn ? (
               <>
-                <span style={{ ...S.label, textAlign: "center", display: "block" }}>¿Quién se la queda?</span>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
-                  {room.players.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => send({ type: "assign", targetId: p.id })}
-                      style={{
-                        ...S.btn("ghost"),
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        justifyContent: "flex-start",
-                        padding: "10px 14px",
-                      }}
-                    >
-                      <Avatar name={p.name} size={26} />
-                      <span>{p.name}</span>
-                    </button>
-                  ))}
-                </div>
+                <AssignPicker
+                  players={room.players}
+                  selected={selectedAssignee}
+                  onSelect={setSelectedAssignee}
+                  onConfirm={() => send({ type: "assign", targetId: selectedAssignee })}
+                />
               </>
             ) : (
               <p style={{ textAlign: "center", ...S.muted }}>Esperando que {turnPlayer?.name} reparta la carta</p>
@@ -156,34 +162,34 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
           </div>
         )}
 
-        {canSeeScore ? (
-          <>
-            <button onClick={() => setShowRanking(v => !v)} style={{ ...S.btn("ghost"), width: "100%", fontSize: 13, marginTop: 14 }}>
-              {showRanking ? "Ocultar puntaje" : "Ver puntaje"}
-            </button>
-            {showRanking && (
-              <div style={{ marginTop: 14 }}>
-                <Ranking players={room.players} pileCounts={round.pileCounts} />
-              </div>
-            )}
-          </>
-        ) : (
-          <p style={{ ...S.muted, textAlign: "center", marginTop: 14 }}>El puntaje se revela al final de la partida</p>
-        )}
+        <ScoreToggleButton show={showRanking} onToggle={() => setShowRanking(v => !v)} />
+        {showRanking && <Ranking players={room.players} pileCounts={round.pileCounts} />}
 
-        <div style={{ ...S.card, marginTop: 14 }}>
-          <span style={S.label}>
-            Terminar antes ({(round.endVotes || []).length}/{round.endVoteThreshold})
-          </span>
-          <p style={{ ...S.muted, marginTop: -6, marginBottom: 10 }}>
-            Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
-          </p>
-          {me && (round.endVotes || []).includes(me.playerId) ? (
-            <p style={{ ...S.muted }}>Votaste terminar — esperando al resto</p>
-          ) : (
-            <Btn variant="danger" onClick={() => send({ type: "vote_end" })}>
-              Votar para terminar
-            </Btn>
+        {/* Chico a propósito — terminar antes es la excepción, no algo a lo
+            que se quiera empujar al grupo — pero en rojo como el resto de
+            los "terminar partida" del modo local, ya que corta el juego. */}
+        <div style={{ textAlign: "center", marginTop: 18 }}>
+          <button
+            onClick={() => setShowEndVote(v => !v)}
+            style={{ ...S.btn("danger"), width: "auto", padding: "6px 14px", fontSize: 12 }}
+          >
+            {(round.endVotes || []).length > 0
+              ? `Terminar antes (${round.endVotes.length}/${round.endVoteThreshold})`
+              : "Terminar antes"}
+          </button>
+          {showEndVote && (
+            <div style={{ ...S.card, marginTop: 10, textAlign: "left" }}>
+              <p style={{ ...S.muted, marginBottom: 10 }}>
+                Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
+              </p>
+              {me && (round.endVotes || []).includes(me.playerId) ? (
+                <p style={{ ...S.muted, margin: 0 }}>Votaste terminar — esperando al resto</p>
+              ) : (
+                <Btn variant="ghost" onClick={() => send({ type: "vote_end" })}>
+                  Votar para terminar
+                </Btn>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -209,14 +215,10 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
         <Ranking players={room.players} pileCounts={round.pileCounts} />
         {isHost ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-            <Btn variant="success" onClick={() => send({ type: "start_round" })}>
-              Jugar de nuevo
-            </Btn>
+            <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>
             {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
             {room.groupCode === null && (
-              <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })}>
-                Volver al lobby
-              </Btn>
+              <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
             )}
           </div>
         ) : (

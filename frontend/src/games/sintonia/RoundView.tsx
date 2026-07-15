@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { Dial, MARKER_COLORS } from "./Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
@@ -407,20 +409,12 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
         })()}
         {isHost &&
           (round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity) ? (
-            <Btn variant="success" onClick={() => send({ type: "new_game" })}>
-              Nueva partida
-            </Btn>
+            <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
           ) : (
-            <Btn variant="success" onClick={() => send({ type: "start_round" })}>
-              Nueva ronda
-            </Btn>
+            <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
           ))}
         {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && (
-          <Btn variant="ghost" onClick={() => setConfirmLobby(true)} style={{ marginTop: 10 }}>
-            Volver al lobby
-          </Btn>
-        )}
+        {isHost && room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
         {!isHost && (
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>

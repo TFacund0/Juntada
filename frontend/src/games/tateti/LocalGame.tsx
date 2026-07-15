@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Board } from "./Board";
 import { checkWinner } from "@juntada/tateti-board";
 
@@ -87,7 +89,7 @@ export function LocalGame() {
           <span style={S.label}>Jugador 2</span>
           <input style={S.input} value={names[1]} onChange={e => setNames(n => [n[0], e.target.value])} />
         </div>
-        <Btn onClick={startGame}>Empezar a jugar</Btn>
+        <StartButton onClick={startGame}>Empezar a jugar</StartButton>
       </div>
     );
 
@@ -119,9 +121,9 @@ export function LocalGame() {
       {winner !== null && (
         <div style={{ ...S.cardHighlight, textAlign: "center", marginTop: 16 }}>
           <p style={S.bigReveal}>{winner === "draw" ? "Empate" : `Ganó ${names[winner]}`}</p>
-          <Btn variant="success" onClick={newRound} style={{ marginTop: 8 }}>
-            Jugar de nuevo
-          </Btn>
+          <div style={{ marginTop: 8 }}>
+            <StartButton onClick={newRound}>Jugar de nuevo</StartButton>
+          </div>
         </div>
       )}
 
@@ -130,9 +132,7 @@ export function LocalGame() {
           {confirmingReset ? "¿Seguro? Tocá de nuevo para confirmar" : "Reiniciar marcador"}
         </Btn>
       </div>
-      <Btn variant="ghost" onClick={() => setPhase("setup")} style={{ marginTop: 10 }}>
-        Volver a nombres
-      </Btn>
+      <BackButton onClick={() => setPhase("setup")}>Volver a nombres</BackButton>
     </div>
   );
 }

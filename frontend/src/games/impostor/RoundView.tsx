@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
@@ -554,21 +556,13 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           })}
         </div>
 
-        {isHost && matchOver && (
-          <Btn variant="success" onClick={() => send({ type: "start_round" })}>
-            Nueva partida
-          </Btn>
-        )}
+        {isHost && matchOver && <StartButton onClick={() => send({ type: "start_round" })}>Nueva partida</StartButton>}
         {isHost && !matchOver && (
-          <Btn variant="success" onClick={() => send({ type: "continue_round" })}>
-            Siguiente ronda
-          </Btn>
+          <StartButton onClick={() => send({ type: "continue_round" })}>Siguiente ronda</StartButton>
         )}
         {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
         {isHost && room.groupCode === null && (
-          <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>
-            Volver al lobby
-          </Btn>
+          <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
         )}
         {!isHost && (
           <div style={{ ...S.card, textAlign: "center" }}>

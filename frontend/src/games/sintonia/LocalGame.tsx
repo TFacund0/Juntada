@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { Toggle } from "../../components/Toggle";
 import { shuffle } from "../../utils/shuffle";
@@ -326,9 +328,9 @@ export function LocalGame() {
           )}
         </div>
 
-        <Btn onClick={startGame} disabled={players.length < MIN_PLAYERS}>
+        <StartButton onClick={startGame} disabled={players.length < MIN_PLAYERS}>
           Iniciar partida
-        </Btn>
+        </StartButton>
         {players.length < MIN_PLAYERS && (
           <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
         )}
@@ -396,12 +398,8 @@ export function LocalGame() {
           </div>
         </div>
 
-        <Btn variant="success" onClick={confirmRoundSetup}>
-          Continuar
-        </Btn>
-        <Btn variant="ghost" onClick={() => setPhase("setup")} style={{ marginTop: 10 }}>
-          Volver a configuración
-        </Btn>
+        <StartButton onClick={confirmRoundSetup}>Continuar</StartButton>
+        <BackButton onClick={() => setPhase("setup")}>Volver a configuración</BackButton>
       </div>
     );
   }
@@ -636,17 +634,11 @@ export function LocalGame() {
         })()}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
           {config.playMode === "rounds" && history.length >= config.roundLimit ? (
-            <Btn variant="success" onClick={startGame}>
-              Nueva partida
-            </Btn>
+            <StartButton onClick={startGame}>Nueva partida</StartButton>
           ) : (
-            <Btn variant="success" onClick={goToRoundSetup}>
-              Siguiente ronda
-            </Btn>
+            <StartButton onClick={goToRoundSetup}>Siguiente ronda</StartButton>
           )}
-          <Btn variant="ghost" onClick={() => setPhase("setup")}>
-            Terminar partida
-          </Btn>
+          <BackButton onClick={() => setPhase("setup")}>Terminar partida</BackButton>
         </div>
       </div>
     );

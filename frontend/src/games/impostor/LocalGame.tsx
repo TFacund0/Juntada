@@ -6,7 +6,10 @@ import { shuffle } from "../../utils/shuffle";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { TabRow } from "../../components/TabRow";
+import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -97,7 +100,7 @@ export function LocalGame() {
   const [usedWords, setUsedWords] = useState<Record<string, string[]>>({});
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [tab, setTab] = useState<"players" | "config">("players");
+  const [tab, setTab] = useState<SetupTab>("players");
   // Mirrors online's ConfigPanel.tsx sub-tabs so both modes organize the
   // rules the same way.
   const [configTab, setConfigTab] = useState<"cats" | "rules" | "order">("cats");
@@ -274,15 +277,7 @@ export function LocalGame() {
   if (phase === "setup")
     return (
       <div style={{ paddingBottom: 88 }}>
-        <TabRow
-          tabs={[
-            { key: "players", label: "Jugadores" },
-            { key: "config", label: "Configuración" },
-          ]}
-          active={tab}
-          onChange={setTab}
-          style={{ marginBottom: 14 }}
-        />
+        <SetupTabs tab={tab} onChange={setTab} />
 
         {tab === "config" && (
           <TabRow
@@ -529,9 +524,9 @@ export function LocalGame() {
         )}
 
         <StickyActionBar>
-          <Btn variant="success" onClick={startRound} disabled={players.length < 3 || activeCats.length === 0}>
+          <StartButton onClick={startRound} disabled={players.length < 3 || activeCats.length === 0}>
             Iniciar ronda
-          </Btn>
+          </StartButton>
           {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
           {players.length >= 3 && activeCats.length === 0 && (
             <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
@@ -791,17 +786,11 @@ export function LocalGame() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {matchOver ? (
-            <Btn variant="success" onClick={startRound}>
-              Nueva partida
-            </Btn>
+            <StartButton onClick={startRound}>Nueva partida</StartButton>
           ) : (
-            <Btn variant="success" onClick={continueMatch}>
-              Siguiente ronda
-            </Btn>
+            <StartButton onClick={continueMatch}>Siguiente ronda</StartButton>
           )}
-          <Btn variant="ghost" onClick={() => setPhase("setup")}>
-            Configuración
-          </Btn>
+          <BackButton onClick={() => setPhase("setup")}>Configuración</BackButton>
         </div>
       </div>
     );

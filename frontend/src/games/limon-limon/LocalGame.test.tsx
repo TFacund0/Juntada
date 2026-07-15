@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocalGame } from "./LocalGame";
 
@@ -38,6 +38,7 @@ describe("Limón Limón LocalGame", () => {
 
     expect(screen.getByText("¿Quién se la queda?")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Jugador 2/ }));
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
 
     expect(screen.getByText("Quedan 39 cartas en el mazo")).toBeInTheDocument();
   });
@@ -45,6 +46,7 @@ describe("Limón Limón LocalGame", () => {
   test("'Revelar cartas' mode uses a 3-tap cycle per card (reveal, hide, advance) and confirms before ending early", async () => {
     const user = userEvent.setup();
     const { container } = render(<LocalGame />);
+    await user.click(screen.getByRole("button", { name: "Configuración" }));
     await user.click(screen.getByRole("button", { name: "Revelar cartas" }));
     await user.click(screen.getByRole("button", { name: "Empezar a jugar" }));
 
@@ -67,11 +69,12 @@ describe("Limón Limón LocalGame", () => {
     expect(await screen.findByText(/Carta 2 de 40/, {}, { timeout: 8000 })).toBeInTheDocument();
     expect(screen.getByText(/toquen para revelar/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Anotar cartas manualmente" }));
-    const plusButtons = screen.getAllByRole("button", { name: "+" });
+    await user.click(screen.getByRole("button", { name: "Ver puntaje" }));
+    const manualCountsPanel = screen.getByText("Cartas de cada uno").parentElement as HTMLElement;
+    const plusButtons = within(manualCountsPanel).getAllByRole("button", { name: "+" });
     await user.click(plusButtons[0]);
     await user.click(plusButtons[0]);
-    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(within(manualCountsPanel).getByText("2")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Terminar partida" }));
     expect(screen.getByText("¿Terminar la partida?")).toBeInTheDocument();
@@ -85,17 +88,20 @@ describe("Limón Limón LocalGame", () => {
     expect(screen.getByText("Cartas acumuladas")).toBeInTheDocument();
   });
 
-  test("voting to end early with a majority cuts the game short and shows the ranking", async () => {
+  test("ending the match early asks for confirmation and shows the result", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
     await user.click(screen.getByRole("button", { name: "Empezar a jugar" }));
 
-    await user.click(screen.getByRole("button", { name: /Terminar antes/ }));
-    // 3 default players -> threshold is ceil(3/2) = 2 votes.
-    await user.click(screen.getByRole("button", { name: /Jugador 1/ }));
-    await user.click(screen.getByRole("button", { name: /Jugador 2/ }));
+    await user.click(screen.getByRole("button", { name: "Terminar partida" }));
+    expect(screen.getByText("¿Terminar la partida?")).toBeInTheDocument();
 
-    expect(screen.getByText("Partida terminada por votación")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByText("¿Terminar la partida?")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Terminar partida" }));
+    await user.click(screen.getAllByRole("button", { name: "Terminar partida" })[1]);
+    expect(screen.getByText("Partida terminada")).toBeInTheDocument();
     expect(screen.getByText("Cartas acumuladas")).toBeInTheDocument();
   });
 });
