@@ -5,8 +5,10 @@ import { Avatar } from "../../components/Avatar";
 import { CodeDisplay } from "../../components/CodeDisplay";
 import { QRDialog } from "../../components/QRDialog";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { TabRow } from "../../components/TabRow";
+import { SetupTabs } from "../../components/SetupTabs";
+import { Toast } from "../../components/Toast";
 import { StickyActionBar } from "../../components/StickyActionBar";
+import { StartButton } from "../../components/StartButton";
 import { getGame, GAME_LIST } from "../../games/registry";
 import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
@@ -123,6 +125,28 @@ export function MultiplayerGame({
   // most games' ConfigPanel is short enough that splitting it just adds a
   // click, so this only applies when the active game asks for it.
   const [lobbyTab, setLobbyTab] = useState<"players" | "config">("players");
+
+  // Player disconnects/reconnects only ever show up as a flipped `online`
+  // flag buried in the next full room-state broadcast — there's no distinct
+  // server event for it. So this diffs each new player list against the
+  // previous one (by id) and surfaces a brief toast for whoever flipped,
+  // skipping ourselves (we already know our own connection state from the
+  // reconnect banner above). Most useful when it's that player's turn and
+  // everyone else is left wondering why nothing's happening.
+  const prevOnlineRef = useRef<Record<string, boolean>>({});
+  const [statusToast, setStatusToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!room) return;
+    const prev = prevOnlineRef.current;
+    for (const p of room.players) {
+      if (p.id === me?.playerId) continue;
+      const wasOnline = prev[p.id];
+      if (wasOnline !== undefined && wasOnline !== p.online) {
+        setStatusToast(p.online ? `${p.name} se reconectó` : `${p.name} se desconectó`);
+      }
+    }
+    prevOnlineRef.current = Object.fromEntries(room.players.map(p => [p.id, p.online]));
+  }, [room, me?.playerId]);
 
   useEffect(() => {
     if (!openPlayerMenu) return;
@@ -625,6 +649,7 @@ export function MultiplayerGame({
     const showLobbyTabs = isHost && !!activeGame?.tabbedLobby;
     return (
       <div style={isHost ? { paddingBottom: 88 } : undefined}>
+        <Toast message={statusToast} onExpire={() => setStatusToast(null)} />
         {reconnectBanner}
         {/* A group instance isn't meant to be joined by raw code — group
             membership (join_instance from the group screen) is how people
@@ -660,15 +685,9 @@ export function MultiplayerGame({
           </>
         )}
         {showLobbyTabs && (
-          <TabRow
-            tabs={[
-              { key: "players", label: "Jugadores" },
-              { key: "config", label: "Configuración" },
-            ]}
-            active={lobbyTab}
-            onChange={setLobbyTab}
-            style={{ marginTop: 14, marginBottom: 14 }}
-          />
+          <div style={{ marginTop: 14 }}>
+            <SetupTabs tab={lobbyTab} onChange={setLobbyTab} />
+          </div>
         )}
 
         {(!showLobbyTabs || lobbyTab === "players") && (
@@ -770,13 +789,9 @@ export function MultiplayerGame({
                 const notReadyReason = notEnoughPlayers ? null : (activeGame?.canStart?.(room) ?? null);
                 return (
                   <>
-                    <Btn
-                      variant="success"
-                      disabled={notEnoughPlayers || !!notReadyReason}
-                      onClick={() => send({ type: "start_round" })}
-                    >
+                    <StartButton disabled={notEnoughPlayers || !!notReadyReason} onClick={() => send({ type: "start_round" })}>
                       {activeGame?.startLabel ?? "Iniciar ronda"}
-                    </Btn>
+                    </StartButton>
                     {notEnoughPlayers ? (
                       <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>
                     ) : (
@@ -821,6 +836,7 @@ export function MultiplayerGame({
   if (!["menu", "create", "join", "lobby", "group"].includes(connectionPhase) && room && activeGame) {
     return (
       <div>
+        <Toast message={statusToast} onExpire={() => setStatusToast(null)} />
         {reconnectBanner}
         {error && (
           <div

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import type { RoundViewProps } from "../gameTypes";
@@ -227,7 +228,7 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
         </div>
 
         {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && <Btn onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</Btn>}
+        {isHost && room.groupCode === null && <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>}
       </div>
     );
   }

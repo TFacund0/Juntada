@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import type { RoundViewProps } from "../gameTypes";
 
 interface Entry {
@@ -180,13 +182,9 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
           {isHost ? (
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
               {round.mode === "eliminate" ? (
-                <Btn variant="success" onClick={() => send({ type: "confirm_eliminate" })}>
-                  Continuar
-                </Btn>
+                <StartButton onClick={() => send({ type: "confirm_eliminate" })}>Continuar</StartButton>
               ) : (
-                <Btn variant="success" onClick={() => send({ type: "spin_again" })}>
-                  Girar de nuevo
-                </Btn>
+                <StartButton onClick={() => send({ type: "spin_again" })}>Girar de nuevo</StartButton>
               )}
             </div>
           ) : (
@@ -285,20 +283,14 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
         </div>
       )}
 
-      {finished && isHost && (
-        <Btn variant="success" onClick={() => send({ type: "start_round" })} style={{ marginTop: 14 }}>
-          Jugar de nuevo
-        </Btn>
-      )}
+      {finished && isHost && <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>}
       {/* Mismo botón que el modo local (setPhase("setup")) — siempre
           disponible para el anfitrión, no solo cuando termina la rueda, así
           puede volver a la carga de entradas (que ahora vive en la pestaña
           "Configuración" del lobby) en cualquier momento. En un grupo no
           aplica: el grupo tiene su propio "Volver al grupo" en el shell. */}
       {isHost && room.groupCode === null && (
-        <Btn variant="ghost" onClick={() => send({ type: "back_to_lobby" })} style={{ marginTop: 10 }}>
-          Volver a cargar entradas
-        </Btn>
+        <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver a cargar entradas</BackButton>
       )}
     </div>
   );

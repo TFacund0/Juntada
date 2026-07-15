@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { startsWithLetter } from "@juntada/tutifruti-words";
@@ -344,17 +346,11 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
         })}
       </div>
       {isHost && !round.isFinalRound && (
-        <Btn variant="success" onClick={() => send({ type: "start_round" })}>
-          Nueva ronda
-        </Btn>
+        <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
       )}
       {round.isFinalRound && <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-      {isHost && room.groupCode === null && (
-        <Btn variant="ghost" onClick={() => setConfirmLobby(true)} style={{ marginTop: 10 }}>
-          Volver al lobby
-        </Btn>
-      )}
+      {isHost && room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
       {confirmLobby && (
         <ConfirmDialog
           title="¿Volver al lobby?"

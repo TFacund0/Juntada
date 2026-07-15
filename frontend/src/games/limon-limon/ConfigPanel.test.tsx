@@ -21,7 +21,6 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     config: {
       descriptions: buildDefaultDescriptions(),
       turnOrder: ["p1", "p2"],
-      showScoreToPlayers: false,
       ...configOverrides,
     },
     round: null,
@@ -45,14 +44,5 @@ describe("Limón Limón ConfigPanel", () => {
 
     await user.click(screen.getAllByRole("button", { name: "↓" })[0]);
     expect(updateConfig).toHaveBeenCalledWith({ turnOrder: ["p2", "p1"] });
-  });
-
-  test("toggling the score-visibility sends the inverse of the current value", async () => {
-    const user = userEvent.setup();
-    const updateConfig = vi.fn();
-    render(<ConfigPanel room={makeRoom({ showScoreToPlayers: false })} updateConfig={updateConfig} />);
-
-    await user.click(screen.getByText("Solo el anfitrión puede ver el puntaje durante la ronda"));
-    expect(updateConfig).toHaveBeenCalledWith({ showScoreToPlayers: true });
   });
 });

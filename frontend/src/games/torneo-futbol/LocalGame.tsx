@@ -2,6 +2,8 @@ import { useState } from "react";
 import { S } from "../../theme/styles";
 import { shuffle } from "../../utils/shuffle";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
+import { BackButton } from "../../components/BackButton";
 import { Avatar } from "../../components/Avatar";
 import { buildBracket, nextPowerOf2, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
@@ -312,9 +314,9 @@ export function LocalGame() {
           </label>
         </div>
 
-        <Btn onClick={goToAssign} disabled={players.length < 2 || teams.length < players.length}>
+        <StartButton onClick={goToAssign} disabled={players.length < 2 || teams.length < players.length}>
           Continuar a sorteo de equipos
-        </Btn>
+        </StartButton>
         {players.length < 2 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 2 jugadores</p>}
       </div>
     );
@@ -453,12 +455,12 @@ export function LocalGame() {
           );
         })}
 
-        <Btn onClick={goToSeed} disabled={!allAssigned || !!spinningId} variant="success" style={{ marginTop: 8 }}>
-          Continuar a armar los cruces
-        </Btn>
-        <Btn variant="ghost" onClick={() => setPhase("setup")} style={{ marginTop: 10 }}>
-          Volver
-        </Btn>
+        <div style={{ marginTop: 8 }}>
+          <StartButton onClick={goToSeed} disabled={!allAssigned || !!spinningId}>
+            Continuar a armar los cruces
+          </StartButton>
+        </div>
+        <BackButton onClick={() => setPhase("setup")}>Volver</BackButton>
       </div>
     );
 
@@ -571,12 +573,8 @@ export function LocalGame() {
           );
         })}
 
-        <Btn onClick={startBracket} variant="success">
-          Confirmar cruces y empezar torneo
-        </Btn>
-        <Btn variant="ghost" onClick={() => setPhase("assign")} style={{ marginTop: 10 }}>
-          Volver
-        </Btn>
+        <StartButton onClick={startBracket}>Confirmar cruces y empezar torneo</StartButton>
+        <BackButton onClick={() => setPhase("assign")}>Volver</BackButton>
       </div>
     );
   }
@@ -725,7 +723,7 @@ export function LocalGame() {
             ))}
           </div>
 
-          <Btn onClick={() => setPhase("setup")}>Nuevo torneo</Btn>
+          <StartButton onClick={() => setPhase("setup")}>Nuevo torneo</StartButton>
         </div>
       );
     }
@@ -871,9 +869,7 @@ export function LocalGame() {
             })}
           </div>
         ))}
-        <Btn variant="ghost" onClick={() => setPhase("setup")}>
-          Cancelar torneo
-        </Btn>
+        <BackButton onClick={() => setPhase("setup")}>Cancelar torneo</BackButton>
       </div>
     );
   }
