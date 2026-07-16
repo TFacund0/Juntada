@@ -119,10 +119,30 @@ function finishRound(room: Room): void {
 }
 
 function maybeAdvance(room: Room): void {
-  if (!room?.round || room.phase !== "guess") return;
-  const online = room.players.filter(p => p.online && p.id !== round(room).psychicId);
+  if (!room?.round) return;
+  const r = round(room);
+
+  // The psychic is the only one who can act during spectrum/clue (pick the
+  // spectrum, write the clue) — if they're truly gone (kicked, by timeout
+  // or by the host; a merely-offline psychic still gets the usual reconnect
+  // grace period, same as everywhere else) nobody else can ever move the
+  // round forward. Bail back to "setup" to pick a new psychic instead of
+  // leaving the room stuck on a phase that can never finish. Scoped to just
+  // these two phases — "guess" doesn't need the psychic present anymore
+  // (finishRound only reads what they already submitted), and "result" is
+  // a finished round already recorded in roundHistory; resetting either of
+  // those would yank a working screen out from under everyone else for no
+  // reason.
+  if ((room.phase === "spectrum" || room.phase === "clue") && !room.players.some(p => p.id === r.psychicId)) {
+    room.round = null;
+    room.phase = "setup";
+    return;
+  }
+
+  if (room.phase !== "guess") return;
+  const online = room.players.filter(p => p.online && p.id !== r.psychicId);
   if (online.length === 0) return;
-  if (online.every(p => round(room).guesses[p.id] != null)) finishRound(room);
+  if (online.every(p => r.guesses[p.id] != null)) finishRound(room);
 }
 
 // Only the host can finalize this step — payload lets them override who's
@@ -131,6 +151,13 @@ function maybeAdvance(room: Room): void {
 function confirmRoundSetup(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: boolean } {
   if (room.phase !== "setup") return { handled: false };
   if (playerId !== room.hostId) return { handled: false };
+  // Same round-limit check startRound already makes before ever reaching
+  // "setup" — re-checked here too since a gone-psychic reset (see
+  // maybeAdvance) can also land the room back in "setup" without going
+  // through startRound, and the client's own "Nueva partida" gate could be
+  // stale by the time this arrives.
+  const c = cfg(room);
+  if (c.playMode === "rounds" && room.roundHistory.length >= c.roundLimit) return { handled: false };
 
   let psychicId = payload?.psychicId as string | undefined;
   if (!psychicId || psychicId === "random" || !room.players.some(p => p.id === psychicId)) {

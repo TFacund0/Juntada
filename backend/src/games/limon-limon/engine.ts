@@ -209,6 +209,11 @@ const engine: GameEngine = {
   getPublicRoundView,
   getPrivateView,
   getRevealMessage,
+  // maybeAdvance here is entirely turn-skip (no vote/ready count to protect
+  // from a premature exclusion), so it's safe to also run it immediately on
+  // disconnect instead of waiting out the 5-minute auto-kick grace period —
+  // same reasoning as impostor's onPlayerOffline.
+  onPlayerOffline: maybeAdvance,
 };
 
 module.exports = engine;

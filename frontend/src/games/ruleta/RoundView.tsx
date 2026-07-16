@@ -290,7 +290,7 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
           "Configuración" del lobby) en cualquier momento. En un grupo no
           aplica: el grupo tiene su propio "Volver al grupo" en el shell. */}
       {isHost && room.groupCode === null && (
-        <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver a cargar entradas</BackButton>
+        <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
       )}
     </div>
   );

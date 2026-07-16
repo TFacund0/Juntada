@@ -88,7 +88,7 @@ type InboundMessage =
   | { type: "word_reveal"; [key: string]: unknown }
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }
-  | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string };
+  | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean };
 
 // Encapsulates the WebSocket connection lifecycle (connect, reconnect/rejoin,
 // message dispatch) so the UI component only deals with plain state.
@@ -122,7 +122,7 @@ export function useMultiplayerSocket({
   // Result of the join screen's live "check_room_code" lookup — a read-only
   // preview of what a typed code points to, shown before the player commits
   // to actually joining (see MultiplayerGame's join-room form).
-  const [roomPreview, setRoomPreview] = useState<{ code: string; found: boolean; name?: string; gameType?: string } | null>(null);
+  const [roomPreview, setRoomPreview] = useState<{ code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean } | null>(null);
   const [error, setError] = useState("");
   // True while a dropped socket is being retried in the background (flaky
   // connection, tab was suspended, etc.) — lets the UI show a "reconectando"
