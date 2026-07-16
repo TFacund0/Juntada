@@ -187,11 +187,14 @@ function removePlayer(room: Room, playerId: string): void {
 // ever getting a say. The existing 5-minute auto-kick grace period
 // (schedulePlayerKick, ws/roomHandlers.ts) already re-runs maybeAdvance once
 // a still-offline player is actually removed — that's the only path that
-// should let the rest of the room move on without them.
+// should let the rest of the room move on without them. Engines that need a
+// low-stakes, immediate reaction instead (e.g. handing off a strict turn
+// rotation) opt into that via onPlayerOffline — see engineTypes.ts.
 function markOffline(room: Room, playerId: string): void {
   const p = room.players.find(p => p.id === playerId);
   if (p) p.online = false;
   reassignHostIfNeeded(room, playerId);
+  getEngine(room.gameType)?.onPlayerOffline?.(room, playerId);
 }
 
 function isRoomFullyOffline(room: Room): boolean {

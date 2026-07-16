@@ -25,4 +25,12 @@ export interface GameEngine {
   getPhaseTimerEnd?(room: Room): number | null;
   forceReadyAndAdvance?(room: Room): void;
   getRevealMessage?(room: Room): ({ type: string } & Record<string, unknown>) | null;
+  // Fires immediately when a player drops (see roomService.markOffline) —
+  // unlike maybeAdvance (only re-run once they're actually removed, after
+  // the 5-minute grace period, or on some other explicit action), this is
+  // for low-stakes/reversible reactions only, like handing off a strict
+  // turn rotation to the next online player. Anything that would exclude a
+  // player from a vote/ready/confirm count belongs in maybeAdvance instead,
+  // so a brief reconnect blip can't cost them their say.
+  onPlayerOffline?(room: Room, playerId: string): void;
 }

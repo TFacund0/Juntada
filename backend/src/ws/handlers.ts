@@ -63,7 +63,18 @@ function handleDisconnect(ws: WS): void {
       broadcastState(room);
       if (room.phase === "result") broadcastRoundReveal(room);
       if (room.round) syncPhaseTimer(room);
-      if (roomService.isRoomFullyOffline(room) && !room.groupCode) roomService.scheduleRoomCleanup(room.code);
+      // A group instance getting the same reap-after-5-minutes treatment as
+      // a standalone room (instead of being skipped) matters: schedulePlayerKick
+      // itself bails out when the whole room is already offline (on the
+      // assumption that whole-room cleanup handles it — see its own
+      // comment), and scheduleGroupCleanup only ever deletes the *group*,
+      // never sweeps `rooms` for that group's now-abandoned instances. Group
+      // membership state (getGroupPublicState) already derives `instances`
+      // live from `rooms`, so deleting the room here is enough to make it
+      // disappear from the group's instance list too — same as the
+      // server-restart snapshot restore path (persistence.ts) already does
+      // unconditionally, regardless of groupCode.
+      if (roomService.isRoomFullyOffline(room)) roomService.scheduleRoomCleanup(room.code);
       else roomHandlers.schedulePlayerKick(room.code, info.playerId);
     }
   }
