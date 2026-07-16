@@ -19,7 +19,19 @@ export const torneoFutbolGame: GameDef = {
   description: "Armá un torneo de fútbol entre amigos: sorteo de equipos, eliminación directa y estadísticas de goles.",
   minPlayers: 2,
   category: "grupo",
-  maintenance: true,
+  maintenance: false,
+  tabbedLobby: true,
+  // Mirrors startRound's own gates (engine.ts) so the lobby shows why
+  // "Iniciar ronda" is disabled instead of the host only finding out after
+  // tapping it and getting an error banner back.
+  canStart: room => {
+    const config = room.config as { assignments?: Record<string, string>; teams?: string[] };
+    const assignments = config.assignments ?? {};
+    const teams = config.teams ?? [];
+    if (room.players.some(p => !assignments[p.id])) return "Asigná un equipo a cada jugador antes de iniciar";
+    if (teams.length < room.players.length) return "Necesitás al menos un equipo por jugador";
+    return null;
+  },
   rules: [
     "Cada jugador queda asignado a un equipo (sorteado con una ruleta o elegido a mano) antes de arrancar.",
     'Se arma un cuadro de eliminación directa: si la cantidad de jugadores no es una potencia de 2, algunos pasan directo a la siguiente ronda ("bye").',

@@ -52,6 +52,7 @@ describe("Torneo de Fútbol ConfigPanel", () => {
     const updateConfig = vi.fn();
     render(<ConfigPanel room={makeRoom()} updateConfig={updateConfig} />);
 
+    await user.click(screen.getByRole("button", { name: "Asignar" }));
     await user.click(screen.getAllByRole("button", { name: "Elegir equipo" })[0]);
     await user.click(screen.getByRole("button", { name: "Argentina" }));
 
