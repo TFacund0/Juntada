@@ -40,7 +40,15 @@ interface Round {
   tally?: Record<number, number>;
   matchOver: boolean;
   winner: "innocents" | "impostors" | null;
+  // Set when the top vote count is tied — same idea as the online engine's
+  // revoteCandidates/revoteCount (see @juntada/impostor-match-rules and
+  // engine.ts's tallyVotes): repeat the vote among just the tied suspects
+  // instead of eliminating one at random, up to MAX_REVOTES times.
+  revoteCandidates?: number[];
+  revoteCount: number;
 }
+
+const MAX_REVOTES = 2;
 
 interface Config {
   numImpostors: number;
@@ -189,6 +197,7 @@ export function LocalGame() {
       voters: players.map(p => p.id),
       matchOver: false,
       winner: null,
+      revoteCount: 0,
     });
     beginReveal();
   };
@@ -212,6 +221,7 @@ export function LocalGame() {
       voters: alive,
       matchOver: false,
       winner: null,
+      revoteCount: 0,
     });
     beginReveal();
   };
@@ -259,6 +269,17 @@ export function LocalGame() {
       const top = Object.entries(tally)
         .filter(([, v]) => v === maxV)
         .map(([id]) => Number(id));
+
+      // Tie at the top: repeat the vote among just the tied suspects instead
+      // of eliminating one at random, up to MAX_REVOTES times — same as the
+      // online engine's tallyVotes.
+      if (top.length > 1 && maxV > 0 && round!.revoteCount < MAX_REVOTES) {
+        setRound({ ...round!, revoteCandidates: top, revoteCount: round!.revoteCount + 1 });
+        setSelection({});
+        setVotes({});
+        return;
+      }
+
       const eliminated = top[Math.floor(Math.random() * top.length)];
       const wasImpostor = round!.impostors.includes(eliminated);
       const matchEliminated = [...round!.matchEliminated, eliminated];
@@ -661,9 +682,16 @@ export function LocalGame() {
   // ── VOTE ──
   if (phase === "vote" && round) {
     const alive = players.filter(p => round.voters.includes(p.id));
+    const revoteCandidates = round.revoteCandidates;
     return (
       <div>
         <CluesReview clues={clues} players={players} />
+        {revoteCandidates && (
+          <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
+            <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>Hubo un empate</p>
+            <p style={{ ...S.muted, margin: "4px 0 0" }}>Se vota de nuevo, solo entre quienes empataron</p>
+          </div>
+        )}
         {alive.map(voter => {
           const confirmed = votes[voter.id] != null;
           const pending = selection[voter.id];
@@ -678,7 +706,7 @@ export function LocalGame() {
                 <>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     {alive
-                      .filter(p => p.id !== voter.id)
+                      .filter(p => p.id !== voter.id && (!revoteCandidates || revoteCandidates.includes(p.id)))
                       .map(suspect => (
                         <button
                           key={suspect.id}
