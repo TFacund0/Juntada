@@ -41,6 +41,14 @@ test("a non-power-of-2 entrant count gives byes only to the trailing entrants", 
   assert.deepEqual(rounds[0][1].winner, { id: 3, name: "Player 3", team: "Team 3" });
 });
 
+test("a single entrant is crowned champion immediately, not left in an unresolved match", () => {
+  const rounds = buildBracket(makeEntrants(1));
+  assert.equal(rounds.length, 1);
+  assert.equal(rounds[0].length, 1);
+  assert.deepEqual(rounds[0][0].winner, { id: 1, name: "Player 1", team: "Team 1" });
+  assert.equal(rounds[0][0].b, null);
+});
+
 test("byes propagate immediately into the next round's slot", () => {
   const rounds = buildBracket(makeEntrants(3));
   // The bye winner (entrant 3) should already sit in the final as side "b".
