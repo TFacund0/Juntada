@@ -16,8 +16,14 @@ const uuid = z.string().uuid();
 
 // update_config is generic across every game (see games/registry.js), so its
 // shape can't be pinned to one game's fields — but it must still reject
-// anything that isn't plain, boundable data.
-const configPrimitive = z.union([z.string().max(2000), z.number(), z.boolean()]);
+// anything that isn't plain, boundable data. 300 matches the longest
+// legitimate free-text config field already in use (limon-limon's card
+// descriptions, capped client-side at the same length — see
+// DescriptionsEditor.tsx's MAX_LENGTH); a team name or ruleta entry needs
+// far less. Comfortably more than any real value, nowhere near enough to
+// let a pasted wall of text broadcast to (and desync the layout of) the
+// whole room.
+const configPrimitive = z.union([z.string().max(300), z.number(), z.boolean()]);
 const configRecord = z.record(z.string(), configPrimitive);
 const configValue = z.union([configPrimitive, z.array(configPrimitive).max(50), configRecord, z.array(configRecord).max(50)]);
 
