@@ -181,12 +181,30 @@ export function MultiplayerGame({
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [openPlayerMenu]);
 
-  // Scanned a "join this room/group" QR — skip straight to the join form
-  // with the code already filled in, they just need to type their name.
+  // Scanned a "join this room/group" QR/link — the code is already known
+  // and the player's name was already collected by App.tsx before this
+  // screen ever mounts, so there's nothing left to ask: join immediately
+  // instead of just pre-filling the form and waiting for an extra tap. The
+  // join form still renders underneath (connectionPhase "join") so a
+  // failure (full room, bad code, name taken, ...) leaves the player on a
+  // normal, editable join screen instead of a dead end.
+  // Guards the live-preview effect below from also calling connect() on the
+  // same render pass as the auto-join above — both would otherwise open
+  // their own WebSocket (neither sees the other's as OPEN yet, since both
+  // fire before any handshake completes), and whichever opens second wins
+  // wsRef, silently orphaning the socket the actual join was sent on. Reset
+  // once the join attempt fails, so retyping the code afterwards still gets
+  // a live preview.
+  const autoJoiningRef = useRef(false);
+
   useEffect(() => {
     if (connectionPhase !== "menu") return;
-    if (initialJoinCode) setConnectionPhase("join");
-    else if (initialGroupIntent) setConnectionPhase(initialGroupIntent);
+    if (initialJoinCode) {
+      setConnectionPhase("join");
+      autoJoiningRef.current = true;
+      const code = initialJoinCode.toUpperCase().trim();
+      connect(ws => ws.send(JSON.stringify({ type: inGroup ? "join_group" : "join_room", code, playerName })));
+    } else if (initialGroupIntent) setConnectionPhase(initialGroupIntent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -212,6 +230,7 @@ export function MultiplayerGame({
   // enabled even for entryKind "room".
   useEffect(() => {
     if (entryKind === "group") return;
+    if (autoJoiningRef.current) return;
     const code = joinCode.trim().toUpperCase();
     if (code.length !== 5) {
       setRoomPreview(null);
@@ -226,6 +245,11 @@ export function MultiplayerGame({
   // of leaving the player stuck re-reading the same error with no way to
   // act on it short of abandoning this screen to edit the name elsewhere.
   useEffect(() => {
+    if (!error) return;
+    // The auto-join attempt above is done (successfully or not) once an
+    // error comes back — let the live preview resume for any further
+    // manual retry.
+    autoJoiningRef.current = false;
     if (error.includes("ya está en uso")) {
       setNameDraft(playerName);
       setEditingName(true);
