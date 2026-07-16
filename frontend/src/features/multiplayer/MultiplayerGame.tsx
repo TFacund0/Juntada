@@ -60,6 +60,28 @@ interface MultiplayerGameProps {
   // to know it should leave the whole group flow and go back to its home
   // screen (pick a game / start a new group), not just re-render this shell.
   onLeaveGroup?: () => void;
+  // Only meaningful for entryKind "room" — fires when the player typed a
+  // code on the room-join form that turns out to belong to a group instead
+  // (both are 5-char codes shared the same way, so this mix-up is common).
+  // Lets the parent (App.tsx) switch the whole shell over to the group flow
+  // with that code pre-filled, instead of this screen trying to join a
+  // group itself — group membership follows different session rules than a
+  // standalone room (see useMultiplayerSocket's groupSessionEnabled).
+  onSwitchToGroup?: (code: string) => void;
+  // Only meaningful for entryKind "group" — fires whenever membership in an
+  // actual group flips (true once the join/create handshake lands, false on
+  // leave_group). The parent uses this to make its global "Volver" header
+  // button redirect to the group screen instead of exiting the whole group
+  // flow, and its "Menú principal" button warn that continuing will leave
+  // the group instead of doing so silently.
+  onGroupAttachedChange?: (attached: boolean) => void;
+  // Only meaningful for entryKind "group" — imperative escape hatch so the
+  // parent's global header "Volver" button can send the player back to the
+  // group screen (same as the in-lobby/in-round "👥 Volver al grupo"
+  // control) without exiting the group. Safe to call even when already on
+  // the group screen (the server's leave_instance is a no-op with nothing
+  // attached), so mashing "Volver" repeatedly just leaves the player there.
+  onExposeReturnToGroup?: (fn: () => void) => void;
 }
 
 function playableGames(): GameDef[] {
@@ -75,6 +97,9 @@ export function MultiplayerGame({
   initialGroupIntent,
   onGameTypeChange,
   onLeaveGroup,
+  onSwitchToGroup,
+  onGroupAttachedChange,
+  onExposeReturnToGroup,
 }: MultiplayerGameProps) {
   const {
     connectionPhase,
@@ -102,7 +127,6 @@ export function MultiplayerGame({
 
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
-  const [joinGroupName, setJoinGroupName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(playerName);
   const [showQR, setShowQR] = useState(false);
@@ -166,6 +190,10 @@ export function MultiplayerGame({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    onGroupAttachedChange?.(!!group);
+  }, [group, onGroupAttachedChange]);
+
   // The server's room.gameType is the only source of truth for which game
   // is actually active — surface it upward as soon as it's known, and clear
   // it back to null once there's no active instance (group screen).
@@ -179,9 +207,9 @@ export function MultiplayerGame({
 
   // Live preview of a standalone room as soon as the code is fully typed —
   // read-only lookup, no commitment (see checkRoomCode/room_preview on the
-  // backend). Groups skip this: joining one already requires the name to
-  // match the code (see joinRoom below), so there's no ambiguity left to
-  // preview there.
+  // backend). Also used on the room-join form to detect a code that
+  // actually belongs to a group (see isGroupCode below), so it stays
+  // enabled even for entryKind "room".
   useEffect(() => {
     if (entryKind === "group") return;
     const code = joinCode.trim().toUpperCase();
@@ -243,7 +271,6 @@ export function MultiplayerGame({
   };
 
   const joinRoom = () => {
-    if (inGroup && !joinGroupName.trim()) return setError("Ingresá el nombre del grupo");
     if (!joinCode.trim()) return setError("Ingresá el código");
     const code = joinCode.toUpperCase().trim();
     connect(ws =>
@@ -252,7 +279,6 @@ export function MultiplayerGame({
           type: inGroup ? "join_group" : "join_room",
           code,
           playerName,
-          ...(inGroup ? { groupName: joinGroupName.trim() } : {}),
         }),
       ),
     );
@@ -264,6 +290,11 @@ export function MultiplayerGame({
   };
 
   const leaveInstance = () => send({ type: "leave_instance" });
+
+  useEffect(() => {
+    onExposeReturnToGroup?.(leaveInstance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onExposeReturnToGroup]);
 
   // Whether a session belongs to a room or a group is decided the same way
   // the socket itself decides which rejoin message to send on reconnect
@@ -420,12 +451,6 @@ export function MultiplayerGame({
             </Btn>
           </div>
         )}
-        {connectionPhase === "join" && inGroup && (
-          <div style={S.card}>
-            <span style={S.label}>Nombre del grupo</span>
-            <input style={S.input} placeholder="Ej: Los pibes" value={joinGroupName} onChange={e => setJoinGroupName(e.target.value)} />
-          </div>
-        )}
         {connectionPhase === "join" && (
           <div style={S.card}>
             <span style={S.label}>{inGroup ? "Código del grupo" : "Código de sala"}</span>
@@ -457,6 +482,32 @@ export function MultiplayerGame({
                       Ojo: esa sala es de {getGame(roomPreview.gameType ?? "")?.label ?? roomPreview.gameType}, no de {selectedGame.label}
                     </p>
                   )}
+                </div>
+              ) : roomPreview.isGroupCode ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    background: "rgba(226,196,74,0.1)",
+                    border: "1px solid rgba(226,196,74,0.3)",
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: 13, color: "#E2C44A" }}>
+                    Ese código es de un grupo{roomPreview.name ? <> (<b>{roomPreview.name}</b>)</> : null}, no de una sala.
+                  </p>
+                  <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                    <Btn
+                      variant="success"
+                      onClick={() => onSwitchToGroup?.(roomPreview.code)}
+                      style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}
+                    >
+                      Unirme al grupo
+                    </Btn>
+                    <Btn variant="ghost" onClick={() => setJoinCode("")} style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}>
+                      Cancelar
+                    </Btn>
+                  </div>
                 </div>
               ) : (
                 <p style={{ ...S.muted, marginTop: 10, fontSize: 12 }}>No encontramos ninguna sala con ese código</p>

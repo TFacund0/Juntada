@@ -315,5 +315,5 @@ export type ServerMessage =
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }
   | { type: "pong" }
-  | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string }
+  | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean }
   | ({ type: string } & Record<string, unknown>);

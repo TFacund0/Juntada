@@ -4,7 +4,6 @@ import { GAME_LIST, getGame } from "./games/registry";
 import type { GameDef } from "./games/gameTypes";
 import { isUnderMaintenance } from "./games/maintenance";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
-import { Btn } from "./components/Btn";
 import { Avatar } from "./components/Avatar";
 import { GamePicker } from "./components/GamePicker";
 import { GameRules } from "./components/GameRules";
@@ -77,6 +76,28 @@ export default function App() {
   // home screen's compact group menu (tap "+" → Crear grupo / Unirme a un
   // grupo) — lets it skip the neutral menu screen and go straight there.
   const [groupIntent, setGroupIntent] = useState<"create" | "join" | undefined>(undefined);
+  // Set when the room-join form detects the typed code actually belongs to
+  // a group (see MultiplayerGame's onSwitchToGroup) and the player confirms
+  // switching over — takes priority over a scanned link's code so the
+  // group flow picks up right where the room form left off.
+  const [pendingGroupJoinCode, setPendingGroupJoinCode] = useState<string | null>(null);
+  const switchToGroupJoin = (code: string) => {
+    setPendingGroupJoinCode(code);
+    setGroupIntent("join");
+    setGroupFlow(true);
+  };
+  // True once actually joined/created a group (not just sitting on the
+  // create/join forms) — while true, "Volver" redirects to the group screen
+  // instead of exiting, and "Menú principal" warns it'll leave the group
+  // before actually doing so (see goBack/showExitConfirm below).
+  const [groupAttached, setGroupAttached] = useState(false);
+  // MultiplayerGame exposes its "return to the group screen" action here
+  // (see onExposeReturnToGroup) so the global header's "Volver" button can
+  // trigger it without lifting the whole group/instance state up into App.
+  const returnToGroupRef = useRef<() => void>(() => {});
+  const exposeReturnToGroup = useCallback((fn: () => void) => {
+    returnToGroupRef.current = fn;
+  }, []);
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const [showRules, setShowRules] = useState(false);
@@ -104,6 +125,16 @@ export default function App() {
   const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
   const [nameDraft, setNameDraft] = useState("");
   const [editingName, setEditingName] = useState(false);
+  // Nudges the player back to the name field instead of letting a stray tap
+  // elsewhere silently discard an in-progress edit — see the blocking
+  // overlay rendered alongside the inline name editor below.
+  const [nameEditNudge, setNameEditNudge] = useState(false);
+
+  const cancelEditName = () => {
+    setNameDraft(playerName);
+    setEditingName(false);
+    setNameEditNudge(false);
+  };
 
   const savePlayerName = (name: string) => {
     const trimmed = name.trim();
@@ -111,6 +142,7 @@ export default function App() {
     setStoredPlayerName(trimmed);
     setPlayerName(trimmed);
     setEditingName(false);
+    setNameEditNudge(false);
   };
 
   const game = gameId ? (getGame(gameId) as GameDef | undefined) : null;
@@ -147,6 +179,20 @@ export default function App() {
   }, [showGroupMenu]);
 
   const goBack = () => {
+    // Inside a group with an active instance, "Volver" just sends the
+    // player back to the group screen (same as the in-lobby/in-round "👥
+    // Volver al grupo" control) — no exit. But pressed again once already
+    // sitting on the group screen (no instance left to back out of), there's
+    // nowhere left to "go back" to except leaving the group, so it warns
+    // instead of doing that silently.
+    if (groupAttached) {
+      if (gameId) {
+        returnToGroupRef.current?.();
+      } else {
+        setShowExitConfirm(true);
+      }
+      return;
+    }
     if (mode) {
       if (mode === "multi") clearMultiplayerSession();
       setMode(null);
@@ -166,6 +212,7 @@ export default function App() {
     setGroupFlow(false);
     setShowRules(false);
     setShowExitConfirm(false);
+    setGroupAttached(false);
   };
 
   const pickGame = (id: string) => {
@@ -262,57 +309,103 @@ export default function App() {
           )}
           <h1 style={S.title}>{game?.label ?? "Juntada"}</h1>
           {!gameId && !groupFlow && <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>Elegí un juego para arrancar</p>}
-          {!gameId && !groupFlow && !editingName && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 14, position: "relative" }}>
-              <button
-                onClick={() => {
-                  setNameDraft(playerName);
-                  setEditingName(true);
-                }}
-                style={S.namePill}
-              >
-                <Avatar name={playerName} size={26} />
-                <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{playerName}</span>
-              </button>
-              <div ref={groupMenuRef} style={{ position: "relative" }}>
-                <button
-                  onClick={() => setShowGroupMenu(v => !v)}
-                  aria-label="Crear o unirme a un grupo"
-                  style={{ ...S.roundIconButton, transform: showGroupMenu ? "rotate(45deg)" : "none" }}
-                >
-                  {/* Se dibuja con dos barras en vez de depender del glyph
-                      "+" de la fuente — así queda perfectamente centrado en
-                      cualquier dispositivo, sin el desvío vertical que trae
-                      el line-height del carácter de texto. */}
-                  <span style={{ position: "relative", width: 16, height: 16 }}>
-                    <span
+          {!gameId && !groupFlow && (
+            <>
+              {editingName && (
+                // Sits under the edit pill (which gets a higher z-index
+                // below) and above everything else — a tap anywhere else
+                // while editing doesn't discard the draft, it just nudges
+                // the player back to confirm or cancel explicitly.
+                <div onClick={() => setNameEditNudge(true)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              )}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 14, position: "relative", zIndex: 41 }}>
+                {editingName ? (
+                  <div style={{ ...S.namePill, cursor: "default", paddingLeft: 12 }}>
+                    <input
                       style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: 0,
-                        width: "100%",
-                        height: 2.5,
-                        background: "#fff",
-                        borderRadius: 2,
-                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        outline: "none",
+                        color: "#e8e4f0",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        fontFamily: "inherit",
+                        width: 110,
+                      }}
+                      placeholder="Tu nombre"
+                      autoFocus
+                      value={nameDraft}
+                      onChange={e => {
+                        setNameDraft(e.target.value);
+                        setNameEditNudge(false);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") savePlayerName(nameDraft);
+                        if (e.key === "Escape") cancelEditName();
                       }}
                     />
-                    <span
+                    <button
+                      onClick={() => savePlayerName(nameDraft)}
+                      disabled={!nameDraft.trim()}
+                      aria-label="Guardar nombre"
                       style={{
-                        position: "absolute",
-                        left: "50%",
-                        top: 0,
-                        height: "100%",
-                        width: 2.5,
-                        background: "#fff",
-                        borderRadius: 2,
-                        transform: "translateX(-50%)",
+                        background: "rgba(93,202,165,0.18)",
+                        border: "none",
+                        borderRadius: 999,
+                        color: "#5DCAA5",
+                        cursor: nameDraft.trim() ? "pointer" : "default",
+                        opacity: nameDraft.trim() ? 1 : 0.4,
+                        fontSize: 14,
+                        fontFamily: "inherit",
+                        fontWeight: 700,
+                        padding: "5px 10px",
                       }}
-                    />
-                  </span>
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={cancelEditName}
+                      aria-label="Cancelar edición"
+                      style={{
+                        background: "rgba(226,75,74,0.14)",
+                        border: "none",
+                        borderRadius: 999,
+                        color: "#F09595",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        fontFamily: "inherit",
+                        fontWeight: 700,
+                        padding: "5px 10px",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setNameDraft(playerName);
+                      setEditingName(true);
+                    }}
+                    style={S.namePill}
+                  >
+                    <Avatar name={playerName} size={26} />
+                    <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{playerName}</span>
+                    <span style={{ color: "#7F77DD", fontSize: 13 }}>✎</span>
+                  </button>
+                )}
+              </div>
+              {editingName && nameEditNudge && (
+                <p style={{ color: "#E2C44A", fontSize: 12, fontWeight: 700, marginTop: 8, position: "relative", zIndex: 41 }}>
+                  Confirmá (✓) o cancelá (✕) el nombre para seguir
+                </p>
+              )}
+              <div ref={groupMenuRef} style={{ position: "relative", marginTop: 14, textAlign: "left" }}>
+                <button onClick={() => setShowGroupMenu(v => !v)} style={S.groupFlowBar}>
+                  👥 Crear o unirme a un grupo
                 </button>
                 {showGroupMenu && (
-                  <div style={S.dropdownMenu}>
+                  <div style={{ ...S.dropdownMenu, left: 0, right: 0, width: "auto" }}>
                     <button onClick={() => startGroupFlow("create")} style={S.dropdownMenuItem}>
                       ➕ Crear grupo
                     </button>
@@ -322,27 +415,7 @@ export default function App() {
                   </div>
                 )}
               </div>
-            </div>
-          )}
-          {!gameId && !groupFlow && editingName && (
-            <div style={{ ...S.card, textAlign: "left", marginTop: 12 }}>
-              <span style={S.label}>Tu nombre</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  style={{ ...S.input, flex: 1 }}
-                  autoFocus
-                  value={nameDraft}
-                  onChange={e => setNameDraft(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") savePlayerName(nameDraft);
-                    if (e.key === "Escape") setEditingName(false);
-                  }}
-                />
-                <Btn onClick={() => savePlayerName(nameDraft)} disabled={!nameDraft.trim()} style={{ width: "auto", padding: "11px 18px" }}>
-                  Guardar
-                </Btn>
-              </div>
-            </div>
+            </>
           )}
           {gameId && !mode && (
             <p
@@ -434,10 +507,13 @@ export default function App() {
             gameId={gameId}
             playerName={playerName}
             onChangeName={savePlayerName}
-            initialJoinCode={validJoinLink?.code}
+            initialJoinCode={pendingGroupJoinCode ?? validJoinLink?.code}
             initialGroupIntent={groupIntent}
             onGameTypeChange={handleRoomGameType}
             onLeaveGroup={goHome}
+            onSwitchToGroup={switchToGroupJoin}
+            onGroupAttachedChange={setGroupAttached}
+            onExposeReturnToGroup={exposeReturnToGroup}
           />
         )}
       </div>
@@ -447,7 +523,11 @@ export default function App() {
       {showExitConfirm && (
         <ConfirmDialog
           title="¿Volver al menú principal?"
-          message="Vas a salir del juego actual y perder el progreso de esta partida."
+          message={
+            groupAttached
+              ? "Vas a salir del grupo (y perder el progreso de esta partida, si había una en curso). Para volver vas a necesitar el código de nuevo."
+              : "Vas a salir del juego actual y perder el progreso de esta partida."
+          }
           confirmLabel="Sí, salir"
           cancelLabel="Seguir jugando"
           onConfirm={goHome}
