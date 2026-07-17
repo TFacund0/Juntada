@@ -113,6 +113,34 @@ describe("Tutifrutti RoundView — writing phase", () => {
     });
   });
 
+  test("clicking 'Ya terminé' right after typing flushes the pending answer instead of dropping it", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn();
+    render(
+      <RoundView
+        room={makeRoom("writing")}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={{ myAnswers: {} }}
+        wordReveal={null}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    // Type and immediately confirm, faster than the 400ms submit debounce —
+    // the last word typed must still make it out before player_ready.
+    await user.type(screen.getAllByPlaceholderText("A...")[0], "Ana");
+    await user.click(screen.getByRole("button", { name: "Ya terminé" }));
+
+    const calls = send.mock.calls.map(c => c[0]);
+    expect(calls).toContainEqual({ type: "submit_answers", answers: { nombre: "Ana" } });
+    expect(calls).toContainEqual({ type: "player_ready" });
+    expect(calls.indexOf(calls.find(c => c.type === "submit_answers")!)).toBeLessThan(
+      calls.indexOf(calls.find(c => c.type === "player_ready")!),
+    );
+  });
+
   test("marking 'Ya terminé' locks the answer fields against further edits", () => {
     render(
       <RoundView
