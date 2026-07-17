@@ -289,13 +289,16 @@ function skipThreshold(room: Room): number {
 }
 
 // skipVotes only ever grows (see skip_word below) — if a voter is later
-// kicked or eliminated, their id would otherwise linger there forever,
-// forming a phantom vote that counts toward a threshold now computed from a
-// smaller pool. Always read the count through this filter instead of
-// skipVotes.length.
+// kicked, eliminated, or goes offline, their id would otherwise linger here
+// forever, forming a phantom vote that still counts toward skipThreshold
+// even though that threshold is computed over *online* players only. Left
+// unfiltered, a word could get skipped on votes cast entirely by players
+// who've since disconnected, with nobody currently online ever agreeing to
+// it — mirror the same online+alive filter skipThreshold itself uses.
+// Always read the count through this filter instead of skipVotes.length.
 function activeSkipVotes(room: Room): string[] {
   const alive = aliveIds(room);
-  return round(room).skipVotes.filter(id => alive.includes(id));
+  return round(room).skipVotes.filter(id => alive.includes(id) && room.players.find(p => p.id === id)?.online);
 }
 
 // Swaps the word for a fresh one from the same category, keeping the same
@@ -315,12 +318,13 @@ function rerollWord(room: Room): void {
   round(room).timerEnd = turnTimerEnd(room);
 }
 
-// An impostor's clue/vote is the entire point of the round — if they've
-// disconnected there's no honest way to finish it (they can never give a
-// clue or be voted out again), so the match is cut short right away instead
-// of letting the innocents "win" a round that never actually got decided.
-// Called from maybeAdvance, which already runs immediately on every
-// disconnect (see roomService.markOffline).
+// An impostor's clue/vote is the entire point of the round — once they're
+// truly gone (kicked, by timeout or by the host — see maybeAdvance's
+// goneImpostor check, which only fires once they're actually removed from
+// room.players, not merely offline) there's no honest way to finish the
+// round (they can never give a clue or be voted out again), so the match is
+// cut short right away instead of letting the innocents "win" a round that
+// never actually got decided.
 function abortMatchImpostorLeft(room: Room): void {
   stopRoomTimer(room);
   const r = round(room);
@@ -639,6 +643,23 @@ function getPhaseTimerEnd(room: Room): number | null {
   return null;
 }
 
+// Turn order can't wait out the 5-minute auto-kick grace period just because
+// it's currently the disconnected player's turn — unlike a vote/ready
+// count, skipping a turn costs them nothing permanent (the comment on
+// skipOfflineTurns above still applies: they get their turn back next lap
+// if they reconnect), so this reacts immediately instead of waiting for a
+// real removal. Scoped to "it's specifically their turn right now" so a
+// disconnect elsewhere in the turn order (not yet their turn) doesn't
+// trigger an unrelated phase transition.
+function onPlayerOffline(room: Room, playerId: string): void {
+  if (!room.round || room.phase !== "round") return;
+  const r = round(room);
+  if (r.turnOrder[r.turnIndex] !== playerId) return;
+  // Same implicit-pass treatment as a timed-out turn (forceReadyAndAdvance).
+  if (r.clues[playerId] == null) r.clues[playerId] = "";
+  advanceTurn(room);
+}
+
 const engine: GameEngine = {
   id: "impostor",
   minPlayers: MIN_PLAYERS,
@@ -651,6 +672,7 @@ const engine: GameEngine = {
   getPrivateView,
   getRevealMessage,
   getPhaseTimerEnd,
+  onPlayerOffline,
 };
 
 module.exports = engine;

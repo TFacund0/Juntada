@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging, develop]
   pull_request:
-    branches: [main]
+    branches: [main, staging, develop]
 
 jobs:
   test-and-build:
@@ -28,6 +28,9 @@ jobs:
 
       - name: Typecheck frontend
         run: pnpm --filter @juntada/frontend typecheck
+
+      - name: Typecheck backend
+        run: pnpm --filter @juntada/backend typecheck
 
       - name: Run backend tests
         run: pnpm --filter @juntada/backend test

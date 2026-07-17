@@ -50,6 +50,14 @@ export function propagateByes<Id>(rounds: Match<Id>[][]): void {
 // against an empty slot — never two byes paired against each other, so no
 // round-0 match is ever left with zero real players.
 export function buildBracket<Id>(entrants: Entrant<Id>[]): Match<Id>[][] {
+  // nextPowerOf2(1) is 1, which would make pairCount a fractional 0.5 below
+  // and leave a single match with no opponent and no winner ever set — both
+  // current callers block starting a tournament below 2 entrants, but this
+  // keeps the package itself correct instead of relying on that external
+  // guard. A lone entrant is champion by default, same as any other bye.
+  if (entrants.length <= 1) {
+    return [[{ a: entrants[0] ?? null, b: null, winner: entrants[0] ?? null, goalsA: null, goalsB: null }]];
+  }
   const size = nextPowerOf2(entrants.length);
   const pairCount = size / 2;
   const byeCount = size - entrants.length;

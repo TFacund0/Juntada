@@ -141,14 +141,19 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
             Ya terminé
           </Btn>
         ))}
-      {round.endMode === "timer" && (
+      {/* Timer mode already reports progress via readyCount right below "Ya
+          terminé" — showing doneCount too said almost the same thing twice
+          ("enviaron alguna respuesta" vs "ya terminaron"). Basta mode has no
+          ready concept, so doneCount is its only progress indicator. */}
+      {round.endMode === "timer" ? (
         <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>
           {readyCount} de {onlinePlayers.length} jugadores ya terminaron
         </p>
+      ) : (
+        <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>
+          {round.doneCount} de {room.players.length} jugadores enviaron alguna respuesta
+        </p>
       )}
-      <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>
-        {round.doneCount} de {room.players.length} jugadores enviaron alguna respuesta
-      </p>
     </div>
   );
 }

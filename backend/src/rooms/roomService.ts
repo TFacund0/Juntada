@@ -178,12 +178,23 @@ function removePlayer(room: Room, playerId: string): void {
   reassignHostIfNeeded(room, playerId);
 }
 
+// Deliberately does NOT call engine.maybeAdvance here: doing so used to let
+// a single disconnect instantly count that player out of any "every online
+// player must ready/vote/confirm" gate (writing/review, impostor's voting,
+// ...) — a brief network blip or a backgrounded tab (which reconnects
+// within seconds via the client's own retry loop) would silently skip them,
+// and if they were the deciding vote the round could advance without them
+// ever getting a say. The existing 5-minute auto-kick grace period
+// (schedulePlayerKick, ws/roomHandlers.ts) already re-runs maybeAdvance once
+// a still-offline player is actually removed — that's the only path that
+// should let the rest of the room move on without them. Engines that need a
+// low-stakes, immediate reaction instead (e.g. handing off a strict turn
+// rotation) opt into that via onPlayerOffline — see engineTypes.ts.
 function markOffline(room: Room, playerId: string): void {
   const p = room.players.find(p => p.id === playerId);
   if (p) p.online = false;
   reassignHostIfNeeded(room, playerId);
-  const engine = getEngine(room.gameType);
-  engine?.maybeAdvance(room);
+  getEngine(room.gameType)?.onPlayerOffline?.(room, playerId);
 }
 
 function isRoomFullyOffline(room: Room): boolean {

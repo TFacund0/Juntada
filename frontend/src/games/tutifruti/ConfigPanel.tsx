@@ -64,7 +64,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
       <div style={divider} />
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: activeCount === 0 ? "#F09595" : "#e8e4f0" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#e8e4f0" }}>
           {activeCount === 0 ? "Ninguna categoría activa" : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}`}
         </span>
         {activeCount > 0 && (
@@ -76,11 +76,6 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </button>
         )}
       </div>
-      {activeCount === 0 && (
-        <p style={{ ...S.muted, margin: "6px 0 0", lineHeight: 1.4 }}>
-          Andá a la pestaña "Categorías" para elegir de qué van a ser las palabras.
-        </p>
-      )}
       {showActive && activeCount > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
           {activeList.map(c => (

@@ -37,12 +37,22 @@ function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>
 }
 
 function checkRoomCode(ws: WS, msg: Extract<ClientMessage, { type: "check_room_code" }>): void {
-  const room = rooms.get(msg.code.toUpperCase());
-  if (!room) {
-    sendTo(ws, { type: "room_preview", code: msg.code, found: false });
+  const code = msg.code.toUpperCase();
+  const room = rooms.get(code);
+  if (room) {
+    sendTo(ws, { type: "room_preview", code: msg.code, found: true, name: room.name, gameType: room.gameType });
     return;
   }
-  sendTo(ws, { type: "room_preview", code: msg.code, found: true, name: room.name, gameType: room.gameType });
+  // A code that belongs to a group rather than a room is a common mix-up
+  // (both are 5-char codes shared the same way) — flag it explicitly so the
+  // join form can offer to switch to the group flow instead of just saying
+  // "not found".
+  const group = groups.get(code);
+  if (group) {
+    sendTo(ws, { type: "room_preview", code: msg.code, found: false, isGroupCode: true, name: group.name });
+    return;
+  }
+  sendTo(ws, { type: "room_preview", code: msg.code, found: false });
 }
 
 function joinRoom(ws: WS, msg: Extract<ClientMessage, { type: "join_room" }>): void {
@@ -83,6 +93,12 @@ function rejoin(ws: WS, msg: Extract<ClientMessage, { type: "rejoin" }>): void {
 function updateConfig(ws: WS, msg: Extract<ClientMessage, { type: "update_config" }>, info: ClientInfo): void {
   const room = rooms.get(info.roomCode ?? "");
   if (!room || room.hostId !== info.playerId) return;
+  // The ConfigPanel only ever renders in the lobby — nothing legitimate
+  // sends this outside it. Blocking it elsewhere stops a stale/replayed
+  // message (or a modified client) from editing config the round already
+  // committed to (e.g. Ruleta's entries/mode) out from under an in-progress
+  // round, desyncing what each client shows.
+  if (room.phase !== "lobby") return;
   roomService.updateConfig(room, msg.config);
   broadcastState(room);
 }
@@ -90,6 +106,12 @@ function updateConfig(ws: WS, msg: Extract<ClientMessage, { type: "update_config
 function startRoundHandler(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   const room = rooms.get(info.roomCode ?? "");
   if (!room || room.hostId !== info.playerId) return;
+  // "lobby" is the very first start; "result" is every game's own
+  // "jugar de nuevo"/"nueva ronda" button. Anything else means a
+  // stale/duplicate/replayed message arrived mid-round — letting it through
+  // would make the engine rebuild round state on top of an in-progress one
+  // (wiping a bracket's reported results, a Ruleta spin, a board mid-move).
+  if (room.phase !== "lobby" && room.phase !== "result") return;
   const engine = getEngine(room.gameType);
   if (!engine) return;
   const minPlayers = engine.minPlayers ?? 2;

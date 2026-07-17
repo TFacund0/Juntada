@@ -77,7 +77,10 @@ const connectionsPerIp = new Map<string, number>();
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
 function attachWebSocketServer(httpServer: Server) {
-  const wss = new WebSocketServer({ server: httpServer });
+  // ws defaults to no payload limit — every legitimate client message is a
+  // small JSON blob (the largest config strings are capped at 2000 chars,
+  // see shared-types), so this is generous headroom, not a tight budget.
+  const wss = new WebSocketServer({ server: httpServer, maxPayload: 64 * 1024 });
 
   const heartbeat = setInterval(() => {
     for (const ws of wss.clients as Set<HeartbeatSocket>) {
@@ -113,6 +116,15 @@ function attachWebSocketServer(httpServer: Server) {
     ws.isAlive = true;
     ws.on("pong", () => {
       ws.isAlive = true;
+    });
+
+    // Without a listener here, an "error" event (e.g. the maxPayload limit
+    // above being exceeded) is unhandled and crashes the whole process —
+    // Node's default EventEmitter behavior for "error" with no listener.
+    // Just drop this one connection instead.
+    ws.on("error", (err: Error) => {
+      logger.warn({ err }, "websocket connection error");
+      ws.terminate();
     });
 
     ws.on("message", (raw: Buffer) => {
