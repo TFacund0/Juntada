@@ -113,6 +113,22 @@ describe("Tutifrutti RoundView — writing phase", () => {
     });
   });
 
+  test("marking 'Ya terminé' locks the answer fields against further edits", () => {
+    render(
+      <RoundView
+        room={makeRoom("writing")}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: true, online: true, hasVoted: false }}
+        myRole={{ myAnswers: { nombre: "Ana" } }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByPlaceholderText("A...")[0]).toBeDisabled();
+  });
+
   test("calling basta sends call_basta in basta mode", async () => {
     const user = userEvent.setup();
     const send = vi.fn();

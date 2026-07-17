@@ -62,6 +62,10 @@ function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHos
 function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "room" | "me" | "myPlayer" | "myRole" | "isHost" | "send">) {
   const round = room.round as any;
   const timeLeft = useCountdown(round.endMode === "timer" ? round.timerEnd : null);
+  // Only "Ya terminé" (timer mode) locks answers — basta mode has no
+  // individual confirm step, everyone keeps typing until someone calls
+  // "¡BASTA!" for the whole table.
+  const locked = !!myPlayer?.ready;
   const [values, setValues] = useState<Record<string, string>>(() => (myRole as any)?.myAnswers || {});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const letterRef = useRef(round.letter);
@@ -118,10 +122,11 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
               {cat.label}
             </span>
             <input
-              style={S.input}
+              style={{ ...S.input, opacity: locked ? 0.5 : 1 }}
               value={values[cat.id] || ""}
               onChange={e => onChange(cat.id, e.target.value)}
               placeholder={`${round.letter}...`}
+              disabled={locked}
             />
           </div>
         ))}
@@ -350,10 +355,15 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
           );
         })}
       </div>
-      {isHost && !round.isFinalRound && (
-        <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
+      {isHost &&
+        (round.isFinalRound ? (
+          <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
+        ) : (
+          <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
+        ))}
+      {round.isFinalRound && !isHost && (
+        <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>
       )}
-      {round.isFinalRound && <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
       {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
