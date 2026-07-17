@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { LocalGame } from "./LocalGame";
@@ -51,6 +51,17 @@ async function voteAllPlayers(user: ReturnType<typeof userEvent.setup>, targetNa
     const enabled = confirmButtons.find(b => !b.hasAttribute("disabled"));
     expect(enabled).toBeDefined();
     await user.click(enabled!);
+  }
+}
+
+// Each voter picks a different target (targetsByVoter[voterName] = suspect
+// name), scoped to that voter's own card so a 2-2 tie can be set up on
+// purpose instead of every voter piling onto the same suspect.
+async function voteEach(user: ReturnType<typeof userEvent.setup>, targetsByVoter: Record<string, string>) {
+  for (const [voterName, targetName] of Object.entries(targetsByVoter)) {
+    const card = screen.getByText(`${voterName} sospecha de:`).closest("div")!.parentElement!;
+    await user.click(within(card).getByRole("button", { name: targetName }));
+    await user.click(within(card).getByRole("button", { name: "Confirmar voto" }));
   }
 }
 
@@ -137,6 +148,41 @@ describe("Impostor LocalGame", () => {
     expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
     expect(screen.getByText("La palabra era")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Nueva partida" })).toBeInTheDocument();
+  });
+
+  test("a tied vote triggers a revote among just the tied suspects instead of a random pick", async () => {
+    const user = userEvent.setup();
+    render(<LocalGame />);
+    await enableFirstCategory(user);
+
+    await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
+    await revealAllPlayers(user);
+    await user.click(screen.getByRole("button", { name: "Ir a votación" }));
+
+    // Jugador 1 and Jugador 2 tie 2-2 (each gets one vote from the other,
+    // plus one from Jugador 3/4 respectively).
+    await voteEach(user, {
+      "Jugador 1": "Jugador 2",
+      "Jugador 2": "Jugador 1",
+      "Jugador 3": "Jugador 1",
+      "Jugador 4": "Jugador 2",
+    });
+
+    expect(screen.getByText("Hubo un empate")).toBeInTheDocument();
+    expect(screen.getByText("Faltan 4 confirmaciones")).toBeInTheDocument(); // votes reset for the revote
+
+    // The revote only offers the two tied suspects — Jugador 1/2 are forced
+    // to vote each other (can't vote themselves), so Jugador 3 and 4 decide
+    // it by both voting Jugador 1.
+    await voteEach(user, {
+      "Jugador 1": "Jugador 2",
+      "Jugador 2": "Jugador 1",
+      "Jugador 3": "Jugador 1",
+      "Jugador 4": "Jugador 1",
+    });
+
+    expect(screen.queryByText("Hubo un empate")).not.toBeInTheDocument();
+    expect(screen.getByText("quedó eliminado/a")).toBeInTheDocument(); // the tie got resolved into an actual elimination
   });
 
   test("starting a new round from the result screen resets reveal/vote state", async () => {
