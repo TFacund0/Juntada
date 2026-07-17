@@ -12,9 +12,12 @@ interface Category {
 // they can see what the host is configuring live.
 export function LobbyInfo({ room }: LobbyInfoProps) {
   const config = room.config as any;
-  const activeDefaults = (DEFAULT_CATEGORIES as Category[]).filter(c => config.activeCategories?.[c.id]);
   const customCategories: Category[] = config.customCategories || [];
-  const allActive = [...activeDefaults, ...customCategories];
+  // Custom categories go through the same activeCategories toggle as the
+  // default ones (see ConfigPanel.tsx) — showing them unconditionally here
+  // meant a host turning one off still left it listed as active for every
+  // non-host player, indefinitely.
+  const allActive = [...DEFAULT_CATEGORIES, ...customCategories].filter((c: Category) => config.activeCategories?.[c.id]);
 
   return (
     <div style={S.card}>

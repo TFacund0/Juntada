@@ -126,6 +126,13 @@ export function TeamConfigPanel<Id extends string | number>({
 
   const size = nextPowerOf2(order.length);
   const byeCount = size - order.length;
+  // Mirrors buildBracket's own round-0 layout (see
+  // packages/torneo-futbol-bracket): the first `normalPairs` entries of
+  // `order`, taken two at a time, are real matches; every entrant after
+  // that gets their own solo bye — byes are never paired with each other,
+  // even when there are 2+ of them.
+  const pairCount = size / 2;
+  const normalPairs = pairCount - byeCount;
 
   return (
     <>
@@ -334,11 +341,13 @@ export function TeamConfigPanel<Id extends string | number>({
               {byeCount === 1 ? "" : "n"} directo a la siguiente ronda (bye).
             </p>
           )}
-          {Array.from({ length: Math.ceil(order.length / 2) }, (_, pairIdx) => {
-            const idxA = pairIdx * 2;
-            const idxB = idxA + 1;
+          {order.length < 2 && <p style={S.muted}>Necesitás al menos 2 jugadores para armar los cruces.</p>}
+          {Array.from({ length: pairCount }, (_, pairIdx) => {
+            const isRealPair = pairIdx < normalPairs;
+            const idxA = isRealPair ? pairIdx * 2 : normalPairs * 2 + (pairIdx - normalPairs);
+            const idxB = isRealPair ? idxA + 1 : null;
             const idA = order[idxA];
-            const idB = idxB < order.length ? order[idxB] : null;
+            const idB = idxB != null ? order[idxB] : null;
             const pA = players.find(x => x.id === idA);
             const pB = idB != null ? players.find(x => x.id === idB) : null;
             const isBye = !pB || !pA;
@@ -430,7 +439,7 @@ export function TeamConfigPanel<Id extends string | number>({
                       <span style={{ fontSize: 10, fontWeight: 800, color: "#6b6490" }}>VS</span>
                       <div style={{ flex: 1, height: 1, background: "rgba(127,119,221,0.18)" }} />
                     </div>
-                    {row(pB!, idxB)}
+                    {row(pB!, idxB!)}
                   </>
                 )}
               </div>

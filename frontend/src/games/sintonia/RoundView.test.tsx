@@ -97,8 +97,17 @@ describe("Sintonía RoundView — spectrum phase", () => {
       />,
     );
 
+    // "Random" mode picks (and previews) a pair up front so the psychic can
+    // see it — and re-roll — before committing, instead of leaving it to
+    // the server to pick at confirm time. Confirming submits that exact
+    // previewed pair as a manual override.
     await user.click(screen.getByRole("button", { name: "Confirmar y ver el objetivo" }));
-    expect(send).toHaveBeenCalledWith({ type: "submit_spectrum", mode: "random", left: "", right: "" });
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "submit_spectrum", mode: "manual", left: expect.any(String), right: expect.any(String) }),
+    );
+    const [{ left, right }] = send.mock.calls[0];
+    expect(left).not.toBe("");
+    expect(right).not.toBe("");
   });
 
   test("non-psychic players see a compact status card while the psychic picks", () => {

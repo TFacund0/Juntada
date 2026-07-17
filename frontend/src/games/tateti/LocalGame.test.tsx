@@ -47,15 +47,31 @@ describe("Ta-Te-Ti LocalGame", () => {
     expect(screen.getByText("Empate")).toBeInTheDocument();
   });
 
-  test("reset marcador requires a second confirming click", async () => {
+  test("reset marcador only shows up once there's a score, and asks for confirmation", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
     await user.click(screen.getByRole("button", { name: "Empezar a jugar" }));
 
-    await user.click(screen.getByRole("button", { name: "Reiniciar marcador" }));
-    expect(screen.getByText("¿Seguro? Tocá de nuevo para confirmar")).toBeInTheDocument();
+    // Nothing to reset yet on a fresh 0-0-0 scoreboard.
+    expect(screen.queryByRole("button", { name: "Reiniciar marcador" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "¿Seguro? Tocá de nuevo para confirmar" }));
-    expect(screen.getByRole("button", { name: "Reiniciar marcador" })).toBeInTheDocument();
+    // X plays 0,1,2 (top row), O plays 3,4 — X wins on the top row.
+    for (const i of [0, 3, 1, 4, 2]) {
+      const cells = boardCells();
+      await user.click(cells[i]);
+    }
+    await user.click(screen.getByRole("button", { name: "Jugar de nuevo" }));
+
+    await user.click(screen.getByRole("button", { name: "Reiniciar marcador" }));
+    expect(screen.getByText("¿Reiniciar el marcador?")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByText("¿Reiniciar el marcador?")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reiniciar marcador" })).toBeInTheDocument(); // score still there to reset
+
+    await user.click(screen.getByRole("button", { name: "Reiniciar marcador" }));
+    await user.click(screen.getByRole("button", { name: "Reiniciar" }));
+    expect(screen.queryByText("¿Reiniciar el marcador?")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reiniciar marcador" })).not.toBeInTheDocument(); // back to 0-0
   });
 });

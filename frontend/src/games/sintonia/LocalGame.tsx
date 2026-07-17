@@ -126,6 +126,7 @@ export function LocalGame() {
   const [spectrumMode, setSpectrumMode] = useState<"random" | "manual" | "same">("random");
   const [spectrumLeft, setSpectrumLeft] = useState("");
   const [spectrumRight, setSpectrumRight] = useState("");
+  const [randomPreview, setRandomPreview] = useState<{ left: string; right: string } | null>(null);
 
   const isDuplicateName = (name: string, excludeId: number | null) => {
     const norm = name.trim().toLowerCase();
@@ -187,28 +188,41 @@ export function LocalGame() {
     setSpectrumLeft("");
     setSpectrumRight("");
     setPhase("reveal");
+    setRandomPreview(pickAndCyclePreview());
+  };
+
+  // Picks the next pair for the "random" preview and cycles it to the back
+  // of `pool` (not removing it) — so re-rolling ("Ver otra") just keeps
+  // walking the same shuffled, no-repeats-within-a-match deck instead of
+  // consuming from it; only actually confirming a random pick (see
+  // confirmSpectrum) removes it for good.
+  const pickAndCyclePreview = (): { left: string; right: string } => {
+    const source = pool.length > 0 ? pool : shuffle(SPECTRUMS as [string, string][]);
+    const [left, right] = source[0];
+    setPool([...source.slice(1), source[0]]);
+    return { left, right };
   };
 
   // Called by the psychic, once they have the device in hand, to lock in
   // this round's pair of concepts before the secret target is generated.
   const confirmSpectrum = () => {
     const lastRound = history[history.length - 1];
-    let left: string,
-      right: string,
-      nextPool = pool;
+    let left: string, right: string;
     if (spectrumMode === "manual" && spectrumLeft.trim() && spectrumRight.trim()) {
       left = spectrumLeft.trim();
       right = spectrumRight.trim();
     } else if (spectrumMode === "same" && lastRound) {
       left = lastRound.left;
       right = lastRound.right;
+    } else if (randomPreview) {
+      left = randomPreview.left;
+      right = randomPreview.right;
+      // Already cycled to the back of `pool` by the preview pick — drop it
+      // for real now instead of leaving it there to resurface later.
+      setPool(prev => prev.filter(([l, r]) => l !== left || r !== right));
     } else {
-      let source = pool;
-      if (source.length === 0) source = shuffle(SPECTRUMS as [string, string][]);
-      [left, right] = source[0];
-      nextPool = source.slice(1);
+      return; // no random preview yet (shouldn't normally happen)
     }
-    setPool(nextPool);
     setRound(r => r && { ...r, left, right, target: randomTarget() });
   };
 
@@ -414,7 +428,17 @@ export function LocalGame() {
     // de esta ronda (repetir el último, uno al azar, o uno escrito por él).
     if (round.left === null) {
       const lastRound = history[history.length - 1];
-      const manualIncomplete = spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim());
+      const resolvedPair =
+        spectrumMode === "same"
+          ? lastRound
+          : spectrumMode === "random"
+            ? randomPreview
+            : spectrumLeft.trim() && spectrumRight.trim()
+              ? { left: spectrumLeft.trim(), right: spectrumRight.trim() }
+              : null;
+      // What the dial actually shows — unlike resolvedPair, manual mode
+      // previews live as each side gets typed instead of waiting for both.
+      const previewPair = spectrumMode === "manual" ? { left: spectrumLeft || "?", right: spectrumRight || "?" } : resolvedPair;
       return (
         <div>
           <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -427,6 +451,11 @@ export function LocalGame() {
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
           </div>
+          {previewPair && (
+            <div style={S.card}>
+              <Dial value={50} showNeedle={false} leftLabel={previewPair.left} rightLabel={previewPair.right} />
+            </div>
+          )}
           <div style={S.card}>
             <span style={S.label}>¿Qué par de conceptos usamos?</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -439,7 +468,10 @@ export function LocalGame() {
                 </button>
               )}
               <button
-                onClick={() => setSpectrumMode("random")}
+                onClick={() => {
+                  setSpectrumMode("random");
+                  if (!randomPreview) setRandomPreview(pickAndCyclePreview());
+                }}
                 style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
               >
                 Uno al azar de la base
@@ -451,6 +483,11 @@ export function LocalGame() {
                 Elegirlo yo mismo
               </button>
             </div>
+            {spectrumMode === "random" && (
+              <Btn variant="ghost" onClick={() => setRandomPreview(pickAndCyclePreview())} style={{ marginTop: 10 }}>
+                🔀 Ver otra
+              </Btn>
+            )}
             {spectrumMode === "manual" && (
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <input
@@ -468,7 +505,7 @@ export function LocalGame() {
               </div>
             )}
           </div>
-          <Btn variant="success" onClick={confirmSpectrum} disabled={manualIncomplete}>
+          <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
             Confirmar y ver el objetivo
           </Btn>
         </div>

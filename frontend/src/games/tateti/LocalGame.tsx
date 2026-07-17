@@ -3,6 +3,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { BackButton } from "../../components/BackButton";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Board } from "./Board";
 import { checkWinner } from "@juntada/tateti-board";
 
@@ -70,11 +71,7 @@ export function LocalGame() {
     }
   };
 
-  const requestResetScore = () => {
-    if (!confirmingReset) {
-      setConfirmingReset(true);
-      return;
-    }
+  const confirmResetScore = () => {
     setScore([0, 0]);
     setDraws(0);
     setConfirmingReset(false);
@@ -127,11 +124,22 @@ export function LocalGame() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <Btn variant={confirmingReset ? "danger" : "ghost"} onClick={requestResetScore} style={{ fontSize: 13 }}>
-          {confirmingReset ? "¿Seguro? Tocá de nuevo para confirmar" : "Reiniciar marcador"}
-        </Btn>
-      </div>
+      {(score[0] > 0 || score[1] > 0 || draws > 0) && (
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <Btn variant="ghost" onClick={() => setConfirmingReset(true)} style={{ fontSize: 13 }}>
+            Reiniciar marcador
+          </Btn>
+        </div>
+      )}
+      {confirmingReset && (
+        <ConfirmDialog
+          title="¿Reiniciar el marcador?"
+          message="Se pierden los puntos y empates acumulados."
+          confirmLabel="Reiniciar"
+          onConfirm={confirmResetScore}
+          onCancel={() => setConfirmingReset(false)}
+        />
+      )}
       <BackButton onClick={() => setPhase("setup")}>Volver a nombres</BackButton>
     </div>
   );

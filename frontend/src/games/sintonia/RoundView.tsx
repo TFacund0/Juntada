@@ -7,8 +7,23 @@ import { Dial, MARKER_COLORS } from "./Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Collapsible } from "../../components/Collapsible";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
+import { SPECTRUMS } from "@juntada/sintonia-data";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
+
+// Picks a random pair for the psychic to preview before committing to it —
+// purely client-side, so it can be re-rolled instantly without a round trip.
+// Confirming a "random" pick submits it as a manual left/right (see
+// confirmSpectrum below) rather than asking the server to pick again, so
+// what gets used is exactly what was last shown — the tradeoff is this
+// preview flow doesn't consult room.usedWords, so it can occasionally
+// preview (and confirm) a pair already used earlier this session, unlike
+// the server's own "random" pick which tracks that.
+function pickRandomSpectrum(exclude?: { left: string; right: string } | null): { left: string; right: string } {
+  const pool = exclude ? SPECTRUMS.filter(([l, r]) => l !== exclude.left || r !== exclude.right) : SPECTRUMS;
+  const [left, right] = pool[Math.floor(Math.random() * pool.length)];
+  return { left, right };
+}
 
 // Compact "X es el psíquico" status row — avatar and text sit side by side
 // so the card doesn't end up mostly empty space around a small centered
@@ -64,6 +79,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   const [spectrumMode, setSpectrumMode] = useState<"random" | "manual" | "same">("random");
   const [spectrumLeft, setSpectrumLeft] = useState("");
   const [spectrumRight, setSpectrumRight] = useState("");
+  const [randomPreview, setRandomPreview] = useState<{ left: string; right: string } | null>(null);
   const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
   const roundSetup = room.round as any;
@@ -89,6 +105,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
       setSpectrumMode("random");
       setSpectrumLeft("");
       setSpectrumRight("");
+      setRandomPreview(pickRandomSpectrum());
     }
   }, [room.phase]);
 
@@ -156,9 +173,32 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
 
   if (room.phase === "spectrum") {
     if (isPsychic) {
-      const manualIncomplete = spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim());
+      // What would actually be used if confirmed right now — "same" reuses
+      // last round's pair, "random" is whatever's currently previewed
+      // (re-rollable, see pickRandomSpectrum), "manual" only resolves once
+      // both sides are typed. Gates the confirm button.
+      const resolvedPair =
+        spectrumMode === "same"
+          ? round.lastSpectrum
+          : spectrumMode === "random"
+            ? randomPreview
+            : spectrumLeft.trim() && spectrumRight.trim()
+              ? { left: spectrumLeft.trim(), right: spectrumRight.trim() }
+              : null;
+      // What the dial actually shows — unlike resolvedPair, manual mode
+      // previews live as each side gets typed instead of waiting for both,
+      // so the graph updates immediately as a visual reference while typing.
+      const previewPair =
+        spectrumMode === "manual" ? { left: spectrumLeft || "?", right: spectrumRight || "?" } : resolvedPair;
+
       const confirmSpectrum = () => {
-        send({ type: "submit_spectrum", mode: spectrumMode, left: spectrumLeft.trim(), right: spectrumRight.trim() });
+        if (!resolvedPair) return;
+        // A "random" pick is submitted as the exact pair just previewed
+        // (manual override) instead of asking the server to pick again —
+        // otherwise confirming could hand back something different from
+        // what was actually shown.
+        const mode = spectrumMode === "random" ? "manual" : spectrumMode;
+        send({ type: "submit_spectrum", mode, left: resolvedPair.left, right: resolvedPair.right });
       };
 
       return (
@@ -166,6 +206,11 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
           </div>
+          {previewPair && (
+            <div style={S.card}>
+              <Dial value={50} showNeedle={false} leftLabel={previewPair.left} rightLabel={previewPair.right} />
+            </div>
+          )}
           <div style={S.card}>
             <span style={S.label}>¿Qué par de conceptos usamos?</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -178,7 +223,10 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
                 </button>
               )}
               <button
-                onClick={() => setSpectrumMode("random")}
+                onClick={() => {
+                  setSpectrumMode("random");
+                  if (!randomPreview) setRandomPreview(pickRandomSpectrum());
+                }}
                 style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
               >
                 Uno al azar de la base
@@ -190,6 +238,11 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
                 Elegirlo yo mismo
               </button>
             </div>
+            {spectrumMode === "random" && (
+              <Btn variant="ghost" onClick={() => setRandomPreview(pickRandomSpectrum(randomPreview))} style={{ marginTop: 10 }}>
+                🔀 Ver otra
+              </Btn>
+            )}
             {spectrumMode === "manual" && (
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <input
@@ -207,7 +260,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
               </div>
             )}
           </div>
-          <Btn variant="success" onClick={confirmSpectrum} disabled={manualIncomplete}>
+          <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
             Confirmar y ver el objetivo
           </Btn>
         </div>
@@ -411,8 +464,9 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           ) : (
             <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
           ))}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && (
+        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+            Available to any player, not just the host. */}
+        {room.groupCode === null && (
           <ConfirmBackButton
             title="¿Volver al lobby?"
             message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."

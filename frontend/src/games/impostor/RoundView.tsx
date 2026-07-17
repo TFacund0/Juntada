@@ -392,7 +392,15 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const totalVoted = onlinePlayers.filter(p => p.hasVoted).length;
     const revoteCandidates: string[] | undefined = round?.revoteCandidates;
     const isRevote = !!revoteCandidates;
-    const suspects = room.players.filter(p => p.id !== me?.playerId && (!revoteCandidates || revoteCandidates.includes(p.id)));
+    // Players eliminated earlier in this same match are spectating, not
+    // votable — the backend rejects a vote for one of them outright (see
+    // engine.ts's `vote` handler checking `alive.includes(suspectId)`), so
+    // offering them here would just silently eat the tap with no feedback,
+    // and if everyone hits this the round can never reach the vote quorum.
+    const matchEliminated: string[] = round?.matchEliminated ?? [];
+    const suspects = room.players.filter(
+      p => p.id !== me?.playerId && !matchEliminated.includes(p.id) && (!revoteCandidates || revoteCandidates.includes(p.id)),
+    );
 
     const confirmVote = () => {
       if (!selectedSuspect) return;
@@ -560,8 +568,10 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         {isHost && !matchOver && (
           <StartButton onClick={() => send({ type: "continue_round" })}>Siguiente ronda</StartButton>
         )}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && (
+        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+            Available to any player, not just the host — it only interrupts the
+            current match for everyone, same as leaving an instance. */}
+        {room.groupCode === null && (
           <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
         )}
         {!isHost && (

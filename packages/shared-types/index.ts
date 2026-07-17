@@ -140,6 +140,9 @@ export const SCHEMAS = {
   reset_score_vote: z.object({
     type: z.literal("reset_score_vote"),
   }),
+  cancel_score_reset: z.object({
+    type: z.literal("cancel_score_reset"),
+  }),
   back_to_lobby: z.object({
     type: z.literal("back_to_lobby"),
   }),

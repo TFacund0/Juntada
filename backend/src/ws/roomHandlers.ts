@@ -160,9 +160,13 @@ function gameAction(actionType: string) {
   };
 }
 
+// Any player can send the room back to the lobby (not just the host) — same
+// as leaving an instance, this only interrupts the current match for
+// everyone, it doesn't touch anyone's membership or host status, so there's
+// no real harm in letting whoever's playing bail out for the group.
 function backToLobby(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   const room = rooms.get(info.roomCode ?? "");
-  if (!room || room.hostId !== info.playerId) return;
+  if (!room || !room.players.some(p => p.id === info.playerId)) return;
   stopTimer(room.code);
   room.phase = "lobby";
   room.round = null;

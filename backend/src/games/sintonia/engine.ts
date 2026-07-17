@@ -284,14 +284,19 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     };
   }
 
-  const guessersOnline = room.players.filter(p => p.online && p.id !== r.psychicId).length;
+  const onlineGuesserIds = room.players.filter(p => p.online && p.id !== r.psychicId).map(p => p.id);
   return {
     left: r.left,
     right: r.right,
     psychicId: r.psychicId,
     clue: r.clue,
-    submittedCount: Object.keys(r.guesses).length,
-    guessersOnline,
+    // Counted against the same online-only pool as guessersOnline (not
+    // Object.keys(r.guesses).length) — otherwise a guess from someone who's
+    // since gone offline (or, edge case, been kicked) keeps counting
+    // forever, which can even show a numerator bigger than the
+    // denominator once they're no longer online.
+    submittedCount: onlineGuesserIds.filter(id => r.guesses[id] != null).length,
+    guessersOnline: onlineGuesserIds.length,
     target: room.phase === "result" ? r.target : null,
     guesses: room.phase === "result" ? r.guesses : null,
     pointsByPlayer: room.phase === "result" ? r.pointsByPlayer : null,
