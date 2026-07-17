@@ -94,6 +94,12 @@ function handleAction(room: Room, playerId: string, action: string, _payload: Re
       r.eliminated.push(r.result);
       r.result = null;
       r.spinAt = null;
+      // Only 1 entry left: the round is decided. Without this, room.phase
+      // never leaves "round" — the winner screen only ever showed because
+      // the frontend derives "finished" from pool.length on its own, but
+      // "Jugar de nuevo" (start_round) silently no-ops forever since the
+      // backend's phase guard only allows it from "lobby"/"result".
+      maybeAdvance(room);
       return { handled: true };
     }
 
