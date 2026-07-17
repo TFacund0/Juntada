@@ -172,13 +172,16 @@ test("removePlayer removes the player and hands off host if needed, just like a 
   assert.equal(room.hostId, betoId);
 });
 
-test("markOffline flags the player offline and hands off host if needed", () => {
+test("markOffline flags the player offline but keeps them as host (only kicking hands it off)", () => {
   const { room, playerId: hostId } = roomService.createRoom(fakeSocket(), { playerName: "Ana", gameType: "impostor" });
-  const { playerId: betoId } = roomService.joinRoom(fakeSocket(), { code: room.code, playerName: "Beto" });
+  roomService.joinRoom(fakeSocket(), { code: room.code, playerName: "Beto" });
 
   roomService.markOffline(room, hostId);
   assert.equal(room.players.find((p: any) => p.id === hostId).online, false);
-  assert.equal(room.hostId, betoId);
+  // A brief disconnect (about to reconnect) shouldn't cost the host their
+  // role — only an actual removal (kick, or the 5-minute auto-kick timeout)
+  // should. See kickPlayer's own reassignment test for that path.
+  assert.equal(room.hostId, hostId);
 });
 
 test("isRoomFullyOffline is true only once every player is offline", () => {
