@@ -4,11 +4,11 @@ import { GAME_LIST, getGame } from "./games/registry";
 import type { GameDef } from "./games/gameTypes";
 import { isUnderMaintenance } from "./games/maintenance";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
-import { Avatar } from "./components/Avatar";
 import { GamePicker } from "./components/GamePicker";
 import { GameRules } from "./components/GameRules";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { DevNoticeDialog } from "./components/DevNoticeDialog";
+import { NamePillEditor } from "./components/NamePillEditor";
 import { clearMultiplayerSession } from "./features/multiplayer/useMultiplayerSocket";
 import { consumeJoinLink } from "./features/multiplayer/joinLink";
 import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/playerName";
@@ -123,26 +123,16 @@ export default function App() {
   // nothing downstream (creating/joining a room or group) ever has to ask
   // for it again. Editable later from the home screen ("Cambiar" link).
   const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
+  // Only used by the first-run "how should we call you" screen below (see
+  // `if (!playerName)`) — the pill editor (NamePillEditor) that lets you
+  // change it afterwards owns its own draft state.
   const [nameDraft, setNameDraft] = useState("");
-  const [editingName, setEditingName] = useState(false);
-  // Nudges the player back to the name field instead of letting a stray tap
-  // elsewhere silently discard an in-progress edit — see the blocking
-  // overlay rendered alongside the inline name editor below.
-  const [nameEditNudge, setNameEditNudge] = useState(false);
-
-  const cancelEditName = () => {
-    setNameDraft(playerName);
-    setEditingName(false);
-    setNameEditNudge(false);
-  };
 
   const savePlayerName = (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     setStoredPlayerName(trimmed);
     setPlayerName(trimmed);
-    setEditingName(false);
-    setNameEditNudge(false);
   };
 
   const game = gameId ? (getGame(gameId) as GameDef | undefined) : null;
@@ -311,95 +301,9 @@ export default function App() {
           {!gameId && !groupFlow && <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>Elegí un juego para arrancar</p>}
           {!gameId && !groupFlow && (
             <>
-              {editingName && (
-                // Sits under the edit pill (which gets a higher z-index
-                // below) and above everything else — a tap anywhere else
-                // while editing doesn't discard the draft, it just nudges
-                // the player back to confirm or cancel explicitly.
-                <div onClick={() => setNameEditNudge(true)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-              )}
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 14, position: "relative", zIndex: 41 }}>
-                {editingName ? (
-                  <div style={{ ...S.namePill, cursor: "default", paddingLeft: 12 }}>
-                    <input
-                      style={{
-                        background: "none",
-                        border: "none",
-                        outline: "none",
-                        color: "#e8e4f0",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        fontFamily: "inherit",
-                        width: 110,
-                      }}
-                      placeholder="Tu nombre"
-                      autoFocus
-                      value={nameDraft}
-                      onChange={e => {
-                        setNameDraft(e.target.value);
-                        setNameEditNudge(false);
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === "Enter") savePlayerName(nameDraft);
-                        if (e.key === "Escape") cancelEditName();
-                      }}
-                    />
-                    <button
-                      onClick={() => savePlayerName(nameDraft)}
-                      disabled={!nameDraft.trim()}
-                      aria-label="Guardar nombre"
-                      style={{
-                        background: "rgba(93,202,165,0.18)",
-                        border: "none",
-                        borderRadius: 999,
-                        color: "#5DCAA5",
-                        cursor: nameDraft.trim() ? "pointer" : "default",
-                        opacity: nameDraft.trim() ? 1 : 0.4,
-                        fontSize: 14,
-                        fontFamily: "inherit",
-                        fontWeight: 700,
-                        padding: "5px 10px",
-                      }}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={cancelEditName}
-                      aria-label="Cancelar edición"
-                      style={{
-                        background: "rgba(226,75,74,0.14)",
-                        border: "none",
-                        borderRadius: 999,
-                        color: "#F09595",
-                        cursor: "pointer",
-                        fontSize: 14,
-                        fontFamily: "inherit",
-                        fontWeight: 700,
-                        padding: "5px 10px",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setNameDraft(playerName);
-                      setEditingName(true);
-                    }}
-                    style={S.namePill}
-                  >
-                    <Avatar name={playerName} size={26} />
-                    <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{playerName}</span>
-                    <span style={{ color: "#7F77DD", fontSize: 13 }}>✎</span>
-                  </button>
-                )}
+              <div style={{ marginTop: 14 }}>
+                <NamePillEditor name={playerName} onSave={savePlayerName} />
               </div>
-              {editingName && nameEditNudge && (
-                <p style={{ color: "#E2C44A", fontSize: 12, fontWeight: 700, marginTop: 8, position: "relative", zIndex: 41 }}>
-                  Confirmá (✓) o cancelá (✕) el nombre para seguir
-                </p>
-              )}
               <div ref={groupMenuRef} style={{ position: "relative", marginTop: 14, textAlign: "left" }}>
                 <button onClick={() => setShowGroupMenu(v => !v)} style={S.groupFlowBar}>
                   👥 Crear o unirme a un grupo

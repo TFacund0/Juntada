@@ -193,7 +193,13 @@ function removePlayer(room: Room, playerId: string): void {
 function markOffline(room: Room, playerId: string): void {
   const p = room.players.find(p => p.id === playerId);
   if (p) p.online = false;
-  reassignHostIfNeeded(room, playerId);
+  // Deliberately does NOT hand off the host here, even if they're the one
+  // going offline — same reasoning as skipping maybeAdvance above: a brief
+  // disconnect (network blip, backgrounded tab) shouldn't cost them
+  // anything as permanent as losing host, only that reconnect grace period
+  // reconnectDelayMs on the client is built around. reassignHostIfNeeded
+  // still runs on the paths that mean they're actually, finally gone:
+  // kickPlayer/removePlayer, including the 5-minute auto-kick timeout.
   getEngine(room.gameType)?.onPlayerOffline?.(room, playerId);
 }
 

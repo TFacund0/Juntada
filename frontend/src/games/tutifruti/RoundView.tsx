@@ -62,8 +62,23 @@ function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHos
 function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "room" | "me" | "myPlayer" | "myRole" | "isHost" | "send">) {
   const round = room.round as any;
   const timeLeft = useCountdown(round.endMode === "timer" ? round.timerEnd : null);
+  // Only "Ya terminé" (timer mode) locks answers — basta mode has no
+  // individual confirm step, everyone keeps typing until someone calls
+  // "¡BASTA!" for the whole table.
+  const locked = !!myPlayer?.ready;
   const [values, setValues] = useState<Record<string, string>>(() => (myRole as any)?.myAnswers || {});
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keyed per category — a single shared timer/pending-value would let
+  // typing in category B cancel category A's still-pending debounce (via
+  // the old clearTimeout) without ever resending it, silently dropping A's
+  // answer the moment you moved on to fill in something else, well before
+  // ever touching "Ya terminé".
+  const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  // Tracks whatever hasn't been sent yet per category, so "Ya terminé" can
+  // flush it immediately instead of leaving the last word(s) typed
+  // unsubmitted — the backend rejects any submit_answers once ready is set
+  // (see engine.ts), so without this the last category typed right before
+  // confirming would silently score 0 with no feedback that it never saved.
+  const pendingRef = useRef<Record<string, string>>({});
   const letterRef = useRef(round.letter);
   const onlinePlayers = room.players.filter(p => p.online);
   const readyCount = onlinePlayers.filter(p => p.ready).length;
@@ -72,6 +87,11 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
     if (letterRef.current !== round.letter) {
       letterRef.current = round.letter;
       setValues((myRole as any)?.myAnswers || {});
+      // A new round means whatever was still pending from the previous
+      // letter is moot — its categories don't even exist anymore.
+      Object.values(debounceRefs.current).forEach(clearTimeout);
+      debounceRefs.current = {};
+      pendingRef.current = {};
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round.letter]);
@@ -79,18 +99,28 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
   const onChange = (catId: string, word: string) => {
     const next = { ...values, [catId]: word };
     setValues(next);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+    pendingRef.current[catId] = word;
+    if (debounceRefs.current[catId]) clearTimeout(debounceRefs.current[catId]);
+    debounceRefs.current[catId] = setTimeout(() => {
       send({ type: "submit_answers", answers: { [catId]: word } });
+      delete pendingRef.current[catId];
+      delete debounceRefs.current[catId];
     }, 400);
   };
 
-  useEffect(
-    () => () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    },
-    [],
-  );
+  // Skips the debounce and sends whatever's still pending right now (every
+  // category with an in-flight edit, not just the last one touched),
+  // instead of letting "Ya terminé" race it (see player_ready's onClick).
+  const flushPending = () => {
+    Object.values(debounceRefs.current).forEach(clearTimeout);
+    debounceRefs.current = {};
+    if (Object.keys(pendingRef.current).length > 0) {
+      send({ type: "submit_answers", answers: { ...pendingRef.current } });
+      pendingRef.current = {};
+    }
+  };
+
+  useEffect(() => () => flushPending(), []);
 
   return (
     <div>
@@ -118,16 +148,23 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
               {cat.label}
             </span>
             <input
-              style={S.input}
+              style={{ ...S.input, opacity: locked ? 0.5 : 1 }}
               value={values[cat.id] || ""}
               onChange={e => onChange(cat.id, e.target.value)}
               placeholder={`${round.letter}...`}
+              disabled={locked}
             />
           </div>
         ))}
       </div>
       {round.endMode === "basta" && (
-        <Btn variant="danger" onClick={() => send({ type: "call_basta" })}>
+        <Btn
+          variant="danger"
+          onClick={() => {
+            flushPending();
+            send({ type: "call_basta" });
+          }}
+        >
           ¡BASTA!
         </Btn>
       )}
@@ -137,7 +174,13 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
             <p style={{ color: "#5DCAA5", margin: 0 }}>Marcaste que ya terminaste — esperando a los demás</p>
           </div>
         ) : (
-          <Btn variant="success" onClick={() => send({ type: "player_ready" })}>
+          <Btn
+            variant="success"
+            onClick={() => {
+              flushPending();
+              send({ type: "player_ready" });
+            }}
+          >
             Ya terminé
           </Btn>
         ))}
@@ -350,12 +393,18 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
           );
         })}
       </div>
-      {isHost && !round.isFinalRound && (
-        <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
+      {isHost &&
+        (round.isFinalRound ? (
+          <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
+        ) : (
+          <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
+        ))}
+      {round.isFinalRound && !isHost && (
+        <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>
       )}
-      {round.isFinalRound && <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>}
-      {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-      {isHost && room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
+      {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+          Available to any player, not just the host. */}
+      {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
       {confirmLobby && (
         <ConfirmDialog
           title="¿Volver al lobby?"

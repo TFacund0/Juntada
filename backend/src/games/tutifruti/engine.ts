@@ -239,6 +239,19 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
   const r = round(room);
 
   switch (action) {
+    // Once every configured round has been played, startRound refuses
+    // forever (room.roundHistory never shrinks on its own — not even
+    // "Volver al lobby" clears it) — this is the only way to actually start
+    // a fresh match in the same room afterwards. Same pattern as sintonia's
+    // own new_game.
+    case "new_game": {
+      if (playerId !== room.hostId) return { handled: false };
+      cfg(room).score = {};
+      room.roundHistory.length = 0;
+      const res = startRound(room);
+      return { handled: !!res.success };
+    }
+
     case "confirm_letter": {
       if (room.phase !== "setup") return { handled: false };
       if (playerId !== room.hostId) return { handled: false };
@@ -254,6 +267,11 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
 
     case "submit_answers": {
       if (room.phase !== "writing") return { handled: false };
+      // Marking "Ya terminé" (player_ready) locks in whatever's already
+      // there — accepting further edits after that would let a client keep
+      // typing behind the "esperando a los demás" message everyone else
+      // sees, effectively getting extra time nobody agreed to.
+      if (room.players.find(p => p.id === playerId)?.ready) return { handled: false };
       const answers = payload?.answers as Record<string, unknown> | undefined;
       if (!answers || typeof answers !== "object") return { handled: false };
       const validIds = new Set(r.categories.map(c => c.id));

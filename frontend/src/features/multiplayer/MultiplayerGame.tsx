@@ -9,6 +9,7 @@ import { SetupTabs } from "../../components/SetupTabs";
 import { Toast } from "../../components/Toast";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
+import { NamePillEditor } from "../../components/NamePillEditor";
 import { getGame, GAME_LIST } from "../../games/registry";
 import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
@@ -127,8 +128,9 @@ export function MultiplayerGame({
 
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
+  // Controlled (not just owned by NamePillEditor itself) because the "ya
+  // está en uso" effect below also needs to force it open from outside.
   const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState(playerName);
   const [showQR, setShowQR] = useState(false);
   const [showCreateInstance, setShowCreateInstance] = useState(false);
   // Leaving mid-game silently forfeits whatever's in progress, so that path
@@ -171,6 +173,41 @@ export function MultiplayerGame({
     }
     prevOnlineRef.current = Object.fromEntries(room.players.map(p => [p.id, p.online]));
   }, [room, me?.playerId]);
+
+  // Same reusable toast as above, for two more events that otherwise happen
+  // silently under everyone else: someone interrupting the match with
+  // "Volver al lobby" (any player can now do this, not just the host — see
+  // backToLobby) — relevant in any online room, standalone or group — and,
+  // group instances only, a member leaving back to the group screen
+  // ("Volver al grupo") — a standalone room has no "group screen" to return
+  // to, so that half only makes sense there. Both are detected purely by
+  // diffing the room's phase/roster between renders — no dedicated server
+  // message needed, so this automatically covers every game through this
+  // one shared shell instead of each RoundView having to wire it up itself.
+  const prevRoomSnapshotRef = useRef<{ code: string; phase: string; players: Record<string, string> } | null>(null);
+  useEffect(() => {
+    if (!room) {
+      prevRoomSnapshotRef.current = null;
+      return;
+    }
+    const prev = prevRoomSnapshotRef.current;
+    // A different room/instance than the one we were last watching — don't
+    // compare across them (e.g. just switched instances inside a group).
+    if (prev && prev.code === room.code) {
+      if (prev.phase !== "lobby" && room.phase === "lobby") {
+        setStatusToast("Volvieron al lobby");
+      } else if (room.groupCode !== null) {
+        const currentIds = new Set(room.players.map(p => p.id));
+        const leftPlayerName = Object.entries(prev.players).find(([id]) => !currentIds.has(id))?.[1];
+        if (leftPlayerName) setStatusToast(`${leftPlayerName} volvió al grupo`);
+      }
+    }
+    prevRoomSnapshotRef.current = {
+      code: room.code,
+      phase: room.phase,
+      players: Object.fromEntries(room.players.map(p => [p.id, p.name])),
+    };
+  }, [room]);
 
   useEffect(() => {
     if (!openPlayerMenu) return;
@@ -250,18 +287,11 @@ export function MultiplayerGame({
     // error comes back — let the live preview resume for any further
     // manual retry.
     autoJoiningRef.current = false;
-    if (error.includes("ya está en uso")) {
-      setNameDraft(playerName);
-      setEditingName(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (error.includes("ya está en uso")) setEditingName(true);
   }, [error]);
 
-  const saveName = () => {
-    const trimmed = nameDraft.trim();
-    if (!trimmed) return;
-    onChangeName?.(trimmed);
-    setEditingName(false);
+  const saveName = (name: string) => {
+    onChangeName?.(name);
     setError("");
   };
 
@@ -385,65 +415,8 @@ export function MultiplayerGame({
             {error}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          {editingName ? (
-            <div style={{ ...S.namePill, cursor: "default", paddingLeft: 12 }}>
-              <input
-                style={{
-                  background: "none",
-                  border: "none",
-                  outline: "none",
-                  color: "#e8e4f0",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
-                  width: 110,
-                }}
-                placeholder="Tu nombre"
-                autoFocus
-                value={nameDraft}
-                onChange={e => setNameDraft(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") saveName();
-                  if (e.key === "Escape") {
-                    setNameDraft(playerName);
-                    setEditingName(false);
-                  }
-                }}
-              />
-              <button
-                onClick={saveName}
-                disabled={!nameDraft.trim()}
-                aria-label="Guardar nombre"
-                style={{
-                  background: "rgba(93,202,165,0.18)",
-                  border: "none",
-                  borderRadius: 999,
-                  color: "#5DCAA5",
-                  cursor: nameDraft.trim() ? "pointer" : "default",
-                  opacity: nameDraft.trim() ? 1 : 0.4,
-                  fontSize: 14,
-                  fontFamily: "inherit",
-                  fontWeight: 700,
-                  padding: "5px 10px",
-                }}
-              >
-                ✓
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                setNameDraft(playerName);
-                setEditingName(true);
-              }}
-              style={S.namePill}
-            >
-              <Avatar name={playerName} size={22} />
-              <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{playerName}</span>
-              <span style={{ color: "#7F77DD", fontSize: 13 }}>✎</span>
-            </button>
-          )}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
+          <NamePillEditor name={playerName} onSave={saveName} avatarSize={22} editing={editingName} onEditingChange={setEditingName} />
         </div>
         <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
           <Btn

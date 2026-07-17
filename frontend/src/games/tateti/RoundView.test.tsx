@@ -1,5 +1,5 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { describe, test, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 import { RoundView } from "./RoundView";
@@ -38,8 +38,6 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, c
 function boardCells() {
   return screen.getAllByRole("button").filter(b => ["·", "X", "O"].includes(b.textContent ?? ""));
 }
-
-afterEach(() => vi.useRealTimers());
 
 describe("Ta-Te-Ti RoundView — round phase", () => {
   test("clicking a cell on my turn sends a mark", async () => {
@@ -84,7 +82,7 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
     const send = vi.fn();
     render(
       <RoundView
-        room={makeRoom("round")}
+        room={makeRoom("round", {}, { score: { p1: 1 } })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
         myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
@@ -98,10 +96,10 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
     expect(send).toHaveBeenCalledWith({ type: "reset_score_vote" });
   });
 
-  test("shows a confirm button when the opponent already voted to reset", () => {
+  test("the reset option doesn't show up with a 0-0 scoreboard", () => {
     render(
       <RoundView
-        room={makeRoom("round", {}, { resetVotes: ["p2"] })}
+        room={makeRoom("round")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
         myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
@@ -111,14 +109,36 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
       />,
     );
 
-    expect(screen.getByText("Jugador 2 pidió reiniciar el marcador — confirmar")).toBeInTheDocument();
+    expect(screen.queryByText("Reiniciar marcador")).not.toBeInTheDocument();
+  });
+
+  test("shows accept/reject when the opponent already requested a reset", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn();
+    render(
+      <RoundView
+        room={makeRoom("round", {}, { score: { p1: 1 }, resetVotes: ["p2"] })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    expect(screen.getByText("Jugador 2 quiere reiniciar el marcador")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Rechazar" }));
+    expect(send).toHaveBeenCalledWith({ type: "cancel_score_reset" });
+
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(send).toHaveBeenCalledWith({ type: "reset_score_vote" });
   });
 });
 
 describe("Ta-Te-Ti RoundView — result phase", () => {
-  beforeEach(() => vi.useFakeTimers());
-
-  test("reveals the result after the countdown and lets me ready up for a rematch", async () => {
+  test("reveals the result immediately and lets me ready up for a rematch", async () => {
     const send = vi.fn();
     render(
       <RoundView
@@ -132,20 +152,14 @@ describe("Ta-Te-Ti RoundView — result phase", () => {
       />,
     );
 
-    expect(screen.queryByText("¡Ganaste!")).not.toBeInTheDocument();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3000);
-    });
-
     expect(screen.getByText("¡Ganaste!")).toBeInTheDocument();
 
-    vi.useRealTimers();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Jugar de nuevo" }));
     expect(send).toHaveBeenCalledWith({ type: "player_ready" });
   });
 
-  test("a draw shows 'Empate' for both players", async () => {
+  test("a draw shows 'Empate' for both players", () => {
     render(
       <RoundView
         room={makeRoom("result", { winner: "draw" })}
@@ -157,10 +171,6 @@ describe("Ta-Te-Ti RoundView — result phase", () => {
         send={vi.fn()}
       />,
     );
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3000);
-    });
 
     expect(screen.getByText("Empate")).toBeInTheDocument();
   });

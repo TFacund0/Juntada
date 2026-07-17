@@ -118,13 +118,24 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
     // one side clicking "reiniciar" alone just marks their vote and waits.
     case "reset_score_vote": {
       if (!room.round) return { handled: false };
-      if (!cfg(room).resetVotes.includes(playerId)) cfg(room).resetVotes.push(playerId);
+      const votes = cfg(room).resetVotes;
+      if (!votes.includes(playerId)) votes.push(playerId);
       const online = room.players.filter(p => p.online);
-      if (online.length === MAX_PLAYERS && online.every(p => cfg(room).resetVotes.includes(p.id))) {
+      if (online.length === MAX_PLAYERS && online.every(p => votes.includes(p.id))) {
         cfg(room).score = {};
         cfg(room).draws = 0;
         cfg(room).resetVotes = [];
       }
+      return { handled: true };
+    }
+
+    // Either side can wipe a pending request back to neutral — the
+    // requester backing out of their own ask, or the other player declining
+    // it. Either way both players end up seeing the plain "Reiniciar
+    // marcador" button again, not a half-retracted state.
+    case "cancel_score_reset": {
+      if (!room.round) return { handled: false };
+      cfg(room).resetVotes = [];
       return { handled: true };
     }
 

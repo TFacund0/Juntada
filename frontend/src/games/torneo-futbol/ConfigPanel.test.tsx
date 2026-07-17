@@ -59,6 +59,31 @@ describe("Torneo de Fútbol ConfigPanel", () => {
     expect(updateConfig).toHaveBeenCalledWith({ assignments: { p1: "Argentina" } });
   });
 
+  test("Cruces preview gives each trailing entrant their own solo bye, matching buildBracket exactly", async () => {
+    const user = userEvent.setup();
+    const players = Array.from({ length: 5 }, (_, i) => ({
+      id: `p${i + 1}`,
+      name: `Jugador ${i + 1}`,
+      ready: false,
+      online: true,
+      hasVoted: false,
+    }));
+    const room = makeRoom({ seedOrder: players.map(p => p.id) });
+    room.players = players;
+    render(<ConfigPanel room={room} updateConfig={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Cruces" }));
+
+    // 5 entrants -> nextPowerOf2 = 8, byeCount = 3, normalPairs = 1: only
+    // Jugador 1 vs Jugador 2 is a real match; Jugadores 3/4/5 each get their
+    // own solo bye card — never paired with each other.
+    expect(screen.getByText("Cruce 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Pasa directo (bye)")).toHaveLength(3);
+    expect(screen.getByText("Jugador 3")).toBeInTheDocument();
+    expect(screen.getByText("Jugador 4")).toBeInTheDocument();
+    expect(screen.getByText("Jugador 5")).toBeInTheDocument();
+  });
+
   test("toggling goal tracking sends the inverse of the current value", async () => {
     const user = userEvent.setup();
     const updateConfig = vi.fn();

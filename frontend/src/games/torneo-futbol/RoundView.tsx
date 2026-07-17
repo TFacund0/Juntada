@@ -227,8 +227,9 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
           ))}
         </div>
 
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>}
+        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+            Available to any player, not just the host. */}
+        {room.groupCode === null && <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>}
       </div>
     );
   }
