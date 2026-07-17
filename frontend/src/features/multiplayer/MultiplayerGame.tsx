@@ -172,6 +172,41 @@ export function MultiplayerGame({
     prevOnlineRef.current = Object.fromEntries(room.players.map(p => [p.id, p.online]));
   }, [room, me?.playerId]);
 
+  // Same reusable toast as above, for two more events that otherwise happen
+  // silently under everyone else: someone interrupting the match with
+  // "Volver al lobby" (any player can now do this, not just the host — see
+  // backToLobby) — relevant in any online room, standalone or group — and,
+  // group instances only, a member leaving back to the group screen
+  // ("Volver al grupo") — a standalone room has no "group screen" to return
+  // to, so that half only makes sense there. Both are detected purely by
+  // diffing the room's phase/roster between renders — no dedicated server
+  // message needed, so this automatically covers every game through this
+  // one shared shell instead of each RoundView having to wire it up itself.
+  const prevRoomSnapshotRef = useRef<{ code: string; phase: string; players: Record<string, string> } | null>(null);
+  useEffect(() => {
+    if (!room) {
+      prevRoomSnapshotRef.current = null;
+      return;
+    }
+    const prev = prevRoomSnapshotRef.current;
+    // A different room/instance than the one we were last watching — don't
+    // compare across them (e.g. just switched instances inside a group).
+    if (prev && prev.code === room.code) {
+      if (prev.phase !== "lobby" && room.phase === "lobby") {
+        setStatusToast("Volvieron al lobby");
+      } else if (room.groupCode !== null) {
+        const currentIds = new Set(room.players.map(p => p.id));
+        const leftPlayerName = Object.entries(prev.players).find(([id]) => !currentIds.has(id))?.[1];
+        if (leftPlayerName) setStatusToast(`${leftPlayerName} volvió al grupo`);
+      }
+    }
+    prevRoomSnapshotRef.current = {
+      code: room.code,
+      phase: room.phase,
+      players: Object.fromEntries(room.players.map(p => [p.id, p.name])),
+    };
+  }, [room]);
+
   useEffect(() => {
     if (!openPlayerMenu) return;
     const onClickOutside = (e: MouseEvent) => {
