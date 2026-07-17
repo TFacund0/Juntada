@@ -7,6 +7,7 @@ import { QRDialog } from "../../components/QRDialog";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { SetupTabs } from "../../components/SetupTabs";
 import { Toast } from "../../components/Toast";
+import { ErrorBanner } from "../../components/ErrorBanner";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
 import { NamePillEditor } from "../../components/NamePillEditor";
@@ -114,6 +115,7 @@ export function MultiplayerGame({
     roomPreview,
     setRoomPreview,
     error,
+    errorKey,
     setError,
     reconnecting,
     reconnectAttempt,
@@ -399,22 +401,7 @@ export function MultiplayerGame({
     return (
       <div>
         {reconnectBanner}
-        {error && (
-          <div
-            style={{
-              background: "rgba(226,75,74,0.1)",
-              border: "1px solid rgba(226,75,74,0.3)",
-              borderRadius: 10,
-              padding: "10px 14px",
-              marginBottom: 16,
-              color: "#F09595",
-              fontSize: 13,
-              textAlign: "center",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        <ErrorBanner message={error} flashKey={errorKey} variant="block" />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
           <NamePillEditor name={playerName} onSave={saveName} avatarSize={22} editing={editingName} onEditingChange={setEditingName} />
         </div>
@@ -688,7 +675,7 @@ export function MultiplayerGame({
           />
         )}
 
-        {error && <p style={{ color: "#F09595", fontSize: 13, textAlign: "center", marginTop: 10 }}>{error}</p>}
+        <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
       </div>
     );
 
@@ -871,7 +858,7 @@ export function MultiplayerGame({
           </Btn>
         )}
 
-        {error && <p style={{ color: "#F09595", fontSize: 13, textAlign: "center" }}>{error}</p>}
+        <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
       </div>
     );
   }
@@ -886,22 +873,7 @@ export function MultiplayerGame({
       <div>
         <Toast message={statusToast} onExpire={() => setStatusToast(null)} />
         {reconnectBanner}
-        {error && (
-          <div
-            style={{
-              background: "rgba(226,75,74,0.1)",
-              border: "1px solid rgba(226,75,74,0.3)",
-              borderRadius: 10,
-              padding: "10px 14px",
-              marginBottom: 16,
-              color: "#F09595",
-              fontSize: 13,
-              textAlign: "center",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        <ErrorBanner message={error} flashKey={errorKey} variant="block" />
 
         {room.groupCode !== null && (
           <button

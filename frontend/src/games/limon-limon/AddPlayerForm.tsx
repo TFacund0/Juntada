@@ -1,5 +1,6 @@
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { ErrorBanner } from "../../components/ErrorBanner";
 
 // Shared "sumar jugador" form — same card, same layout, in both local modes
 // (players can join mid-deck in circle mode, mid-deal in reveal mode). Name
@@ -10,11 +11,13 @@ export function AddPlayerForm({
   onNameChange,
   onSubmit,
   error,
+  errorKey,
 }: {
   name: string;
   onNameChange: (value: string) => void;
   onSubmit: () => void;
   error: string;
+  errorKey: number;
 }) {
   return (
     <div style={S.card}>
@@ -33,7 +36,7 @@ export function AddPlayerForm({
           Sumar
         </Btn>
       </div>
-      {error && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{error}</p>}
+      <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
     </div>
   );
 }

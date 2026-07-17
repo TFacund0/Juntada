@@ -9,6 +9,8 @@ import { StickyActionBar } from "../../components/StickyActionBar";
 import { TeamConfigPanel } from "./team-config/TeamConfigPanel";
 import { buildBracket, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { useFlashError } from "../../hooks/useFlashError";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TORNEO DE FÚTBOL — un solo dispositivo. Mismo esquema de setup que el modo
@@ -66,7 +68,7 @@ export function LocalGame() {
   const [teams, setTeams] = useState(DEFAULT_TEAMS.slice(0, 8));
   const [trackGoals, setTrackGoals] = useState(true);
   const [assignments, setAssignments] = useState<Record<number, string>>({}); // playerId -> team
-  const [nameError, setNameError] = useState("");
+  const [nameError, nameErrorKey, setNameError] = useFlashError();
   // Persisted only when explicitly reordered (moveSeed/randomizeSeed inside
   // TeamConfigPanel) — same derive-then-fall-back-to-player-order pattern as
   // the online ConfigPanel, so adding/removing a player never leaves a
@@ -217,7 +219,7 @@ export function LocalGame() {
                 Agregar
               </Btn>
             </div>
-            {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
+            <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
           </div>
         )}
 

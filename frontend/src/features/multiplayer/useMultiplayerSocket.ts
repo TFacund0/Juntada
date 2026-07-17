@@ -124,6 +124,26 @@ export function useMultiplayerSocket({
   // to actually joining (see MultiplayerGame's join-room form).
   const [roomPreview, setRoomPreview] = useState<{ code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean } | null>(null);
   const [error, setError] = useState("");
+  // Bumped every time an error is (re-)raised, even if the message text is
+  // identical to what's already showing — lets the UI key off this to replay
+  // its "flash" animation so a repeated failure is never silently invisible.
+  const [errorKey, setErrorKey] = useState(0);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // How long an error banner stays up before auto-clearing itself.
+  const ERROR_DURATION = 5000;
+  const flashError = useCallback((message: string) => {
+    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    setError(message);
+    setErrorKey(k => k + 1);
+    errorTimeoutRef.current = setTimeout(() => setError(""), ERROR_DURATION);
+  }, []);
+  const clearError = useCallback(() => {
+    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    setError("");
+  }, []);
+  // Single setter exposed to callers: an empty string clears (e.g. on
+  // successful retry), anything else flashes/auto-clears like a real error.
+  const setErrorExternal = useCallback((message: string) => (message ? flashError(message) : clearError()), [flashError, clearError]);
   // True while a dropped socket is being retried in the background (flaky
   // connection, tab was suspended, etc.) — lets the UI show a "reconectando"
   // banner instead of silently retrying with no feedback.
@@ -154,12 +174,10 @@ export function useMultiplayerSocket({
   useEffect(() => {
     meRef.current = me;
     saveSession({ room: me ?? undefined, group: groupMeRef.current ?? undefined });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me]);
   useEffect(() => {
     groupMeRef.current = groupMe;
     saveSession({ room: meRef.current ?? undefined, group: groupMe ?? undefined });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupMe]);
   useEffect(() => {
     roomRef.current = room;
@@ -208,12 +226,12 @@ export function useMultiplayerSocket({
         setMe({ playerId: msg.playerId, roomCode: msg.roomCode });
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
-        setError("");
+        clearError();
         onReconnected();
       } else if (msg.type === "state") {
         setRoom(msg.room);
         setConnectionPhase(msg.room.phase);
-        setError("");
+        clearError();
         onReconnected();
       } else if (msg.type === "group_joined") {
         setGroupMe({ playerId: msg.playerId, groupCode: msg.groupCode });
@@ -227,11 +245,11 @@ export function useMultiplayerSocket({
           if (!prevRoom) setConnectionPhase("group");
           return prevRoom;
         });
-        setError("");
+        clearError();
         onReconnected();
       } else if (msg.type === "group_state") {
         setGroup(msg.group);
-        setError("");
+        clearError();
         onReconnected();
       } else if (msg.type === "left_instance") {
         setMe(null);
@@ -239,7 +257,7 @@ export function useMultiplayerSocket({
         setMyRole(null);
         setWordReveal(null);
         setConnectionPhase("group");
-        setError("");
+        clearError();
       } else if (msg.type === "left_group") {
         setMe(null);
         setRoom(null);
@@ -248,7 +266,7 @@ export function useMultiplayerSocket({
         setMyRole(null);
         setWordReveal(null);
         setConnectionPhase("menu");
-        setError("");
+        clearError();
         onLeftGroupRef.current?.();
       } else if (msg.type === "private_role") {
         setMyRole(msg);
@@ -256,7 +274,7 @@ export function useMultiplayerSocket({
       } else if (msg.type === "word_reveal") {
         setWordReveal(msg);
       } else if (msg.type === "error") {
-        setError(msg.message);
+        flashError(msg.message);
         // Failed before ever landing in a room/group — either a fresh
         // join with a bad code, or a restored/rejoin session whose
         // room/group has since expired. Either way, never leave the UI
@@ -278,7 +296,7 @@ export function useMultiplayerSocket({
         setMe(null);
         setRoom(null);
         setMyRole(null);
-        setError("Fuiste expulsado de la sala");
+        flashError("Fuiste expulsado de la sala");
         setReconnecting(false);
       }
     };
@@ -302,8 +320,8 @@ export function useMultiplayerSocket({
         return attempt;
       });
     };
-    ws.onerror = () => setError("No se pudo conectar al servidor");
-  }, [onReconnected]);
+    ws.onerror = () => flashError("No se pudo conectar al servidor");
+  }, [onReconnected, flashError, clearError, groupSessionEnabled]);
 
   // Manual retry after the automatic loop gave up (see reconnectFailed) —
   // resets the attempt count/backoff so the player gets a fresh full run
@@ -343,13 +361,14 @@ export function useMultiplayerSocket({
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pageshow", onVisible);
     };
-  }, [connect]);
+  }, [connect, groupSessionEnabled]);
 
   useEffect(
     () => () => {
       wsRef.current?.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
     },
     [],
   );
@@ -357,8 +376,8 @@ export function useMultiplayerSocket({
   const send = useCallback((msg: ClientMessage | Record<string, unknown>) => {
     const ws = wsRef.current;
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
-    else setError("Sin conexión con el servidor");
-  }, []);
+    else flashError("Sin conexión con el servidor");
+  }, [flashError]);
 
   // Explicit leave (kicked, "Menú principal", etc.) should forget the
   // session so a later fresh visit doesn't try to rejoin a room/group the
@@ -367,6 +386,7 @@ export function useMultiplayerSocket({
     wsRef.current?.close();
     if (reconnectRef.current) clearTimeout(reconnectRef.current);
     if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
+    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
     setMe(null);
     setRoom(null);
     setMyRole(null);
@@ -391,7 +411,8 @@ export function useMultiplayerSocket({
     roomPreview,
     setRoomPreview,
     error,
-    setError,
+    errorKey,
+    setError: setErrorExternal,
     reconnecting,
     reconnectAttempt,
     reconnectFailed,

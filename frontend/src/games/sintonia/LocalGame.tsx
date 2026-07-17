@@ -14,6 +14,8 @@ import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";
 import { Dial, MARKER_COLORS } from "./Dial";
 import { Collapsible } from "../../components/Collapsible";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { useFlashError } from "../../hooks/useFlashError";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SINTONÍA (estilo Wavelength) — un solo dispositivo, se pasa de mano en mano.
@@ -99,7 +101,7 @@ export function LocalGame() {
     { id: 3, name: "Jugador 3" },
   ]);
   const [newName, setNewName] = useState("");
-  const [nameError, setNameError] = useState("");
+  const [nameError, nameErrorKey, setNameError] = useFlashError();
   const [config, setConfig] = useState<{ writtenClues: boolean; playMode: "endless" | "rounds"; roundLimit: number }>({
     writtenClues: false,
     playMode: "endless",
@@ -310,7 +312,7 @@ export function LocalGame() {
                   Agregar
                 </Btn>
               </div>
-              {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
+              <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
             </div>
 
             {history.length > 0 && <Scoreboard players={players} history={history} totalScore={totalScore} />}
