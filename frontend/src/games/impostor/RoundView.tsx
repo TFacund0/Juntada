@@ -560,8 +560,10 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         {isHost && !matchOver && (
           <StartButton onClick={() => send({ type: "continue_round" })}>Siguiente ronda</StartButton>
         )}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && (
+        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+            Available to any player, not just the host — it only interrupts the
+            current match for everyone, same as leaving an instance. */}
+        {room.groupCode === null && (
           <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
         )}
         {!isHost && (

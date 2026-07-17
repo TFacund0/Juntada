@@ -411,8 +411,9 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           ) : (
             <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
           ))}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-        {isHost && room.groupCode === null && (
+        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+            Available to any player, not just the host. */}
+        {room.groupCode === null && (
           <ConfirmBackButton
             title="¿Volver al lobby?"
             message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."

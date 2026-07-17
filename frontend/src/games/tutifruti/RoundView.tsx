@@ -354,8 +354,9 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
         <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
       )}
       {round.isFinalRound && <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>}
-      {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-      {isHost && room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
+      {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+          Available to any player, not just the host. */}
+      {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
       {confirmLobby && (
         <ConfirmDialog
           title="¿Volver al lobby?"
