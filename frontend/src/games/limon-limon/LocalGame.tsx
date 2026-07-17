@@ -15,6 +15,8 @@ import { DescriptionsEditor } from "./DescriptionsEditor";
 import { ScoreToggleButton } from "./ScoreToggleButton";
 import { AddPlayerForm } from "./AddPlayerForm";
 import { EndMatchButton } from "./EndMatchButton";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { useFlashError } from "../../hooks/useFlashError";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIMÓN LIMÓN — un solo dispositivo en el centro de la ronda, jugando con un
@@ -86,7 +88,7 @@ export function LocalGame() {
     { id: 3, name: "Jugador 3" },
   ]);
   const [newName, setNewName] = useState("");
-  const [nameError, setNameError] = useState("");
+  const [nameError, nameErrorKey, setNameError] = useFlashError();
   const [descriptions, setDescriptions] = useState(buildDefaultDescriptions());
   const [tab, setTab] = useState<SetupTab>("players");
 
@@ -274,7 +276,7 @@ export function LocalGame() {
                 Agregar
               </Btn>
             </div>
-            {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
+            <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
           </div>
         )}
 
@@ -381,7 +383,7 @@ export function LocalGame() {
           </div>
         )}
 
-        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} />}
+        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />}
 
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
           <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>
@@ -430,7 +432,7 @@ export function LocalGame() {
           <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />
         )}
 
-        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} />}
+        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />}
 
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
           <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>

@@ -11,6 +11,8 @@ import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
 import { BackButton } from "../../components/BackButton";
 import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
+import { ErrorBanner } from "../../components/ErrorBanner";
+import { useFlashError } from "../../hooks/useFlashError";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOCAL GAME MODE — un solo dispositivo, se pasa de mano en mano.
@@ -87,7 +89,8 @@ export function LocalGame() {
     { id: 4, name: "Jugador 4" },
   ]);
   const [newName, setNewName] = useState("");
-  const [nameError, setNameError] = useState("");
+  const [nameError, nameErrorKey, setNameError] = useFlashError();
+  const [wordError, wordErrorKey, setWordError] = useFlashError();
   const [config, setConfig] = useState<Config>({
     numImpostors: 1,
     hintsEnabled: true,
@@ -160,11 +163,11 @@ export function LocalGame() {
   // shared by both a brand-new match and another round within one.
   const drawWord = (): { word: string; catKey: string; catLabel: string } | null => {
     const catKey = activeCats[Math.floor(Math.random() * activeCats.length)];
-    const cat = (CATEGORIES as any)[catKey];
+    const cat = CATEGORIES[catKey];
     const used = usedWords[catKey] || [];
     const available = cat.words.filter((w: string) => !used.includes(w));
     if (!available.length) {
-      alert(`Sin palabras disponibles en ${cat.label}`);
+      setWordError(`Sin palabras disponibles en ${cat.label}`);
       return null;
     }
     const word = available[Math.floor(Math.random() * available.length)];
@@ -344,7 +347,7 @@ export function LocalGame() {
                   Agregar
                 </Btn>
               </div>
-              {nameError && <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>{nameError}</p>}
+              <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
             </div>
           </>
         )}
@@ -469,7 +472,7 @@ export function LocalGame() {
             <span style={S.label}>Categorías</span>
             <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
+              {Object.entries(CATEGORIES).map(([k, cat]) => {
                 const active = !!config.enabledCategories[k];
                 return (
                   <button
@@ -554,6 +557,7 @@ export function LocalGame() {
               Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar
             </p>
           )}
+          <ErrorBanner message={wordError} flashKey={wordErrorKey} variant="inline" />
         </StickyActionBar>
       </div>
     );
@@ -818,6 +822,7 @@ export function LocalGame() {
           ) : (
             <StartButton onClick={continueMatch}>Siguiente ronda</StartButton>
           )}
+          <ErrorBanner message={wordError} flashKey={wordErrorKey} variant="inline" />
           <BackButton onClick={() => setPhase("setup")}>Configuración</BackButton>
         </div>
       </div>
