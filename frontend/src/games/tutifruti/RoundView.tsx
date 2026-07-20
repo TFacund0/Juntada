@@ -322,19 +322,18 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
 }
 
 // ── RESULT: round breakdown + running standings ──
-function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
-  const round = room.round as any;
+function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; round: any; isHost: boolean; onShowFinal: () => void; send: any }) {
   const score = room.config.score as Record<string, number>;
   const standings = [...room.players]
-    .map(p => ({ ...p, score: score[p.id] || 0, roundPts: round.pointsByPlayer[p.id] || 0 }))
-    .sort((a, b) => b.score - a.score);
+    .map((p: any) => ({ ...p, score: score[p.id] || 0, roundPts: round.pointsByPlayer[p.id] || 0 }))
+    .sort((a: any, b: any) => b.score - a.score);
   const [confirmLobby, setConfirmLobby] = useState(false);
 
   return (
     <div>
       <RoundBadge round={round} />
       <div style={{ textAlign: "center", padding: "12px 0" }}>
-        <p style={{ ...S.title, fontSize: 26, display: "block" }}>{round.isFinalRound ? "Fin del juego" : "Puntos de la ronda"}</p>
+        <p style={{ ...S.title, fontSize: 26, display: "block" }}>Puntos de la ronda</p>
       </div>
       <div style={S.card}>
         <span style={S.label}>Clasificación</span>
@@ -354,7 +353,7 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
       <div style={S.card}>
         <span style={S.label}>Desglose ({round.letter})</span>
         {round.categories.map((cat: any) => {
-          const entries = room.players.map(p => (round.breakdown[p.id] || {})[cat.id]).filter((b: any) => b && b.word);
+          const entries = room.players.map((p: any) => (round.breakdown[p.id] || {})[cat.id]).filter((b: any) => b && b.word);
           if (entries.length === 0) return null;
           return (
             <div key={cat.id} style={{ marginBottom: 12 }}>
@@ -395,12 +394,12 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
       </div>
       {isHost &&
         (round.isFinalRound ? (
-          <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
+          <StartButton onClick={onShowFinal}>Ver resultados finales</StartButton>
         ) : (
           <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
         ))}
       {round.isFinalRound && !isHost && (
-        <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas.</p>
+        <p style={{ ...S.muted, textAlign: "center" }}>Se jugaron todas las rondas configuradas — esperando al anfitrión.</p>
       )}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
@@ -419,6 +418,76 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
       )}
     </div>
   );
+}
+
+// ── Brief pause shown between the last round's own result and the final
+// standings reveal, so "Fin del juego" doesn't feel like an abrupt jump cut.
+function FinalResultsLoading() {
+  return (
+    <div style={{ ...S.cardHighlight, textAlign: "center", padding: "48px 20px" }}>
+      <p style={{ fontSize: 15, color: "#9089c0", margin: 0 }}>Cargando resultados finales...</p>
+    </div>
+  );
+}
+
+function FinalStandings({ room, round, isHost, send }: { room: any; round: any; isHost: boolean; send: any }) {
+  const score = room.config.score as Record<string, number>;
+  const standings = [...room.players].map((p: any) => ({ ...p, score: score[p.id] || 0 })).sort((a: any, b: any) => b.score - a.score);
+  const [confirmLobby, setConfirmLobby] = useState(false);
+
+  return (
+    <div>
+      <div style={{ textAlign: "center", padding: "12px 0" }}>
+        <p style={{ ...S.title, fontSize: 26, display: "block" }}>Fin del juego</p>
+      </div>
+      <div style={S.card}>
+        <span style={S.label}>Clasificación final</span>
+        {standings.map((p, i) => (
+          <div
+            key={p.id}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
+          >
+            <span style={{ fontWeight: 800, color: i === 0 ? "#E2C44A" : "#6b6490", width: 20 }}>{i + 1}</span>
+            <Avatar name={p.name} size={30} />
+            <span style={{ flex: 1, fontWeight: 700 }}>{p.name}</span>
+            <span style={{ fontWeight: 800, color: "#5DCAA5" }}>{p.score} pts</span>
+          </div>
+        ))}
+      </div>
+      {isHost && <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>}
+      {!isHost && <p style={{ ...S.muted, textAlign: "center" }}>Esperando a que el anfitrión arranque una partida nueva.</p>}
+      {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+          Available to any player, not just the host. */}
+      {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
+      {confirmLobby && (
+        <ConfirmDialog
+          title="¿Volver al lobby?"
+          message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
+          confirmLabel="Volver al lobby"
+          onConfirm={() => {
+            setConfirmLobby(false);
+            send({ type: "back_to_lobby" });
+          }}
+          onCancel={() => setConfirmLobby(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
+  const round = room.round as any;
+  const [finalStage, setFinalStage] = useState<"round" | "loading" | "final">("round");
+
+  useEffect(() => {
+    if (finalStage !== "loading") return;
+    const id = setTimeout(() => setFinalStage("final"), 1100);
+    return () => clearTimeout(id);
+  }, [finalStage]);
+
+  if (round.isFinalRound && finalStage === "loading") return <FinalResultsLoading />;
+  if (round.isFinalRound && finalStage === "final") return <FinalStandings room={room} round={round} isHost={isHost} send={send} />;
+  return <RoundResult room={room} round={round} isHost={isHost} onShowFinal={() => setFinalStage("loading")} send={send} />;
 }
 
 export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundViewProps) {
