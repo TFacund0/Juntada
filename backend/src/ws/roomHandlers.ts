@@ -21,9 +21,10 @@ const { getEngine } = require("../games/registry") as {
 };
 const roomService = require("../rooms/roomService");
 const { sendTo, sendError, broadcast, getRoomPublicState, sendPrivateInfo, broadcastState, broadcastGroupState, broadcastRoundReveal } = require("./messaging");
-const { stopTimer, syncPhaseTimer, broadcastToRoom } = require("./shared");
+const { stopTimer, syncPhaseTimer, broadcastToRoom, releaseStaleIdentity } = require("./shared");
 
 function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>): void {
+  const prevInfo = clients.get(ws);
   const { room, error } = roomService.createRoom(ws, {
     playerName: msg.playerName,
     roomName: msg.roomName,
@@ -33,6 +34,7 @@ function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>
     sendError(ws, "CREATE_ROOM_FAILED", error);
     return;
   }
+  releaseStaleIdentity(prevInfo);
   sendTo(ws, { type: "joined", playerId: room.hostId, roomCode: room.code, room: getRoomPublicState(room) });
 }
 
@@ -56,11 +58,13 @@ function checkRoomCode(ws: WS, msg: Extract<ClientMessage, { type: "check_room_c
 }
 
 function joinRoom(ws: WS, msg: Extract<ClientMessage, { type: "join_room" }>): void {
+  const prevInfo = clients.get(ws);
   const { room, playerId, error } = roomService.joinRoom(ws, { code: msg.code, playerName: msg.playerName });
   if (error) {
     sendError(ws, "JOIN_ROOM_FAILED", error);
     return;
   }
+  releaseStaleIdentity(prevInfo);
   // Joining is only ever allowed during "lobby" (roomService rejects it
   // otherwise), so there's never a round in progress to send private info for.
   sendTo(ws, { type: "joined", playerId, roomCode: room.code, room: getRoomPublicState(room) });

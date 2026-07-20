@@ -13,10 +13,11 @@ import { logger } from "../logger";
 
 type WS = import("ws").WebSocket;
 
-const { rooms, groups, clients } = require("../state/roomStore") as {
+const { rooms, groups, clients, activeSockets } = require("../state/roomStore") as {
   rooms: Map<string, Room>;
   groups: Map<string, Group>;
   clients: Map<WS, ClientInfo>;
+  activeSockets: Map<string, WS>;
 };
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
@@ -55,6 +56,16 @@ function ping(ws: WS): void {
 
 function handleDisconnect(ws: WS): void {
   const info = clients.get(ws);
+  // A player who reconnected on a brand-new socket before this (older) one's
+  // close event got around to firing already has activeSockets pointing at
+  // that newer socket — treating this stale close as a real disconnect would
+  // immediately mark them offline again right after they just came back,
+  // silently dropping them out of any "every online player" gate. Only the
+  // socket that currently owns the playerId gets to report it as gone.
+  if (info?.playerId && activeSockets.get(info.playerId) !== ws) {
+    clients.delete(ws);
+    return;
+  }
   if (info?.roomCode && info.playerId) {
     const room = rooms.get(info.roomCode);
     if (room) {
@@ -133,6 +144,7 @@ const HANDLERS: Record<string, Handler> = {
   spin_again: roomHandlers.gameAction("spin_again"),
   back_to_lobby: roomHandlers.backToLobby,
   kick_player: roomHandlers.kickPlayer,
+  kick_member: groupHandlers.kickMember,
   transfer_host: transferHost,
   ping: (ws: WS) => ping(ws),
 };

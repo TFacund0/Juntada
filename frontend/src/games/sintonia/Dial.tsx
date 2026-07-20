@@ -64,7 +64,29 @@ export function Dial({ value, target = null, leftLabel, rightLabel, markers = []
             })}
         {target != null &&
           ZONES.map((z, i) => {
-            const prevSpread = i > 0 ? ZONES[i - 1].spread : 0;
+            // La zona más cercana al objetivo (i === 0) es una única franja
+            // continua alrededor del target, así que lleva una sola etiqueta
+            // centrada en vez de una a cada lado (que quedarían pegadas y se
+            // verían como el número repetido).
+            if (i === 0) {
+              if (target <= 1 || target >= 99) return null;
+              const [lx, ly] = pointAt(R - 11, target);
+              return (
+                <text
+                  key={i}
+                  x={lx}
+                  y={ly}
+                  fill="#0f0c1d"
+                  fontSize={11}
+                  fontWeight={800}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {z.points}
+                </text>
+              );
+            }
+            const prevSpread = ZONES[i - 1].spread;
             const mid = (prevSpread + z.spread) / 2;
             return [1, -1].map(sign => {
               const v = target + sign * mid;
@@ -86,11 +108,6 @@ export function Dial({ value, target = null, leftLabel, rightLabel, markers = []
               );
             });
           })}
-        {target != null &&
-          (() => {
-            const [tx, ty] = pointAt(R - 11, target);
-            return <circle cx={tx} cy={ty} r={5} fill="#fff" stroke="#0f0c1d" strokeWidth={1.5} />;
-          })()}
         {markers
           .map((m, i) => ({ ...m, colorFallback: MARKER_COLORS[i % MARKER_COLORS.length] }))
           // SVG paints in document order, so later elements sit on top —

@@ -20,6 +20,8 @@ const { getEngine } = require("../games/registry") as {
   getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
 };
 const { sendTo, getRoomPublicState, broadcastGroupState, broadcastRoundReveal } = require("./messaging");
+const roomService = require("../rooms/roomService");
+const groupService = require("../rooms/groupService");
 
 function stopTimer(roomCode: string): void {
   const t = timers.get(roomCode);
@@ -80,4 +82,53 @@ function cleanupRoomIfEmpty(room: Room): void {
   }
 }
 
-module.exports = { stopTimer, syncPhaseTimer, broadcastToRoom, cleanupRoomIfEmpty };
+// A fresh create_room/join_room/create_group/join_group always mints a brand
+// new playerId for this socket — but if the socket already held a *different*
+// identity (a room and/or group it never explicitly left, e.g. the client
+// lost its saved playerId and re-joined under a new name instead of
+// rejoining), that old identity would otherwise sit in room.players/
+// group.members forever: still "online" (nothing ever closes its socket,
+// since this same socket just switched to representing someone else), taking
+// up a player slot, and permanently counted in "every online player"
+// gates — exactly the "two accounts connected, only one actually used" bug.
+//
+// Takes the *previously captured* ClientInfo rather than reading `clients`
+// itself — callers must snapshot it before calling create_room/join_room/
+// etc (which overwrite the socket's entry immediately on success), and must
+// only call this once that call has actually succeeded. Releasing on a
+// failed join (bad code, room full, ...) would strand the caller with
+// neither their old identity nor a new one.
+function releaseStaleIdentity(info: ClientInfo | undefined): void {
+  if (!info?.playerId) return;
+
+  if (info.roomCode) {
+    const room = rooms.get(info.roomCode);
+    if (room) {
+      roomService.removePlayer(room, info.playerId);
+      const engine = getEngine(room.gameType);
+      engine?.maybeAdvance(room);
+      if (room.players.length === 0) {
+        cleanupRoomIfEmpty(room);
+      } else {
+        broadcastToRoom(room, ws2 => sendTo(ws2, { type: "state", room: getRoomPublicState(room) }));
+        if (room.phase === "result") broadcastRoundReveal(room);
+        syncPhaseTimer(room);
+        if (room.groupCode) {
+          const group = groups.get(room.groupCode);
+          if (group) broadcastGroupState(group);
+        }
+      }
+    }
+  }
+
+  if (info.groupCode) {
+    const group = groups.get(info.groupCode);
+    if (group) {
+      groupService.leaveGroup(group, info.playerId);
+      if (group.members.length === 0) groups.delete(group.code);
+      else broadcastGroupState(group);
+    }
+  }
+}
+
+module.exports = { stopTimer, syncPhaseTimer, broadcastToRoom, cleanupRoomIfEmpty, releaseStaleIdentity };
