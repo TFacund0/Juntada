@@ -17,6 +17,7 @@ import { AddPlayerForm } from "./AddPlayerForm";
 import { EndMatchButton } from "./EndMatchButton";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
+import { nextPlayerName } from "../../utils/playerNames";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIMÓN LIMÓN — un solo dispositivo en el centro de la ronda, jugando con un
@@ -140,8 +141,7 @@ export function LocalGame() {
   };
 
   const addPlayer = () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    const trimmed = newName.trim() || nextPlayerName(players.map(p => p.name));
     if (isDuplicateName(trimmed, null)) {
       setNameError("Ya hay un jugador con ese nombre");
       return;

@@ -98,8 +98,13 @@ export function TeamConfigPanel<Id extends string | number>({
     const finalTeams = shuffle(teams).slice(0, players.length);
     let acc = {} as Record<Id, string>;
     setAssignments(acc);
+    // Each spin's animation should only ever roll through teams nobody's
+    // landed on yet in this run — shrink the pool as each player gets their
+    // final team, same as spinForPlayer already does for a single player.
+    let pool = [...teams];
     for (let i = 0; i < players.length; i++) {
-      await spin(players[i].id, teams, finalTeams[i]);
+      await spin(players[i].id, pool, finalTeams[i]);
+      pool = pool.filter(t => t !== finalTeams[i]);
       acc = { ...acc, [players[i].id]: finalTeams[i] };
       setAssignments(acc);
     }
@@ -200,6 +205,12 @@ export function TeamConfigPanel<Id extends string | number>({
             <Btn variant="success" onClick={runRouletteAll} disabled={!!spinningId || teams.length < players.length}>
               🎰 Girar la ruleta para todos
             </Btn>
+            {teams.length < players.length && (
+              <p style={{ fontSize: 12, color: "#F09595", marginTop: 10 }}>
+                Necesitás al menos {players.length} equipos para poder sortear — agregá {players.length - teams.length} más en la pestaña
+                "Equipos".
+              </p>
+            )}
           </div>
 
           <div style={S.card}>
@@ -239,6 +250,7 @@ export function TeamConfigPanel<Id extends string | number>({
           {players.map(p => {
             const team = assignments[p.id];
             const isSpinning = spinningId === p.id;
+            const noTeamsLeft = teams.filter(t => !usedTeams.has(t)).length === 0;
             return (
               <div key={p.id} style={S.card}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: team && !isSpinning ? 0 : 12 }}>
@@ -270,15 +282,16 @@ export function TeamConfigPanel<Id extends string | number>({
                     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                       <button
                         onClick={() => spinForPlayer(p.id)}
-                        disabled={!!spinningId}
-                        style={{ ...S.btn("success", !!spinningId), width: "auto", padding: "8px 12px", fontSize: 13 }}
+                        disabled={!!spinningId || noTeamsLeft}
+                        title={noTeamsLeft ? "No quedan equipos disponibles" : undefined}
+                        style={{ ...S.btn("success", !!spinningId || noTeamsLeft), width: "auto", padding: "8px 12px", fontSize: 13 }}
                       >
                         🎰
                       </button>
                       <Btn
                         variant="ghost"
                         onClick={() => setManualPick(manualPick === p.id ? null : p.id)}
-                        disabled={!!spinningId}
+                        disabled={!!spinningId || noTeamsLeft}
                         style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
                       >
                         Elegir equipo
@@ -286,6 +299,12 @@ export function TeamConfigPanel<Id extends string | number>({
                     </div>
                   )}
                 </div>
+
+                {!team && !isSpinning && noTeamsLeft && (
+                  <p style={{ fontSize: 12, color: "#F09595", margin: "8px 0 0" }}>
+                    No quedan equipos disponibles — agregá más en la pestaña "Equipos".
+                  </p>
+                )}
 
                 {isSpinning && (
                   <div

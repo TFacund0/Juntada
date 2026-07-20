@@ -10,6 +10,7 @@ import { StickyActionBar } from "../../components/StickyActionBar";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { shuffle } from "../../utils/shuffle";
+import { nextPlayerName } from "../../utils/playerNames";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";
 import { Dial, MARKER_COLORS } from "./Dial";
@@ -145,8 +146,7 @@ export function LocalGame() {
   };
 
   const addPlayer = () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    const trimmed = newName.trim() || nextPlayerName(players.map(p => p.name));
     if (isDuplicateName(trimmed, null)) {
       setNameError("Ya hay un jugador con ese nombre");
       return;

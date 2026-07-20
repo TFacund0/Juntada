@@ -102,6 +102,9 @@ export const SCHEMAS = {
   skip_word: z.object({
     type: z.literal("skip_word"),
   }),
+  cancel_skip_word: z.object({
+    type: z.literal("cancel_skip_word"),
+  }),
   continue_round: z.object({
     type: z.literal("continue_round"),
   }),

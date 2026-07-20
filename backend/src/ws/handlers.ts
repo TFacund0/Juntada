@@ -122,6 +122,7 @@ const HANDLERS: Record<string, Handler> = {
   player_ready: roomHandlers.gameAction("player_ready"),
   vote: roomHandlers.gameAction("vote"),
   skip_word: roomHandlers.gameAction("skip_word"),
+  cancel_skip_word: roomHandlers.gameAction("cancel_skip_word"),
   continue_round: roomHandlers.gameAction("continue_round"),
   submit_guess: roomHandlers.gameAction("submit_guess"),
   confirm_round_setup: roomHandlers.gameAction("confirm_round_setup"),

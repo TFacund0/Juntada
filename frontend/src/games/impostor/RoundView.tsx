@@ -181,13 +181,19 @@ function TurnCircle({
 // what those phases *mean* for Impostor lives here.
 export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send }: RoundViewProps) {
   const [wordVisible, setWordVisible] = useState(false);
-  const [skipRequested, setSkipRequested] = useState(false);
   const [clueText, setClueText] = useState("");
   const [clueSubmitted, setClueSubmitted] = useState(false);
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
   const [voteConfirmed, setVoteConfirmed] = useState(false);
   const [wordChangeCount, setWordChangeCount] = useState(0);
   const prevRerollCount = useRef<number | null>(null);
+  const [restartBannerCount, setRestartBannerCount] = useState(0);
+  // "unset" is a sentinel outside restartedReason's actual value space
+  // ("word_pool_exhausted" | undefined) so the very first render (joining or
+  // reconnecting into an already-restarted match) never counts as a change —
+  // same first-render guard as prevRerollCount above, just spelled out
+  // explicitly since undefined itself is one of the real values here.
+  const prevRestartedReason = useRef<string | undefined | "unset">("unset");
   const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
   const round = room.round as any;
@@ -197,7 +203,6 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   // way it's a new word, so re-hide it and clear per-round local UI state.
   useEffect(() => {
     setWordVisible(false);
-    setSkipRequested(false);
     setClueText("");
     setClueSubmitted(false);
     setSelectedSuspect(null);
@@ -222,6 +227,28 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     return () => clearTimeout(t);
   }, [wordChangeCount]);
 
+  // Someone's "pedir otra palabra" can, rarely, run out of unused words in
+  // the category entirely — rerollWord then falls back to a whole new match
+  // (new category, new impostors, eliminations cleared). That's a much
+  // bigger change than a normal reroll, so it gets its own explicit banner
+  // instead of just quietly landing everyone back on "round" with a
+  // different word and no explanation. Skipped on the very first render
+  // (joining/reconnecting into an already-restarted match shouldn't replay
+  // this for old history) — same guard as prevRerollCount above.
+  useEffect(() => {
+    const current = round?.restartedReason;
+    if (prevRestartedReason.current !== "unset" && current === "word_pool_exhausted" && current !== prevRestartedReason.current) {
+      setRestartBannerCount(3);
+    }
+    prevRestartedReason.current = current;
+  }, [round?.restartedReason]);
+
+  useEffect(() => {
+    if (restartBannerCount <= 0) return;
+    const t = setTimeout(() => setRestartBannerCount(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [restartBannerCount]);
+
   // A tie triggers a fresh vote among just the tied suspects — clear the
   // previous selection/confirmation so nobody's stuck showing a stale vote.
   useEffect(() => {
@@ -231,6 +258,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
   if (room.phase === "round") {
     if (wordChangeCount > 0) return <RevealCountdown count={wordChangeCount} label="Cambiando de palabra..." />;
+    if (restartBannerCount > 0) {
+      return <RevealCountdown count={restartBannerCount} label="No quedaban más palabras en esa categoría: arrancó una partida nueva" />;
+    }
 
     const turnOrder: string[] = round?.turnOrder || [];
     const turnIndex: number = round?.turnIndex ?? 0;
@@ -296,25 +326,42 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           )}
         </div>
 
-        {round && (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            {!skipRequested ? (
-              <Btn
-                variant="ghost"
-                onClick={() => {
-                  setSkipRequested(true);
-                  send({ type: "skip_word" });
-                }}
-              >
-                No conozco esta palabra, pedir otra
-              </Btn>
-            ) : (
-              <p style={{ fontSize: 13, color: "#9089c0" }}>
-                Pediste cambiarla — {round.skipVotes}/{round.skipVotesNeeded} necesarios para cambiarla
-              </p>
-            )}
-          </div>
-        )}
+        {round &&
+          (() => {
+            const skipVoterIds: string[] = round.skipVoterIds || [];
+            const amSkipRequesting = !!me?.playerId && skipVoterIds.includes(me.playerId);
+            return (
+              <div style={{ ...S.card, textAlign: "center" }}>
+                {!amSkipRequesting ? (
+                  <Btn variant="ghost" onClick={() => send({ type: "skip_word" })}>
+                    No conozco esta palabra, pedir otra
+                  </Btn>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 13, color: "#9089c0" }}>
+                      Pediste cambiarla — {round.skipVotes}/{round.skipVotesNeeded} necesarios para cambiarla
+                    </p>
+                    <Btn variant="ghost" onClick={() => send({ type: "cancel_skip_word" })} style={{ marginTop: 8 }}>
+                      Cancelar pedido
+                    </Btn>
+                  </>
+                )}
+                {skipVoterIds.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 10 }}>
+                    {skipVoterIds.map(id => {
+                      const p = room.players.find(x => x.id === id);
+                      if (!p) return null;
+                      return (
+                        <span key={id} style={S.pill(true)}>
+                          {p.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
         <div style={S.card}>
           <span style={S.label}>Ronda de turnos</span>
@@ -401,6 +448,12 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const suspects = room.players.filter(
       p => p.id !== me?.playerId && !matchEliminated.includes(p.id) && (!revoteCandidates || revoteCandidates.includes(p.id)),
     );
+    // Still-alive players who happen to be offline right now aren't counted
+    // in the vote quorum (see the comment above), but that also means the
+    // vote is effectively paused waiting for them to come back — worth
+    // saying so explicitly instead of just showing a tally that looks
+    // "complete" while actually waiting on someone.
+    const offlineAlive = room.players.filter(p => !matchEliminated.includes(p.id) && !p.online);
 
     const confirmVote = () => {
       if (!selectedSuspect) return;
@@ -421,6 +474,15 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
             <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>Hubo un empate</p>
             <p style={{ fontSize: 13, color: "#b8b0d4", marginTop: 4 }}>Se vota de nuevo solo entre los más votados</p>
+          </div>
+        )}
+
+        {offlineAlive.length > 0 && (
+          <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
+            <p style={{ fontSize: 13, color: "#E2C44A", fontWeight: 700, margin: 0 }}>
+              Esperando a que se reconecte{offlineAlive.length === 1 ? "" : "n"}: {offlineAlive.map(p => p.name).join(", ")}
+            </p>
+            <p style={{ fontSize: 12, color: "#b8b0d4", marginTop: 4 }}>La votación sigue pausada hasta que vuelvan.</p>
           </div>
         )}
 
@@ -477,6 +539,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const matchOver: boolean = round?.matchOver ?? lastH?.matchOver ?? false;
     const winner: "innocents" | "impostors" | null = round?.winner ?? lastH?.winner ?? null;
     const abortedReason: string | undefined = round?.abortedReason ?? lastH?.abortedReason;
+    const votesDiscarded: boolean | undefined = round?.votesDiscarded ?? lastH?.votesDiscarded;
+    const tieBrokenRandomly: boolean | undefined = round?.tieBrokenRandomly ?? lastH?.tieBrokenRandomly;
     const matchEliminatedIds: string[] = round?.matchEliminated || [];
     const impostors = matchOver ? room.players.filter(p => (round?.impostors || lastH?.impostors || []).includes(p.id)) : [];
     // Who was actually eligible to vote/be voted this round — a stand-in for
@@ -504,9 +568,16 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
             {abortedReason === "impostor_disconnected" && (
               <p style={{ fontSize: 13, color: "#9089c0", marginTop: 4 }}>
                 La partida se cerró sin definir un ganador porque el impostor abandonó.
+                {votesDiscarded && " Los votos que ya se habían emitido en esta ronda no se cuentan."}
               </p>
             )}
           </div>
+        )}
+
+        {!abortedReason && tieBrokenRandomly && (
+          <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", margin: "0 0 8px" }}>
+            🎲 Empate persistente — se sorteó entre los más votados
+          </p>
         )}
 
         {eliminated && <EliminatedPlayerCard name={eliminated.name} wasImpostor={wasImpostor} />}

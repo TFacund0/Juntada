@@ -11,6 +11,7 @@ import { buildBracket, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
+import { nextPlayerName } from "../../utils/playerNames";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TORNEO DE FÚTBOL — un solo dispositivo. Mismo esquema de setup que el modo
@@ -88,8 +89,7 @@ export function LocalGame() {
   };
 
   const addPlayer = () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    const trimmed = newName.trim() || nextPlayerName(players.map(p => p.name));
     if (isDuplicateName(trimmed, null)) {
       setNameError("Ya hay un jugador con ese nombre");
       return;
