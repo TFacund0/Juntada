@@ -164,6 +164,10 @@ export const SCHEMAS = {
     type: z.literal("transfer_host"),
     targetId: uuid,
   }),
+  kick_member: z.object({
+    type: z.literal("kick_member"),
+    targetId: uuid,
+  }),
   ping: z.object({
     type: z.literal("ping"),
   }),
@@ -323,6 +327,7 @@ export type ServerMessage =
   | { type: "left_group" }
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }
+  | { type: "kicked_from_group" }
   | { type: "pong" }
   | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean }
   | ({ type: string } & Record<string, unknown>);

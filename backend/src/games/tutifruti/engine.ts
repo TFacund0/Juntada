@@ -242,14 +242,20 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
     // Once every configured round has been played, startRound refuses
     // forever (room.roundHistory never shrinks on its own — not even
     // "Volver al lobby" clears it) — this is the only way to actually start
-    // a fresh match in the same room afterwards. Same pattern as sintonia's
-    // own new_game.
+    // a fresh match in the same room afterwards. Unlike sintonia's own
+    // new_game (which restarts play immediately), this sends everyone back
+    // to the lobby so the host can reconfigure (categories, rounds, etc.)
+    // before the next match instead of reusing whatever was set last time.
     case "new_game": {
       if (playerId !== room.hostId) return { handled: false };
       cfg(room).score = {};
       room.roundHistory.length = 0;
-      const res = startRound(room);
-      return { handled: !!res.success };
+      room.round = null;
+      room.phase = "lobby";
+      room.players.forEach(p => {
+        p.ready = false;
+      });
+      return { handled: true };
     }
 
     case "confirm_letter": {

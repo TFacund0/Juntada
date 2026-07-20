@@ -13,9 +13,10 @@ import type { GameEngine } from "../games/engineTypes";
 import { logger } from "../logger";
 
 const { v4: uuidv4 } = require("uuid");
-const { rooms, clients } = require("../state/roomStore") as {
+const { rooms, clients, activeSockets } = require("../state/roomStore") as {
   rooms: Map<string, Room>;
   clients: Map<WebSocket, ClientInfo>;
+  activeSockets: Map<string, WebSocket>;
 };
 const { generateUniqueRoomCode } = require("./roomCode") as { generateUniqueRoomCode: () => string };
 const { getEngine } = require("../games/registry") as {
@@ -57,6 +58,7 @@ function createRoom(
   };
   rooms.set(code, room);
   clients.set(ws, { groupCode: null, roomCode: code, playerId });
+  activeSockets.set(playerId, ws);
   logger.info({ roomCode: code, gameType, playerCount: rooms.size }, "room created");
   return { room, playerId };
 }
@@ -88,8 +90,14 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
   return { room };
 }
 
+// Only an online player's name actually blocks a reuse — an offline one is
+// either about to be reaped (schedulePlayerKick) or the very player trying
+// to get back in (e.g. their saved session was lost and they're using
+// join_room fresh instead of rejoin). Without the online check, that
+// player would be locked out of their own name for up to the full 5-minute
+// grace period even though nobody else is actually using it.
 function isNameTaken(room: Room, name: string): boolean {
-  return room.players.some(p => p.name.toLowerCase() === name.toLowerCase());
+  return room.players.some(p => p.online && p.name.toLowerCase() === name.toLowerCase());
 }
 
 function joinRoom(ws: WebSocket, { code, playerName }: { code?: string; playerName?: string }): RoomResult {
@@ -106,6 +114,7 @@ function joinRoom(ws: WebSocket, { code, playerName }: { code?: string; playerNa
   const playerId: string = uuidv4();
   room.players.push({ id: playerId, name, ready: false, online: true });
   clients.set(ws, { groupCode: null, roomCode: room.code, playerId });
+  activeSockets.set(playerId, ws);
   return { room, playerId };
 }
 
@@ -133,6 +142,7 @@ function rejoinRoom(ws: WebSocket, { roomCode, playerId }: { roomCode: string; p
   if (!player) return { error: "Ya no formás parte de esta sala" };
   player.online = true;
   clients.set(ws, { groupCode: room.groupCode, roomCode: room.code, playerId });
+  activeSockets.set(playerId, ws);
   return { room, playerId };
 }
 

@@ -571,13 +571,49 @@ export function MultiplayerGame({
               </span>
               {m.id === group.hostId && <span style={S.pill(false)}>Anfitrión</span>}
               {!m.online && <span style={S.pill(false)}>Desconectado</span>}
-              {isGroupHost && m.id !== me?.playerId && m.online && (
-                <button
-                  onClick={() => send({ type: "transfer_host", targetId: m.id })}
-                  style={{ ...S.btn("ghost"), width: "auto", padding: "4px 10px", fontSize: 12, borderRadius: 6 }}
-                >
-                  Hacer anfitrión
-                </button>
+              {isGroupHost && m.id !== me?.playerId && (
+                <div ref={openPlayerMenu === m.id ? playerMenuRef : undefined} style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setOpenPlayerMenu(v => (v === m.id ? null : m.id))}
+                    aria-label={`Opciones para ${m.name}`}
+                    style={{
+                      ...S.btn("ghost"),
+                      width: 30,
+                      height: 30,
+                      padding: 0,
+                      borderRadius: 8,
+                      fontSize: 16,
+                      lineHeight: 1,
+                      fontWeight: 800,
+                    }}
+                  >
+                    ⋮
+                  </button>
+                  {openPlayerMenu === m.id && (
+                    <div style={{ ...S.dropdownMenu, width: 170 }}>
+                      {m.online && (
+                        <button
+                          onClick={() => {
+                            send({ type: "transfer_host", targetId: m.id });
+                            setOpenPlayerMenu(null);
+                          }}
+                          style={S.dropdownMenuItem}
+                        >
+                          👑 Hacer anfitrión
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          send({ type: "kick_member", targetId: m.id });
+                          setOpenPlayerMenu(null);
+                        }}
+                        style={{ ...S.dropdownMenuItem, color: "#F09595" }}
+                      >
+                        🚫 Expulsar
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}

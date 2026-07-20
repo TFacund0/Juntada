@@ -288,7 +288,7 @@ describe("Tutifrutti RoundView — result phase", () => {
     expect(send).toHaveBeenCalledWith({ type: "back_to_lobby" });
   });
 
-  test("the final round shows a closing message instead of a new-round button", async () => {
+  test("the final round shows the round result first, then a loading pause, then the final standings", async () => {
     render(
       <RoundView
         room={makeRoom("result", { pointsByPlayer: { p1: 10, p2: 5 }, isFinalRound: true })}
@@ -301,7 +301,16 @@ describe("Tutifrutti RoundView — result phase", () => {
       />,
     );
 
-    expect(screen.getByText("Fin del juego")).toBeInTheDocument();
+    expect(screen.getByText("Puntos de la ronda")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Nueva ronda" })).not.toBeInTheDocument();
+    const showFinalBtn = screen.getByRole("button", { name: "Ver resultados finales" });
+
+    const user = userEvent.setup();
+    await user.click(showFinalBtn);
+
+    expect(screen.getByText("Cargando resultados finales...")).toBeInTheDocument();
+
+    expect(await screen.findByText("Fin del juego", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nueva partida" })).toBeInTheDocument();
   });
 });

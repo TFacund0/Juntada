@@ -23,9 +23,10 @@ const { getEngine } = require("../games/registry") as {
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
 const { sendTo, sendError, broadcast, getRoomPublicState, getGroupPublicState, sendPrivateInfo, broadcastGroupState, broadcastRoundReveal } = require("./messaging");
-const { syncPhaseTimer, cleanupRoomIfEmpty } = require("./shared");
+const { syncPhaseTimer, cleanupRoomIfEmpty, releaseStaleIdentity } = require("./shared");
 
 function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" }>): void {
+  const prevInfo = clients.get(ws);
   const { group, playerId, error } = groupService.createGroup(ws, {
     playerName: msg.playerName,
     groupName: msg.groupName,
@@ -34,10 +35,12 @@ function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" 
     sendError(ws, "CREATE_GROUP_FAILED", error);
     return;
   }
+  releaseStaleIdentity(prevInfo);
   sendTo(ws, { type: "group_joined", playerId, groupCode: group.code, group: getGroupPublicState(group) });
 }
 
 function joinGroup(ws: WS, msg: Extract<ClientMessage, { type: "join_group" }>): void {
+  const prevInfo = clients.get(ws);
   const { group, playerId, error } = groupService.joinGroup(ws, {
     code: msg.code,
     playerName: msg.playerName,
@@ -47,6 +50,7 @@ function joinGroup(ws: WS, msg: Extract<ClientMessage, { type: "join_group" }>):
     sendError(ws, "JOIN_GROUP_FAILED", error);
     return;
   }
+  releaseStaleIdentity(prevInfo);
   sendTo(ws, { type: "group_joined", playerId, groupCode: group.code, group: getGroupPublicState(group) });
   broadcastGroupState(group);
 }
@@ -175,6 +179,35 @@ function leaveGroup(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   else broadcastGroupState(group);
 }
 
+// Host-only: removes a member from the group entirely. Same "leave whatever
+// instance they're in first" step as leaveGroup, since a member expelled from
+// the group shouldn't keep sitting in one of its open instances.
+function kickMember(ws: WS, msg: Extract<ClientMessage, { type: "kick_member" }>, info: ClientInfo): void {
+  const group = groups.get(info.groupCode ?? "");
+  if (!group || group.hostId !== info.playerId || msg.targetId === info.playerId) return;
+  if (!group.members.some(m => m.id === msg.targetId)) return;
+
+  for (const [ws2, i2] of clients) {
+    if (i2.groupCode === group.code && i2.roomCode && i2.playerId === msg.targetId) {
+      leavePlayerFromInstance(i2.roomCode, msg.targetId, group);
+      break;
+    }
+  }
+
+  groupService.leaveGroup(group, msg.targetId);
+  logger.info({ groupCode: group.code, targetId: msg.targetId, byHostId: info.playerId }, "member kicked from group");
+
+  for (const [ws2, i2] of clients) {
+    if (i2.playerId === msg.targetId) {
+      clients.set(ws2, { groupCode: null, roomCode: null, playerId: msg.targetId });
+      sendTo(ws2, { type: "kicked_from_group" });
+    }
+  }
+
+  if (group.members.length === 0) groups.delete(group.code);
+  else broadcastGroupState(group);
+}
+
 function scheduleGroupMemberKick(groupCode: string, playerId: string): void {
   setTimeout(() => {
     const group = groups.get(groupCode);
@@ -203,6 +236,7 @@ module.exports = {
   joinInstance,
   leaveInstance,
   leaveGroup,
+  kickMember,
   leavePlayerFromInstance,
   scheduleGroupMemberKick,
 };
