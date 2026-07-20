@@ -11,6 +11,10 @@ interface Category {
 
 const CATEGORIES = DEFAULT_CATEGORIES as Category[];
 
+// Same reasoning as the online ConfigPanel: DEFAULT_CATEGORIES alone is well
+// over 100 entries, too long a list to scroll through just to toggle one.
+const CATEGORIES_PER_PAGE = 20;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOCAL GAME MODE — un solo dispositivo. Acá el juego no lleva puntaje ni
 // respuestas: sólo sortea la letra y sugiere qué categorías completar en voz
@@ -23,8 +27,12 @@ export function LocalGame() {
   );
   const [letter, setLetter] = useState<string | null>(null);
   const [usedLetters, setUsedLetters] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
 
   const activeCats = CATEGORIES.filter(c => enabled[c.id]);
+  const pageCount = Math.ceil(CATEGORIES.length / CATEGORIES_PER_PAGE);
+  const currentPage = Math.min(page, pageCount - 1);
+  const pagedCategories = CATEGORIES.slice(currentPage * CATEGORIES_PER_PAGE, (currentPage + 1) * CATEGORIES_PER_PAGE);
 
   const drawLetter = () => {
     let available = (LETTERS as string[]).filter(l => !usedLetters.includes(l));
@@ -56,9 +64,10 @@ export function LocalGame() {
 
       <div style={{ ...S.card, marginTop: 16 }}>
         <span style={S.label}>Categorías sugeridas</span>
-        <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Tocá una categoría para activarla o desactivarla.</p>
+        <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Tocá una categoría para activarla o desactivarla.</p>
+        {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          {CATEGORIES.map(cat => {
+          {pagedCategories.map(cat => {
             const active = !!enabled[cat.id];
             return (
               <button
@@ -88,6 +97,36 @@ export function LocalGame() {
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Numbered page picker (1, 2, 3, ...) instead of just prev/next arrows, so
+// jumping straight to a page you already know is one tap instead of several.
+function PageNumbers({ pageCount, currentPage, onChange }: { pageCount: number; currentPage: number; onChange: (page: number) => void }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+      {Array.from({ length: pageCount }, (_, i) => i).map(i => (
+        <button
+          key={i}
+          onClick={() => onChange(i)}
+          style={{
+            minWidth: 34,
+            height: 34,
+            padding: "0 4px",
+            borderRadius: 8,
+            border: i === currentPage ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
+            background: i === currentPage ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
+            color: i === currentPage ? "#fff" : "#9089c0",
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          {i + 1}
+        </button>
+      ))}
     </div>
   );
 }

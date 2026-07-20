@@ -4,6 +4,7 @@ import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { CodeDisplay } from "../../components/CodeDisplay";
 import { QRDialog } from "../../components/QRDialog";
+import { QRScannerDialog } from "../../components/QRScannerDialog";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { SetupTabs } from "../../components/SetupTabs";
 import { Toast } from "../../components/Toast";
@@ -15,7 +16,7 @@ import { getGame, GAME_LIST } from "../../games/registry";
 import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
-import { buildRoomJoinUrl, buildGroupJoinUrl } from "./joinLink";
+import { buildRoomJoinUrl, buildGroupJoinUrl, extractScannedCode } from "./joinLink";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:
@@ -134,6 +135,7 @@ export function MultiplayerGame({
   // está en uso" effect below also needs to force it open from outside.
   const [editingName, setEditingName] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [showCreateInstance, setShowCreateInstance] = useState(false);
   // Leaving mid-game silently forfeits whatever's in progress, so that path
   // gets a confirm — same pattern as the pre-existing "volver al lobby"
@@ -445,6 +447,26 @@ export function MultiplayerGame({
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
             />
+            <button
+              onClick={() => setShowScanner(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+                margin: "10px 0 0",
+                background: "none",
+                border: "none",
+                color: "#7F77DD",
+                cursor: "pointer",
+                fontSize: 13,
+                fontFamily: "inherit",
+                fontWeight: 700,
+              }}
+            >
+              📷 Escanear código QR
+            </button>
             {!inGroup &&
               roomPreview &&
               roomPreview.code === joinCode.trim().toUpperCase() &&
@@ -500,6 +522,18 @@ export function MultiplayerGame({
               Unirse →
             </Btn>
           </div>
+        )}
+        {showScanner && (
+          <QRScannerDialog
+            title={inGroup ? "Escaneá el QR del grupo" : "Escaneá el QR de la sala"}
+            onScan={raw => {
+              const code = extractScannedCode(raw);
+              setShowScanner(false);
+              if (code) setJoinCode(code);
+              else setError("Ese código QR no es válido");
+            }}
+            onClose={() => setShowScanner(false)}
+          />
         )}
       </div>
     );
@@ -911,25 +945,6 @@ export function MultiplayerGame({
         {reconnectBanner}
         <ErrorBanner message={error} flashKey={errorKey} variant="block" />
 
-        {room.groupCode !== null && (
-          <button
-            onClick={() => setConfirmLeaveInstance(true)}
-            style={{
-              display: "block",
-              margin: "0 auto 14px",
-              background: "none",
-              border: "none",
-              color: "#6b6490",
-              cursor: "pointer",
-              fontSize: 12,
-              fontFamily: "inherit",
-              fontWeight: 700,
-            }}
-          >
-            👥 Volver al grupo
-          </button>
-        )}
-
         <Suspense fallback={<p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>}>
           {activeGame.RoundView && (
             <activeGame.RoundView
@@ -943,6 +958,12 @@ export function MultiplayerGame({
             />
           )}
         </Suspense>
+
+        {room.groupCode !== null && (
+          <Btn variant="ghost" onClick={() => setConfirmLeaveInstance(true)} style={{ marginTop: 14 }}>
+            👥 Volver al grupo
+          </Btn>
+        )}
 
         {confirmLeaveInstance && (
           <ConfirmDialog
