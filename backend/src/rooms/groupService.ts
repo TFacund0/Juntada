@@ -12,9 +12,10 @@ import type { ClientInfo } from "../state/roomStore";
 import { logger } from "../logger";
 
 const { v4: uuidv4 } = require("uuid");
-const { groups, clients } = require("../state/roomStore") as {
+const { groups, clients, activeSockets } = require("../state/roomStore") as {
   groups: Map<string, Group>;
   clients: Map<WebSocket, ClientInfo>;
+  activeSockets: Map<string, WebSocket>;
 };
 const { generateUniqueRoomCode } = require("./roomCode") as { generateUniqueRoomCode: () => string };
 
@@ -41,12 +42,16 @@ function createGroup(ws: WebSocket, { playerName, groupName }: { playerName?: st
   };
   groups.set(code, group);
   clients.set(ws, { groupCode: code, roomCode: null, playerId });
+  activeSockets.set(playerId, ws);
   logger.info({ groupCode: code, memberCount: groups.size }, "group created");
   return { group, playerId };
 }
 
+// Only an online member's name actually blocks a reuse — see roomService.ts's
+// isNameTaken for the full rationale (an offline entry is either about to be
+// reaped or the very player trying to get back in under their own name).
 function isNameTaken(group: Group, name: string): boolean {
-  return group.members.some(m => m.name.toLowerCase() === name.toLowerCase());
+  return group.members.some(m => m.online && m.name.toLowerCase() === name.toLowerCase());
 }
 
 function joinGroup(
@@ -70,6 +75,7 @@ function joinGroup(
   const playerId: string = uuidv4();
   group.members.push({ id: playerId, name, online: true });
   clients.set(ws, { groupCode: group.code, roomCode: null, playerId });
+  activeSockets.set(playerId, ws);
   return { group, playerId };
 }
 
@@ -83,6 +89,7 @@ function rejoinGroup(ws: WebSocket, { groupCode, playerId }: { groupCode: string
   if (!member) return { error: "Ya no formás parte de este grupo" };
   member.online = true;
   clients.set(ws, { groupCode: group.code, roomCode: null, playerId });
+  activeSockets.set(playerId, ws);
   return { group, playerId };
 }
 

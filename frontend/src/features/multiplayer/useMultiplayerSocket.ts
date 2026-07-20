@@ -88,6 +88,7 @@ type InboundMessage =
   | { type: "word_reveal"; [key: string]: unknown }
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }
+  | { type: "kicked_from_group" }
   | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean };
 
 // Encapsulates the WebSocket connection lifecycle (connect, reconnect/rejoin,
@@ -298,6 +299,17 @@ export function useMultiplayerSocket({
         setMyRole(null);
         flashError("Fuiste expulsado de la sala");
         setReconnecting(false);
+      } else if (msg.type === "kicked_from_group") {
+        setMe(null);
+        setRoom(null);
+        setGroupMe(null);
+        setGroup(null);
+        setMyRole(null);
+        setWordReveal(null);
+        setConnectionPhase("menu");
+        flashError("Fuiste expulsado del grupo");
+        setReconnecting(false);
+        onLeftGroupRef.current?.();
       }
     };
     ws.onclose = () => {
