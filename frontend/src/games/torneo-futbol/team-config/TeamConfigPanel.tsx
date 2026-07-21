@@ -58,9 +58,18 @@ export function TeamConfigPanel<Id extends string | number>({
   const [spinningId, setSpinningId] = useState<Id | null>(null);
   const [spinLabel, setSpinLabel] = useState("");
 
-  const usedTeams = new Set(Object.values(assignments) as string[]);
+  // Only counts assignments that still belong to a current player — a kicked
+  // or departed player's old pick otherwise lingers in `assignments` forever
+  // (nothing clears it when they leave the room), permanently marking their
+  // team "taken" for everyone else even though nobody actually has it.
+  const usedTeams = new Set(players.filter(p => assignments[p.id]).map(p => assignments[p.id]));
   const validSeed = seedOrder.length === players.length && players.every(p => seedOrder.includes(p.id));
   const order = validSeed ? seedOrder : players.map(p => p.id);
+  // A previously-arranged seed goes invalid the moment the roster changes
+  // (someone joins/leaves) — silently falling back to plain player order
+  // with no explanation would look like the host's manual arrangement was
+  // just ignored.
+  const seedWasDiscarded = seedOrder.length > 0 && !validSeed;
 
   const addTeam = () => {
     const trimmed = newTeam.trim();
@@ -98,8 +107,13 @@ export function TeamConfigPanel<Id extends string | number>({
     const finalTeams = shuffle(teams).slice(0, players.length);
     let acc = {} as Record<Id, string>;
     setAssignments(acc);
+    // Each spin's animation should only ever roll through teams nobody's
+    // landed on yet in this run — shrink the pool as each player gets their
+    // final team, same as spinForPlayer already does for a single player.
+    let pool = [...teams];
     for (let i = 0; i < players.length; i++) {
-      await spin(players[i].id, teams, finalTeams[i]);
+      await spin(players[i].id, pool, finalTeams[i]);
+      pool = pool.filter(t => t !== finalTeams[i]);
       acc = { ...acc, [players[i].id]: finalTeams[i] };
       setAssignments(acc);
     }
@@ -200,6 +214,12 @@ export function TeamConfigPanel<Id extends string | number>({
             <Btn variant="success" onClick={runRouletteAll} disabled={!!spinningId || teams.length < players.length}>
               🎰 Girar la ruleta para todos
             </Btn>
+            {teams.length < players.length && (
+              <p style={{ fontSize: 12, color: "#F09595", marginTop: 10 }}>
+                Necesitás al menos {players.length} equipos para poder sortear — agregá {players.length - teams.length} más en la pestaña
+                "Equipos".
+              </p>
+            )}
           </div>
 
           <div style={S.card}>
@@ -239,6 +259,7 @@ export function TeamConfigPanel<Id extends string | number>({
           {players.map(p => {
             const team = assignments[p.id];
             const isSpinning = spinningId === p.id;
+            const noTeamsLeft = teams.filter(t => !usedTeams.has(t)).length === 0;
             return (
               <div key={p.id} style={S.card}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: team && !isSpinning ? 0 : 12 }}>
@@ -270,15 +291,16 @@ export function TeamConfigPanel<Id extends string | number>({
                     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                       <button
                         onClick={() => spinForPlayer(p.id)}
-                        disabled={!!spinningId}
-                        style={{ ...S.btn("success", !!spinningId), width: "auto", padding: "8px 12px", fontSize: 13 }}
+                        disabled={!!spinningId || noTeamsLeft}
+                        title={noTeamsLeft ? "No quedan equipos disponibles" : undefined}
+                        style={{ ...S.btn("success", !!spinningId || noTeamsLeft), width: "auto", padding: "8px 12px", fontSize: 13 }}
                       >
                         🎰
                       </button>
                       <Btn
                         variant="ghost"
                         onClick={() => setManualPick(manualPick === p.id ? null : p.id)}
-                        disabled={!!spinningId}
+                        disabled={!!spinningId || noTeamsLeft}
                         style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
                       >
                         Elegir equipo
@@ -286,6 +308,12 @@ export function TeamConfigPanel<Id extends string | number>({
                     </div>
                   )}
                 </div>
+
+                {!team && !isSpinning && noTeamsLeft && (
+                  <p style={{ fontSize: 12, color: "#F09595", margin: "8px 0 0" }}>
+                    No quedan equipos disponibles — agregá más en la pestaña "Equipos".
+                  </p>
+                )}
 
                 {isSpinning && (
                   <div
@@ -334,6 +362,11 @@ export function TeamConfigPanel<Id extends string | number>({
           <Btn variant="ghost" onClick={randomizeSeed} style={{ marginBottom: 12 }}>
             🎲 Sortear cruces al azar
           </Btn>
+          {seedWasDiscarded && (
+            <p style={{ fontSize: 12, color: "#E2C44A", marginBottom: 12 }}>
+              El orden que habían armado se reinició porque cambió la lista de jugadores — se volvió a un orden simple.
+            </p>
+          )}
           {byeCount > 0 && (
             <p style={{ ...S.muted, marginBottom: 12 }}>
               {order.length} jugadores no completan un cuadro parejo:{" "}

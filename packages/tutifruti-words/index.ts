@@ -20,6 +20,14 @@ export function normalizeWord(word: string | undefined): string {
 }
 
 export function startsWithLetter(word: string, letter: string): boolean {
+  // A genuinely empty word (nothing typed yet) isn't wrong, just incomplete
+  // — the caller decides separately whether a blank answer counts (see
+  // engine.ts's finishRound, which never even calls this for one). But a
+  // *non-empty* raw string that normalizes to nothing — e.g. a lone
+  // combining accent typed via IME — isn't a real word either, and treating
+  // that as an automatic match would let clearly-invalid input pass the
+  // letter check and still score points.
+  if (!word.trim()) return true;
   const w = normalizeWord(word);
-  return !w || w.startsWith(normalizeWord(letter));
+  return !!w && w.startsWith(normalizeWord(letter));
 }

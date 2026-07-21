@@ -25,6 +25,11 @@ interface TatetiRound {
   turn: string | undefined;
   winner: string | null;
   winningLine: number[] | null;
+  // Set instead of a real winningLine when the round ended because the
+  // opponent actually left (not just went offline) rather than being beaten
+  // fair and square — lets the UI say "ganó por abandono" instead of
+  // implying a real three-in-a-row that never happened.
+  forfeited?: boolean;
 }
 
 function cfg(room: Room): TatetiConfig {
@@ -66,8 +71,33 @@ function startRound(room: Room): { success?: true; error?: string } {
 
 // Only relevant right after a match ends: once both online players have
 // checked "jugar de nuevo" (player_ready), start the rematch automatically.
+// Also the only place that ever re-runs once a player is actually removed
+// (see roomHandlers.ts's schedulePlayerKick, called after the standard
+// 5-minute disconnect grace period) — a strict 1v1 game has no way to
+// continue, or even to resolve a pending rematch/reset vote, with only one
+// player left, so both cases get handled here instead of leaving the
+// remaining player staring at a "esperando a X" that can never resolve.
 function maybeAdvance(room: Room): void {
-  if (!room?.round || room.phase !== "result") return;
+  if (!room?.round) return;
+  if (room.players.length < MAX_PLAYERS) {
+    if (room.phase === "round") {
+      const remaining = room.players[0];
+      if (remaining) finishWithForfeit(room, remaining.id);
+    } else if (room.phase === "result") {
+      // Send the room back to the lobby (clearing the round and any
+      // pending rematch/reset-vote state) so a new second player can
+      // actually join — roomService.joinRoom only allows joining while
+      // phase is "lobby".
+      room.round = null;
+      room.phase = "lobby";
+      cfg(room).resetVotes = [];
+      room.players.forEach(p => {
+        p.ready = false;
+      });
+    }
+    return;
+  }
+  if (room.phase !== "result") return;
   const online = room.players.filter(p => p.online);
   if (online.length === MAX_PLAYERS && online.every(p => p.ready)) startRound(room);
 }
@@ -77,6 +107,20 @@ function finishWithWinner(room: Room, playerId: string, line: number[]): void {
   round(room).winningLine = line;
   room.phase = "result";
   cfg(room).score[playerId] = (cfg(room).score[playerId] || 0) + 1;
+}
+
+// The opponent actually left mid-round (not just offline — onPlayerOffline
+// deliberately doesn't exist here, same reasoning as every other game: a
+// brief blip shouldn't cost a real loss) — a 1v1 game can't continue with
+// one player, so the one who's still here gets credited the win instead of
+// the board staying frozen forever.
+function finishWithForfeit(room: Room, winnerId: string): void {
+  const r = round(room);
+  r.winner = winnerId;
+  r.winningLine = null;
+  r.forfeited = true;
+  room.phase = "result";
+  cfg(room).score[winnerId] = (cfg(room).score[winnerId] || 0) + 1;
 }
 
 function finishWithDraw(room: Room): void {
@@ -153,6 +197,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     turn: r.turn,
     winner: r.winner,
     winningLine: r.winningLine,
+    forfeited: r.forfeited,
   };
 }
 

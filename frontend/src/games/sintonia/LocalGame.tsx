@@ -10,12 +10,14 @@ import { StickyActionBar } from "../../components/StickyActionBar";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { shuffle } from "../../utils/shuffle";
+import { nextPlayerName } from "../../utils/playerNames";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";
-import { Dial, MARKER_COLORS } from "./Dial";
+import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
 import { Collapsible } from "../../components/Collapsible";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
+import { PlayModeConfig } from "./PlayModeConfig";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SINTONÍA (estilo Wavelength) — un solo dispositivo, se pasa de mano en mano.
@@ -61,7 +63,15 @@ function randomTarget(): number {
   return 8 + Math.floor(Math.random() * 85); // 8..92, evita los extremos
 }
 
-function Scoreboard({ players, history, totalScore }: { players: LocalPlayer[]; history: HistoryEntry[]; totalScore: number }) {
+// Whoever comes right after the last round's psychic, in the current player
+// order — anchored to that player's identity (not a raw counter) so it stays
+// fair even if someone was added or removed since the last round.
+function nextSuggestedPsychicId(players: LocalPlayer[], lastPsychicId: number | null): number {
+  const idx = lastPsychicId != null ? players.findIndex(p => p.id === lastPsychicId) : -1;
+  return players[idx === -1 ? 0 : (idx + 1) % players.length].id;
+}
+
+function Scoreboard({ players, history }: { players: LocalPlayer[]; history: HistoryEntry[] }) {
   const ranked = players
     .map(p => ({
       ...p,
@@ -70,7 +80,7 @@ function Scoreboard({ players, history, totalScore }: { players: LocalPlayer[]; 
     }))
     .sort((a, b) => b.points - a.points);
   return (
-    <Collapsible title={`Tabla de puntuación (puntaje total: ${totalScore})`}>
+    <Collapsible title="Tabla de puntuación">
       {ranked.map((p, i) => (
         <div
           key={p.id}
@@ -109,14 +119,17 @@ export function LocalGame() {
   });
 
   const [pool, setPool] = useState<[string, string][]>([]); // pares de la base sin usar en esta partida
-  const [turnIdx, setTurnIdx] = useState(0);
+  // Anchored to the last psychic's identity rather than a raw array index —
+  // an index would silently skip or repeat someone if a player is added or
+  // removed between rounds, since it'd then point at a different position
+  // in the (now different-sized) array than originally intended.
+  const [lastPsychicId, setLastPsychicId] = useState<number | null>(null);
   const [round, setRound] = useState<RoundData | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [clueText, setClueText] = useState("");
   const [guessOrder, setGuessOrder] = useState<number[]>([]);
   const [guessIdx, setGuessIdx] = useState(0);
   const [guessValue, setGuessValue] = useState(50);
-  const [totalScore, setTotalScore] = useState(0);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const revealCount = useRevealCountdown(history.length);
 
@@ -145,8 +158,7 @@ export function LocalGame() {
   };
 
   const addPlayer = () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    const trimmed = newName.trim() || nextPlayerName(players.map(p => p.name));
     if (isDuplicateName(trimmed, null)) {
       setNameError("Ya hay un jugador con ese nombre");
       return;
@@ -162,22 +174,20 @@ export function LocalGame() {
   };
 
   const startGame = () => {
-    setTotalScore(0);
     setHistory([]);
-    setTurnIdx(0);
+    setLastPsychicId(null);
     setRound(null);
     setPool([]);
     goToRoundSetup();
   };
 
   const confirmRoundSetup = () => {
-    const suggestedId = players[turnIdx % players.length].id;
+    const suggestedId = nextSuggestedPsychicId(players, lastPsychicId);
     let psychicId = setupPsychicId;
     if (!psychicId || psychicId === "random") {
       psychicId = setupPsychicId === "random" ? players[Math.floor(Math.random() * players.length)].id : suggestedId;
     }
     const psychic = players.find(p => p.id === psychicId)!;
-    const psychicIdx = players.findIndex(p => p.id === psychicId);
 
     setRound({ left: null, right: null, target: null, psychicId: psychicId as number, psychicName: psychic.name, clue: null, guesses: {} });
     setRevealed(false);
@@ -185,7 +195,7 @@ export function LocalGame() {
     setGuessOrder(players.filter(p => p.id !== psychicId).map(p => p.id));
     setGuessIdx(0);
     setGuessValue(50);
-    setTurnIdx(psychicIdx + 1);
+    setLastPsychicId(psychicId as number);
     setSpectrumMode("random");
     setSpectrumLeft("");
     setSpectrumRight("");
@@ -259,7 +269,6 @@ export function LocalGame() {
     });
     pointsByPlayer[round.psychicId] = (pointsByPlayer[round.psychicId] || 0) + guesserPointsSum;
 
-    setTotalScore(s => s + guesserPointsSum * 2);
     setHistory(h => [
       ...h,
       {
@@ -315,7 +324,7 @@ export function LocalGame() {
               <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
             </div>
 
-            {history.length > 0 && <Scoreboard players={players} history={history} totalScore={totalScore} />}
+            {history.length > 0 && <Scoreboard players={players} history={history} />}
           </>
         )}
 
@@ -333,41 +342,7 @@ export function LocalGame() {
               </p>
             </div>
 
-            <div style={S.card}>
-              <span style={S.label}>¿Cómo se juega?</span>
-              <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>
-                Define cuándo termina la partida: sigue rotando de psíquico ronda tras ronda sin parar, o corta después de
-                una cantidad fija de rondas y muestra quién ganó.
-              </p>
-              <div style={{ display: "flex", gap: 8, marginBottom: config.playMode === "rounds" ? 14 : 0 }}>
-                <button
-                  onClick={() => setConfig(c => ({ ...c, playMode: "endless" }))}
-                  style={{ ...S.btn(config.playMode === "endless" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-                >
-                  Libre (sin límite)
-                </button>
-                <button
-                  onClick={() => setConfig(c => ({ ...c, playMode: "rounds" }))}
-                  style={{ ...S.btn(config.playMode === "rounds" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-                >
-                  Por rondas
-                </button>
-              </div>
-              {config.playMode === "rounds" && (
-                <div>
-                  <span style={S.label}>Cantidad de rondas: {config.roundLimit}</span>
-                  <input
-                    type="range"
-                    min="1"
-                    max="20"
-                    step="1"
-                    value={config.roundLimit}
-                    onChange={e => setConfig(c => ({ ...c, roundLimit: +e.target.value }))}
-                    style={{ width: "100%" }}
-                  />
-                </div>
-              )}
-            </div>
+            <PlayModeConfig playMode={config.playMode} roundLimit={config.roundLimit} onChange={patch => setConfig(c => ({ ...c, ...patch }))} />
           </>
         )}
 
@@ -384,7 +359,7 @@ export function LocalGame() {
 
   // ── ROUND SETUP (elegir psíquico para esta ronda) ──
   if (phase === "roundSetup") {
-    const suggestedId = players[turnIdx % players.length].id;
+    const suggestedId = nextSuggestedPsychicId(players, lastPsychicId);
     const chosenPsychicId = setupPsychicId === null ? suggestedId : setupPsychicId;
 
     return (
@@ -506,10 +481,14 @@ export function LocalGame() {
                 />
               </div>
             )}
+            {spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim()) && (
+              <p style={{ fontSize: 12, color: "#E2C44A", marginTop: 8 }}>Completá los dos extremos para poder continuar</p>
+            )}
           </div>
           <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
             Confirmar y ver el objetivo
           </Btn>
+          <BackButton onClick={() => setPhase("roundSetup")}>Elegir otro psíquico</BackButton>
         </div>
       );
     }
@@ -613,9 +592,10 @@ export function LocalGame() {
 
     const points = round.pointsByPlayer || {};
     const guessers = players.filter(p => p.id !== round.psychicId && round.guesses[p.id] != null);
+    const labels = markerLabels(guessers.map(p => p.name));
     const markers = guessers.map((p, i) => ({
       value: round.guesses[p.id],
-      label: p.name.trim()[0]?.toUpperCase(),
+      label: labels[i],
       color: MARKER_COLORS[i % MARKER_COLORS.length],
     }));
 
@@ -647,7 +627,7 @@ export function LocalGame() {
                     }}
                   />
                   <span style={{ fontSize: 11, fontWeight: 600, color: "#b8b0d4" }}>
-                    {p.name.trim()[0]?.toUpperCase()} — {p.name}
+                    {labels[i]} — {p.name}
                   </span>
                 </div>
               ))}
@@ -665,18 +645,22 @@ export function LocalGame() {
             </div>
           ))}
         </Collapsible>
-        <Scoreboard players={players} history={history} totalScore={totalScore} />
+        <Scoreboard players={players} history={history} />
         {(() => {
           const gameOver = config.playMode === "rounds" && history.length >= config.roundLimit;
           if (!gameOver) return null;
           const winnerScore = (p: LocalPlayer) => history.reduce((sum, h) => sum + (h.pointsByPlayer[p.id] || 0), 0);
-          const winner = players.slice().sort((a, b) => winnerScore(b) - winnerScore(a))[0];
+          const topScore = Math.max(...players.map(winnerScore));
+          const winners = players.filter(p => winnerScore(p) === topScore);
+          const isTie = winners.length > 1;
           return (
             <div style={{ ...S.cardHighlight, textAlign: "center" }}>
               <span style={S.label}>Partida terminada</span>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>🏆 Ganó {winner?.name}</p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+                🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
+              </p>
               <p style={S.muted}>
-                {history.length} rondas jugadas · {winnerScore(winner)} puntos
+                {history.length} rondas jugadas · {topScore} puntos
               </p>
             </div>
           );

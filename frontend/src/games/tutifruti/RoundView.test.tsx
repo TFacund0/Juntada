@@ -173,6 +173,8 @@ describe("Tutifrutti RoundView — writing phase", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "¡BASTA!" }));
+    // Asks for confirmation before actually cutting the round for everyone.
+    await user.click(screen.getAllByRole("button", { name: "¡BASTA!" })[1]);
     expect(send).toHaveBeenCalledWith({ type: "call_basta" });
   });
 

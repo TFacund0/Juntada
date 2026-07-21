@@ -14,7 +14,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     players: [],
     maxPlayers: 16,
     groupCode: null,
-    config: { score: {}, turnIdx: 0, playMode: "endless", roundLimit: 5, ...configOverrides },
+    config: { score: {}, lastPsychicId: null, playMode: "endless", roundLimit: 5, ...configOverrides },
     round: null,
     usedWords: {},
     roundHistory: [],

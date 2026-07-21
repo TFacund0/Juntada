@@ -102,6 +102,9 @@ export const SCHEMAS = {
   skip_word: z.object({
     type: z.literal("skip_word"),
   }),
+  cancel_skip_word: z.object({
+    type: z.literal("cancel_skip_word"),
+  }),
   continue_round: z.object({
     type: z.literal("continue_round"),
   }),
@@ -124,6 +127,9 @@ export const SCHEMAS = {
   }),
   new_game: z.object({
     type: z.literal("new_game"),
+  }),
+  force_finish_round: z.object({
+    type: z.literal("force_finish_round"),
   }),
   report_result: z.object({
     type: z.literal("report_result"),

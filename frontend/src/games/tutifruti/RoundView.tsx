@@ -2,14 +2,54 @@ import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
+import type { RoomPublicState } from "@juntada/shared-types";
+
+interface TutifrutiCategory {
+  id: string;
+  label: string;
+  icon?: string;
+}
+
+interface TutifrutiAnswerBreakdown {
+  word: string;
+  valid: boolean;
+  wrongLetter: boolean;
+  duplicate: boolean;
+  points: number;
+  ticks: number;
+  crosses: number;
+}
+
+// Mirrors backend/src/games/tutifruti/engine.ts's getPublicRoundView — fields
+// accumulate as the round moves through phases (setup adds the base fields,
+// writing adds doneCount/bastaBy, review/result add answers/marks/etc.), so
+// most of the phase-specific fields stay optional here.
+interface TutifrutiRoundState {
+  letter: string;
+  rerollsUsed: number;
+  categories: TutifrutiCategory[];
+  endMode: "timer" | "basta";
+  timerEnd: number | null;
+  isFinalRound: boolean;
+  roundNumber: number;
+  totalRounds: number;
+  doneCount?: number;
+  bastaBy?: string | null;
+  answers?: Record<string, Record<string, string>>;
+  marks?: Record<string, Record<string, Record<string, boolean>>>;
+  reviewConfirmed?: Record<string, boolean>;
+  reviewEnd?: number | null;
+  pointsByPlayer?: Record<string, number> | null;
+  breakdown?: Record<string, Record<string, TutifrutiAnswerBreakdown>> | null;
+}
 
 // ── Ronda X/Y indicator, shown at the top of every phase ──
-function RoundBadge({ round }: { round: any }) {
+function RoundBadge({ round }: { round: TutifrutiRoundState }) {
   if (!round.totalRounds) return null;
   return (
     <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>
@@ -31,7 +71,7 @@ function useCountdown(timerEnd: number | null): number | null {
 
 // ── SETUP: letter draw, host can reroll ──
 function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
   return (
     <div>
       <RoundBadge round={round} />
@@ -59,14 +99,19 @@ function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHos
 }
 
 // ── WRITING: fill in categories against the clock or until "basta" ──
+interface TutifrutiPrivateRole {
+  myAnswers: Record<string, string>;
+}
+
 function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "room" | "me" | "myPlayer" | "myRole" | "isHost" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
+  const role = myRole as TutifrutiPrivateRole | null;
   const timeLeft = useCountdown(round.endMode === "timer" ? round.timerEnd : null);
   // Only "Ya terminé" (timer mode) locks answers — basta mode has no
   // individual confirm step, everyone keeps typing until someone calls
   // "¡BASTA!" for the whole table.
   const locked = !!myPlayer?.ready;
-  const [values, setValues] = useState<Record<string, string>>(() => (myRole as any)?.myAnswers || {});
+  const [values, setValues] = useState<Record<string, string>>(() => role?.myAnswers || {});
   // Keyed per category — a single shared timer/pending-value would let
   // typing in category B cancel category A's still-pending debounce (via
   // the old clearTimeout) without ever resending it, silently dropping A's
@@ -82,11 +127,12 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
   const letterRef = useRef(round.letter);
   const onlinePlayers = room.players.filter(p => p.online);
   const readyCount = onlinePlayers.filter(p => p.ready).length;
+  const [confirmBasta, setConfirmBasta] = useState(false);
 
   useEffect(() => {
     if (letterRef.current !== round.letter) {
       letterRef.current = round.letter;
-      setValues((myRole as any)?.myAnswers || {});
+      setValues(role?.myAnswers || {});
       // A new round means whatever was still pending from the previous
       // letter is moot — its categories don't even exist anymore.
       Object.values(debounceRefs.current).forEach(clearTimeout);
@@ -141,7 +187,7 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
       )}
       <div style={S.card}>
         <span style={S.label}>Completá con la letra "{round.letter}"</span>
-        {round.categories.map((cat: any) => (
+        {round.categories.map(cat => (
           <div key={cat.id} style={{ marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: "#9089c0", marginBottom: 4, display: "block" }}>
               {cat.icon ? `${cat.icon} ` : ""}
@@ -158,15 +204,22 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
         ))}
       </div>
       {round.endMode === "basta" && (
-        <Btn
-          variant="danger"
-          onClick={() => {
+        <Btn variant="danger" onClick={() => setConfirmBasta(true)}>
+          ¡BASTA!
+        </Btn>
+      )}
+      {confirmBasta && (
+        <ConfirmDialog
+          title="¿Gritar BASTA?"
+          message={`Corta la ronda para todos ahora mismo — ${round.doneCount ?? 0} de ${room.players.length} ya enviaron alguna respuesta. Nadie más va a poder seguir escribiendo.`}
+          confirmLabel="¡BASTA!"
+          onConfirm={() => {
+            setConfirmBasta(false);
             flushPending();
             send({ type: "call_basta" });
           }}
-        >
-          ¡BASTA!
-        </Btn>
+          onCancel={() => setConfirmBasta(false)}
+        />
       )}
       {round.endMode === "timer" &&
         (myPlayer?.ready ? (
@@ -206,10 +259,27 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
 // Everyone (including the word's own author) can vote on any word, and every
 // player has to confirm before the round's scores get tallied.
 function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
+  const answers = round.answers!;
+  const marks = round.marks!;
   const online = room.players.filter(p => p.online);
   const confirmedCount = online.filter(p => round.reviewConfirmed?.[p.id]).length;
   const iConfirmed = !!me && !!round.reviewConfirmed?.[me.playerId];
+  const timeLeft = useCountdown(round.reviewEnd ?? null);
+
+  // A word nobody votes on defaults to valid (see engine.ts's finishRound) —
+  // a group that reviews quickly without touching every row would otherwise
+  // never realize some clearly-wrong answers are about to auto-score,
+  // unaware anything was skipped.
+  let unvotedCount = 0;
+  round.categories.forEach(cat => {
+    room.players.forEach(p => {
+      const word = (answers[p.id] || {})[cat.id];
+      if (!word || !word.trim()) return;
+      const marksForWord = (marks[p.id] || {})[cat.id] || {};
+      if (Object.keys(marksForWord).length === 0) unvotedCount++;
+    });
+  });
 
   return (
     <div>
@@ -218,8 +288,24 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
         <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Letra</p>
         <p style={{ fontSize: 32, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>{round.letter}</p>
       </div>
-      {round.categories.map((cat: any) => {
-        const entries = room.players.map(p => ({ playerId: p.id, word: (round.answers[p.id] || {})[cat.id] })).filter(e => e.word);
+      {timeLeft != null && (
+        <div style={S.card}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo para revisar</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5" }}>
+              {timeLeft}s
+            </span>
+          </div>
+        </div>
+      )}
+      {round.categories.map(cat => {
+        const entries = room.players
+          .map(p => ({ playerId: p.id, word: (answers[p.id] || {})[cat.id] }))
+          // A whitespace-only "answer" (e.g. a stray space bar tap) is
+          // truthy as a string but scores as blank once trimmed at result
+          // time — filtering it out here too avoids showing reviewers a
+          // vote-able row for something that was never really an answer.
+          .filter(e => e.word && e.word.trim());
         if (entries.length === 0) return null;
         return (
           <div key={cat.id} style={S.card}>
@@ -228,10 +314,10 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
               {cat.label}
             </span>
             {entries.map(({ playerId, word }) => {
-              const marksForWord = (round.marks[playerId] || {})[cat.id] || {};
+              const marksForWord = (marks[playerId] || {})[cat.id] || {};
               const voteValues = Object.values(marksForWord);
-              const ticks = voteValues.filter((v: any) => v === true).length;
-              const crosses = voteValues.filter((v: any) => v === false).length;
+              const ticks = voteValues.filter(v => v === true).length;
+              const crosses = voteValues.filter(v => v === false).length;
               const wrongLetter = !startsWithLetter(word, round.letter);
               // Half or more of the votes marking it invalid rejects the word live,
               // same rule the backend applies once the round is tallied.
@@ -242,13 +328,19 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
                   key={playerId}
                   style={{
                     display: "flex",
-                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    alignItems: "center",
                     gap: 10,
                     padding: "8px 0",
                     borderBottom: "1px solid rgba(127,119,221,0.08)",
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* The word always takes the full row on its own — on a
+                      narrow phone, a long word plus a tally column plus two
+                      36px buttons all fighting for one row left almost no
+                      breathing room, so the tally+buttons group wraps to its
+                      own line below instead. */}
+                  <div style={{ flex: "1 1 100%", minWidth: 0 }}>
                     <p
                       style={{
                         margin: 0,
@@ -263,42 +355,44 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
                       {word}
                     </p>
                   </div>
-                  {/* Fixed-width tally column to the left of our own vote buttons, so
-                      the buttons never shift position as votes come in. */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 2, width: 46, justifyContent: "flex-end", flexShrink: 0 }}>
-                    {Object.values(marksForWord).map((valid: any, i: number) => (
-                      <span key={i} style={{ fontSize: 11, color: valid ? "#5DCAA5" : "#F09595" }}>
-                        {valid ? "✓" : "✗"}
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                    <button
-                      onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: true })}
-                      style={{
-                        ...S.btn(me && marksForWord[me.playerId] === true ? "success" : "ghost"),
-                        width: 36,
-                        height: 36,
-                        padding: 0,
-                        borderRadius: 8,
-                        fontSize: 16,
-                      }}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: false })}
-                      style={{
-                        ...S.btn(me && marksForWord[me.playerId] === false ? "danger" : "ghost"),
-                        width: 36,
-                        height: 36,
-                        padding: 0,
-                        borderRadius: 8,
-                        fontSize: 16,
-                      }}
-                    >
-                      ✗
-                    </button>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, flex: "1 1 auto" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "flex-end" }}>
+                      {Object.values(marksForWord).map((valid, i) => (
+                        <span key={i} style={{ fontSize: 11, color: valid ? "#5DCAA5" : "#F09595" }}>
+                          {valid ? "✓" : "✗"}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button
+                        onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: true })}
+                        disabled={iConfirmed}
+                        style={{
+                          ...S.btn(me && marksForWord[me.playerId] === true ? "success" : "ghost", iConfirmed),
+                          width: 36,
+                          height: 36,
+                          padding: 0,
+                          borderRadius: 8,
+                          fontSize: 16,
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: false })}
+                        disabled={iConfirmed}
+                        style={{
+                          ...S.btn(me && marksForWord[me.playerId] === false ? "danger" : "ghost", iConfirmed),
+                          width: 36,
+                          height: 36,
+                          padding: 0,
+                          borderRadius: 8,
+                          fontSize: 16,
+                        }}
+                      >
+                        ✗
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -306,6 +400,11 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
           </div>
         );
       })}
+      {!iConfirmed && unvotedCount > 0 && (
+        <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginBottom: 8 }}>
+          {unvotedCount} respuesta{unvotedCount === 1 ? "" : "s"} sin ningún voto todavía — sin votos cuentan como válidas.
+        </p>
+      )}
       {iConfirmed ? (
         <div style={{ ...S.card, textAlign: "center" }}>
           <p style={{ color: "#5DCAA5", margin: 0 }}>
@@ -322,12 +421,25 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
 }
 
 // ── RESULT: round breakdown + running standings ──
-function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; round: any; isHost: boolean; onShowFinal: () => void; send: any }) {
+function RoundResult({
+  room,
+  round,
+  isHost,
+  onShowFinal,
+  send,
+}: {
+  room: RoomPublicState;
+  round: TutifrutiRoundState;
+  isHost: boolean;
+  onShowFinal: () => void;
+  send: RoundViewProps["send"];
+}) {
   const score = room.config.score as Record<string, number>;
+  const pointsByPlayer = round.pointsByPlayer!;
+  const breakdown = round.breakdown!;
   const standings = [...room.players]
-    .map((p: any) => ({ ...p, score: score[p.id] || 0, roundPts: round.pointsByPlayer[p.id] || 0 }))
-    .sort((a: any, b: any) => b.score - a.score);
-  const [confirmLobby, setConfirmLobby] = useState(false);
+    .map(p => ({ ...p, score: score[p.id] || 0, roundPts: pointsByPlayer[p.id] || 0 }))
+    .sort((a, b) => b.score - a.score);
 
   return (
     <div>
@@ -352,8 +464,8 @@ function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; ro
       </div>
       <div style={S.card}>
         <span style={S.label}>Desglose ({round.letter})</span>
-        {round.categories.map((cat: any) => {
-          const entries = room.players.map((p: any) => (round.breakdown[p.id] || {})[cat.id]).filter((b: any) => b && b.word);
+        {round.categories.map(cat => {
+          const entries = room.players.map(p => (breakdown[p.id] || {})[cat.id]).filter((b): b is TutifrutiAnswerBreakdown => !!b && !!b.word);
           if (entries.length === 0) return null;
           return (
             <div key={cat.id} style={{ marginBottom: 12 }}>
@@ -361,7 +473,7 @@ function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; ro
                 {cat.icon ? `${cat.icon} ` : ""}
                 {cat.label}
               </span>
-              {entries.map((b: any, i: number) => (
+              {entries.map((b, i) => (
                 <div
                   key={i}
                   style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "4px 0", color: "#b8b0d4" }}
@@ -403,19 +515,13 @@ function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; ro
       )}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
-      {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
-      {confirmLobby && (
-        <ConfirmDialog
-          title="¿Volver al lobby?"
-          message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
-          confirmLabel="Volver al lobby"
-          onConfirm={() => {
-            setConfirmLobby(false);
-            send({ type: "back_to_lobby" });
-          }}
-          onCancel={() => setConfirmLobby(false)}
-        />
-      )}
+      <LeaveToLobbyButton
+        groupCode={room.groupCode}
+        send={send}
+        confirm={{
+          message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+        }}
+      />
     </div>
   );
 }
@@ -430,10 +536,18 @@ function FinalResultsLoading() {
   );
 }
 
-function FinalStandings({ room, round, isHost, send }: { room: any; round: any; isHost: boolean; send: any }) {
+function FinalStandings({
+  room,
+  isHost,
+  send,
+}: {
+  room: RoomPublicState;
+  round: TutifrutiRoundState;
+  isHost: boolean;
+  send: RoundViewProps["send"];
+}) {
   const score = room.config.score as Record<string, number>;
-  const standings = [...room.players].map((p: any) => ({ ...p, score: score[p.id] || 0 })).sort((a: any, b: any) => b.score - a.score);
-  const [confirmLobby, setConfirmLobby] = useState(false);
+  const standings = [...room.players].map(p => ({ ...p, score: score[p.id] || 0 })).sort((a, b) => b.score - a.score);
 
   return (
     <div>
@@ -458,25 +572,19 @@ function FinalStandings({ room, round, isHost, send }: { room: any; round: any; 
       {!isHost && <p style={{ ...S.muted, textAlign: "center" }}>Esperando a que el anfitrión arranque una partida nueva.</p>}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
-      {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
-      {confirmLobby && (
-        <ConfirmDialog
-          title="¿Volver al lobby?"
-          message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
-          confirmLabel="Volver al lobby"
-          onConfirm={() => {
-            setConfirmLobby(false);
-            send({ type: "back_to_lobby" });
-          }}
-          onCancel={() => setConfirmLobby(false)}
-        />
-      )}
+      <LeaveToLobbyButton
+        groupCode={room.groupCode}
+        send={send}
+        confirm={{
+          message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+        }}
+      />
     </div>
   );
 }
 
 function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
   const [finalStage, setFinalStage] = useState<"round" | "loading" | "final">("round");
 
   useEffect(() => {

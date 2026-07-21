@@ -3,6 +3,7 @@ import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors, matchWinner } from "@juntada/impostor-match-rules";
 import { shuffle } from "../../utils/shuffle";
+import { nextPlayerName } from "../../utils/playerNames";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { TabRow } from "../../components/TabRow";
@@ -57,6 +58,7 @@ interface Config {
   hintsEnabled: boolean;
   writtenClues: boolean;
   discussionTime: number;
+  discussionUnlimited: boolean;
   revealOnElimination: boolean;
   enabledCategories: Record<string, boolean>;
 }
@@ -96,6 +98,7 @@ export function LocalGame() {
     hintsEnabled: true,
     writtenClues: false,
     discussionTime: 30,
+    discussionUnlimited: false,
     revealOnElimination: true,
     // Off by default — you have to actively pick which categories are in
     // play rather than opt out of a preselected set.
@@ -103,6 +106,12 @@ export function LocalGame() {
   });
   const [round, setRound] = useState<Round | null>(null);
   const [revealIdx, setRevealIdx] = useState(0);
+  // A pass-and-play device shows the same screen to whoever's holding it —
+  // without an explicit "it's my turn now" tap between reveals, the previous
+  // player's word/impostor status could flash to the wrong eyes for however
+  // long the physical handoff takes. Reset every time revealIdx moves so
+  // each new player has to confirm before their own card becomes tappable.
+  const [handoffConfirmed, setHandoffConfirmed] = useState(false);
   const [wordVisible, setWordVisible] = useState(false);
   const [clueInput, setClueInput] = useState("");
   const [clues, setClues] = useState<Record<number, string>>({});
@@ -117,6 +126,23 @@ export function LocalGame() {
   const [configTab, setConfigTab] = useState<"cats" | "rules" | "order">("cats");
 
   const activeCats = Object.keys(config.enabledCategories).filter(k => config.enabledCategories[k]);
+  const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
+  // drawWord picks a random active category, so as long as at least one of
+  // them still has words it'll eventually find it — only actually stuck once
+  // every active category is fully exhausted. Checked proactively (not just
+  // reactively via drawWord's own wordError) so "Iniciar ronda"/"Nueva
+  // partida" doesn't just silently fail on tap after a long match.
+  const allCategoriesExhausted = activeCats.length > 0 && activeCats.every(k => wordsLeftIn(k) <= 0);
+
+  // A host who sets e.g. 2 impostors then removes players down to where
+  // maxImpostors(players.length) is only 1 would otherwise keep seeing "2"
+  // selected in the Rules tab even though startRound silently clamps it at
+  // draw time — this corrects the config the moment the roster shrinks, so
+  // what's shown always matches what would actually happen.
+  useEffect(() => {
+    const cap = maxImpostors(players.length);
+    setConfig(c => (c.numImpostors > cap ? { ...c, numImpostors: cap } : c));
+  }, [players.length]);
 
   const isDuplicateName = (name: string, excludeId: number | null) => {
     const norm = name.trim().toLowerCase();
@@ -148,8 +174,7 @@ export function LocalGame() {
   };
 
   const addPlayer = () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    const trimmed = newName.trim() || nextPlayerName(players.map(p => p.name));
     if (isDuplicateName(trimmed, null)) {
       setNameError("Ya hay un jugador con ese nombre");
       return;
@@ -177,6 +202,7 @@ export function LocalGame() {
 
   const beginReveal = () => {
     setRevealIdx(0);
+    setHandoffConfirmed(false);
     setWordVisible(false);
     setClueInput("");
     setClues({});
@@ -205,6 +231,38 @@ export function LocalGame() {
     beginReveal();
   };
 
+  // Local's answer to online's skip_word — "no conozco esta palabra, pedir
+  // otra" was previously online-only even though a pass-and-play table hits
+  // the exact same problem. No vote threshold needed here (unlike online,
+  // there's no separate device per player to poll) — same category, same
+  // impostors, just a fresh word. Falls back to a whole new match if the
+  // category's genuinely out of unused words, same as online's rerollWord.
+  const requestNewWord = () => {
+    if (!round) return;
+    const cat = CATEGORIES[round.categoryKey];
+    const used = usedWords[round.categoryKey] || [];
+    const available = cat.words.filter((w: string) => !used.includes(w) && w !== round.word);
+    if (!available.length) {
+      // Falling back to startRound only makes sense if some active category
+      // still has words left for it to draw from — otherwise it'd silently
+      // no-op (drawWord's own error would just overwrite this one) and leave
+      // the player thinking a new match started when nothing actually
+      // changed. Checked with the same allCategoriesExhausted this file
+      // already uses to gate "Iniciar ronda"/"Nueva partida".
+      if (allCategoriesExhausted) {
+        setWordError(`Ya no quedan palabras sin usar en ninguna categoría activa — seguí con la palabra actual`);
+        return;
+      }
+      setWordError(`Sin más palabras en ${cat.label} — arrancó una partida nueva`);
+      startRound();
+      return;
+    }
+    const word = available[Math.floor(Math.random() * available.length)];
+    setUsedWords(prev => ({ ...prev, [round.categoryKey]: [...(prev[round.categoryKey] || []), word] }));
+    setRound(r => (r ? { ...r, word } : r));
+    setWordVisible(false);
+  };
+
   // Starts another round of clue-giving within the same match: a fresh turn
   // among whoever's still alive, but the *same* word/category as before —
   // it's still the same investigation, not a new one, so the word only
@@ -230,6 +288,10 @@ export function LocalGame() {
   };
 
   const goToDiscussion = () => {
+    if (config.discussionUnlimited) {
+      setPhase("discussion");
+      return;
+    }
     if (config.discussionTime <= 0) {
       setPhase("vote");
       return;
@@ -238,8 +300,14 @@ export function LocalGame() {
     setTimeLeft(config.discussionTime);
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
+        // A short buzz as the last few seconds tick down — same reasoning as
+        // the pulsing card: a pass-around device isn't necessarily being
+        // watched right when time runs out. Feature-detected since vibrate
+        // isn't available on iOS Safari/desktop.
+        if (t - 1 > 0 && t - 1 <= 5) navigator.vibrate?.(80);
         if (t <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
+          navigator.vibrate?.([120, 60, 120]);
           setPhase("vote");
           return 0;
         }
@@ -449,10 +517,21 @@ export function LocalGame() {
                   ? "Cada uno escribe su palabra en el dispositivo antes de pasarlo, y quedan visibles para repasar antes de votar."
                   : "Cada uno dice su palabra en voz alta, por turnos, sin escribir nada."}
               </p>
+              {/* Online tiene un "tiempo por turno" además de este porque cada
+                  jugador tiene su propio dispositivo y hay que evitar que uno
+                  se cuelgue mientras el resto espera. Acá el dispositivo se va
+                  pasando de mano en mano, así que ya queda en manos del grupo
+                  cuánto tarda cada uno antes de tocar "Siguiente jugador" —
+                  no hace falta un cronómetro server-side para eso. */}
+              <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4, fontSize: 12 }}>
+                No hay límite de tiempo por turno: como se van pasando el dispositivo de mano en mano, cada uno avanza cuando ya dijo su
+                palabra.
+              </p>
             </div>
             <div style={S.card}>
               <span style={S.label}>
-                Tiempo de discusión: {config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
+                Tiempo de discusión:{" "}
+                {config.discussionUnlimited ? "Sin límite" : config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
               </span>
               <input
                 type="range"
@@ -460,9 +539,21 @@ export function LocalGame() {
                 max="180"
                 step="15"
                 value={config.discussionTime}
-                onChange={e => setConfig(c => ({ ...c, discussionTime: +e.target.value }))}
-                style={{ width: "100%", marginTop: 8 }}
+                disabled={config.discussionUnlimited}
+                onChange={e => setConfig(c => ({ ...c, discussionTime: +e.target.value, discussionUnlimited: false }))}
+                style={{ width: "100%", marginTop: 8, opacity: config.discussionUnlimited ? 0.4 : 1 }}
               />
+              <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
+                <div
+                  style={S.toggle(config.discussionUnlimited)}
+                  onClick={() => setConfig(c => ({ ...c, discussionUnlimited: !c.discussionUnlimited }))}
+                >
+                  <div style={S.knob(config.discussionUnlimited)} />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "#6b6490" }}>
+                  Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
+                </span>
+              </label>
             </div>
           </>
         )}
@@ -474,10 +565,13 @@ export function LocalGame() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {Object.entries(CATEGORIES).map(([k, cat]) => {
                 const active = !!config.enabledCategories[k];
+                const remaining = wordsLeftIn(k);
+                const exhausted = remaining <= 0;
                 return (
                   <button
                     key={k}
                     onClick={() => setConfig(c => ({ ...c, enabledCategories: { ...c.enabledCategories, [k]: !active } }))}
+                    title={exhausted ? "Ya se usaron todas las palabras de esta categoría en esta partida" : undefined}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -493,10 +587,12 @@ export function LocalGame() {
                       fontFamily: "inherit",
                       boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
                       transition: "all 0.15s",
+                      opacity: exhausted ? 0.55 : 1,
                     }}
                   >
                     <span>{cat.icon}</span>
                     <span>{cat.label}</span>
+                    <span style={{ fontSize: 11, opacity: 0.75 }}>{exhausted ? "· sin palabras" : `· ${remaining}`}</span>
                   </button>
                 );
               })}
@@ -506,6 +602,11 @@ export function LocalGame() {
                 ? "No elegiste ninguna categoría todavía."
                 : `${activeCats.length} categoría${activeCats.length === 1 ? "" : "s"} activa${activeCats.length === 1 ? "" : "s"}.`}
             </p>
+            {allCategoriesExhausted && (
+              <p style={{ fontSize: 12, color: "#F09595", marginTop: 4 }}>
+                Ya se usaron todas las palabras de las categorías activas — activá otra para poder seguir jugando.
+              </p>
+            )}
           </div>
         )}
 
@@ -548,13 +649,18 @@ export function LocalGame() {
         )}
 
         <StickyActionBar>
-          <StartButton onClick={startRound} disabled={players.length < 3 || activeCats.length === 0}>
+          <StartButton onClick={startRound} disabled={players.length < 3 || activeCats.length === 0 || allCategoriesExhausted}>
             Iniciar ronda
           </StartButton>
           {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
           {players.length >= 3 && activeCats.length === 0 && (
             <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
               Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar
+            </p>
+          )}
+          {players.length >= 3 && activeCats.length > 0 && allCategoriesExhausted && (
+            <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
+              Ya no quedan palabras sin usar en las categorías activas — activá otra en "Categorías"
             </p>
           )}
           <ErrorBanner message={wordError} flashKey={wordErrorKey} variant="inline" />
@@ -574,9 +680,28 @@ export function LocalGame() {
       if (config.writtenClues) setClues(c => ({ ...c, [player.id]: clueInput.trim() }));
       setWordVisible(false);
       setClueInput("");
+      setHandoffConfirmed(false);
       if (isLast) goToDiscussion();
       else setRevealIdx(i => i + 1);
     };
+
+    if (!handoffConfirmed) {
+      return (
+        <div style={{ textAlign: "center", padding: "40px 0" }}>
+          <p style={{ ...S.muted, marginBottom: 16 }}>
+            Jugador {revealIdx + 1} de {alive.length}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 28 }}>
+            <Avatar name={player.name} size={72} />
+            <div>
+              <p style={{ margin: 0, fontSize: 13, color: "#9089c0" }}>Pasale el dispositivo a</p>
+              <p style={{ margin: "4px 0 0", fontWeight: 800, fontSize: 24 }}>{player.name}</p>
+            </div>
+          </div>
+          <Btn onClick={() => setHandoffConfirmed(true)}>Soy {player.name}, continuar</Btn>
+        </div>
+      );
+    }
 
     return (
       <div>
@@ -630,6 +755,11 @@ export function LocalGame() {
             />
           </div>
         )}
+        {wordVisible && (
+          <Btn variant="ghost" onClick={requestNewWord} style={{ marginBottom: 10 }}>
+            No conozco esta palabra, pedir otra
+          </Btn>
+        )}
         <Btn onClick={advance} disabled={needsClue}>
           {isLast ? "Todos listos, empezar" : "Siguiente jugador"}
         </Btn>
@@ -638,34 +768,52 @@ export function LocalGame() {
   }
 
   // ── DISCUSSION ──
-  if (phase === "discussion" && round)
+  if (phase === "discussion" && round) {
+    // A pass-around device means nobody's necessarily looking at the screen
+    // right when the countdown finishes — unlike online, where each player
+    // has their own device to glance at. A pulsing card + a short vibration
+    // (where supported) in the last few seconds gives some warning before it
+    // auto-advances to voting out from under whoever's holding it.
+    const urgent = timeLeft > 0 && timeLeft <= 5;
     return (
       <div>
+        <style>{`
+          @keyframes discussion-urgent-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+          }
+        `}</style>
         {config.hintsEnabled && (
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Pista para el impostor</p>
             <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{round.categoryLabel}</p>
           </div>
         )}
-        <div style={S.card}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo restante</span>
-            <span style={{ fontSize: 20, fontWeight: 800, color: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5" }}>
-              {timeLeft}s
-            </span>
+        {config.discussionUnlimited ? (
+          <div style={{ ...S.card, textAlign: "center" }}>
+            <p style={{ ...S.muted, margin: 0 }}>Sin límite de tiempo — avancen cuando estén listos</p>
           </div>
-          <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
-            <div
-              style={{
-                height: "100%",
-                borderRadius: 3,
-                width: `${Math.round((timeLeft / config.discussionTime) * 100)}%`,
-                background: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5",
-                transition: "width 1s, background 0.5s",
-              }}
-            />
+        ) : (
+          <div style={{ ...S.card, animation: urgent ? "discussion-urgent-pulse 0.5s ease-in-out infinite" : undefined }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo restante</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5" }}>
+                {timeLeft}s
+              </span>
+            </div>
+            <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
+              <div
+                style={{
+                  height: "100%",
+                  borderRadius: 3,
+                  width: `${Math.round((timeLeft / config.discussionTime) * 100)}%`,
+                  background: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5",
+                  transition: "width 1s, background 0.5s",
+                }}
+              />
+            </div>
           </div>
-        </div>
+        )}
         {config.writtenClues ? (
           <CluesReview clues={clues} players={players} />
         ) : (
@@ -682,6 +830,7 @@ export function LocalGame() {
         </Btn>
       </div>
     );
+  }
 
   // ── VOTE ──
   if (phase === "vote" && round) {
@@ -818,7 +967,16 @@ export function LocalGame() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {matchOver ? (
-            <StartButton onClick={startRound}>Nueva partida</StartButton>
+            <>
+              <StartButton onClick={startRound} disabled={allCategoriesExhausted}>
+                Nueva partida
+              </StartButton>
+              {allCategoriesExhausted && (
+                <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center" }}>
+                  Ya no quedan palabras sin usar en las categorías activas — activá otra en "Configuración" antes de seguir
+                </p>
+              )}
+            </>
           ) : (
             <StartButton onClick={continueMatch}>Siguiente ronda</StartButton>
           )}
