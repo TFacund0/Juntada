@@ -3,7 +3,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { Avatar } from "../../components/Avatar";
-import { Dial, MARKER_COLORS } from "./Dial";
+import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Collapsible } from "../../components/Collapsible";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
@@ -15,12 +15,22 @@ import type { PublicPlayer } from "@juntada/shared-types";
 // purely client-side, so it can be re-rolled instantly without a round trip.
 // Confirming a "random" pick submits it as a manual left/right (see
 // confirmSpectrum below) rather than asking the server to pick again, so
-// what gets used is exactly what was last shown — the tradeoff is this
-// preview flow doesn't consult room.usedWords, so it can occasionally
-// preview (and confirm) a pair already used earlier this session, unlike
-// the server's own "random" pick which tracks that.
-function pickRandomSpectrum(exclude?: { left: string; right: string } | null): { left: string; right: string } {
-  const pool = exclude ? SPECTRUMS.filter(([l, r]) => l !== exclude.left || r !== exclude.right) : SPECTRUMS;
+// what gets used is exactly what was last shown. Filters against the
+// server-tracked `usedSpectrums` (see engine.ts's recordSpectrumUsed) so
+// this preview — and whatever it ends up confirming — actually respects the
+// same no-repeat-within-a-cycle pool the server enforces, falling back to
+// the full list once every pair's been used (same reset the server does).
+function pickRandomSpectrum(
+  usedKeys: string[],
+  exclude?: { left: string; right: string } | null,
+): { left: string; right: string } {
+  const used = new Set(usedKeys);
+  let pool = SPECTRUMS.filter(([l, r]) => !used.has(`${l}|${r}`));
+  if (pool.length === 0) pool = SPECTRUMS;
+  if (exclude) {
+    const withoutExclude = pool.filter(([l, r]) => l !== exclude.left || r !== exclude.right);
+    if (withoutExclude.length > 0) pool = withoutExclude;
+  }
   const [left, right] = pool[Math.floor(Math.random() * pool.length)];
   return { left, right };
 }
@@ -85,12 +95,17 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   const roundSetup = room.round as any;
 
   // A fresh private_role arrives every round (new psychic/target) — reset
-  // this round's local input state.
+  // this round's local input state. If the server already has a guess on
+  // file for us (myRole.myGuess — set when a refresh/reconnect lands mid-
+  // "guess", see engine.ts's getPrivateView), restore the locked-in state
+  // instead of showing the slider again, since resubmitting would just be
+  // rejected now that submit_guess locks the first value in.
   useEffect(() => {
     setClueText("");
     setClueSubmitted(false);
-    setGuessValue(50);
-    setGuessSubmitted(false);
+    const myGuess = (myRole as any)?.myGuess;
+    setGuessValue(myGuess ?? 50);
+    setGuessSubmitted(myGuess != null);
   }, [myRole]);
 
   // Every time the room re-enters "setup" (lobby start or "Nueva ronda"),
@@ -105,7 +120,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
       setSpectrumMode("random");
       setSpectrumLeft("");
       setSpectrumRight("");
-      setRandomPreview(pickRandomSpectrum());
+      setRandomPreview(pickRandomSpectrum(roundSetup?.usedSpectrums || []));
     }
   }, [room.phase]);
 
@@ -225,7 +240,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
               <button
                 onClick={() => {
                   setSpectrumMode("random");
-                  if (!randomPreview) setRandomPreview(pickRandomSpectrum());
+                  if (!randomPreview) setRandomPreview(pickRandomSpectrum(round.usedSpectrums || []));
                 }}
                 style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
               >
@@ -239,7 +254,11 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
               </button>
             </div>
             {spectrumMode === "random" && (
-              <Btn variant="ghost" onClick={() => setRandomPreview(pickRandomSpectrum(randomPreview))} style={{ marginTop: 10 }}>
+              <Btn
+                variant="ghost"
+                onClick={() => setRandomPreview(pickRandomSpectrum(round.usedSpectrums || [], randomPreview))}
+                style={{ marginTop: 10 }}
+              >
                 🔀 Ver otra
               </Btn>
             )}
@@ -258,6 +277,9 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
                   onChange={e => setSpectrumRight(e.target.value)}
                 />
               </div>
+            )}
+            {spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim()) && (
+              <p style={{ fontSize: 12, color: "#E2C44A", marginTop: 8 }}>Completá los dos extremos para poder continuar</p>
             )}
           </div>
           <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
@@ -326,6 +348,25 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   }
 
   if (room.phase === "guess") {
+    // Guessers who are offline right now aren't counted toward the
+    // submittedCount/guessersOnline quorum (see engine.ts), so the round is
+    // effectively paused waiting for them — if literally everyone else is
+    // offline, nothing will ever auto-resolve it. Only the host gets an
+    // override, and only once someone's actually missing.
+    const offlineGuessers = room.players.filter(p => !p.online && p.id !== round.psychicId);
+    const forceFinishBanner = offlineGuessers.length > 0 && (
+      <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
+        <p style={{ fontSize: 13, color: "#E2C44A", fontWeight: 700, margin: 0 }}>
+          Esperando a que se reconecte{offlineGuessers.length === 1 ? "" : "n"}: {offlineGuessers.map(p => p.name).join(", ")}
+        </p>
+        {isHost && (
+          <Btn variant="ghost" onClick={() => send({ type: "force_finish_round" })} style={{ marginTop: 10 }}>
+            Terminar la ronda con las adivinanzas ya enviadas
+          </Btn>
+        )}
+      </div>
+    );
+
     if (isPsychic) {
       return (
         <div>
@@ -338,6 +379,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
               Esperando que adivinen: {round.submittedCount}/{round.guessersOnline}
             </p>
           </div>
+          {forceFinishBanner}
         </div>
       );
     }
@@ -378,6 +420,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
             </p>
           </div>
         )}
+        {forceFinishBanner}
       </div>
     );
   }
@@ -390,9 +433,10 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
     const guesses = round.guesses || {};
     const myId = me?.playerId;
     const guessers = room.players.filter(p => p.id !== round.psychicId && guesses[p.id] != null);
+    const labels = markerLabels(guessers.map(p => p.name));
     const markers = guessers.map((p, i) => ({
       value: guesses[p.id],
-      label: p.name.trim()[0]?.toUpperCase(),
+      label: labels[i],
       color: MARKER_COLORS[i % MARKER_COLORS.length],
       highlight: p.id === myId,
     }));
@@ -423,7 +467,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
                     }}
                   />
                   <span style={{ fontSize: 11, fontWeight: p.id === myId ? 800 : 600, color: p.id === myId ? "#fff" : "#b8b0d4" }}>
-                    {p.name.trim()[0]?.toUpperCase()} — {p.name}
+                    {labels[i]} — {p.name}
                     {p.id === myId ? " (vos)" : ""}
                   </span>
                 </div>
@@ -447,13 +491,17 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           const score = room.config.score as Record<string, number>;
           const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
           if (!gameOver) return null;
-          const winner = room.players.slice().sort((a, b) => (score?.[b.id] || 0) - (score?.[a.id] || 0))[0];
+          const topScore = Math.max(...room.players.map(p => score?.[p.id] || 0));
+          const winners = room.players.filter(p => (score?.[p.id] || 0) === topScore);
+          const isTie = winners.length > 1;
           return (
             <div style={{ ...S.cardHighlight, textAlign: "center" }}>
               <span style={S.label}>Partida terminada</span>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>🏆 Ganó {winner?.name}</p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+                🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
+              </p>
               <p style={S.muted}>
-                {round.roundsPlayed} rondas jugadas · {score?.[winner?.id ?? ""] || 0} puntos
+                {round.roundsPlayed} rondas jugadas · {topScore} puntos
               </p>
             </div>
           );

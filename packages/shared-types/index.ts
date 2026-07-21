@@ -128,6 +128,9 @@ export const SCHEMAS = {
   new_game: z.object({
     type: z.literal("new_game"),
   }),
+  force_finish_round: z.object({
+    type: z.literal("force_finish_round"),
+  }),
   report_result: z.object({
     type: z.literal("report_result"),
     roundIdx: z.number().int().min(0),

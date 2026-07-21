@@ -128,6 +128,7 @@ const HANDLERS: Record<string, Handler> = {
   confirm_round_setup: roomHandlers.gameAction("confirm_round_setup"),
   submit_spectrum: roomHandlers.gameAction("submit_spectrum"),
   new_game: roomHandlers.gameAction("new_game"),
+  force_finish_round: roomHandlers.gameAction("force_finish_round"),
   report_result: roomHandlers.gameAction("report_result"),
   mark: roomHandlers.gameAction("mark"),
   reset_score_vote: roomHandlers.gameAction("reset_score_vote"),

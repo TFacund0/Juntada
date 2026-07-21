@@ -24,7 +24,11 @@ const { scoreFor } = require("@juntada/sintonia-scoring") as typeof import("@jun
 
 interface SintoniaConfig {
   score: Record<string, number>;
-  turnIdx: number;
+  // Anchored to the last psychic's identity rather than a raw array index —
+  // an index would silently skip or repeat someone once a player joins or
+  // leaves between rounds, since it'd then point at a different position in
+  // the (now different-sized) room.players than originally intended.
+  lastPsychicId: string | null;
   playMode: "endless" | "rounds";
   roundLimit: number;
   [key: string]: unknown;
@@ -56,19 +60,48 @@ function randomTarget(): number {
 }
 
 function createConfig(): SintoniaConfig {
-  return { score: {}, turnIdx: 0, playMode: "endless", roundLimit: 5 };
+  return { score: {}, lastPsychicId: null, playMode: "endless", roundLimit: 5 };
+}
+
+// Whoever comes right after the last round's psychic, in the current player
+// order — anchored to that player's identity (not a raw counter) so it stays
+// fair even if someone joined or left since the last round.
+function nextSuggestedPsychicId(room: Room): string | null {
+  const lastId = cfg(room).lastPsychicId;
+  const idx = lastId ? room.players.findIndex(p => p.id === lastId) : -1;
+  return room.players[idx === -1 ? 0 : (idx + 1) % room.players.length]?.id ?? null;
+}
+
+const spectrumKey = (left: string, right: string): string => `${left}|${right}`;
+const spectrumKeys = new Set(SPECTRUMS.map(([l, r]) => spectrumKey(l, r)));
+
+// Records a pair as used, resetting the pool once every built-in pair has
+// come up instead of growing this list forever — shared by pickSpectrum and
+// submitSpectrum's manual/preview-confirmed path so a pair chosen by the
+// client (see the frontend's own random-preview picker, which filters
+// against getPublicRoundView's usedSpectrums) still counts toward the same
+// dedup pool the server tracks. A pair typed by hand that isn't actually one
+// of SPECTRUMS is a no-op here — there's no fixed pool to dedup a one-off
+// custom phrase against, and counting it would throw off the "every built-in
+// pair has come up" check below, resetting the real cycle early.
+function recordSpectrumUsed(room: Room, left: string, right: string): void {
+  const key = spectrumKey(left, right);
+  if (!spectrumKeys.has(key)) return;
+  const used = (room.usedWords.spectrums as string[] | undefined) || [];
+  const next = new Set(used);
+  next.add(key);
+  // Once every built-in pair has come up, start a fresh cycle — but keep
+  // just this one excluded so the very next pick can't immediately repeat
+  // the pair that just finished.
+  room.usedWords.spectrums = next.size >= SPECTRUMS.length ? [key] : [...next];
 }
 
 function pickSpectrum(room: Room): { left: string; right: string } {
-  const key = ([l, r]: [string, string]) => `${l}|${r}`;
   const used = (room.usedWords.spectrums as string[] | undefined) || [];
-  let available = SPECTRUMS.filter(pair => !used.includes(key(pair)));
-  if (available.length === 0) {
-    room.usedWords.spectrums = [];
-    available = SPECTRUMS;
-  }
-  const [left, right] = available[Math.floor(Math.random() * available.length)];
-  room.usedWords.spectrums = [...used, key([left, right])];
+  const available = SPECTRUMS.filter(pair => !used.includes(spectrumKey(pair[0], pair[1])));
+  const pool = available.length > 0 ? available : SPECTRUMS;
+  const [left, right] = pool[Math.floor(Math.random() * pool.length)];
+  recordSpectrumUsed(room, left, right);
   return { left, right };
 }
 
@@ -163,9 +196,7 @@ function confirmRoundSetup(room: Room, playerId: string, payload: Record<string,
   if (!psychicId || psychicId === "random" || !room.players.some(p => p.id === psychicId)) {
     psychicId = room.players[Math.floor(Math.random() * room.players.length)].id;
   }
-  const psychicIdx = room.players.findIndex(p => p.id === psychicId);
-
-  cfg(room).turnIdx = psychicIdx + 1;
+  cfg(room).lastPsychicId = psychicId;
   room.round = {
     left: null,
     right: null,
@@ -196,6 +227,12 @@ function submitSpectrum(room: Room, playerId: string, payload: Record<string, un
   } else if (mode === "manual" && String(payload?.left || "").trim() && String(payload?.right || "").trim()) {
     left = String(payload.left).trim();
     right = String(payload.right).trim();
+    // The client's own "random from the base" picker sends its pick through
+    // as "manual" too (see RoundView.tsx's confirmSpectrum) so what's used
+    // always matches exactly what was last previewed — record it here too,
+    // otherwise the server's dedup pool would never see any pair chosen this
+    // way and could repeat it far sooner than SPECTRUMS.length rounds later.
+    recordSpectrumUsed(room, left, right);
   } else {
     ({ left, right } = pickSpectrum(room));
   }
@@ -213,6 +250,9 @@ function newGame(room: Room, playerId: string): { handled: boolean } {
   if (playerId !== room.hostId) return { handled: false };
   cfg(room).score = {};
   room.roundHistory.length = 0;
+  // A brand-new match shouldn't still avoid pairs used in the *previous*
+  // match — those are unrelated games from the players' perspective.
+  room.usedWords.spectrums = [];
   const res = startRound(room);
   return { handled: !!res.success };
 }
@@ -246,10 +286,28 @@ function handleAction(
     case "submit_guess": {
       if (!room.round || room.phase !== "guess") return { handled: false };
       if (playerId === round(room).psychicId) return { handled: false };
+      // Locked in once submitted — otherwise a refresh/reconnect mid-round
+      // (which resets the client's own local "already guessed" state, see
+      // RoundView.tsx's guessSubmitted) would let someone resend a different
+      // value for the same round after seeing others' reactions to the clue.
+      if (round(room).guesses[playerId] != null) return { handled: false };
       const value = payload?.value as number;
       if (!Number.isInteger(value) || value < 0 || value > 100) return { handled: false };
       round(room).guesses[playerId] = value;
       maybeAdvance(room);
+      return { handled: true };
+    }
+
+    // Host-only escape hatch for the corner case maybeAdvance can't resolve
+    // on its own: every guesser offline at once (or the last one dropping),
+    // which leaves the round waiting forever since nobody's left online to
+    // submit and nothing else re-triggers maybeAdvance. Scores whoever did
+    // manage to guess before that happened — same math as a normal finish,
+    // just not waiting on stragglers who may never come back.
+    case "force_finish_round": {
+      if (playerId !== room.hostId) return { handled: false };
+      if (!room.round || room.phase !== "guess") return { handled: false };
+      finishRound(room);
       return { handled: true };
     }
 
@@ -263,11 +321,10 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
   const gameProgress = { playMode: c.playMode, roundLimit: c.roundLimit, roundsPlayed: room.roundHistory.length };
 
   if (room.phase === "setup") {
-    const turnIdx = c.turnIdx || 0;
     const lastRound = room.roundHistory[room.roundHistory.length - 1] as { left?: string; right?: string } | undefined;
     return {
       setup: true,
-      suggestedPsychicId: room.players[turnIdx % room.players.length]?.id ?? null,
+      suggestedPsychicId: nextSuggestedPsychicId(room),
       lastSpectrum: lastRound ? { left: lastRound.left, right: lastRound.right } : null,
       ...gameProgress,
     };
@@ -280,6 +337,11 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     return {
       psychicId: r.psychicId,
       lastSpectrum: lastRound ? { left: lastRound.left, right: lastRound.right } : null,
+      // Lets the psychic's own "random from the base" client-side preview
+      // (RoundView.tsx's pickRandomSpectrum) filter out pairs already used
+      // this cycle, instead of previewing (and then confirming) a repeat —
+      // see recordSpectrumUsed for how this pool actually gets updated.
+      usedSpectrums: (room.usedWords.spectrums as string[] | undefined) || [],
       ...gameProgress,
     };
   }
@@ -309,7 +371,12 @@ function getPrivateView(room: Room, playerId: string): Record<string, unknown> |
   const r = room.round ? round(room) : null;
   if (!r || room.phase === "setup") return null;
   const isPsychic = playerId === r.psychicId;
-  return { isPsychic, target: isPsychic ? r.target : null };
+  // Lets a client that refreshed/reconnected mid-"guess" restore its own
+  // "already submitted" UI instead of showing the slider again — submitting
+  // from there would just be rejected now that submit_guess locks the first
+  // value in (see handleAction), but the player deserves to see their
+  // confirmed state rather than a form that silently fails.
+  return { isPsychic, target: isPsychic ? r.target : null, myGuess: r.guesses[playerId] ?? null };
 }
 
 function getRevealMessage(room: Room): ({ type: string } & Record<string, unknown>) | null {

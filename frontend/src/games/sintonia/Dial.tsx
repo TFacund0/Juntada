@@ -32,6 +32,26 @@ const ZONES = SCORE_ZONES.map((z, i) => ({ ...z, color: ZONE_COLORS[i] }));
 
 export const MARKER_COLORS = ["#534AB7", "#4A9FE0", "#C77DE0", "#E0C24A", "#6BD1C0", "#F09595"];
 
+// A single initial ("Ana", "Andrés" -> both "A") is ambiguous once more than
+// one player on the dial shares it — falls back to two letters, and then to
+// a running number, only for whichever names actually collide, so everyone
+// else keeps their plain single-letter label.
+export function markerLabels(names: string[]): string[] {
+  const oneLetter = names.map(n => n.trim()[0]?.toUpperCase() ?? "?");
+  const countOf = (labels: string[], label: string) => labels.filter(l => l === label).length;
+  if (names.every((_, i) => countOf(oneLetter, oneLetter[i]) === 1)) return oneLetter;
+
+  const twoLetters = names.map(n => n.trim().slice(0, 2).toUpperCase() || "?");
+  return names.map((_, i) => {
+    if (countOf(oneLetter, oneLetter[i]) === 1) return oneLetter[i];
+    if (countOf(twoLetters, twoLetters[i]) === 1) return twoLetters[i];
+    // Still colliding even at two letters (e.g. two "Ana"s) — disambiguate
+    // with a running count among just that group instead of a shared label.
+    const priorSameTwoLetters = twoLetters.slice(0, i).filter(l => l === twoLetters[i]).length;
+    return `${twoLetters[i]}${priorSameTwoLetters + 1}`;
+  });
+}
+
 interface Marker {
   value: number;
   label?: string;
