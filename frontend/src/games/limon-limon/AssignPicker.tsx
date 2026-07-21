@@ -42,6 +42,7 @@ export function AssignPicker<T extends string | number>({
       <Btn variant="success" disabled={selected == null} onClick={onConfirm} style={{ marginTop: 10 }}>
         Confirmar
       </Btn>
+      {selected == null && <p style={{ ...S.muted, textAlign: "center", marginTop: 6, fontSize: 12 }}>Elegí a alguien primero</p>}
     </>
   );
 }

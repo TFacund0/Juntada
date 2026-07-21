@@ -63,8 +63,18 @@ export function LocalGame() {
       <Btn onClick={drawLetter}>{letter ? "🔀 Nueva letra" : "🎲 Sortear letra"}</Btn>
 
       <div style={{ ...S.card, marginTop: 16 }}>
-        <span style={S.label}>Categorías sugeridas</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={S.label}>Categorías sugeridas</span>
+          <span style={{ fontSize: 12, color: "#9089c0", fontWeight: 700 }}>
+            {activeCats.length} activa{activeCats.length === 1 ? "" : "s"}
+          </span>
+        </div>
         <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Tocá una categoría para activarla o desactivarla.</p>
+        {activeCats.length === 0 && (
+          <p style={{ fontSize: 12, color: "#E2C44A", margin: "0 0 14px" }}>
+            No hay ninguna categoría activa — no van a tener nada sugerido para completar con la letra.
+          </p>
+        )}
         {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {pagedCategories.map(cat => {

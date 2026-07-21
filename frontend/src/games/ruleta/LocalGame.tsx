@@ -4,7 +4,7 @@ import { Btn } from "../../components/Btn";
 import { TabRow } from "../../components/TabRow";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { EntriesEditor } from "./EntriesEditor";
 import { ModeSelector } from "./ModeSelector";
 
@@ -51,8 +51,14 @@ export function LocalGame() {
   const [showStats, setShowStats] = useState(false);
   const rotationRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Date.now() has ~1ms resolution — a fast double-submit (Enter + button
+  // both firing) could hand two entries the same id, and removeEntry's
+  // filter(id !== ...) would then remove both at once instead of one.
+  // A simple incrementing counter can't collide.
+  const nextEntryId = useRef(1);
 
-  const addEntry = (name: string, description: string) => setEntries(prev => [...prev, { id: Date.now(), name, description }]);
+  const addEntry = (name: string, description: string) =>
+    setEntries(prev => [...prev, { id: nextEntryId.current++, name, description }]);
 
   const removeEntry = (id: number) => setEntries(prev => prev.filter(e => e.id !== id));
 
@@ -334,7 +340,21 @@ export function LocalGame() {
         </div>
       )}
 
-      <BackButton onClick={() => setPhase("setup")}>Volver a cargar entradas</BackButton>
+      <ConfirmBackButton
+        title="¿Volver a cargar entradas?"
+        message={
+          spinning
+            ? "La rueda todavía está girando — volver ahora corta la animación a mitad de camino."
+            : "Se pierde el progreso de esta rueda (eliminaciones y conteos ya hechos) para poder cargar entradas de nuevo."
+        }
+        confirmLabel="Volver"
+        onConfirm={() => {
+          if (timerRef.current) clearTimeout(timerRef.current);
+          setPhase("setup");
+        }}
+      >
+        Volver a cargar entradas
+      </ConfirmBackButton>
     </div>
   );
 }

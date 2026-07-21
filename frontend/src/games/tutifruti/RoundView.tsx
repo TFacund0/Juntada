@@ -82,6 +82,7 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
   const letterRef = useRef(round.letter);
   const onlinePlayers = room.players.filter(p => p.online);
   const readyCount = onlinePlayers.filter(p => p.ready).length;
+  const [confirmBasta, setConfirmBasta] = useState(false);
 
   useEffect(() => {
     if (letterRef.current !== round.letter) {
@@ -158,15 +159,22 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
         ))}
       </div>
       {round.endMode === "basta" && (
-        <Btn
-          variant="danger"
-          onClick={() => {
+        <Btn variant="danger" onClick={() => setConfirmBasta(true)}>
+          ¡BASTA!
+        </Btn>
+      )}
+      {confirmBasta && (
+        <ConfirmDialog
+          title="¿Gritar BASTA?"
+          message={`Corta la ronda para todos ahora mismo — ${round.doneCount ?? 0} de ${room.players.length} ya enviaron alguna respuesta. Nadie más va a poder seguir escribiendo.`}
+          confirmLabel="¡BASTA!"
+          onConfirm={() => {
+            setConfirmBasta(false);
             flushPending();
             send({ type: "call_basta" });
           }}
-        >
-          ¡BASTA!
-        </Btn>
+          onCancel={() => setConfirmBasta(false)}
+        />
       )}
       {round.endMode === "timer" &&
         (myPlayer?.ready ? (
@@ -210,6 +218,21 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
   const online = room.players.filter(p => p.online);
   const confirmedCount = online.filter(p => round.reviewConfirmed?.[p.id]).length;
   const iConfirmed = !!me && !!round.reviewConfirmed?.[me.playerId];
+  const timeLeft = useCountdown(round.reviewEnd);
+
+  // A word nobody votes on defaults to valid (see engine.ts's finishRound) —
+  // a group that reviews quickly without touching every row would otherwise
+  // never realize some clearly-wrong answers are about to auto-score,
+  // unaware anything was skipped.
+  let unvotedCount = 0;
+  round.categories.forEach((cat: any) => {
+    room.players.forEach(p => {
+      const word = (round.answers[p.id] || {})[cat.id];
+      if (!word || !word.trim()) return;
+      const marksForWord = (round.marks[p.id] || {})[cat.id] || {};
+      if (Object.keys(marksForWord).length === 0) unvotedCount++;
+    });
+  });
 
   return (
     <div>
@@ -218,8 +241,24 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
         <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Letra</p>
         <p style={{ fontSize: 32, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>{round.letter}</p>
       </div>
+      {timeLeft != null && (
+        <div style={S.card}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo para revisar</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5" }}>
+              {timeLeft}s
+            </span>
+          </div>
+        </div>
+      )}
       {round.categories.map((cat: any) => {
-        const entries = room.players.map(p => ({ playerId: p.id, word: (round.answers[p.id] || {})[cat.id] })).filter(e => e.word);
+        const entries = room.players
+          .map(p => ({ playerId: p.id, word: (round.answers[p.id] || {})[cat.id] }))
+          // A whitespace-only "answer" (e.g. a stray space bar tap) is
+          // truthy as a string but scores as blank once trimmed at result
+          // time — filtering it out here too avoids showing reviewers a
+          // vote-able row for something that was never really an answer.
+          .filter(e => e.word && e.word.trim());
         if (entries.length === 0) return null;
         return (
           <div key={cat.id} style={S.card}>
@@ -242,13 +281,19 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
                   key={playerId}
                   style={{
                     display: "flex",
-                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    alignItems: "center",
                     gap: 10,
                     padding: "8px 0",
                     borderBottom: "1px solid rgba(127,119,221,0.08)",
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* The word always takes the full row on its own — on a
+                      narrow phone, a long word plus a tally column plus two
+                      36px buttons all fighting for one row left almost no
+                      breathing room, so the tally+buttons group wraps to its
+                      own line below instead. */}
+                  <div style={{ flex: "1 1 100%", minWidth: 0 }}>
                     <p
                       style={{
                         margin: 0,
@@ -263,42 +308,44 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
                       {word}
                     </p>
                   </div>
-                  {/* Fixed-width tally column to the left of our own vote buttons, so
-                      the buttons never shift position as votes come in. */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 2, width: 46, justifyContent: "flex-end", flexShrink: 0 }}>
-                    {Object.values(marksForWord).map((valid: any, i: number) => (
-                      <span key={i} style={{ fontSize: 11, color: valid ? "#5DCAA5" : "#F09595" }}>
-                        {valid ? "✓" : "✗"}
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                    <button
-                      onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: true })}
-                      style={{
-                        ...S.btn(me && marksForWord[me.playerId] === true ? "success" : "ghost"),
-                        width: 36,
-                        height: 36,
-                        padding: 0,
-                        borderRadius: 8,
-                        fontSize: 16,
-                      }}
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: false })}
-                      style={{
-                        ...S.btn(me && marksForWord[me.playerId] === false ? "danger" : "ghost"),
-                        width: 36,
-                        height: 36,
-                        padding: 0,
-                        borderRadius: 8,
-                        fontSize: 16,
-                      }}
-                    >
-                      ✗
-                    </button>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, flex: "1 1 auto" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "flex-end" }}>
+                      {Object.values(marksForWord).map((valid: any, i: number) => (
+                        <span key={i} style={{ fontSize: 11, color: valid ? "#5DCAA5" : "#F09595" }}>
+                          {valid ? "✓" : "✗"}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button
+                        onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: true })}
+                        disabled={iConfirmed}
+                        style={{
+                          ...S.btn(me && marksForWord[me.playerId] === true ? "success" : "ghost", iConfirmed),
+                          width: 36,
+                          height: 36,
+                          padding: 0,
+                          borderRadius: 8,
+                          fontSize: 16,
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: false })}
+                        disabled={iConfirmed}
+                        style={{
+                          ...S.btn(me && marksForWord[me.playerId] === false ? "danger" : "ghost", iConfirmed),
+                          width: 36,
+                          height: 36,
+                          padding: 0,
+                          borderRadius: 8,
+                          fontSize: 16,
+                        }}
+                      >
+                        ✗
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -306,6 +353,11 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
           </div>
         );
       })}
+      {!iConfirmed && unvotedCount > 0 && (
+        <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginBottom: 8 }}>
+          {unvotedCount} respuesta{unvotedCount === 1 ? "" : "s"} sin ningún voto todavía — sin votos cuentan como válidas.
+        </p>
+      )}
       {iConfirmed ? (
         <div style={{ ...S.card, textAlign: "center" }}>
           <p style={{ color: "#5DCAA5", margin: 0 }}>

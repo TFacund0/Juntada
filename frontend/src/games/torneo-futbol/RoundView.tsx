@@ -66,20 +66,25 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
       string,
       { player: { id: string; name: string }; goalsFor: number; goalsAgainst: number; played: number; won: number }
     > = {};
-    room.players.forEach(p => {
-      tally[p.id] = { player: p, goalsFor: 0, goalsAgainst: 0, played: 0, won: 0 };
-    });
+    // Seeded from the bracket's own entrants (m.a/m.b), not room.players —
+    // an entrant snapshot never disappears even if that player later leaves
+    // the room, so their already-played matches keep counting instead of
+    // quietly vanishing from the goleador/valla-menos-vencida tally.
+    const ensure = (p: { id: string; name: string }) => {
+      if (!tally[p.id]) tally[p.id] = { player: p, goalsFor: 0, goalsAgainst: 0, played: 0, won: 0 };
+    };
     rounds.forEach(round =>
       round.forEach(m => {
         if (m.goalsA == null || m.goalsB == null || !m.a || !m.b) return;
-        if (!tally[m.a.id] || !tally[m.b.id]) return;
+        ensure(m.a);
+        ensure(m.b);
         tally[m.a.id].goalsFor += m.goalsA;
         tally[m.a.id].goalsAgainst += m.goalsB;
         tally[m.a.id].played++;
         tally[m.b.id].goalsFor += m.goalsB;
         tally[m.b.id].goalsAgainst += m.goalsA;
         tally[m.b.id].played++;
-        if (m.winner && tally[m.winner.id]) tally[m.winner.id].won++;
+        if (m.winner) tally[m.winner.id].won++;
       }),
     );
     return Object.values(tally);

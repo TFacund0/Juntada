@@ -58,9 +58,18 @@ export function TeamConfigPanel<Id extends string | number>({
   const [spinningId, setSpinningId] = useState<Id | null>(null);
   const [spinLabel, setSpinLabel] = useState("");
 
-  const usedTeams = new Set(Object.values(assignments) as string[]);
+  // Only counts assignments that still belong to a current player — a kicked
+  // or departed player's old pick otherwise lingers in `assignments` forever
+  // (nothing clears it when they leave the room), permanently marking their
+  // team "taken" for everyone else even though nobody actually has it.
+  const usedTeams = new Set(players.filter(p => assignments[p.id]).map(p => assignments[p.id]));
   const validSeed = seedOrder.length === players.length && players.every(p => seedOrder.includes(p.id));
   const order = validSeed ? seedOrder : players.map(p => p.id);
+  // A previously-arranged seed goes invalid the moment the roster changes
+  // (someone joins/leaves) — silently falling back to plain player order
+  // with no explanation would look like the host's manual arrangement was
+  // just ignored.
+  const seedWasDiscarded = seedOrder.length > 0 && !validSeed;
 
   const addTeam = () => {
     const trimmed = newTeam.trim();
@@ -353,6 +362,11 @@ export function TeamConfigPanel<Id extends string | number>({
           <Btn variant="ghost" onClick={randomizeSeed} style={{ marginBottom: 12 }}>
             🎲 Sortear cruces al azar
           </Btn>
+          {seedWasDiscarded && (
+            <p style={{ fontSize: 12, color: "#E2C44A", marginBottom: 12 }}>
+              El orden que habían armado se reinició porque cambió la lista de jugadores — se volvió a un orden simple.
+            </p>
+          )}
           {byeCount > 0 && (
             <p style={{ ...S.muted, marginBottom: 12 }}>
               {order.length} jugadores no completan un cuadro parejo:{" "}

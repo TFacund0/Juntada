@@ -2,7 +2,7 @@ import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Board } from "./Board";
 import { checkWinner } from "@juntada/tateti-board";
@@ -81,9 +81,9 @@ export function LocalGame() {
     return (
       <div>
         <div style={S.card}>
-          <span style={S.label}>Jugador 1</span>
+          <span style={S.label}>Jugador 1 (X, empieza)</span>
           <input style={{ ...S.input, marginBottom: 14 }} value={names[0]} onChange={e => setNames(n => [e.target.value, n[1]])} />
-          <span style={S.label}>Jugador 2</span>
+          <span style={S.label}>Jugador 2 (O)</span>
           <input style={S.input} value={names[1]} onChange={e => setNames(n => [n[0], e.target.value])} />
         </div>
         <StartButton onClick={startGame}>Empezar a jugar</StartButton>
@@ -140,7 +140,18 @@ export function LocalGame() {
           onCancel={() => setConfirmingReset(false)}
         />
       )}
-      <BackButton onClick={() => setPhase("setup")}>Volver a nombres</BackButton>
+      <ConfirmBackButton
+        title="¿Volver a nombres?"
+        message={
+          winner === null
+            ? "Hay una partida en curso — volver ahora la corta a mitad de camino. El marcador se mantiene."
+            : "El marcador se mantiene si vuelven a jugar sin reiniciarlo."
+        }
+        confirmLabel="Volver"
+        onConfirm={() => setPhase("setup")}
+      >
+        Volver a nombres
+      </ConfirmBackButton>
     </div>
   );
 }

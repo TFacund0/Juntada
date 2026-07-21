@@ -181,6 +181,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
             <div style={{ ...S.card, marginTop: 10, textAlign: "left" }}>
               <p style={{ ...S.muted, marginBottom: 10 }}>
                 Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
+                {round.current && " La carta que está revelada ahora mismo quedaría sin repartir, sin sumarle a nadie."}
               </p>
               {me && (round.endVotes || []).includes(me.playerId) ? (
                 <p style={{ ...S.muted, margin: 0 }}>Votaste terminar — esperando al resto</p>

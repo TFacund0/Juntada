@@ -50,12 +50,20 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
   // nunca viera al anfitrión girar (su reloj podía estar adelantado/atrasado
   // respecto al del servidor y "spinning" daba false desde el primer render).
   const [spinning, setSpinning] = useState(false);
+  // Covers the round-trip gap between tapping "Girar" and the server's
+  // spinAt actually coming back — without it, a double-tap (or the host's
+  // own network just being slow) can fire a second "spin" before the first
+  // reply lands, which the engine silently rejects with nothing to show for
+  // it. Cleared as soon as the real spinAt arrives (or immediately if the
+  // request gets rejected and nothing ever starts spinning).
+  const [sending, setSending] = useState(false);
   const lastSpinAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (round?.spinAt && round.spinAt !== lastSpinAtRef.current) {
       lastSpinAtRef.current = round.spinAt;
       setSpinning(true);
+      setSending(false);
       const t = setTimeout(() => setSpinning(false), round.spinMs);
       return () => clearTimeout(t);
     }
@@ -69,8 +77,13 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
 
   const size = 300;
   const r = size / 2;
-  const finished = room.phase === "result" || (round.mode === "eliminate" && round.pool.length < 2);
+  // room.phase flips to "result" the instant confirm_eliminate decides the
+  // match (see engine.ts's maybeAdvance, called synchronously right after)
+  // — the only authoritative source by the time any client sees it, so no
+  // need to also re-derive "finished" from pool.length as a fallback.
+  const finished = room.phase === "result";
   const showResult = round.result && !spinning;
+  const hostPlayer = room.players.find(p => p.id === room.hostId);
 
   return (
     <div>
@@ -149,8 +162,16 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
       {!finished && !showResult && isHost && (
         <Btn
           variant="success"
-          onClick={() => send({ type: "spin" })}
-          disabled={spinning || round.pool.length < 2}
+          onClick={() => {
+            setSending(true);
+            send({ type: "spin" });
+            // A silently-rejected spin (pool changed underneath, or lost a
+            // race with another click) never produces a new spinAt, which
+            // would otherwise leave the button disabled forever — clear the
+            // guard after a generous round-trip window regardless.
+            setTimeout(() => setSending(false), 2000);
+          }}
+          disabled={spinning || sending || round.pool.length < 2}
           style={{ marginBottom: 14 }}
         >
           {spinning ? "Girando..." : "🎡 Girar la ruleta"}
@@ -158,7 +179,9 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
       )}
       {!finished && !showResult && !isHost && (
         <p style={{ ...S.muted, textAlign: "center", marginBottom: 14 }}>
-          {spinning ? "Girando..." : "Esperando que el anfitrión gire la ruleta"}
+          {spinning
+            ? "Girando..."
+            : `Esperando que ${hostPlayer ? hostPlayer.name : "el anfitrión"} gire la ruleta`}
         </p>
       )}
 

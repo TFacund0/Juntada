@@ -2,7 +2,7 @@ import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { Avatar } from "../../components/Avatar";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
@@ -128,7 +128,13 @@ export function LocalGame() {
   const confirmWinnerSimple = (roundIdx: number, matchIdx: number, winner: Entrant<number> | null) => {
     setRounds(prev => {
       const next = prev!.map(r => r.map(m => ({ ...m })));
-      next[roundIdx][matchIdx].winner = winner;
+      const match = next[roundIdx]?.[matchIdx];
+      // Mirrors the online engine's own guard on report_result — a match
+      // that's already decided, missing an entrant, or plain out of range
+      // shouldn't be overwritable, even though single-device play makes a
+      // stale double-tap unlikely rather than impossible.
+      if (!match || !match.a || !match.b || match.winner) return prev!;
+      match.winner = winner;
       propagateByes(next);
       return next;
     });
@@ -141,7 +147,8 @@ export function LocalGame() {
     if (Number.isNaN(ga) || Number.isNaN(gb) || ga < 0 || gb < 0 || ga === gb) return;
     setRounds(prev => {
       const next = prev!.map(r => r.map(m => ({ ...m })));
-      const match = next[roundIdx][matchIdx];
+      const match = next[roundIdx]?.[matchIdx];
+      if (!match || !match.a || !match.b || match.winner) return prev!;
       match.goalsA = ga;
       match.goalsB = gb;
       match.winner = ga > gb ? match.a : match.b;
@@ -392,7 +399,20 @@ export function LocalGame() {
             ))}
           </div>
 
-          <StartButton onClick={() => setPhase("setup")}>Nuevo torneo</StartButton>
+          <StartButton
+            onClick={() => {
+              // A "new" tournament should feel like one — otherwise every
+              // player still shows up pre-assigned to their old team from
+              // the tournament that just ended, with no prompt to re-sort,
+              // which reads as the button not having done anything.
+              setAssignments({});
+              setSeedOrder([]);
+              setRounds(null);
+              setPhase("setup");
+            }}
+          >
+            Nuevo torneo
+          </StartButton>
         </div>
       );
     }
@@ -538,7 +558,14 @@ export function LocalGame() {
             })}
           </div>
         ))}
-        <BackButton onClick={() => setPhase("setup")}>Cancelar torneo</BackButton>
+        <ConfirmBackButton
+          title="¿Cancelar el torneo?"
+          message="Se pierde todo el progreso del bracket y los resultados ya cargados — no se puede deshacer."
+          confirmLabel="Sí, cancelar"
+          onConfirm={() => setPhase("setup")}
+        >
+          Cancelar torneo
+        </ConfirmBackButton>
       </div>
     );
   }
