@@ -12,6 +12,19 @@ import { cardKey, getDescription } from "./deck";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
+import type { Card } from "@juntada/limon-limon-deck";
+
+// Mirrors backend/src/games/limon-limon/engine.ts's getPublicRoundView.
+interface LimonLimonRoundState {
+  remaining: number;
+  current: Card | null;
+  turnId: string;
+  order: string[];
+  pileCounts: Record<string, number>;
+  history: (Card & { eatenBy: string })[];
+  endVotes: string[];
+  endVoteThreshold: number;
+}
 
 function TurnOrder({ players, order, turnId }: { players: PublicPlayer[]; order: string[]; turnId: string }) {
   const ordered = order.map(id => players.find(p => p.id === id)).filter((p): p is PublicPlayer => Boolean(p));
@@ -92,7 +105,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
   const [showRanking, setShowRanking] = useState(false);
   const [showEndVote, setShowEndVote] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null); // elegido, no confirmado todavía
-  const round = room.round as any;
+  const round = room.round as LimonLimonRoundState | null;
   // No standalone match counter on this engine — the pile distribution is a
   // stable stand-in: it only changes once a new deck starts.
   const revealCount = useRevealCountdown(round ? JSON.stringify(round.pileCounts) : "");

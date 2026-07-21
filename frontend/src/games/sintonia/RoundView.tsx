@@ -11,6 +11,43 @@ import { SPECTRUMS } from "@juntada/sintonia-data";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
 
+// Mirrors backend/src/games/sintonia/engine.ts's getPublicRoundView — one
+// flat shape since fields accumulate as the round moves through phases
+// (setup → spectrum → clue → guess → result) rather than a fresh object per
+// phase, so most fields stay optional here even though a given phase's
+// render branch can rely on the ones it actually reads.
+interface SintoniaRoundState {
+  setup?: boolean;
+  suggestedPsychicId?: string;
+  lastSpectrum?: { left: string; right: string } | null;
+  usedSpectrums?: string[];
+  psychicId?: string;
+  left?: string;
+  right?: string;
+  clue?: string;
+  submittedCount?: number;
+  guessersOnline?: number;
+  target?: number | null;
+  guesses?: Record<string, number> | null;
+  pointsByPlayer?: Record<string, number> | null;
+  psychicBonus?: Record<string, number> | null;
+  playMode?: "endless" | "rounds";
+  roundLimit?: number;
+  roundsPlayed?: number;
+}
+
+interface SintoniaPrivateRole {
+  isPsychic: boolean;
+  target: number | null;
+  myGuess: number | null;
+}
+
+interface SintoniaWordReveal {
+  target: number;
+  left: string;
+  right: string;
+}
+
 // Picks a random pair for the psychic to preview before committing to it —
 // purely client-side, so it can be re-rolled instantly without a round trip.
 // Confirming a "random" pick submits it as a manual left/right (see
@@ -92,7 +129,9 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   const [randomPreview, setRandomPreview] = useState<{ left: string; right: string } | null>(null);
   const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
-  const roundSetup = room.round as any;
+  const roundSetup = room.round as SintoniaRoundState | null;
+  const role = myRole as SintoniaPrivateRole | null;
+  const reveal = wordReveal as SintoniaWordReveal | null;
 
   // A fresh private_role arrives every round (new psychic/target) — reset
   // this round's local input state. If the server already has a guess on
@@ -103,7 +142,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   useEffect(() => {
     setClueText("");
     setClueSubmitted(false);
-    const myGuess = (myRole as any)?.myGuess;
+    const myGuess = role?.myGuess;
     setGuessValue(myGuess ?? 50);
     setGuessSubmitted(myGuess != null);
   }, [myRole]);
@@ -184,7 +223,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   const round = roundSetup;
   if (!round) return null;
   const psychic = room.players.find(p => p.id === round.psychicId);
-  const isPsychic = (myRole as any)?.isPsychic;
+  const isPsychic = !!role?.isPsychic;
 
   if (room.phase === "spectrum") {
     if (isPsychic) {
@@ -316,7 +355,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
     return (
       <div>
         <div style={{ ...S.card, textAlign: "center" }}>
-          <Dial value={(myRole as any).target} target={(myRole as any).target} leftLabel={round.left} rightLabel={round.right} />
+          <Dial value={role!.target!} target={role!.target!} leftLabel={round.left!} rightLabel={round.right!} />
         </div>
         <p style={{ ...S.muted, textAlign: "center", margin: "12px 0" }}>
           Sos el psíquico. Escribí una pista (una palabra, una frase, lo que sea) que ubique ese punto entre "{round.left}" y "{round.right}
@@ -398,7 +437,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
         {!guessSubmitted ? (
           <>
             <div style={S.card}>
-              <Dial value={guessValue} leftLabel={round.left} rightLabel={round.right} />
+              <Dial value={guessValue} leftLabel={round.left!} rightLabel={round.right!} />
               <input
                 type="range"
                 min="0"
@@ -426,9 +465,9 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
   }
 
   if (room.phase === "result") {
-    const target = (wordReveal as any)?.target ?? round.target;
-    const left = (wordReveal as any)?.left ?? round.left;
-    const right = (wordReveal as any)?.right ?? round.right;
+    const target = (reveal?.target ?? round.target)!;
+    const left = (reveal?.left ?? round.left)!;
+    const right = (reveal?.right ?? round.right)!;
     const points = round.pointsByPlayer || {};
     const guesses = round.guesses || {};
     const myId = me?.playerId;

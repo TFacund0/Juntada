@@ -7,9 +7,49 @@ import { Avatar } from "../../components/Avatar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
+import type { RoomPublicState } from "@juntada/shared-types";
+
+interface TutifrutiCategory {
+  id: string;
+  label: string;
+  icon?: string;
+}
+
+interface TutifrutiAnswerBreakdown {
+  word: string;
+  valid: boolean;
+  wrongLetter: boolean;
+  duplicate: boolean;
+  points: number;
+  ticks: number;
+  crosses: number;
+}
+
+// Mirrors backend/src/games/tutifruti/engine.ts's getPublicRoundView — fields
+// accumulate as the round moves through phases (setup adds the base fields,
+// writing adds doneCount/bastaBy, review/result add answers/marks/etc.), so
+// most of the phase-specific fields stay optional here.
+interface TutifrutiRoundState {
+  letter: string;
+  rerollsUsed: number;
+  categories: TutifrutiCategory[];
+  endMode: "timer" | "basta";
+  timerEnd: number | null;
+  isFinalRound: boolean;
+  roundNumber: number;
+  totalRounds: number;
+  doneCount?: number;
+  bastaBy?: string | null;
+  answers?: Record<string, Record<string, string>>;
+  marks?: Record<string, Record<string, Record<string, boolean>>>;
+  reviewConfirmed?: Record<string, boolean>;
+  reviewEnd?: number | null;
+  pointsByPlayer?: Record<string, number> | null;
+  breakdown?: Record<string, Record<string, TutifrutiAnswerBreakdown>> | null;
+}
 
 // ── Ronda X/Y indicator, shown at the top of every phase ──
-function RoundBadge({ round }: { round: any }) {
+function RoundBadge({ round }: { round: TutifrutiRoundState }) {
   if (!round.totalRounds) return null;
   return (
     <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>
@@ -31,7 +71,7 @@ function useCountdown(timerEnd: number | null): number | null {
 
 // ── SETUP: letter draw, host can reroll ──
 function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
   return (
     <div>
       <RoundBadge round={round} />
@@ -59,14 +99,19 @@ function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHos
 }
 
 // ── WRITING: fill in categories against the clock or until "basta" ──
+interface TutifrutiPrivateRole {
+  myAnswers: Record<string, string>;
+}
+
 function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "room" | "me" | "myPlayer" | "myRole" | "isHost" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
+  const role = myRole as TutifrutiPrivateRole | null;
   const timeLeft = useCountdown(round.endMode === "timer" ? round.timerEnd : null);
   // Only "Ya terminé" (timer mode) locks answers — basta mode has no
   // individual confirm step, everyone keeps typing until someone calls
   // "¡BASTA!" for the whole table.
   const locked = !!myPlayer?.ready;
-  const [values, setValues] = useState<Record<string, string>>(() => (myRole as any)?.myAnswers || {});
+  const [values, setValues] = useState<Record<string, string>>(() => role?.myAnswers || {});
   // Keyed per category — a single shared timer/pending-value would let
   // typing in category B cancel category A's still-pending debounce (via
   // the old clearTimeout) without ever resending it, silently dropping A's
@@ -87,7 +132,7 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
   useEffect(() => {
     if (letterRef.current !== round.letter) {
       letterRef.current = round.letter;
-      setValues((myRole as any)?.myAnswers || {});
+      setValues(role?.myAnswers || {});
       // A new round means whatever was still pending from the previous
       // letter is moot — its categories don't even exist anymore.
       Object.values(debounceRefs.current).forEach(clearTimeout);
@@ -142,7 +187,7 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
       )}
       <div style={S.card}>
         <span style={S.label}>Completá con la letra "{round.letter}"</span>
-        {round.categories.map((cat: any) => (
+        {round.categories.map(cat => (
           <div key={cat.id} style={{ marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: "#9089c0", marginBottom: 4, display: "block" }}>
               {cat.icon ? `${cat.icon} ` : ""}
@@ -214,22 +259,24 @@ function WritingPhase({ room, myPlayer, myRole, send }: Pick<RoundViewProps, "ro
 // Everyone (including the word's own author) can vote on any word, and every
 // player has to confirm before the round's scores get tallied.
 function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
+  const answers = round.answers!;
+  const marks = round.marks!;
   const online = room.players.filter(p => p.online);
   const confirmedCount = online.filter(p => round.reviewConfirmed?.[p.id]).length;
   const iConfirmed = !!me && !!round.reviewConfirmed?.[me.playerId];
-  const timeLeft = useCountdown(round.reviewEnd);
+  const timeLeft = useCountdown(round.reviewEnd ?? null);
 
   // A word nobody votes on defaults to valid (see engine.ts's finishRound) —
   // a group that reviews quickly without touching every row would otherwise
   // never realize some clearly-wrong answers are about to auto-score,
   // unaware anything was skipped.
   let unvotedCount = 0;
-  round.categories.forEach((cat: any) => {
+  round.categories.forEach(cat => {
     room.players.forEach(p => {
-      const word = (round.answers[p.id] || {})[cat.id];
+      const word = (answers[p.id] || {})[cat.id];
       if (!word || !word.trim()) return;
-      const marksForWord = (round.marks[p.id] || {})[cat.id] || {};
+      const marksForWord = (marks[p.id] || {})[cat.id] || {};
       if (Object.keys(marksForWord).length === 0) unvotedCount++;
     });
   });
@@ -251,9 +298,9 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
           </div>
         </div>
       )}
-      {round.categories.map((cat: any) => {
+      {round.categories.map(cat => {
         const entries = room.players
-          .map(p => ({ playerId: p.id, word: (round.answers[p.id] || {})[cat.id] }))
+          .map(p => ({ playerId: p.id, word: (answers[p.id] || {})[cat.id] }))
           // A whitespace-only "answer" (e.g. a stray space bar tap) is
           // truthy as a string but scores as blank once trimmed at result
           // time — filtering it out here too avoids showing reviewers a
@@ -267,10 +314,10 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
               {cat.label}
             </span>
             {entries.map(({ playerId, word }) => {
-              const marksForWord = (round.marks[playerId] || {})[cat.id] || {};
+              const marksForWord = (marks[playerId] || {})[cat.id] || {};
               const voteValues = Object.values(marksForWord);
-              const ticks = voteValues.filter((v: any) => v === true).length;
-              const crosses = voteValues.filter((v: any) => v === false).length;
+              const ticks = voteValues.filter(v => v === true).length;
+              const crosses = voteValues.filter(v => v === false).length;
               const wrongLetter = !startsWithLetter(word, round.letter);
               // Half or more of the votes marking it invalid rejects the word live,
               // same rule the backend applies once the round is tallied.
@@ -310,7 +357,7 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
                   </div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, flex: "1 1 auto" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "flex-end" }}>
-                      {Object.values(marksForWord).map((valid: any, i: number) => (
+                      {Object.values(marksForWord).map((valid, i) => (
                         <span key={i} style={{ fontSize: 11, color: valid ? "#5DCAA5" : "#F09595" }}>
                           {valid ? "✓" : "✗"}
                         </span>
@@ -374,11 +421,25 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
 }
 
 // ── RESULT: round breakdown + running standings ──
-function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; round: any; isHost: boolean; onShowFinal: () => void; send: any }) {
+function RoundResult({
+  room,
+  round,
+  isHost,
+  onShowFinal,
+  send,
+}: {
+  room: RoomPublicState;
+  round: TutifrutiRoundState;
+  isHost: boolean;
+  onShowFinal: () => void;
+  send: RoundViewProps["send"];
+}) {
   const score = room.config.score as Record<string, number>;
+  const pointsByPlayer = round.pointsByPlayer!;
+  const breakdown = round.breakdown!;
   const standings = [...room.players]
-    .map((p: any) => ({ ...p, score: score[p.id] || 0, roundPts: round.pointsByPlayer[p.id] || 0 }))
-    .sort((a: any, b: any) => b.score - a.score);
+    .map(p => ({ ...p, score: score[p.id] || 0, roundPts: pointsByPlayer[p.id] || 0 }))
+    .sort((a, b) => b.score - a.score);
 
   return (
     <div>
@@ -403,8 +464,8 @@ function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; ro
       </div>
       <div style={S.card}>
         <span style={S.label}>Desglose ({round.letter})</span>
-        {round.categories.map((cat: any) => {
-          const entries = room.players.map((p: any) => (round.breakdown[p.id] || {})[cat.id]).filter((b: any) => b && b.word);
+        {round.categories.map(cat => {
+          const entries = room.players.map(p => (breakdown[p.id] || {})[cat.id]).filter((b): b is TutifrutiAnswerBreakdown => !!b && !!b.word);
           if (entries.length === 0) return null;
           return (
             <div key={cat.id} style={{ marginBottom: 12 }}>
@@ -412,7 +473,7 @@ function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; ro
                 {cat.icon ? `${cat.icon} ` : ""}
                 {cat.label}
               </span>
-              {entries.map((b: any, i: number) => (
+              {entries.map((b, i) => (
                 <div
                   key={i}
                   style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "4px 0", color: "#b8b0d4" }}
@@ -475,9 +536,18 @@ function FinalResultsLoading() {
   );
 }
 
-function FinalStandings({ room, round, isHost, send }: { room: any; round: any; isHost: boolean; send: any }) {
+function FinalStandings({
+  room,
+  isHost,
+  send,
+}: {
+  room: RoomPublicState;
+  round: TutifrutiRoundState;
+  isHost: boolean;
+  send: RoundViewProps["send"];
+}) {
   const score = room.config.score as Record<string, number>;
-  const standings = [...room.players].map((p: any) => ({ ...p, score: score[p.id] || 0 })).sort((a: any, b: any) => b.score - a.score);
+  const standings = [...room.players].map(p => ({ ...p, score: score[p.id] || 0 })).sort((a, b) => b.score - a.score);
 
   return (
     <div>
@@ -514,7 +584,7 @@ function FinalStandings({ room, round, isHost, send }: { room: any; round: any; 
 }
 
 function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
-  const round = room.round as any;
+  const round = room.round as TutifrutiRoundState;
   const [finalStage, setFinalStage] = useState<"round" | "loading" | "final">("round");
 
   useEffect(() => {

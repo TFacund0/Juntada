@@ -5,13 +5,22 @@ import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Board } from "./Board";
 import type { RoundViewProps } from "../gameTypes";
 
+interface TatetiRoundState {
+  board: (string | null)[];
+  marks: Record<string, string>;
+  turn: string | undefined;
+  winner: string | "draw" | null;
+  winningLine: number[] | null;
+  forfeited?: boolean;
+}
+
 // Covers both in-progress phases ("round" while playing, "result" once a
 // match ends) for the 1v1 online room. Score and the pending reset-scoreboard
 // vote live in room.config (see backend/src/games/tateti/engine.js) so they
 // survive across rematches, which just replace room.round.
 export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
   const opponent = room.players.find(p => p.id !== me?.playerId);
-  const round = room.round as any;
+  const round = room.round as TatetiRoundState | null;
   const LeaveToLobby = (
     <LeaveToLobbyButton
       groupCode={room.groupCode}

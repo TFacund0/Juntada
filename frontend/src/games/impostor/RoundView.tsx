@@ -10,6 +10,63 @@ import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
 
+// Mirrors backend/src/games/impostor/engine.ts's getPublicRoundView.
+interface ImpostorRoundState {
+  categoryLabel: string;
+  categoryIcon: string;
+  impostorCount: number;
+  timerEnd: number | null;
+  discussionEnd: number | null;
+  turnOrder: string[];
+  turnIndex: number;
+  clues: Record<string, string>;
+  votes: Record<string, string>;
+  matchEliminated: string[];
+  eliminated: string | null;
+  wasImpostor?: boolean;
+  tally?: Record<string, number>;
+  impostors?: string[];
+  matchOver: boolean;
+  winner: "innocents" | "impostors" | null;
+  abortedReason?: "impostor_disconnected";
+  votesDiscarded?: boolean;
+  tieBrokenRandomly?: boolean;
+  restartedReason?: "word_pool_exhausted";
+  skipVotes: number;
+  skipVoterIds: string[];
+  skipVotesNeeded: number;
+  rerollCount: number;
+  revoteCandidates: string[] | null;
+  revoteCount: number;
+}
+
+// Snapshot pushed onto room.roundHistory once a vote resolves (see engine.ts's
+// tallyVotes/abortMatchImpostorLeft) — a different, smaller shape than the
+// live public round view above since the round itself is gone by then.
+interface ImpostorHistoryEntry {
+  word: string;
+  categoryLabel: string;
+  categoryIcon: string;
+  impostors: string[];
+  eliminated: string | null;
+  wasImpostor?: boolean;
+  tally: Record<string, number>;
+  matchOver: boolean;
+  winner: "innocents" | "impostors" | null;
+  abortedReason?: "impostor_disconnected";
+  votesDiscarded?: boolean;
+  tieBrokenRandomly?: boolean;
+}
+
+// Only the fields this view actually reads, out of the full ImpostorConfig
+// backend/src/games/impostor/engine.ts defines.
+interface ImpostorConfigState {
+  writtenClues: boolean;
+  hintsEnabled: boolean;
+  clueTime: number;
+  discussionTime: number;
+}
+
 function PlayerReadyPills({ players }: { players: PublicPlayer[] }) {
   return (
     <div style={{ ...S.card, marginTop: 16 }}>
@@ -196,8 +253,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   const prevRestartedReason = useRef<string | undefined | "unset">("unset");
   const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
-  const round = room.round as any;
-  const config = room.config as any;
+  const round = room.round as ImpostorRoundState | null;
+  const config = room.config as unknown as ImpostorConfigState;
 
   // A fresh private_role arrives on round start AND on a word reroll — either
   // way it's a new word, so re-hide it and clear per-round local UI state.
@@ -437,7 +494,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     // the tally look permanently stuck a vote short.
     const onlinePlayers = room.players.filter(p => p.online);
     const totalVoted = onlinePlayers.filter(p => p.hasVoted).length;
-    const revoteCandidates: string[] | undefined = round?.revoteCandidates;
+    const revoteCandidates: string[] | null | undefined = round?.revoteCandidates;
     const isRevote = !!revoteCandidates;
     // Players eliminated earlier in this same match are spectating, not
     // votable — the backend rejects a vote for one of them outright (see
@@ -531,7 +588,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   }
 
   if (room.phase === "result") {
-    const lastH = room.roundHistory?.[room.roundHistory.length - 1] as any;
+    const lastH = room.roundHistory?.[room.roundHistory.length - 1] as ImpostorHistoryEntry | undefined;
     const word = wordReveal?.word || lastH?.word;
     const catLabel = wordReveal?.categoryLabel || lastH?.categoryLabel;
     const eliminated = room.players.find(p => p.id === (round?.eliminated ?? lastH?.eliminated));
