@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { startsWithLetter } from "@juntada/tutifruti-words";
@@ -379,7 +379,6 @@ function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; ro
   const standings = [...room.players]
     .map((p: any) => ({ ...p, score: score[p.id] || 0, roundPts: round.pointsByPlayer[p.id] || 0 }))
     .sort((a: any, b: any) => b.score - a.score);
-  const [confirmLobby, setConfirmLobby] = useState(false);
 
   return (
     <div>
@@ -455,19 +454,13 @@ function RoundResult({ room, round, isHost, onShowFinal, send }: { room: any; ro
       )}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
-      {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
-      {confirmLobby && (
-        <ConfirmDialog
-          title="¿Volver al lobby?"
-          message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
-          confirmLabel="Volver al lobby"
-          onConfirm={() => {
-            setConfirmLobby(false);
-            send({ type: "back_to_lobby" });
-          }}
-          onCancel={() => setConfirmLobby(false)}
-        />
-      )}
+      <LeaveToLobbyButton
+        groupCode={room.groupCode}
+        send={send}
+        confirm={{
+          message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+        }}
+      />
     </div>
   );
 }
@@ -485,7 +478,6 @@ function FinalResultsLoading() {
 function FinalStandings({ room, round, isHost, send }: { room: any; round: any; isHost: boolean; send: any }) {
   const score = room.config.score as Record<string, number>;
   const standings = [...room.players].map((p: any) => ({ ...p, score: score[p.id] || 0 })).sort((a: any, b: any) => b.score - a.score);
-  const [confirmLobby, setConfirmLobby] = useState(false);
 
   return (
     <div>
@@ -510,19 +502,13 @@ function FinalStandings({ room, round, isHost, send }: { room: any; round: any; 
       {!isHost && <p style={{ ...S.muted, textAlign: "center" }}>Esperando a que el anfitrión arranque una partida nueva.</p>}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
-      {room.groupCode === null && <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>}
-      {confirmLobby && (
-        <ConfirmDialog
-          title="¿Volver al lobby?"
-          message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
-          confirmLabel="Volver al lobby"
-          onConfirm={() => {
-            setConfirmLobby(false);
-            send({ type: "back_to_lobby" });
-          }}
-          onCancel={() => setConfirmLobby(false)}
-        />
-      )}
+      <LeaveToLobbyButton
+        groupCode={room.groupCode}
+        send={send}
+        confirm={{
+          message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+        }}
+      />
     </div>
   );
 }

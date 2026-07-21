@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Board } from "./Board";
 import type { RoundViewProps } from "../gameTypes";
 
@@ -14,23 +12,12 @@ import type { RoundViewProps } from "../gameTypes";
 export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
   const opponent = room.players.find(p => p.id !== me?.playerId);
   const round = room.round as any;
-  const [confirmLobby, setConfirmLobby] = useState(false);
-  const LeaveToLobby = room.groupCode === null && (
-    <>
-      <BackButton onClick={() => setConfirmLobby(true)}>Volver al lobby</BackButton>
-      {confirmLobby && (
-        <ConfirmDialog
-          title="¿Volver al lobby?"
-          message="Se interrumpe la partida para los dos. El marcador se mantiene si vuelven a jugar sin reiniciarlo."
-          confirmLabel="Volver al lobby"
-          onConfirm={() => {
-            setConfirmLobby(false);
-            send({ type: "back_to_lobby" });
-          }}
-          onCancel={() => setConfirmLobby(false)}
-        />
-      )}
-    </>
+  const LeaveToLobby = (
+    <LeaveToLobbyButton
+      groupCode={room.groupCode}
+      send={send}
+      confirm={{ message: "Se interrumpe la partida para los dos. El marcador se mantiene si vuelven a jugar sin reiniciarlo." }}
+    />
   );
   const score: Record<string, number> = (room.config.score as Record<string, number>) || {};
   const resetVotes: string[] = (room.config.resetVotes as string[]) || [];

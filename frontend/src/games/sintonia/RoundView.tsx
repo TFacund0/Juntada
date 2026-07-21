@@ -6,7 +6,7 @@ import { Avatar } from "../../components/Avatar";
 import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Collapsible } from "../../components/Collapsible";
-import { ConfirmBackButton } from "../../components/ConfirmBackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
@@ -514,16 +514,13 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           ))}
         {/* Group instances use the shell's persistent "Volver al grupo" link instead.
             Available to any player, not just the host. */}
-        {room.groupCode === null && (
-          <ConfirmBackButton
-            title="¿Volver al lobby?"
-            message="Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
-            confirmLabel="Volver al lobby"
-            onConfirm={() => send({ type: "back_to_lobby" })}
-          >
-            Volver al lobby
-          </ConfirmBackButton>
-        )}
+        <LeaveToLobbyButton
+          groupCode={room.groupCode}
+          send={send}
+          confirm={{
+            message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+          }}
+        />
         {!isHost && (
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>

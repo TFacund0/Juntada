@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import type { RoundViewProps } from "../gameTypes";
 
 interface Entry {
@@ -313,7 +313,7 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
           "Configuración" del lobby) en cualquier momento, no solo el
           anfitrión. En un grupo no aplica: el grupo tiene su propio "Volver
           al grupo" en el shell. */}
-      {room.groupCode === null && <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>}
+      <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
     </div>
   );
 }

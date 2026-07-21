@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
@@ -642,9 +642,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         {/* Group instances use the shell's persistent "Volver al grupo" link instead.
             Available to any player, not just the host — it only interrupts the
             current match for everyone, same as leaving an instance. */}
-        {room.groupCode === null && (
-          <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
-        )}
+        <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
         {!isHost && (
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ color: "#9089c0", fontSize: 14 }}>

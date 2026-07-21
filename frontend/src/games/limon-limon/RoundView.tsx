@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { CardView, DeckStack } from "./CardView";
 import { AssignPicker } from "./AssignPicker";
@@ -217,10 +217,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
         {isHost ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
             <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>
-            {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-            {room.groupCode === null && (
-              <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
-            )}
+            <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
           </div>
         ) : (
           <div style={{ ...S.card, textAlign: "center" }}>
