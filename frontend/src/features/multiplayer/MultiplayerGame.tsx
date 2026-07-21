@@ -137,6 +137,49 @@ export function MultiplayerGame({
   const [showQR, setShowQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showCreateInstance, setShowCreateInstance] = useState(false);
+  // Tracks a join_instance in flight so the tapped button can show
+  // "Uniéndose..." instead of looking like nothing happened — and, since
+  // send() silently drops the message if the socket isn't OPEN at the exact
+  // moment of the tap (flaky connection, mid-reconnect), gives us something
+  // to retry once the socket actually comes back (see the reconnect effect
+  // below) instead of leaving the player stuck restarting the tap themselves.
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
+  const pendingJoinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const joinInstance = (roomCode: string) => {
+    setPendingJoinCode(roomCode);
+    send({ type: "join_instance", roomCode });
+    if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
+    // Covers the rare case where neither a success (phase leaves "group")
+    // nor a server "error" ever comes back — without this the button would
+    // stay stuck on "Uniéndose..." forever.
+    pendingJoinTimeoutRef.current = setTimeout(() => {
+      setPendingJoinCode(null);
+      setError("No se pudo unir a la partida — probá de nuevo");
+    }, 8000);
+  };
+  // Cleared once the join actually succeeds — connectionPhase moves off
+  // "group" (into "lobby"). Deliberately not cleared on a generic error:
+  // send() itself can flash "Sin conexión con el servidor" in the very same
+  // tick as the tap (socket not OPEN yet), and that shouldn't cancel the
+  // pending retry-on-reconnect below — a genuine server rejection (room
+  // filled up, etc.) still surfaces via the error banner and just leaves the
+  // button on "Uniéndose..." until the timeout above clears it.
+  useEffect(() => {
+    if (connectionPhase !== "group") setPendingJoinCode(null);
+  }, [connectionPhase]);
+  // The tap itself already reached send(), which flashed "Sin conexión con
+  // el servidor" and dropped it if the socket wasn't OPEN — retry it once
+  // reconnected instead of leaving the player to notice and tap again.
+  useEffect(() => {
+    if (justReconnected && pendingJoinCode && connectionPhase === "group") send({ type: "join_instance", roomCode: pendingJoinCode });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justReconnected]);
+  useEffect(
+    () => () => {
+      if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
+    },
+    [],
+  );
   // Leaving mid-game silently forfeits whatever's in progress, so that path
   // gets a confirm — same pattern as the pre-existing "volver al lobby"
   // confirms elsewhere. Leaving from the lobby (nothing to lose) doesn't.
@@ -679,8 +722,8 @@ export function MultiplayerGame({
                   </p>
                 </div>
                 <button
-                  disabled={!joinable}
-                  onClick={() => send({ type: "join_instance", roomCode: inst.roomCode })}
+                  disabled={!joinable || pendingJoinCode === inst.roomCode}
+                  onClick={() => joinInstance(inst.roomCode)}
                   style={{
                     ...S.btn(joinable ? "primary" : "ghost"),
                     width: "auto",
@@ -688,10 +731,10 @@ export function MultiplayerGame({
                     fontSize: 13,
                     borderRadius: 8,
                     opacity: joinable ? 1 : 0.5,
-                    cursor: joinable ? "pointer" : "not-allowed",
+                    cursor: joinable && pendingJoinCode !== inst.roomCode ? "pointer" : "not-allowed",
                   }}
                 >
-                  {joinable ? "Unirse" : "—"}
+                  {pendingJoinCode === inst.roomCode ? "Uniéndose..." : joinable ? "Unirse" : "—"}
                 </button>
               </div>
             );
