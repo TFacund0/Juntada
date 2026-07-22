@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors } from "@juntada/impostor-match-rules";
@@ -29,6 +29,19 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const maxImp = maxImpostors(room.players.length);
   const order = effectiveOrder(room.players, config.turnOrder);
   const orderedPlayers = order.map(id => room.players.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+  const usedWords = room.usedWords as Record<string, string[]>;
+  const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
+  const activeCats = Object.keys(config.enabledCategories || {}).filter(k => config.enabledCategories[k]);
+  const allCategoriesExhausted = activeCats.length > 0 && activeCats.every(k => wordsLeftIn(k) <= 0);
+
+  // Mirrors LocalGame's own clamp effect (see LocalGame.tsx) — without it,
+  // a host who picks e.g. 2 impostors and then loses players keeps seeing
+  // "2" selected here even though startRound would silently clamp it lower.
+  useEffect(() => {
+    const cap = maxImpostors(room.players.length);
+    if (config.numImpostors > cap) updateConfig({ numImpostors: cap });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.players.length]);
 
   const moveTurn = (index: number, dir: number) => {
     const target = index + dir;
@@ -228,10 +241,13 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
               const active = !!config.enabledCategories?.[k];
+              const remaining = wordsLeftIn(k);
+              const exhausted = remaining <= 0;
               return (
                 <button
                   key={k}
                   onClick={() => updateConfig({ enabledCategories: { ...config.enabledCategories, [k]: !active } })}
+                  title={exhausted ? "Ya se usaron todas las palabras de esta categoría en esta partida" : undefined}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -247,10 +263,12 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                     fontFamily: "inherit",
                     boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
                     transition: "all 0.15s",
+                    opacity: exhausted ? 0.55 : 1,
                   }}
                 >
                   <span>{cat.icon}</span>
                   <span>{cat.label}</span>
+                  <span style={{ fontSize: 11, opacity: 0.75 }}>{exhausted ? "· sin palabras" : `· ${remaining}`}</span>
                 </button>
               );
             })}
@@ -258,6 +276,11 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           <p style={{ ...S.muted, marginTop: 14 }}>
             {activeCount === 0 ? "No elegiste ninguna categoría todavía." : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}
           </p>
+          {allCategoriesExhausted && (
+            <p style={{ fontSize: 12, color: "#F09595", marginTop: 4 }}>
+              Ya se usaron todas las palabras de las categorías activas — activá otra para poder seguir jugando.
+            </p>
+          )}
         </div>
       )}
 

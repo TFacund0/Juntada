@@ -602,3 +602,17 @@ test("getPrivateView never reveals the word to the impostor", () => {
   assert.equal(engine.getPrivateView(room, impostorId).word, null);
   assert.equal(engine.getPrivateView(room, innocentId).word, room.round.word);
 });
+
+// Data integrity, not engine behavior — but it belongs to the impostor's
+// hint feature and would otherwise only surface as a silently missing hint
+// in production the day someone adds a word without its match. words/hints
+// are two parallel structures kept in sync by hand (see impostor-data's
+// Category type), so nothing else catches a typo or omission automatically.
+test("every word in every category has a matching hint, and vice versa", () => {
+  for (const [key, cat] of Object.entries(CATEGORIES) as [string, { words: string[]; hints: Record<string, string> }][]) {
+    const missing = cat.words.filter(w => !cat.hints[w]?.trim());
+    const orphaned = Object.keys(cat.hints).filter(w => !cat.words.includes(w));
+    assert.deepEqual(missing, [], `category "${key}" has words with no hint: ${missing.join(", ")}`);
+    assert.deepEqual(orphaned, [], `category "${key}" has hints for words that don't exist: ${orphaned.join(", ")}`);
+  }
+});

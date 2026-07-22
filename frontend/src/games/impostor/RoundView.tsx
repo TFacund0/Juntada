@@ -332,23 +332,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
       setClueSubmitted(true);
     };
 
-    // The category doubles as the impostor's hint — showing it to them
-    // unconditionally would defeat the "sin pista" setting, so it's hidden
-    // for a blind impostor and just relabeled (not a spoiler) for everyone
-    // else, who already know the actual word.
-    const showCategory = !myRole?.isImpostor || config.hintsEnabled;
-
     return (
       <div>
-        {showCategory && (
-          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-            <p style={{ fontSize: 11, letterSpacing: "0.1em", color: "#7F77DD", fontWeight: 700 }}>
-              {myRole?.isImpostor ? "PISTA PARA EL IMPOSTOR" : "CATEGORÍA"}
-            </p>
-            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round?.categoryLabel}</p>
-          </div>
-        )}
-
         {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 
         <div
@@ -590,7 +575,6 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   if (room.phase === "result") {
     const lastH = room.roundHistory?.[room.roundHistory.length - 1] as ImpostorHistoryEntry | undefined;
     const word = wordReveal?.word || lastH?.word;
-    const catLabel = wordReveal?.categoryLabel || lastH?.categoryLabel;
     const eliminated = room.players.find(p => p.id === (round?.eliminated ?? lastH?.eliminated));
     const wasImpostor: boolean | undefined = round?.wasImpostor ?? lastH?.wasImpostor;
     const matchOver: boolean = round?.matchOver ?? lastH?.matchOver ?? false;
@@ -643,25 +627,40 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
             <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{String(word)}</p>
-            <p style={{ fontSize: 13, color: "#7F77DD" }}>{String(catLabel)}</p>
           </div>
         )}
 
         {matchOver && impostors.length > 0 && (
           <div style={S.card}>
-            <span style={S.label}>Impostores</span>
-            {impostors.map(p => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                <Avatar name={p.name} size={32} />
-                <span style={{ fontWeight: 700, flex: 1 }}>
-                  {p.name}
-                  {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
-                </span>
-                <span style={S.pill(matchEliminatedIds.includes(p.id))}>
-                  {matchEliminatedIds.includes(p.id) ? "Atrapado" : "Sigue libre"}
-                </span>
-              </div>
-            ))}
+            <span style={S.label}>{impostors.length === 1 ? "El impostor era" : "Los impostores eran"}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "8px 0 0" }}>
+              {impostors.map(p => (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Avatar name={p.name} size={28} />
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>
+                    {p.name}
+                    {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {impostors.length > 1 && (
+              <>
+                <p style={{ ...S.muted, margin: "14px 0 6px" }}>Atrapados durante la partida</p>
+                {impostors.filter(p => matchEliminatedIds.includes(p.id)).length > 0 ? (
+                  impostors
+                    .filter(p => matchEliminatedIds.includes(p.id))
+                    .map(p => (
+                      <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <Avatar name={p.name} size={24} />
+                        <span style={{ fontSize: 13 }}>{p.name}</span>
+                      </div>
+                    ))
+                ) : (
+                  <p style={{ ...S.muted, margin: 0 }}>Ninguno.</p>
+                )}
+              </>
+            )}
           </div>
         )}
 
