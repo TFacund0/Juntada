@@ -25,13 +25,16 @@ export interface GameEngine {
   getPhaseTimerEnd?(room: Room): number | null;
   forceReadyAndAdvance?(room: Room): void;
   getRevealMessage?(room: Room): ({ type: string } & Record<string, unknown>) | null;
-  // Fires immediately when a player drops (see roomService.markOffline) —
-  // unlike maybeAdvance (only re-run once they're actually removed, after
-  // the 5-minute grace period, or on some other explicit action), this is
-  // for low-stakes/reversible reactions only, like handing off a strict
-  // turn rotation to the next online player. Anything that would exclude a
-  // player from a vote/ready/confirm count belongs in maybeAdvance instead,
-  // so a brief reconnect blip can't cost them their say.
+  // Fires once a player's been disconnected for about a minute straight
+  // (see ws/shared.ts's scheduleOfflineReaction — not the instant they
+  // drop, so a brief blip or answering a text doesn't cost them anything)
+  // and they're still offline by then. Unlike maybeAdvance (only re-run
+  // once they're actually removed, after the full 5-minute grace period, or
+  // on some other explicit action), this is for low-stakes/reversible
+  // reactions only, like handing off a strict turn rotation to the next
+  // online player. Anything that would exclude a player from a vote/ready/
+  // confirm count belongs in maybeAdvance instead, so a brief reconnect
+  // blip can't cost them their say.
   onPlayerOffline?(room: Room, playerId: string): void;
   // Backfills any round field that's missing on `room.round` because it was
   // persisted (Redis snapshot restore, see state/persistence.ts) by an older

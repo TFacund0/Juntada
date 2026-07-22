@@ -416,6 +416,43 @@ test("getPublicRoundView exposes roundPoints (this turn only) for both the guess
   assert.deepEqual(engine.getPublicRoundView(room).roundPoints, {});
 });
 
+test("onPlayerOffline auto-picks a word immediately if the drawer disconnects mid-choosing, instead of waiting out the full 15s timer", () => {
+  const room = makeRoom();
+  enableAllCategories(room);
+  engine.startRound(room);
+  const drawerId = room.round.drawerId;
+  assert.equal(room.phase, "choosing");
+  assert.equal(room.round.word, null);
+
+  engine.onPlayerOffline(room, drawerId);
+  assert.equal(room.phase, "drawing");
+  assert.ok(room.round.word);
+});
+
+test("onPlayerOffline ends the drawing turn into reveal immediately if the drawer disconnects mid-turn", () => {
+  const room = makeRoom();
+  enableAllCategories(room);
+  engine.startRound(room);
+  const drawerId = room.round.drawerId;
+  engine.handleAction(room, drawerId, "choose_word", { word: room.round.wordChoices[0] });
+  assert.equal(room.phase, "drawing");
+
+  engine.onPlayerOffline(room, drawerId);
+  assert.equal(room.phase, "reveal");
+});
+
+test("onPlayerOffline does nothing when it's not the drawer who disconnected", () => {
+  const room = makeRoom();
+  enableAllCategories(room);
+  engine.startRound(room);
+  const drawerId = room.round.drawerId;
+  engine.handleAction(room, drawerId, "choose_word", { word: room.round.wordChoices[0] });
+  const other = room.players.find((p: TestPlayer) => p.id !== drawerId)!.id;
+
+  engine.onPlayerOffline(room, other);
+  assert.equal(room.phase, "drawing", "only the drawer disconnecting should skip ahead");
+});
+
 test("player_ready is rejected outside the reveal phase", () => {
   const room = makeRoom();
   enableAllCategories(room);
