@@ -4,6 +4,7 @@ import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { CodeDisplay } from "../../components/CodeDisplay";
 import { QRDialog } from "../../components/QRDialog";
+import { QRScannerDialog } from "../../components/QRScannerDialog";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { SetupTabs } from "../../components/SetupTabs";
 import { Toast } from "../../components/Toast";
@@ -15,7 +16,7 @@ import { getGame, GAME_LIST } from "../../games/registry";
 import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
-import { buildRoomJoinUrl, buildGroupJoinUrl } from "./joinLink";
+import { buildRoomJoinUrl, buildGroupJoinUrl, extractScannedCode } from "./joinLink";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:
@@ -134,7 +135,51 @@ export function MultiplayerGame({
   // está en uso" effect below also needs to force it open from outside.
   const [editingName, setEditingName] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [showCreateInstance, setShowCreateInstance] = useState(false);
+  // Tracks a join_instance in flight so the tapped button can show
+  // "Uniéndose..." instead of looking like nothing happened — and, since
+  // send() silently drops the message if the socket isn't OPEN at the exact
+  // moment of the tap (flaky connection, mid-reconnect), gives us something
+  // to retry once the socket actually comes back (see the reconnect effect
+  // below) instead of leaving the player stuck restarting the tap themselves.
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
+  const pendingJoinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const joinInstance = (roomCode: string) => {
+    setPendingJoinCode(roomCode);
+    send({ type: "join_instance", roomCode });
+    if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
+    // Covers the rare case where neither a success (phase leaves "group")
+    // nor a server "error" ever comes back — without this the button would
+    // stay stuck on "Uniéndose..." forever.
+    pendingJoinTimeoutRef.current = setTimeout(() => {
+      setPendingJoinCode(null);
+      setError("No se pudo unir a la partida — probá de nuevo");
+    }, 8000);
+  };
+  // Cleared once the join actually succeeds — connectionPhase moves off
+  // "group" (into "lobby"). Deliberately not cleared on a generic error:
+  // send() itself can flash "Sin conexión con el servidor" in the very same
+  // tick as the tap (socket not OPEN yet), and that shouldn't cancel the
+  // pending retry-on-reconnect below — a genuine server rejection (room
+  // filled up, etc.) still surfaces via the error banner and just leaves the
+  // button on "Uniéndose..." until the timeout above clears it.
+  useEffect(() => {
+    if (connectionPhase !== "group") setPendingJoinCode(null);
+  }, [connectionPhase]);
+  // The tap itself already reached send(), which flashed "Sin conexión con
+  // el servidor" and dropped it if the socket wasn't OPEN — retry it once
+  // reconnected instead of leaving the player to notice and tap again.
+  useEffect(() => {
+    if (justReconnected && pendingJoinCode && connectionPhase === "group") send({ type: "join_instance", roomCode: pendingJoinCode });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justReconnected]);
+  useEffect(
+    () => () => {
+      if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
+    },
+    [],
+  );
   // Leaving mid-game silently forfeits whatever's in progress, so that path
   // gets a confirm — same pattern as the pre-existing "volver al lobby"
   // confirms elsewhere. Leaving from the lobby (nothing to lose) doesn't.
@@ -342,7 +387,7 @@ export function MultiplayerGame({
 
   const updateConfig = (patch: Record<string, unknown>) => {
     if (!room) return;
-    send({ type: "update_config", config: { ...room.config, ...patch } });
+    send({ type: "update_config", config: patch });
   };
 
   const leaveInstance = () => send({ type: "leave_instance" });
@@ -445,6 +490,26 @@ export function MultiplayerGame({
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
             />
+            <button
+              onClick={() => setShowScanner(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+                margin: "10px 0 0",
+                background: "none",
+                border: "none",
+                color: "#7F77DD",
+                cursor: "pointer",
+                fontSize: 13,
+                fontFamily: "inherit",
+                fontWeight: 700,
+              }}
+            >
+              📷 Escanear código QR
+            </button>
             {!inGroup &&
               roomPreview &&
               roomPreview.code === joinCode.trim().toUpperCase() &&
@@ -500,6 +565,18 @@ export function MultiplayerGame({
               Unirse →
             </Btn>
           </div>
+        )}
+        {showScanner && (
+          <QRScannerDialog
+            title={inGroup ? "Escaneá el QR del grupo" : "Escaneá el QR de la sala"}
+            onScan={raw => {
+              const code = extractScannedCode(raw);
+              setShowScanner(false);
+              if (code) setJoinCode(code);
+              else setError("Ese código QR no es válido");
+            }}
+            onClose={() => setShowScanner(false)}
+          />
         )}
       </div>
     );
@@ -645,8 +722,8 @@ export function MultiplayerGame({
                   </p>
                 </div>
                 <button
-                  disabled={!joinable}
-                  onClick={() => send({ type: "join_instance", roomCode: inst.roomCode })}
+                  disabled={!joinable || pendingJoinCode === inst.roomCode}
+                  onClick={() => joinInstance(inst.roomCode)}
                   style={{
                     ...S.btn(joinable ? "primary" : "ghost"),
                     width: "auto",
@@ -654,10 +731,10 @@ export function MultiplayerGame({
                     fontSize: 13,
                     borderRadius: 8,
                     opacity: joinable ? 1 : 0.5,
-                    cursor: joinable ? "pointer" : "not-allowed",
+                    cursor: joinable && pendingJoinCode !== inst.roomCode ? "pointer" : "not-allowed",
                   }}
                 >
-                  {joinable ? "Unirse" : "—"}
+                  {pendingJoinCode === inst.roomCode ? "Uniéndose..." : joinable ? "Unirse" : "—"}
                 </button>
               </div>
             );
@@ -911,25 +988,6 @@ export function MultiplayerGame({
         {reconnectBanner}
         <ErrorBanner message={error} flashKey={errorKey} variant="block" />
 
-        {room.groupCode !== null && (
-          <button
-            onClick={() => setConfirmLeaveInstance(true)}
-            style={{
-              display: "block",
-              margin: "0 auto 14px",
-              background: "none",
-              border: "none",
-              color: "#6b6490",
-              cursor: "pointer",
-              fontSize: 12,
-              fontFamily: "inherit",
-              fontWeight: 700,
-            }}
-          >
-            👥 Volver al grupo
-          </button>
-        )}
-
         <Suspense fallback={<p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>}>
           {activeGame.RoundView && (
             <activeGame.RoundView
@@ -943,6 +1001,12 @@ export function MultiplayerGame({
             />
           )}
         </Suspense>
+
+        {room.groupCode !== null && (
+          <Btn variant="ghost" onClick={() => setConfirmLeaveInstance(true)} style={{ marginTop: 14 }}>
+            👥 Volver al grupo
+          </Btn>
+        )}
 
         {confirmLeaveInstance && (
           <ConfirmDialog

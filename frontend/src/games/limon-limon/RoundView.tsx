@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { CardView, DeckStack } from "./CardView";
 import { AssignPicker } from "./AssignPicker";
@@ -12,6 +12,19 @@ import { cardKey, getDescription } from "./deck";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
+import type { Card } from "@juntada/limon-limon-deck";
+
+// Mirrors backend/src/games/limon-limon/engine.ts's getPublicRoundView.
+interface LimonLimonRoundState {
+  remaining: number;
+  current: Card | null;
+  turnId: string;
+  order: string[];
+  pileCounts: Record<string, number>;
+  history: (Card & { eatenBy: string })[];
+  endVotes: string[];
+  endVoteThreshold: number;
+}
 
 function TurnOrder({ players, order, turnId }: { players: PublicPlayer[]; order: string[]; turnId: string }) {
   const ordered = order.map(id => players.find(p => p.id === id)).filter((p): p is PublicPlayer => Boolean(p));
@@ -92,7 +105,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
   const [showRanking, setShowRanking] = useState(false);
   const [showEndVote, setShowEndVote] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState<string | null>(null); // elegido, no confirmado todavía
-  const round = room.round as any;
+  const round = room.round as LimonLimonRoundState | null;
   // No standalone match counter on this engine — the pile distribution is a
   // stable stand-in: it only changes once a new deck starts.
   const revealCount = useRevealCountdown(round ? JSON.stringify(round.pileCounts) : "");
@@ -181,6 +194,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
             <div style={{ ...S.card, marginTop: 10, textAlign: "left" }}>
               <p style={{ ...S.muted, marginBottom: 10 }}>
                 Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
+                {round.current && " La carta que está revelada ahora mismo quedaría sin repartir, sin sumarle a nadie."}
               </p>
               {me && (round.endVotes || []).includes(me.playerId) ? (
                 <p style={{ ...S.muted, margin: 0 }}>Votaste terminar — esperando al resto</p>
@@ -216,10 +230,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
         {isHost ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
             <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>
-            {/* Group instances use the shell's persistent "Volver al grupo" link instead. */}
-            {room.groupCode === null && (
-              <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
-            )}
+            <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
           </div>
         ) : (
           <div style={{ ...S.card, textAlign: "center" }}>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors } from "@juntada/impostor-match-rules";
@@ -29,6 +29,19 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const maxImp = maxImpostors(room.players.length);
   const order = effectiveOrder(room.players, config.turnOrder);
   const orderedPlayers = order.map(id => room.players.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+  const usedWords = room.usedWords as Record<string, string[]>;
+  const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
+  const activeCats = Object.keys(config.enabledCategories || {}).filter(k => config.enabledCategories[k]);
+  const allCategoriesExhausted = activeCats.length > 0 && activeCats.every(k => wordsLeftIn(k) <= 0);
+
+  // Mirrors LocalGame's own clamp effect (see LocalGame.tsx) — without it,
+  // a host who picks e.g. 2 impostors and then loses players keeps seeing
+  // "2" selected here even though startRound would silently clamp it lower.
+  useEffect(() => {
+    const cap = maxImpostors(room.players.length);
+    if (config.numImpostors > cap) updateConfig({ numImpostors: cap });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.players.length]);
 
   const moveTurn = (index: number, dir: number) => {
     const target = index + dir;
@@ -97,13 +110,13 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 onClick={() => updateConfig({ revealOnElimination: false })}
                 style={{ ...S.btn(!config.revealOnElimination ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
               >
-                No, queda en secreto
+                No, queda en duda
               </button>
             </div>
             <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
               {config.revealOnElimination
-                ? "Al eliminar a alguien, se dice si era el impostor o no."
-                : "Al eliminar a alguien, solo queda afuera — nadie sabe si era el impostor hasta que termine la partida."}
+                ? "Al eliminar a alguien se muestra si era el impostor o no."
+                : "Al eliminar a alguien no se revela su rol — sigan jugando con la duda."}
             </p>
           </div>
 
@@ -169,35 +182,72 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
           <div style={S.card}>
             <span style={S.label}>
-              Tiempo de discusión: {config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
+              Tiempo de discusión:{" "}
+              {config.discussionUnlimited ? "Sin límite" : config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
             </span>
-            <p style={{ ...S.muted, margin: "4px 0 0", lineHeight: 1.4 }}>Cuánto dura la charla antes de pasar a la votación.</p>
+            <p style={{ ...S.muted, margin: "4px 0 8px", lineHeight: 1.4 }}>Cuánto dura la charla antes de pasar a la votación.</p>
             <input
               type="range"
               min="0"
               max="180"
               step="15"
               value={config.discussionTime}
+              disabled={config.discussionUnlimited}
               onChange={e => updateConfig({ discussionTime: +e.target.value, discussionUnlimited: false })}
-              style={{ width: "100%", marginTop: 8 }}
+              style={{ width: "100%", opacity: config.discussionUnlimited ? 0.4 : 1 }}
             />
+            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
+              <div style={S.toggle(!!config.discussionUnlimited)} onClick={() => updateConfig({ discussionUnlimited: !config.discussionUnlimited })}>
+                <div style={S.knob(!!config.discussionUnlimited)} />
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "#6b6490" }}>
+                Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
+              </span>
+            </label>
           </div>
         </>
       )}
 
       {tab === "cats" && (
         <div style={S.card}>
-          <span style={S.label}>Categorías</span>
-          <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={S.label}>Categorías</span>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() =>
+                  updateConfig({
+                    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
+                  })
+                }
+                style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+              >
+                Todas
+              </button>
+              <button
+                onClick={() =>
+                  updateConfig({
+                    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
+                  })
+                }
+                style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+              >
+                Ninguna
+              </button>
+            </div>
+          </div>
+          <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
             Elegí de qué van a ser las palabras. Tocá una categoría para activarla.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
               const active = !!config.enabledCategories?.[k];
+              const remaining = wordsLeftIn(k);
+              const exhausted = remaining <= 0;
               return (
                 <button
                   key={k}
                   onClick={() => updateConfig({ enabledCategories: { ...config.enabledCategories, [k]: !active } })}
+                  title={exhausted ? "Ya se usaron todas las palabras de esta categoría en esta partida" : undefined}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -213,10 +263,12 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                     fontFamily: "inherit",
                     boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
                     transition: "all 0.15s",
+                    opacity: exhausted ? 0.55 : 1,
                   }}
                 >
                   <span>{cat.icon}</span>
                   <span>{cat.label}</span>
+                  <span style={{ fontSize: 11, opacity: 0.75 }}>{exhausted ? "· sin palabras" : `· ${remaining}`}</span>
                 </button>
               );
             })}
@@ -224,6 +276,11 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           <p style={{ ...S.muted, marginTop: 14 }}>
             {activeCount === 0 ? "No elegiste ninguna categoría todavía." : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}
           </p>
+          {allCategoriesExhausted && (
+            <p style={{ fontSize: 12, color: "#F09595", marginTop: 4 }}>
+              Ya se usaron todas las palabras de las categorías activas — activá otra para poder seguir jugando.
+            </p>
+          )}
         </div>
       )}
 
@@ -233,7 +290,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
             Así van a ir pasando su palabra en la ronda. Los que se sumen después entran al final.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {orderedPlayers.map((p, i) => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
                 <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
@@ -242,7 +299,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 <button
                   onClick={() => moveTurn(i, -1)}
                   disabled={i === 0}
-                  style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 14, opacity: i === 0 ? 0.35 : 1 }}
+                  style={{ ...S.btn("ghost"), width: 44, height: 44, padding: 0, borderRadius: 10, fontSize: 18, opacity: i === 0 ? 0.35 : 1 }}
                 >
                   ↑
                 </button>
@@ -251,11 +308,11 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                   disabled={i === orderedPlayers.length - 1}
                   style={{
                     ...S.btn("ghost"),
-                    width: 32,
-                    height: 32,
+                    width: 44,
+                    height: 44,
                     padding: 0,
-                    borderRadius: 8,
-                    fontSize: 14,
+                    borderRadius: 10,
+                    fontSize: 18,
                     opacity: i === orderedPlayers.length - 1 ? 0.35 : 1,
                   }}
                 >

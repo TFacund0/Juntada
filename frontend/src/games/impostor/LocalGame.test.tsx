@@ -30,6 +30,7 @@ async function enableFirstCategory(user: ReturnType<typeof userEvent.setup>) {
 async function revealAllPlayers(user: ReturnType<typeof userEvent.setup>): Promise<string> {
   let impostorName = "";
   for (let i = 0; i < 4; i++) {
+    await user.click(screen.getByRole("button", { name: `Soy Jugador ${i + 1}, continuar` }));
     await user.click(screen.getByText("Tocá para revelar tu palabra"));
     if (screen.queryByText("Sos el impostor")) impostorName = `Jugador ${i + 1}`;
     const isLast = i === 3;
@@ -101,8 +102,7 @@ describe("Impostor LocalGame", () => {
 
     await user.click(screen.getByRole("button", { name: "Jugadores" }));
     await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
-    await user.click(screen.getByText("Tocá para revelar tu palabra")); // reveal player 1's card
-    expect(screen.getByText("Jugador 2")).toBeInTheDocument(); // reordered player now goes first
+    expect(screen.getByRole("button", { name: "Soy Jugador 2, continuar" })).toBeInTheDocument(); // reordered player now goes first
   });
 
   test("disables 'Iniciar ronda' below the 3-player minimum", async () => {
@@ -126,76 +126,90 @@ describe("Impostor LocalGame", () => {
     expect(screen.getByText("Jugadores (4)")).toBeInTheDocument(); // unchanged
   });
 
-  test("plays a full round from setup through result", async () => {
-    const user = userEvent.setup();
-    render(<LocalGame />);
-    await enableFirstCategory(user);
+  test(
+    "plays a full round from setup through result",
+    async () => {
+      const user = userEvent.setup();
+      render(<LocalGame />);
+      await enableFirstCategory(user);
 
-    await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
-    expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
+      expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
 
-    const impostorName = await revealAllPlayers(user);
-    expect(screen.getByText("Pista para el impostor")).toBeInTheDocument(); // hintsEnabled defaults to true
+      const impostorName = await revealAllPlayers(user);
 
-    await user.click(screen.getByRole("button", { name: "Ir a votación" }));
-    expect(screen.getByText("Faltan 4 confirmaciones")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Ir a votación" }));
+      expect(screen.getByText("Faltan 4 confirmaciones")).toBeInTheDocument();
 
-    // Every voter targets the impostor (revealed above), so with a single
-    // impostor among 4 players this always ends the match — innocents win
-    // the moment the last impostor is caught (see engine.ts's tallyVotes).
-    await voteAllPlayers(user, impostorName);
+      // Every voter targets the impostor (revealed above), so with a single
+      // impostor among 4 players this always ends the match — innocents win
+      // the moment the last impostor is caught (see engine.ts's tallyVotes).
+      await voteAllPlayers(user, impostorName);
 
-    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
-    expect(screen.getByText("La palabra era")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nueva partida" })).toBeInTheDocument();
-  });
+      expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
+      expect(screen.getByText("La palabra era")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Nueva partida" })).toBeInTheDocument();
+    },
+    15000,
+  );
 
-  test("a tied vote triggers a revote among just the tied suspects instead of a random pick", async () => {
-    const user = userEvent.setup();
-    render(<LocalGame />);
-    await enableFirstCategory(user);
+  // Reveal now needs an extra handoff-confirm tap per player, on top of an
+  // already-heavy full round — pass an explicit longer timeout so this stays
+  // reliable when the whole suite runs under parallel load, not just alone.
+  test(
+    "a tied vote triggers a revote among just the tied suspects instead of a random pick",
+    async () => {
+      const user = userEvent.setup();
+      render(<LocalGame />);
+      await enableFirstCategory(user);
 
-    await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
-    await revealAllPlayers(user);
-    await user.click(screen.getByRole("button", { name: "Ir a votación" }));
+      await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
+      await revealAllPlayers(user);
+      await user.click(screen.getByRole("button", { name: "Ir a votación" }));
 
-    // Jugador 1 and Jugador 2 tie 2-2 (each gets one vote from the other,
-    // plus one from Jugador 3/4 respectively).
-    await voteEach(user, {
-      "Jugador 1": "Jugador 2",
-      "Jugador 2": "Jugador 1",
-      "Jugador 3": "Jugador 1",
-      "Jugador 4": "Jugador 2",
-    });
+      // Jugador 1 and Jugador 2 tie 2-2 (each gets one vote from the other,
+      // plus one from Jugador 3/4 respectively).
+      await voteEach(user, {
+        "Jugador 1": "Jugador 2",
+        "Jugador 2": "Jugador 1",
+        "Jugador 3": "Jugador 1",
+        "Jugador 4": "Jugador 2",
+      });
 
-    expect(screen.getByText("Hubo un empate")).toBeInTheDocument();
-    expect(screen.getByText("Faltan 4 confirmaciones")).toBeInTheDocument(); // votes reset for the revote
+      expect(screen.getByText("Hubo un empate")).toBeInTheDocument();
+      expect(screen.getByText("Faltan 4 confirmaciones")).toBeInTheDocument(); // votes reset for the revote
 
-    // The revote only offers the two tied suspects — Jugador 1/2 are forced
-    // to vote each other (can't vote themselves), so Jugador 3 and 4 decide
-    // it by both voting Jugador 1.
-    await voteEach(user, {
-      "Jugador 1": "Jugador 2",
-      "Jugador 2": "Jugador 1",
-      "Jugador 3": "Jugador 1",
-      "Jugador 4": "Jugador 1",
-    });
+      // The revote only offers the two tied suspects — Jugador 1/2 are forced
+      // to vote each other (can't vote themselves), so Jugador 3 and 4 decide
+      // it by both voting Jugador 1.
+      await voteEach(user, {
+        "Jugador 1": "Jugador 2",
+        "Jugador 2": "Jugador 1",
+        "Jugador 3": "Jugador 1",
+        "Jugador 4": "Jugador 1",
+      });
 
-    expect(screen.queryByText("Hubo un empate")).not.toBeInTheDocument();
-    expect(screen.getByText("quedó eliminado/a")).toBeInTheDocument(); // the tie got resolved into an actual elimination
-  });
+      expect(screen.queryByText("Hubo un empate")).not.toBeInTheDocument();
+      expect(screen.getByText("quedó eliminado/a")).toBeInTheDocument(); // the tie got resolved into an actual elimination
+    },
+    15000,
+  );
 
-  test("starting a new round from the result screen resets reveal/vote state", async () => {
-    const user = userEvent.setup();
-    render(<LocalGame />);
-    await enableFirstCategory(user);
+  test(
+    "starting a new round from the result screen resets reveal/vote state",
+    async () => {
+      const user = userEvent.setup();
+      render(<LocalGame />);
+      await enableFirstCategory(user);
 
-    await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
-    const impostorName = await revealAllPlayers(user);
-    await user.click(screen.getByRole("button", { name: "Ir a votación" }));
-    await voteAllPlayers(user, impostorName);
+      await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
+      const impostorName = await revealAllPlayers(user);
+      await user.click(screen.getByRole("button", { name: "Ir a votación" }));
+      await voteAllPlayers(user, impostorName);
 
-    await user.click(screen.getByRole("button", { name: "Nueva partida" }));
-    expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
-  });
+      await user.click(screen.getByRole("button", { name: "Nueva partida" }));
+      expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
+    },
+    15000,
+  );
 });

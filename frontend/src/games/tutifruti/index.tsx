@@ -48,6 +48,7 @@ export const tutifrutiGame: GameDef = {
     "- Una palabra repetida con otro jugador vale la mitad.",
     "- Una palabra con más cruces que tildes no suma puntos.",
     "Se juegan varias rondas (las que configure el anfitrión) y gana quien más puntos acumule.",
+    "En modo local (un solo dispositivo) no hay puntaje ni revisión — solo se sortea la letra y se sugieren categorías para completar en voz alta o en un papel, a criterio del grupo.",
   ],
   LocalGame,
   ConfigPanel,

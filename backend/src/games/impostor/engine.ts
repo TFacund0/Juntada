@@ -26,9 +26,16 @@ interface Category {
   label: string;
   icon: string;
   words: string[];
+  hints: Record<string, string>;
 }
 
 const { CATEGORIES } = require("@juntada/impostor-data") as { CATEGORIES: Record<string, Category> };
+// Fallback for the rare case a word predates the hints map (shouldn't happen
+// once every CATEGORIES entry has one, but keeps hintsEnabled from ever
+// crashing on a lookup miss).
+function wordHint(catKey: string, word: string): string | null {
+  return CATEGORIES[catKey]?.hints?.[word] ?? null;
+}
 const { shuffle } = require("../../utils/shuffle");
 const { timers } = require("../../state/roomStore") as { timers: Map<string, NodeJS.Timeout> };
 
@@ -47,6 +54,10 @@ interface ImpostorConfig {
   // or just that they're out — the full impostor roster only ever comes out
   // once the match itself ends, regardless of this setting.
   revealOnElimination: boolean;
+  // Bumped every time a round starts (a fresh match via startRound, or
+  // another lap within one via continueMatch) — see effectiveTurnOrder. Not
+  // host-editable; keeps the same player from always going first.
+  turnRotation: number;
   [key: string]: unknown;
 }
 
@@ -88,6 +99,20 @@ interface ImpostorRound {
   // normal vote — currently only "impostor_disconnected" (see
   // abortMatchImpostorLeft). Absent for a normally-resolved match.
   abortedReason?: "impostor_disconnected";
+  // True when the abort happened mid-voting with at least one vote already
+  // cast — those votes were discarded, not counted, so the UI can say so
+  // explicitly instead of leaving voters to wonder what happened to theirs.
+  votesDiscarded?: boolean;
+  // True when the elimination that just happened was decided by a random
+  // draw among still-tied suspects (MAX_REVOTES exhausted without a clear
+  // winner) rather than a clean majority — the UI shows this distinctly so
+  // it doesn't read as a normal decisive vote.
+  tieBrokenRandomly?: boolean;
+  // Set only when rerollWord had to fall back to a full startRound because
+  // the category ran out of unused words — a new match (new category, new
+  // impostors, cleared eliminations) starting silently would otherwise look
+  // like a bug rather than an explained, if unusual, restart.
+  restartedReason?: "word_pool_exhausted";
 }
 
 function cfg(room: Room): ImpostorConfig {
@@ -126,6 +151,7 @@ function createConfig(): ImpostorConfig {
     discussionUnlimited: false, // discussion phase happens but with no timer/auto-advance — players mark ready manually
     turnOrder: [],
     revealOnElimination: true,
+    turnRotation: 0,
   };
 }
 
@@ -140,12 +166,17 @@ function aliveIds(room: Room): string[] {
 // The order this round actually speaks in: the host's configured order,
 // filtered down to players still in the room, with anyone missing from it
 // (new joins, or a fresh room with no order set yet) appended in arrival
-// order.
+// order — then rotated by turnRotation so the same player isn't stuck going
+// first round after round (see startRound/continueMatch, which bump it).
 function effectiveTurnOrder(room: Room): string[] {
   const ids = room.players.map(p => p.id);
   const stored = (cfg(room).turnOrder || []).filter(id => ids.includes(id));
   const missing = ids.filter(id => !stored.includes(id));
-  return [...stored, ...missing];
+  const order = [...stored, ...missing];
+  if (order.length === 0) return order;
+  const rotation = Number.isFinite(cfg(room).turnRotation) ? (cfg(room).turnRotation as number) : 0;
+  const offset = ((rotation % order.length) + order.length) % order.length;
+  return [...order.slice(offset), ...order.slice(0, offset)];
 }
 
 function turnTimerEnd(room: Room): number | null {
@@ -188,7 +219,7 @@ function stopRoomTimer(room: Room): void {
   }
 }
 
-function startRound(room: Room): { success?: true; error?: string } {
+function startRound(room: Room, restartedReason?: "word_pool_exhausted"): { success?: true; error?: string } {
   if (room.players.length < MIN_PLAYERS) return { error: `Necesitás al menos ${MIN_PLAYERS} jugadores` };
 
   const activeCats = activeCategoryKeys(room);
@@ -224,6 +255,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     discussionEnd: null,
     revoteCandidates: null, // set of tied playerIds when a vote must be repeated
     revoteCount: 0,
+    restartedReason,
   } satisfies ImpostorRound;
   room.phase = "round";
   room.players.forEach(p => {
@@ -231,6 +263,7 @@ function startRound(room: Room): { success?: true; error?: string } {
   });
   skipOfflineTurns(room);
   round(room).timerEnd = round(room).turnIndex < round(room).turnOrder.length ? turnTimerEnd(room) : null;
+  cfg(room).turnRotation = (Number.isFinite(cfg(room).turnRotation) ? (cfg(room).turnRotation as number) : 0) + 1;
 
   return { success: true };
 }
@@ -276,6 +309,7 @@ function continueMatch(room: Room): { success?: true; error?: string } {
   });
   skipOfflineTurns(room);
   round(room).timerEnd = round(room).turnIndex < round(room).turnOrder.length ? turnTimerEnd(room) : null;
+  cfg(room).turnRotation = (Number.isFinite(cfg(room).turnRotation) ? (cfg(room).turnRotation as number) : 0) + 1;
 
   return { success: true };
 }
@@ -305,17 +339,24 @@ function activeSkipVotes(room: Room): string[] {
 // impostors — this is meant to feel instant, not like starting the round
 // over. Only falls back to a full re-shuffle (new category, new impostors)
 // if that category has no words left to offer.
-function rerollWord(room: Room): void {
+// Returns whether it actually changed anything — false in the extremely
+// rare case where every active category is completely out of words (not
+// just this one), so startRound's own fallback has nothing left to draw
+// from either. The caller (skip_word) uses this to avoid leaving skipVotes
+// stuck at a satisfied threshold forever, which would otherwise silently
+// re-attempt (and re-fail) the same reroll on every future skip_word call.
+function rerollWord(room: Room): boolean {
   const word = pickWord(room, round(room).categoryKey, round(room).word);
   if (!word) {
-    startRound(room);
-    return;
+    const res = startRound(room, "word_pool_exhausted");
+    return !!res.success;
   }
 
   round(room).word = word;
   round(room).skipVotes = [];
   round(room).rerollCount += 1;
   round(room).timerEnd = turnTimerEnd(room);
+  return true;
 }
 
 // An impostor's clue/vote is the entire point of the round — once they're
@@ -328,10 +369,12 @@ function rerollWord(room: Room): void {
 function abortMatchImpostorLeft(room: Room): void {
   stopRoomTimer(room);
   const r = round(room);
+  const votesDiscarded = room.phase === "voting" && Object.keys(r.votes).length > 0;
   r.matchOver = true;
   r.winner = null;
   r.revealed = true;
   r.abortedReason = "impostor_disconnected";
+  r.votesDiscarded = votesDiscarded;
   room.phase = "result";
   room.roundHistory.push({
     word: r.word,
@@ -344,6 +387,7 @@ function abortMatchImpostorLeft(room: Room): void {
     matchOver: true,
     winner: null,
     abortedReason: "impostor_disconnected",
+    votesDiscarded,
   });
 }
 
@@ -373,12 +417,18 @@ function tallyVotes(room: Room): void {
     return;
   }
 
+  // Reaching here with more than one still-tied top suspect only happens
+  // once MAX_REVOTES is exhausted (the tie-repeat branch above already
+  // returned otherwise) — flag it so the UI can say this elimination was a
+  // random draw, not a clean majority decision.
+  const tieBrokenRandomly = topVoted.length > 1;
   const eliminatedId = topVoted[Math.floor(Math.random() * topVoted.length)];
   const wasImpostor = r.impostors.includes(eliminatedId);
   r.matchEliminated = [...r.matchEliminated, eliminatedId];
   r.eliminated = eliminatedId;
   r.tally = tally;
   r.wasImpostor = wasImpostor;
+  r.tieBrokenRandomly = tieBrokenRandomly;
 
   // otherwise there's another round of clue-giving to go (continueMatch) —
   // see @juntada/impostor-match-rules for the actual win condition.
@@ -402,6 +452,7 @@ function tallyVotes(room: Room): void {
     tally,
     matchOver: r.matchOver,
     winner: r.winner,
+    tieBrokenRandomly,
   });
 }
 
@@ -555,9 +606,26 @@ function handleAction(
       if (!aliveIds(room).includes(playerId)) return { handled: false };
       if (!round(room).skipVotes.includes(playerId)) round(room).skipVotes.push(playerId);
       if (activeSkipVotes(room).length >= skipThreshold(room)) {
-        rerollWord(room);
+        // Every active category being completely exhausted (not just the
+        // current one) is a corner case with no good recovery — clear the
+        // votes instead of leaving them stuck at a satisfied threshold,
+        // which would otherwise silently retry (and re-fail) this same
+        // reroll on every subsequent skip_word call.
+        if (!rerollWord(room)) {
+          round(room).skipVotes = [];
+          return { handled: true };
+        }
         return { handled: true, rerolled: true };
       }
+      return { handled: true };
+    }
+
+    // Lets someone take back a "pedir otra palabra" request before it's
+    // acted on — otherwise the only way to undo a mis-tap is to wait for
+    // either the threshold to be reached or the round to move on its own.
+    case "cancel_skip_word": {
+      if (room.phase !== "round") return { handled: false };
+      round(room).skipVotes = round(room).skipVotes.filter(id => id !== playerId);
       return { handled: true };
     }
 
@@ -600,7 +668,11 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     matchOver: r.matchOver,
     winner: r.winner,
     abortedReason: r.abortedReason,
+    votesDiscarded: r.votesDiscarded,
+    tieBrokenRandomly: r.tieBrokenRandomly,
+    restartedReason: r.restartedReason,
     skipVotes: activeSkipVotes(room).length,
+    skipVoterIds: activeSkipVotes(room),
     skipVotesNeeded: skipThreshold(room),
     rerollCount: r.rerollCount,
     revoteCandidates: r.revoteCandidates,
@@ -620,10 +692,7 @@ function getPrivateView(room: Room, playerId: string): Record<string, unknown> |
     isImpostor,
     isEliminated,
     word: isImpostor && !isEliminated ? null : r.word,
-    hint:
-      isImpostor && !isEliminated && cfg(room).hintsEnabled
-        ? `La categoría es ${r.categoryLabel}, pero no sabés cuál es la palabra exacta.`
-        : null,
+    hint: isImpostor && !isEliminated && cfg(room).hintsEnabled ? wordHint(r.categoryKey, r.word) : null,
   };
 }
 

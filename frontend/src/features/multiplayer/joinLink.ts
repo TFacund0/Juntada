@@ -37,3 +37,23 @@ export function consumeJoinLink(): JoinLink | null {
   if (kind === "group" || !gameId) return { code: code.toUpperCase(), kind: "group" };
   return { code: code.toUpperCase(), kind: "room", gameId };
 }
+
+// Pulls just the room/group code out of whatever the in-app QR scanner
+// decoded — one of this app's own join links (?join=CODE&...), or a bare
+// code if the QR only ever encoded that. Doesn't need to resolve "room" vs
+// "group": the join screen's own check_room_code preview already handles a
+// code that turns out to be the other kind (see MultiplayerGame's
+// "Unirme al grupo" fallback), so there's nothing extra to decide here.
+export function extractScannedCode(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  try {
+    const code = new URL(trimmed).searchParams.get("join");
+    if (code) return code.toUpperCase();
+  } catch {
+    /* not a URL — fall through to the bare-code case below */
+  }
+
+  return /^[A-Za-z0-9]{1,8}$/.test(trimmed) ? trimmed.toUpperCase() : null;
+}

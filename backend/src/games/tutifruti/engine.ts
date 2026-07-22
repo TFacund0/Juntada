@@ -17,13 +17,22 @@ interface Category {
   icon?: string;
 }
 
-const { DEFAULT_CATEGORIES, LETTERS } = require("@juntada/tutifruti-data") as {
+const { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } = require("@juntada/tutifruti-data") as {
   DEFAULT_CATEGORIES: Category[];
   LETTERS: string[];
+  COMMON_LETTERS: string[];
 };
 const { normalizeWord, startsWithLetter } = require("@juntada/tutifruti-words") as typeof import("@juntada/tutifruti-words");
 
 const MIN_PLAYERS = 2;
+
+// The writing phase has always had a timer (or "basta"), but review had
+// none at all — one player alt-tabbing, forgetting, or dropping without
+// their client ever flipping `online: false` left everyone else stuck
+// waiting on a confirm that might never come. Fixed rather than
+// host-configurable since review is normally quick and doesn't need the
+// same tuning as writing time.
+const REVIEW_TIME_MS = 90 * 1000;
 
 interface TutifrutiConfig {
   score: Record<string, number>;
@@ -32,6 +41,7 @@ interface TutifrutiConfig {
   roundTime: number;
   activeCategories: Record<string, boolean>;
   customCategories: Category[];
+  enabledLetters: Record<string, boolean>;
   [key: string]: unknown;
 }
 
@@ -51,12 +61,18 @@ interface TutifrutiRound {
   categories: Category[];
   endMode: "timer" | "basta";
   timerEnd: number | null;
+  reviewEnd: number | null;
   bastaBy: string | null;
   answers: Record<string, Record<string, string>>;
   marks: Record<string, Record<string, Record<string, boolean>>>;
   pointsByPlayer: Record<string, number> | null;
   breakdown: Record<string, Record<string, AnswerBreakdown>> | null;
   reviewConfirmed?: Record<string, boolean>;
+  // Who was actually in the room when this round started — scoring and
+  // duplicate detection stay pinned to this list for the whole round, not
+  // the live room.players, so a player leaving mid-round can't quietly drop
+  // their word out of the duplicate count and inflate someone else's score.
+  participantIds: string[];
 }
 
 function cfg(room: Room): TutifrutiConfig {
@@ -75,6 +91,7 @@ function createConfig(): TutifrutiConfig {
     roundTime: 90, // seconds, used when endMode === "timer"
     activeCategories: DEFAULT_CATEGORIES.reduce((a, c) => ({ ...a, [c.id]: false }), {} as Record<string, boolean>),
     customCategories: [], // [{ id, label }]
+    enabledLetters: LETTERS.reduce((a, l) => ({ ...a, [l]: COMMON_LETTERS.includes(l) }), {} as Record<string, boolean>),
   };
 }
 
@@ -87,12 +104,26 @@ function activeCategories(room: Room): Category[] {
   return [...defaults, ...custom.filter(c => c && c.id && c.label)];
 }
 
-function pickLetter(room: Room): string {
+// Same "malformed config can't crash the server" guard as activeCategories.
+function activeLetters(room: Room): string[] {
+  const enabled = cfg(room).enabledLetters;
+  if (!enabled || typeof enabled !== "object") return [];
+  return LETTERS.filter(l => enabled[l]);
+}
+
+// `exclude` keeps a reroll from landing back on the exact letter already on
+// screen — without it, "🔀 Cambiar letra" could silently pick the same
+// letter again and increment rerollsUsed with nothing actually changing.
+// Restricted to the host's enabled letters (see activeLetters) — startRound
+// already refuses to begin with none active, so `pool` is never empty here.
+function pickLetter(room: Room, exclude?: string): string {
+  const pool = activeLetters(room);
   const used = (room.usedWords.letters as string[] | undefined) || [];
-  let available = LETTERS.filter(l => !used.includes(l));
+  let available = pool.filter(l => !used.includes(l) && l !== exclude);
   if (available.length === 0) {
+    available = pool.filter(l => l !== exclude);
+    if (available.length === 0) available = pool;
     room.usedWords.letters = [];
-    available = LETTERS;
   }
   return available[Math.floor(Math.random() * available.length)];
 }
@@ -104,6 +135,7 @@ function startRound(room: Room): { success?: true; error?: string } {
   }
   const cats = activeCategories(room);
   if (cats.length === 0) return { error: "No hay categorías activas" };
+  if (activeLetters(room).length === 0) return { error: "No hay letras activas" };
 
   room.round = {
     letter: pickLetter(room),
@@ -111,11 +143,13 @@ function startRound(room: Room): { success?: true; error?: string } {
     categories: cats,
     endMode: cfg(room).endMode === "basta" ? "basta" : "timer",
     timerEnd: null,
+    reviewEnd: null,
     bastaBy: null,
     answers: {},
     marks: {},
     pointsByPlayer: null,
     breakdown: null,
+    participantIds: room.players.map(p => p.id),
   } satisfies TutifrutiRound;
   room.phase = "setup";
   room.players.forEach(p => {
@@ -129,6 +163,7 @@ function enterReview(room: Room): void {
   const r = round(room);
   r.marks = {};
   r.reviewConfirmed = {};
+  r.reviewEnd = Date.now() + REVIEW_TIME_MS;
   room.players.forEach(p => {
     r.marks[p.id] = {};
   });
@@ -136,37 +171,41 @@ function enterReview(room: Room): void {
 
 function finishRound(room: Room): void {
   const r = round(room);
-  const players = room.players;
+  // Pinned to whoever was actually here when the round started — not the
+  // live room.players — so a player leaving between writing and review
+  // can't drop their word out of the duplicate count and inflate whoever
+  // else wrote the same thing.
+  const participantIds = r.participantIds;
   const breakdown: Record<string, Record<string, AnswerBreakdown>> = {};
   const pointsByPlayer: Record<string, number> = {};
 
-  players.forEach(p => {
-    breakdown[p.id] = {};
-    pointsByPlayer[p.id] = 0;
+  participantIds.forEach(pid => {
+    breakdown[pid] = {};
+    pointsByPlayer[pid] = 0;
   });
 
   r.categories.forEach(cat => {
     // Normalized word -> list of playerIds that wrote it, to detect duplicates.
     const wordsByPlayer: Record<string, string> = {};
-    players.forEach(p => {
-      const raw = (r.answers[p.id] || {})[cat.id] || "";
-      wordsByPlayer[p.id] = raw.trim();
+    participantIds.forEach(pid => {
+      const raw = (r.answers[pid] || {})[cat.id] || "";
+      wordsByPlayer[pid] = raw.trim();
     });
     const normalizedCounts: Record<string, number> = {};
-    players.forEach(p => {
-      const norm = normalizeWord(wordsByPlayer[p.id]);
+    participantIds.forEach(pid => {
+      const norm = normalizeWord(wordsByPlayer[pid]);
       if (!norm) return;
       normalizedCounts[norm] = (normalizedCounts[norm] || 0) + 1;
     });
 
     const catBreakdown: Record<string, Omit<AnswerBreakdown, "points">> = {};
-    players.forEach(p => {
-      const word = wordsByPlayer[p.id];
+    participantIds.forEach(pid => {
+      const word = wordsByPlayer[pid];
       if (!word) {
-        catBreakdown[p.id] = { word: "", valid: false, wrongLetter: false, duplicate: false, ticks: 0, crosses: 0 };
+        catBreakdown[pid] = { word: "", valid: false, wrongLetter: false, duplicate: false, ticks: 0, crosses: 0 };
         return;
       }
-      const marksForWord = (r.marks[p.id] || {})[cat.id] || {};
+      const marksForWord = (r.marks[pid] || {})[cat.id] || {};
       const values = Object.values(marksForWord);
       const ticks = values.filter(v => v === true).length;
       const crosses = values.filter(v => v === false).length;
@@ -178,23 +217,26 @@ function finishRound(room: Room): void {
       const noVotes = ticks + crosses === 0;
       const valid = !wrongLetter && (noVotes || ticks > crosses);
       const duplicate = valid && normalizedCounts[normalizeWord(word)] > 1;
-      catBreakdown[p.id] = { word, valid, wrongLetter, duplicate, ticks, crosses };
+      catBreakdown[pid] = { word, valid, wrongLetter, duplicate, ticks, crosses };
     });
 
     // A category where exactly one player landed a valid word is worth a
     // bonus — being the only one to nail it beats splitting points with dupes.
-    const validCount = players.filter(p => catBreakdown[p.id].valid).length;
+    const validCount = participantIds.filter(pid => catBreakdown[pid].valid).length;
 
-    players.forEach(p => {
-      const b = catBreakdown[p.id];
+    participantIds.forEach(pid => {
+      const b = catBreakdown[pid];
       const points = !b.valid ? 0 : validCount === 1 ? 20 : b.duplicate ? 5 : 10;
-      breakdown[p.id][cat.id] = { ...b, points };
-      pointsByPlayer[p.id] += points;
+      breakdown[pid][cat.id] = { ...b, points };
+      pointsByPlayer[pid] += points;
     });
   });
 
-  players.forEach(p => {
-    cfg(room).score[p.id] = (cfg(room).score[p.id] || 0) + pointsByPlayer[p.id];
+  // Still credited even if they've since left — cfg(room).score is keyed by
+  // playerId and simply won't be shown to anyone no longer in room.players,
+  // same as it already worked before this round ever needed a snapshot.
+  participantIds.forEach(pid => {
+    cfg(room).score[pid] = (cfg(room).score[pid] || 0) + pointsByPlayer[pid];
   });
 
   r.pointsByPlayer = pointsByPlayer;
@@ -226,11 +268,25 @@ function maybeAdvance(room: Room): void {
 }
 
 function forceReadyAndAdvance(room: Room): void {
-  if (room.phase === "writing") enterReview(room);
+  if (room.phase === "writing") {
+    enterReview(room);
+  } else if (room.phase === "review") {
+    // Review's own timer ran out — treat it as if every online player had
+    // just confirmed, same as writing's timer treats a timeout as everyone
+    // being ready. Whoever's genuinely still deciding loses that vote, but
+    // the alternative is the round staying stuck forever on one straggler.
+    const r = round(room);
+    if (!r.reviewConfirmed) r.reviewConfirmed = {};
+    room.players.forEach(p => {
+      if (p.online) r.reviewConfirmed![p.id] = true;
+    });
+    finishRound(room);
+  }
 }
 
 function getPhaseTimerEnd(room: Room): number | null {
   if (room.phase === "writing" && round(room)?.endMode === "timer") return round(room).timerEnd;
+  if (room.phase === "review") return round(room)?.reviewEnd ?? null;
   return null;
 }
 
@@ -262,7 +318,7 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
       if (room.phase !== "setup") return { handled: false };
       if (playerId !== room.hostId) return { handled: false };
       if (payload?.reroll) {
-        r.letter = pickLetter(room);
+        r.letter = pickLetter(room, r.letter);
         r.rerollsUsed += 1;
         return { handled: true };
       }
@@ -309,12 +365,20 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
 
     case "mark_word": {
       if (room.phase !== "review") return { handled: false };
+      // Locked once this voter has confirmed their scores — otherwise a
+      // vote cast after confirming could shift the tally out from under
+      // players who already confirmed based on the marks they saw at the
+      // time, even though "Confirmaste los puntajes" implies finality.
+      if (r.reviewConfirmed?.[playerId]) return { handled: false };
       const targetPlayerId = payload?.targetPlayerId as string;
       const categoryId = payload?.categoryId as string;
       const valid = payload?.valid;
       if (typeof valid !== "boolean") return { handled: false };
       if (!r.categories.some(c => c.id === categoryId)) return { handled: false };
-      if (!room.players.some(p => p.id === targetPlayerId)) return { handled: false };
+      // Checked against this round's participant snapshot, not the live
+      // roster — a player who's since left the room can still have their
+      // word voted on by whoever's left, instead of it being stuck unmarked.
+      if (!r.participantIds.includes(targetPlayerId)) return { handled: false };
       if (!(r.answers[targetPlayerId] || {})[categoryId]) return { handled: false };
       if (!r.marks[targetPlayerId]) r.marks[targetPlayerId] = {};
       if (!r.marks[targetPlayerId][categoryId]) r.marks[targetPlayerId][categoryId] = {};
@@ -368,6 +432,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
       answers: r.answers,
       marks: r.marks,
       reviewConfirmed: r.reviewConfirmed,
+      reviewEnd: r.reviewEnd,
       pointsByPlayer: r.pointsByPlayer,
       breakdown: r.breakdown,
     };

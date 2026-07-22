@@ -17,6 +17,7 @@ import { AddPlayerForm } from "./AddPlayerForm";
 import { EndMatchButton } from "./EndMatchButton";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
+import { nextPlayerName } from "../../utils/playerNames";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIMÓN LIMÓN — un solo dispositivo en el centro de la ronda, jugando con un
@@ -139,9 +140,19 @@ export function LocalGame() {
     setPlayers(prev => prev.map(x => (x.id === id ? { ...x, name } : x)));
   };
 
+  // Typing has to allow a momentarily-blank field (you can't erase a name
+  // without passing through "") — but leaving it there once you move on
+  // would strand that player with an empty display name forever, since
+  // nothing else ever revisits it. Falls back to a fresh "Jugador N" only
+  // once editing is actually done.
+  const handleNameBlur = (id: number) => {
+    setPlayers(prev =>
+      prev.map(x => (x.id === id && !x.name.trim() ? { ...x, name: nextPlayerName(prev.filter(p => p.id !== id).map(p => p.name)) } : x)),
+    );
+  };
+
   const addPlayer = () => {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    const trimmed = newName.trim() || nextPlayerName(players.map(p => p.name));
     if (isDuplicateName(trimmed, null)) {
       setNameError("Ya hay un jugador con ese nombre");
       return;
@@ -157,7 +168,7 @@ export function LocalGame() {
       setDeck(buildDeck());
       setCurrent(null);
       setPiles({});
-      setTurnId(players[0].id);
+      setTurnId(players[0]?.id ?? null);
       setShowRanking(false);
       setAddingPlayer(false);
     } else {
@@ -253,7 +264,12 @@ export function LocalGame() {
             {players.map(p => (
               <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
                 <Avatar name={p.name} size={32} />
-                <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                <input
+                  style={{ ...S.input, flex: 1 }}
+                  value={p.name}
+                  onChange={e => renamePlayer(p.id, e.target.value)}
+                  onBlur={() => handleNameBlur(p.id)}
+                />
                 <button
                   onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
                   style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
@@ -383,13 +399,26 @@ export function LocalGame() {
           </div>
         )}
 
-        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />}
+        {addingPlayer && (
+          <>
+            <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />
+            <p style={{ ...S.muted, textAlign: "center", fontSize: 12, marginTop: -6 }}>
+              En este modo no se le asignan cartas automáticamente — sumalas a mano en "Cartas de cada uno".
+            </p>
+          </>
+        )}
 
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
           <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>
             {addingPlayer ? "Cancelar" : "+ Sumar jugador"}
           </button>
-          <EndMatchButton onConfirm={() => setPhase("result")} />
+          <EndMatchButton
+            onConfirm={() => {
+              revealTimers.current.forEach(clearTimeout);
+              revealTimers.current = [];
+              setPhase("result");
+            }}
+          />
         </div>
       </div>
     );

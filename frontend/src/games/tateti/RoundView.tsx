@@ -1,9 +1,18 @@
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
+import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Board } from "./Board";
 import type { RoundViewProps } from "../gameTypes";
+
+interface TatetiRoundState {
+  board: (string | null)[];
+  marks: Record<string, string>;
+  turn: string | undefined;
+  winner: string | "draw" | null;
+  winningLine: number[] | null;
+  forfeited?: boolean;
+}
 
 // Covers both in-progress phases ("round" while playing, "result" once a
 // match ends) for the 1v1 online room. Score and the pending reset-scoreboard
@@ -11,7 +20,14 @@ import type { RoundViewProps } from "../gameTypes";
 // survive across rematches, which just replace room.round.
 export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
   const opponent = room.players.find(p => p.id !== me?.playerId);
-  const round = room.round as any;
+  const round = room.round as TatetiRoundState | null;
+  const LeaveToLobby = (
+    <LeaveToLobbyButton
+      groupCode={room.groupCode}
+      send={send}
+      confirm={{ message: "Se interrumpe la partida para los dos. El marcador se mantiene si vuelven a jugar sin reiniciarlo." }}
+    />
+  );
   const score: Record<string, number> = (room.config.score as Record<string, number>) || {};
   const resetVotes: string[] = (room.config.resetVotes as string[]) || [];
   const iVotedReset = !!me && resetVotes.includes(me.playerId);
@@ -99,6 +115,10 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
         </p>
         <Board board={round.board} winningLine={round.winningLine} onCellClick={mark} disabled={!myTurn} />
         {ResetScoreControl}
+        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+            Available to any player, not just the host — quitting a 1v1 mid-game
+            shouldn't require disconnecting and waiting out the auto-kick timeout. */}
+        {LeaveToLobby}
       </div>
     );
   }
@@ -111,12 +131,23 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
       <div>
         {Scoreboard}
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-          <p style={S.bigReveal}>{isDraw ? "Empate" : iWon ? "¡Ganaste!" : `Ganó ${opponent?.name}`}</p>
+          <p style={S.bigReveal}>
+            {/* Only the player still here ever sees a forfeited result — the
+                one who left (kicked after the usual 5-minute grace period)
+                is gone from room.players by the time this state exists, so
+                there's no "opponent" to name and always a win from this
+                viewer's side. */}
+            {round.forfeited ? "Ganaste — tu rival abandonó la partida" : isDraw ? "Empate" : iWon ? "¡Ganaste!" : `Ganó ${opponent?.name}`}
+          </p>
         </div>
         <Board board={round.board} winningLine={round.winningLine} disabled />
 
         <div style={{ marginTop: 16 }}>
-          {myPlayer?.ready ? (
+          {round.forfeited ? (
+            <p style={{ ...S.muted, textAlign: "center" }}>
+              Volvé al lobby para esperar a alguien más — hace falta un segundo jugador para seguir.
+            </p>
+          ) : myPlayer?.ready ? (
             <div style={{ ...S.card, textAlign: "center" }}>
               <p style={{ color: "#5DCAA5" }}>Listo — esperando a {opponent?.name} para la revancha</p>
             </div>
@@ -124,12 +155,8 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
             <StartButton onClick={() => send({ type: "player_ready" })}>Jugar de nuevo</StartButton>
           )}
         </div>
-        {ResetScoreControl}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
-            Available to any player, not just the host. */}
-        {room.groupCode === null && (
-          <BackButton onClick={() => send({ type: "back_to_lobby" })}>Volver al lobby</BackButton>
-        )}
+        {!round.forfeited && ResetScoreControl}
+        {LeaveToLobby}
       </div>
     );
   }
