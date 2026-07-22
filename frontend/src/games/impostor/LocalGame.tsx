@@ -578,8 +578,34 @@ export function LocalGame() {
 
         {tab === "config" && configTab === "cats" && (
           <div style={S.card}>
-            <span style={S.label}>Categorías</span>
-            <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={S.label}>Categorías</span>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() =>
+                    setConfig(c => ({
+                      ...c,
+                      enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
+                    }))
+                  }
+                  style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                >
+                  Todas
+                </button>
+                <button
+                  onClick={() =>
+                    setConfig(c => ({
+                      ...c,
+                      enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
+                    }))
+                  }
+                  style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                >
+                  Ninguna
+                </button>
+              </div>
+            </div>
+            <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {Object.entries(CATEGORIES).map(([k, cat]) => {
                 const active = !!config.enabledCategories[k];
