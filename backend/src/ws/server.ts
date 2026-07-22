@@ -36,11 +36,21 @@ const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   check_room_code: { limit: 30, windowMs: 60_000 },
   create_group: { limit: 5, windowMs: 60_000 },
   join_group: { limit: 20, windowMs: 60_000 },
+  // Rayado Libre's canvas stream: the frontend batches pointer movement into
+  // one message per short animation-frame window, which still easily clears
+  // the blanket per-connection budget below over a 99s drawing turn — these
+  // get their own generous, dedicated budget instead (see the `limit` lookup
+  // in the message handler, which skips the global check once a per-type
+  // limit like this one applies).
+  draw_stroke: { limit: 400, windowMs: 10_000 },
+  draw_fill: { limit: 50, windowMs: 10_000 },
+  draw_clear: { limit: 10, windowMs: 10_000 },
+  draw_undo: { limit: 20, windowMs: 10_000 },
 };
 
-// Blanket per-connection limit covering every message type (in-round actions
-// like vote/submit_clue included), so a single client can't hammer the game
-// loop with rapid-fire messages even for types with no per-type limit above.
+// Blanket per-connection limit covering every message type with no dedicated
+// entry above (in-round actions like vote/submit_clue included), so a single
+// client can't hammer the game loop with rapid-fire messages.
 const GLOBAL_MESSAGE_LIMIT = { limit: 30, windowMs: 10_000 };
 
 // Origin isn't sent by non-browser clients (native apps, test scripts), so
@@ -141,13 +151,13 @@ function attachWebSocketServer(httpServer: Server) {
         return;
       }
 
-      if (!isAllowed(`${ip}:global`, GLOBAL_MESSAGE_LIMIT.limit, GLOBAL_MESSAGE_LIMIT.windowMs)) {
-        sendError(ws, "RATE_LIMITED", "Estás yendo muy rápido, esperá un momento");
-        return;
-      }
-
       const limit = RATE_LIMITS[data.type];
-      if (limit && !isAllowed(`${ip}:${data.type}`, limit.limit, limit.windowMs)) {
+      if (limit) {
+        if (!isAllowed(`${ip}:${data.type}`, limit.limit, limit.windowMs)) {
+          sendError(ws, "RATE_LIMITED", "Estás yendo muy rápido, esperá un momento");
+          return;
+        }
+      } else if (!isAllowed(`${ip}:global`, GLOBAL_MESSAGE_LIMIT.limit, GLOBAL_MESSAGE_LIMIT.windowMs)) {
         sendError(ws, "RATE_LIMITED", "Estás yendo muy rápido, esperá un momento");
         return;
       }
