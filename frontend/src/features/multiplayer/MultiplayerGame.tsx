@@ -387,7 +387,7 @@ export function MultiplayerGame({
 
   const updateConfig = (patch: Record<string, unknown>) => {
     if (!room) return;
-    send({ type: "update_config", config: { ...room.config, ...patch } });
+    send({ type: "update_config", config: patch });
   };
 
   const leaveInstance = () => send({ type: "leave_instance" });

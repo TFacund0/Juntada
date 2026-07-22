@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from "react";
 import { S } from "../../theme/styles";
-import { DEFAULT_CATEGORIES } from "@juntada/tutifruti-data";
+import { DEFAULT_CATEGORIES, LETTERS } from "@juntada/tutifruti-data";
 import { Btn } from "../../components/Btn";
 import type { ConfigPanelProps } from "../gameTypes";
 
@@ -106,7 +106,7 @@ function CategoryChip({ cat, active, onToggle, onRemove }: { cat: Category; acti
 // instead of a stack of disconnected boxes — sections inside are split with
 // thin dividers rather than separate cards.
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
-  const [tab, setTab] = useState<"cats" | "rules">("rules");
+  const [tab, setTab] = useState<"cats" | "rules" | "letters">("rules");
   const [newCat, setNewCat] = useState("");
   const [showActive, setShowActive] = useState(false);
   const [page, setPage] = useState(0);
@@ -116,6 +116,11 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const allCategories: Category[] = [...DEFAULT_CATEGORIES, ...customCategories];
   const activeList = allCategories.filter(c => !!config.activeCategories?.[c.id]);
   const activeCount = activeList.length;
+  const activeLetterCount = (LETTERS as string[]).filter(l => !!config.enabledLetters?.[l]).length;
+
+  const toggleLetter = (l: string) => {
+    updateConfig({ enabledLetters: { ...config.enabledLetters, [l]: !config.enabledLetters?.[l] } });
+  };
 
   const pageCount = Math.ceil(DEFAULT_CATEGORIES.length / CATEGORIES_PER_PAGE);
   const currentPage = Math.min(page, pageCount - 1);
@@ -144,13 +149,13 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
     <div style={S.card}>
       <span style={S.label}>Configuración</span>
       <div style={{ display: "flex", gap: 8 }}>
-        {(["cats", "rules"] as const).map(t => (
+        {(["cats", "letters", "rules"] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
             style={{ ...S.btn(tab === t ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
           >
-            {t === "cats" ? "Categorías" : "Reglas"}
+            {t === "cats" ? "Categorías" : t === "letters" ? "Letras" : "Reglas"}
           </button>
         ))}
       </div>
@@ -285,6 +290,52 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             {pagedCategories.map(cat => (
               <CategoryChip key={cat.id} cat={cat} active={!!config.activeCategories?.[cat.id]} onToggle={() => toggleCategory(cat.id)} />
             ))}
+          </div>
+        </>
+      )}
+
+      {tab === "letters" && (
+        <>
+          <div style={divider} />
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={S.label}>Letras</span>
+            <span style={{ fontSize: 12, color: "#9089c0", fontWeight: 700 }}>
+              {activeLetterCount} activa{activeLetterCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+            Tocá una letra para activarla o desactivarla — ya vienen preseleccionadas las más comunes.
+          </p>
+          {activeLetterCount === 0 && (
+            <p style={{ fontSize: 12, color: "#E2C44A", margin: "0 0 14px" }}>Activá al menos una letra para poder empezar una ronda.</p>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {(LETTERS as string[]).map(l => {
+              const active = !!config.enabledLetters?.[l];
+              return (
+                <button
+                  key={l}
+                  onClick={() => toggleLetter(l)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
+                    background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
+                    color: active ? "#fff" : "#9089c0",
+                    fontWeight: 700,
+                    fontSize: 15,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {l}
+                </button>
+              );
+            })}
           </div>
         </>
       )}

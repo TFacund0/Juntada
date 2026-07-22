@@ -118,7 +118,7 @@ describe("Impostor RoundView — round phase", () => {
         room={makeRoom("round")}
         me={{ playerId: "p2", roomCode: "TEST1" }}
         myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
-        myRole={{ isImpostor: true, hint: "La categoría es Animales" }}
+        myRole={{ isImpostor: true, hint: "Vive en el agua" }}
         wordReveal={null}
         isHost={false}
         send={vi.fn()}
@@ -127,11 +127,10 @@ describe("Impostor RoundView — round phase", () => {
 
     await user.click(screen.getByText("Tocá para ver tu palabra"));
     expect(screen.getByText("Sos el impostor")).toBeInTheDocument();
-    expect(screen.getByText("La categoría es Animales")).toBeInTheDocument();
-    expect(screen.getByText("PISTA PARA EL IMPOSTOR")).toBeInTheDocument();
+    expect(screen.getByText("Vive en el agua")).toBeInTheDocument();
   });
 
-  test("hides the category from a blind impostor (hintsEnabled off), but not from innocents", () => {
+  test("never shows the category to the impostor or to innocents", () => {
     const room = makeRoom("round");
     room.config = { ...room.config, hintsEnabled: false };
 
@@ -159,8 +158,8 @@ describe("Impostor RoundView — round phase", () => {
         send={vi.fn()}
       />,
     );
-    expect(screen.getByText("Animales")).toBeInTheDocument();
-    expect(screen.getByText("CATEGORÍA")).toBeInTheDocument();
+    expect(screen.queryByText("Animales")).not.toBeInTheDocument();
+    expect(screen.queryByText("CATEGORÍA")).not.toBeInTheDocument();
   });
 
   test("on your turn, confirming out loud sends an empty submit_clue", async () => {

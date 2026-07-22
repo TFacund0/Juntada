@@ -17,9 +17,10 @@ interface Category {
   icon?: string;
 }
 
-const { DEFAULT_CATEGORIES, LETTERS } = require("@juntada/tutifruti-data") as {
+const { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } = require("@juntada/tutifruti-data") as {
   DEFAULT_CATEGORIES: Category[];
   LETTERS: string[];
+  COMMON_LETTERS: string[];
 };
 const { normalizeWord, startsWithLetter } = require("@juntada/tutifruti-words") as typeof import("@juntada/tutifruti-words");
 
@@ -40,6 +41,7 @@ interface TutifrutiConfig {
   roundTime: number;
   activeCategories: Record<string, boolean>;
   customCategories: Category[];
+  enabledLetters: Record<string, boolean>;
   [key: string]: unknown;
 }
 
@@ -89,6 +91,7 @@ function createConfig(): TutifrutiConfig {
     roundTime: 90, // seconds, used when endMode === "timer"
     activeCategories: DEFAULT_CATEGORIES.reduce((a, c) => ({ ...a, [c.id]: false }), {} as Record<string, boolean>),
     customCategories: [], // [{ id, label }]
+    enabledLetters: LETTERS.reduce((a, l) => ({ ...a, [l]: COMMON_LETTERS.includes(l) }), {} as Record<string, boolean>),
   };
 }
 
@@ -101,15 +104,25 @@ function activeCategories(room: Room): Category[] {
   return [...defaults, ...custom.filter(c => c && c.id && c.label)];
 }
 
+// Same "malformed config can't crash the server" guard as activeCategories.
+function activeLetters(room: Room): string[] {
+  const enabled = cfg(room).enabledLetters;
+  if (!enabled || typeof enabled !== "object") return [];
+  return LETTERS.filter(l => enabled[l]);
+}
+
 // `exclude` keeps a reroll from landing back on the exact letter already on
 // screen — without it, "🔀 Cambiar letra" could silently pick the same
 // letter again and increment rerollsUsed with nothing actually changing.
+// Restricted to the host's enabled letters (see activeLetters) — startRound
+// already refuses to begin with none active, so `pool` is never empty here.
 function pickLetter(room: Room, exclude?: string): string {
+  const pool = activeLetters(room);
   const used = (room.usedWords.letters as string[] | undefined) || [];
-  let available = LETTERS.filter(l => !used.includes(l) && l !== exclude);
+  let available = pool.filter(l => !used.includes(l) && l !== exclude);
   if (available.length === 0) {
-    available = LETTERS.filter(l => l !== exclude);
-    if (available.length === 0) available = LETTERS;
+    available = pool.filter(l => l !== exclude);
+    if (available.length === 0) available = pool;
     room.usedWords.letters = [];
   }
   return available[Math.floor(Math.random() * available.length)];
@@ -122,6 +135,7 @@ function startRound(room: Room): { success?: true; error?: string } {
   }
   const cats = activeCategories(room);
   if (cats.length === 0) return { error: "No hay categorías activas" };
+  if (activeLetters(room).length === 0) return { error: "No hay letras activas" };
 
   room.round = {
     letter: pickLetter(room),

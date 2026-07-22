@@ -26,9 +26,16 @@ interface Category {
   label: string;
   icon: string;
   words: string[];
+  hints: Record<string, string>;
 }
 
 const { CATEGORIES } = require("@juntada/impostor-data") as { CATEGORIES: Record<string, Category> };
+// Fallback for the rare case a word predates the hints map (shouldn't happen
+// once every CATEGORIES entry has one, but keeps hintsEnabled from ever
+// crashing on a lookup miss).
+function wordHint(catKey: string, word: string): string | null {
+  return CATEGORIES[catKey]?.hints?.[word] ?? null;
+}
 const { shuffle } = require("../../utils/shuffle");
 const { timers } = require("../../state/roomStore") as { timers: Map<string, NodeJS.Timeout> };
 
@@ -47,6 +54,10 @@ interface ImpostorConfig {
   // or just that they're out — the full impostor roster only ever comes out
   // once the match itself ends, regardless of this setting.
   revealOnElimination: boolean;
+  // Bumped every time a round starts (a fresh match via startRound, or
+  // another lap within one via continueMatch) — see effectiveTurnOrder. Not
+  // host-editable; keeps the same player from always going first.
+  turnRotation: number;
   [key: string]: unknown;
 }
 
@@ -140,6 +151,7 @@ function createConfig(): ImpostorConfig {
     discussionUnlimited: false, // discussion phase happens but with no timer/auto-advance — players mark ready manually
     turnOrder: [],
     revealOnElimination: true,
+    turnRotation: 0,
   };
 }
 
@@ -154,12 +166,17 @@ function aliveIds(room: Room): string[] {
 // The order this round actually speaks in: the host's configured order,
 // filtered down to players still in the room, with anyone missing from it
 // (new joins, or a fresh room with no order set yet) appended in arrival
-// order.
+// order — then rotated by turnRotation so the same player isn't stuck going
+// first round after round (see startRound/continueMatch, which bump it).
 function effectiveTurnOrder(room: Room): string[] {
   const ids = room.players.map(p => p.id);
   const stored = (cfg(room).turnOrder || []).filter(id => ids.includes(id));
   const missing = ids.filter(id => !stored.includes(id));
-  return [...stored, ...missing];
+  const order = [...stored, ...missing];
+  if (order.length === 0) return order;
+  const rotation = Number.isFinite(cfg(room).turnRotation) ? (cfg(room).turnRotation as number) : 0;
+  const offset = ((rotation % order.length) + order.length) % order.length;
+  return [...order.slice(offset), ...order.slice(0, offset)];
 }
 
 function turnTimerEnd(room: Room): number | null {
@@ -246,6 +263,7 @@ function startRound(room: Room, restartedReason?: "word_pool_exhausted"): { succ
   });
   skipOfflineTurns(room);
   round(room).timerEnd = round(room).turnIndex < round(room).turnOrder.length ? turnTimerEnd(room) : null;
+  cfg(room).turnRotation = (Number.isFinite(cfg(room).turnRotation) ? (cfg(room).turnRotation as number) : 0) + 1;
 
   return { success: true };
 }
@@ -291,6 +309,7 @@ function continueMatch(room: Room): { success?: true; error?: string } {
   });
   skipOfflineTurns(room);
   round(room).timerEnd = round(room).turnIndex < round(room).turnOrder.length ? turnTimerEnd(room) : null;
+  cfg(room).turnRotation = (Number.isFinite(cfg(room).turnRotation) ? (cfg(room).turnRotation as number) : 0) + 1;
 
   return { success: true };
 }
@@ -673,10 +692,7 @@ function getPrivateView(room: Room, playerId: string): Record<string, unknown> |
     isImpostor,
     isEliminated,
     word: isImpostor && !isEliminated ? null : r.word,
-    hint:
-      isImpostor && !isEliminated && cfg(room).hintsEnabled
-        ? `La categoría es ${r.categoryLabel}, pero no sabés cuál es la palabra exacta.`
-        : null,
+    hint: isImpostor && !isEliminated && cfg(room).hintsEnabled ? wordHint(r.categoryKey, r.word) : null,
   };
 }
 

@@ -18,15 +18,22 @@ export interface Card {
 // una sola excepción: el 1 de oro duplica el castigo, mientras que el 1 de
 // copa/espada/basto es un castigo simple (todas se pueden editar por
 // separado desde el ConfigPanel, vía el "update_config" genérico).
+// 5 mirrors 3 (elegir quién come la carta) and 6 mirrors 10 (elegir tema) —
+// written as direct references to the same string rather than duplicated
+// text, so a future edit to 3's or 10's wording can't drift out of sync with
+// its mirror.
+const CARD_3 = "Quien reveló la carta elige quién se la come.";
+const CARD_10 = "Elijan un tema y vayan diciendo uno por turno; quien se traba o repite, se come la carta.";
+
 const BASE_DESCRIPTIONS: Record<number, string> = {
   1: "Te la comés vos mismo.",
   2: "Come la carta el jugador a la derecha de quien la reveló.",
-  3: "Quien reveló la carta elige quién se la come.",
+  3: CARD_3,
   4: "Cuenten cuatro jugadores a la derecha empezando por quien reveló (que cuenta como el primero): el cuarto se la come.",
-  5: "Elijan un tema (por ejemplo, selecciones de fútbol) y vayan diciendo uno por turno; quien se traba o repite, se come la carta.",
-  6: 'Juego del limón: quien reveló dice "un limón, medio limón, tres limones" y el turno salta a la tercera persona a la derecha. Desde ahí, cada uno suma uno a la frase ("tres limones, medio limón, cuatro limones", después "cuatro... cinco", etc.) pasando siempre hacia la derecha. Quien se traba, se come la carta.',
+  5: CARD_3,
+  6: CARD_10,
   7: "Todos se tocan la nariz a la vez — el último en tocársela se come la carta.",
-  10: "Elijan un tema nuevo y vayan diciendo uno por turno, como en el 5; quien se traba, se come la carta.",
+  10: CARD_10,
   11: 'Palito: quien reveló dice "palito", el de la derecha "palito, palito", el siguiente "palito, palito, palito", sumando uno cada vez. Quien se confunde, se come la carta.',
   12: 'Se repite el juego del limón (como en el 6): arranca en "un limón, medio limón, tres limones" y sigue sumando de a uno hacia la derecha. Quien se traba, se come la carta.',
 };

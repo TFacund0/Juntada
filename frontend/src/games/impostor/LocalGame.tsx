@@ -118,6 +118,10 @@ export function LocalGame() {
   const [selection, setSelection] = useState<Record<number, number>>({}); // voterId -> suspectId not yet confirmed
   const [votes, setVotes] = useState<Record<number, number>>({});
   const [usedWords, setUsedWords] = useState<Record<string, string[]>>({});
+  // Bumped every time a round starts (a fresh match via startRound, or
+  // another lap within one via continueMatch) — mirrors the online engine's
+  // turnRotation so the same player isn't stuck always going first.
+  const [turnRotation, setTurnRotation] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [tab, setTab] = useState<SetupTab>("players");
@@ -127,6 +131,10 @@ export function LocalGame() {
 
   const activeCats = Object.keys(config.enabledCategories).filter(k => config.enabledCategories[k]);
   const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
+  // A subtle, word-specific clue for the impostor — never the category name,
+  // so it can't be traced back to what everyone else is actually giving
+  // clues about (see @juntada/impostor-data's hints, mirrors engine.ts).
+  const wordHint = (catKey: string, word: string): string | null => CATEGORIES[catKey]?.hints?.[word] ?? null;
   // drawWord picks a random active category, so as long as at least one of
   // them still has words it'll eventually find it — only actually stuck once
   // every active category is fully exhausted. Checked proactively (not just
@@ -211,6 +219,14 @@ export function LocalGame() {
     setPhase("reveal");
   };
 
+  // Rotates a list of ids so the same player isn't always first — offset
+  // advances by one every round (see startRound/continueMatch below).
+  const rotateIds = (ids: number[]) => {
+    if (ids.length === 0) return ids;
+    const offset = ((turnRotation % ids.length) + ids.length) % ids.length;
+    return [...ids.slice(offset), ...ids.slice(0, offset)];
+  };
+
   // Starts a brand-new match: fresh impostors, empty elimination history.
   const startRound = () => {
     const drawn = drawWord();
@@ -223,11 +239,12 @@ export function LocalGame() {
       categoryLabel: drawn.catLabel,
       impostors,
       matchEliminated: [],
-      voters: players.map(p => p.id),
+      voters: rotateIds(players.map(p => p.id)),
       matchOver: false,
       winner: null,
       revoteCount: 0,
     });
+    setTurnRotation(r => r + 1);
     beginReveal();
   };
 
@@ -279,11 +296,12 @@ export function LocalGame() {
       categoryLabel: prev.categoryLabel,
       impostors: prev.impostors,
       matchEliminated: prev.matchEliminated,
-      voters: alive,
+      voters: rotateIds(alive),
       matchOver: false,
       winner: null,
       revoteCount: 0,
     });
+    setTurnRotation(r => r + 1);
     beginReveal();
   };
 
@@ -470,7 +488,7 @@ export function LocalGame() {
               </div>
               <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
                 {config.hintsEnabled
-                  ? "El impostor ve la categoría, para poder disimular."
+                  ? "El impostor ve una pista sutil sobre la palabra, para poder disimular."
                   : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
               </p>
             </div>
@@ -560,8 +578,34 @@ export function LocalGame() {
 
         {tab === "config" && configTab === "cats" && (
           <div style={S.card}>
-            <span style={S.label}>Categorías</span>
-            <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={S.label}>Categorías</span>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() =>
+                    setConfig(c => ({
+                      ...c,
+                      enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
+                    }))
+                  }
+                  style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                >
+                  Todas
+                </button>
+                <button
+                  onClick={() =>
+                    setConfig(c => ({
+                      ...c,
+                      enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
+                    }))
+                  }
+                  style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                >
+                  Ninguna
+                </button>
+              </div>
+            </div>
+            <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {Object.entries(CATEGORIES).map(([k, cat]) => {
                 const active = !!config.enabledCategories[k];
@@ -670,7 +714,7 @@ export function LocalGame() {
 
   // ── REVEAL ──
   if (phase === "reveal" && round) {
-    const alive = players.filter(p => round.voters.includes(p.id));
+    const alive = round.voters.map(id => players.find(p => p.id === id)).filter((p): p is LocalPlayer => Boolean(p));
     const player = alive[revealIdx];
     const isImpostor = round.impostors.includes(player.id);
     const isLast = revealIdx === alive.length - 1;
@@ -732,14 +776,15 @@ export function LocalGame() {
           ) : isImpostor ? (
             <>
               <p style={{ fontSize: 22, fontWeight: 800, color: "#F09595", margin: "0 0 8px" }}>Sos el impostor</p>
-              {config.hintsEnabled && <p style={{ fontSize: 13, color: "#9089c0" }}>Categoría: {round.categoryLabel}</p>}
+              {config.hintsEnabled && wordHint(round.categoryKey, round.word) && (
+                <p style={{ fontSize: 13, color: "#9089c0" }}>{wordHint(round.categoryKey, round.word)}</p>
+              )}
               <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
             </>
           ) : (
             <>
               <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 6 }}>Tu palabra</p>
               <p style={S.bigReveal}>{round.word}</p>
-              <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryLabel}</p>
               <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
             </>
           )}
@@ -783,12 +828,6 @@ export function LocalGame() {
             50% { transform: scale(1.03); }
           }
         `}</style>
-        {config.hintsEnabled && (
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Pista para el impostor</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{round.categoryLabel}</p>
-          </div>
-        )}
         {config.discussionUnlimited ? (
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ ...S.muted, margin: 0 }}>Sin límite de tiempo — avancen cuando estén listos</p>
@@ -919,22 +958,37 @@ export function LocalGame() {
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
             <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round.word}</p>
-            <p style={{ fontSize: 13, color: "#7F77DD" }}>{round.categoryLabel}</p>
           </div>
         )}
 
         {matchOver && (
           <div style={S.card}>
-            <span style={S.label}>Impostores</span>
-            {impostorPlayers.map(p => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <Avatar name={p.name} size={32} />
-                <span style={{ fontWeight: 700, flex: 1 }}>{p.name}</span>
-                <span style={S.pill(round.matchEliminated.includes(p.id))}>
-                  {round.matchEliminated.includes(p.id) ? "Atrapado" : "Sigue libre"}
-                </span>
-              </div>
-            ))}
+            <span style={S.label}>{impostorPlayers.length === 1 ? "El impostor era" : "Los impostores eran"}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "8px 0 0" }}>
+              {impostorPlayers.map(p => (
+                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Avatar name={p.name} size={28} />
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</span>
+                </div>
+              ))}
+            </div>
+            {impostorPlayers.length > 1 && (
+              <>
+                <p style={{ ...S.muted, margin: "14px 0 6px" }}>Atrapados durante la partida</p>
+                {impostorPlayers.filter(p => round.matchEliminated.includes(p.id)).length > 0 ? (
+                  impostorPlayers
+                    .filter(p => round.matchEliminated.includes(p.id))
+                    .map(p => (
+                      <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <Avatar name={p.name} size={24} />
+                        <span style={{ fontSize: 13 }}>{p.name}</span>
+                      </div>
+                    ))
+                ) : (
+                  <p style={{ ...S.muted, margin: 0 }}>Ninguno.</p>
+                )}
+              </>
+            )}
           </div>
         )}
 

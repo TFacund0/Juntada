@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { shuffle } from "../../utils/shuffle";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
 import type { RoomPublicState } from "@juntada/shared-types";
@@ -267,6 +268,12 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
   const iConfirmed = !!me && !!round.reviewConfirmed?.[me.playerId];
   const timeLeft = useCountdown(round.reviewEnd ?? null);
 
+  // Always listing answers in room.players order would let anyone learn,
+  // round after round, "position 2 is always Fulano" — recomputed only when
+  // a new round actually starts (roundNumber changes), not on every
+  // re-render from an incoming vote, so it stays stable for the whole review.
+  const shuffledPlayerIds = useMemo(() => shuffle(room.players.map(p => p.id)), [round.roundNumber]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // A word nobody votes on defaults to valid (see engine.ts's finishRound) —
   // a group that reviews quickly without touching every row would otherwise
   // never realize some clearly-wrong answers are about to auto-score,
@@ -299,8 +306,8 @@ function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "s
         </div>
       )}
       {round.categories.map(cat => {
-        const entries = room.players
-          .map(p => ({ playerId: p.id, word: (answers[p.id] || {})[cat.id] }))
+        const entries = shuffledPlayerIds
+          .map(playerId => ({ playerId, word: (answers[playerId] || {})[cat.id] }))
           // A whitespace-only "answer" (e.g. a stray space bar tap) is
           // truthy as a string but scores as blank once trimmed at result
           // time — filtering it out here too avoids showing reviewers a

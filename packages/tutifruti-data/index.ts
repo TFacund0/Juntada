@@ -159,3 +159,11 @@ export const LETTERS: string[] = [
   "Y",
   "Z",
 ];
+
+// The letters that typically work well in Tutifrutti — enough live words in
+// most categories to fill in. The rest (Ñ, K, Q, W, X, Y, Z, plus a few
+// borderline ones) still exist and can be turned on, but default off so a
+// new host isn't stuck stumped on "I" for "Marca" on round one. Shared
+// between the online engine's default config and the local mode's initial
+// selection so both start with the same preselection.
+export const COMMON_LETTERS: string[] = ["A", "B", "C", "D", "E", "F", "G", "H", "L", "M", "N", "P", "R", "S", "T", "V"];
