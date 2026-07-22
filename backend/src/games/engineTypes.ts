@@ -33,4 +33,12 @@ export interface GameEngine {
   // player from a vote/ready/confirm count belongs in maybeAdvance instead,
   // so a brief reconnect blip can't cost them their say.
   onPlayerOffline?(room: Room, playerId: string): void;
+  // Backfills any round field that's missing on `room.round` because it was
+  // persisted (Redis snapshot restore, see state/persistence.ts) by an older
+  // version of this engine that didn't have that field yet — called once
+  // right after a room is restored, so a stale shape never reaches game
+  // logic at all instead of every engine having to defend against it
+  // wherever it might get touched first. Optional since most engines'
+  // round shape has stayed simple enough to never have needed this.
+  migrateRound?(room: Room): void;
 }

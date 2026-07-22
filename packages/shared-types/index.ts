@@ -27,6 +27,15 @@ const configPrimitive = z.union([z.string().max(300), z.number(), z.boolean()]);
 const configRecord = z.record(z.string(), configPrimitive);
 const configValue = z.union([configPrimitive, z.array(configPrimitive).max(50), configRecord, z.array(configRecord).max(50)]);
 
+// Rayado Libre's board is a fixed 800x600 (see Canvas.tsx's CANVAS_WIDTH/
+// CANVAS_HEIGHT) — coupled to that constant on purpose, not imported from
+// it, since this schema has to stay a plain data description. The margin
+// beyond the edges tolerates a pointer briefly overshooting the canvas
+// element while still rejecting a modified client sending wildly out-of-
+// bounds coordinates that would otherwise sit in room.round.strokes and get
+// re-broadcast on every subsequent draw action.
+const drawCoord = z.number().min(-200).max(1000);
+
 export const SCHEMAS = {
   create_room: z.object({
     type: z.literal("create_room"),
@@ -205,6 +214,38 @@ export const SCHEMAS = {
   }),
   spin_again: z.object({
     type: z.literal("spin_again"),
+  }),
+  choose_word: z.object({
+    type: z.literal("choose_word"),
+    word: z.string().trim().max(60),
+  }),
+  draw_stroke: z.object({
+    type: z.literal("draw_stroke"),
+    points: z
+      .array(z.tuple([drawCoord, drawCoord]))
+      .min(1)
+      .max(300),
+    color: z.string().max(20),
+    size: z.number().min(1).max(60),
+    // Groups the chunks one continuous pointer gesture gets split into, so
+    // "undo" can drop a whole stroke at once instead of just its last chunk.
+    strokeId: z.number().int().min(0),
+  }),
+  draw_fill: z.object({
+    type: z.literal("draw_fill"),
+    x: drawCoord,
+    y: drawCoord,
+    color: z.string().max(20),
+  }),
+  draw_clear: z.object({
+    type: z.literal("draw_clear"),
+  }),
+  draw_undo: z.object({
+    type: z.literal("draw_undo"),
+  }),
+  guess: z.object({
+    type: z.literal("guess"),
+    text: z.string().trim().min(1).max(60),
   }),
 } as const;
 
