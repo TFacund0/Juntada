@@ -67,6 +67,33 @@ function broadcastToRoom(room: Room, message: (ws2: WS, info: ClientInfo) => voi
   }
 }
 
+// A player might just be flipping back to a chat app to answer a text, or
+// lose signal for a few seconds — reacting to that instantly (see engines'
+// optional onPlayerOffline, e.g. skipping whoever's turn it is) would punish
+// a normal, brief disconnect the same as someone who's actually gone. This
+// gives them real time to come back before it costs them anything, while
+// still being far shorter than the 5-minute grace period before an offline
+// player is auto-kicked outright (schedulePlayerKick, ./roomHandlers.ts) —
+// that one only ever removes them from the room; this one only ever reacts
+// to them still being mid-turn.
+const OFFLINE_REACTION_DELAY_MS = 60 * 1000;
+
+function scheduleOfflineReaction(roomCode: string, playerId: string): void {
+  setTimeout(() => {
+    const room = rooms.get(roomCode);
+    if (!room) return;
+    const player = room.players.find(p => p.id === playerId);
+    // Reconnected (or left the room entirely) before the grace period ran
+    // out — either way, nothing to react to anymore.
+    if (!player || player.online) return;
+    const engine = getEngine(room.gameType);
+    engine?.onPlayerOffline?.(room, playerId);
+    broadcastToRoom(room, ws2 => sendTo(ws2, { type: "state", room: getRoomPublicState(room) }));
+    if (room.phase === "result") broadcastRoundReveal(room);
+    syncPhaseTimer(room);
+  }, OFFLINE_REACTION_DELAY_MS).unref();
+}
+
 // Deletes a game instance once nobody's left in it — otherwise it'd sit
 // around forever in the group's "open instances" list with 0 players. A
 // standalone room (no group) is left for scheduleRoomCleanup to reap instead,
@@ -131,4 +158,4 @@ function releaseStaleIdentity(info: ClientInfo | undefined): void {
   }
 }
 
-module.exports = { stopTimer, syncPhaseTimer, broadcastToRoom, cleanupRoomIfEmpty, releaseStaleIdentity };
+module.exports = { stopTimer, syncPhaseTimer, broadcastToRoom, cleanupRoomIfEmpty, releaseStaleIdentity, scheduleOfflineReaction };

@@ -291,6 +291,23 @@ function maybeAdvance(room: Room): void {
   }
 }
 
+// Called once the drawer's been disconnected for about a minute straight
+// (see ws/shared.ts's scheduleOfflineReaction — not the instant they drop,
+// so a brief blip or answering a text doesn't cost them anything) and
+// they're still offline. Without this, the turn would otherwise just sit
+// there for however long is left on that phase's own timer (up to 99s) with
+// nothing happening on the board — everyone else has no idea why. Skipping
+// ahead at that point costs the drawer nothing more than forceReadyAndAdvance
+// already would once their timer ran out anyway: auto-pick a word if they
+// hadn't chosen yet, or end the drawing turn into reveal if they had.
+function onPlayerOffline(room: Room, playerId: string): void {
+  if (!room.round) return;
+  migrateRound(room);
+  const r = round(room);
+  if (playerId !== r.drawerId) return;
+  if (room.phase === "choosing" || room.phase === "drawing") forceReadyAndAdvance(room);
+}
+
 function forceReadyAndAdvance(room: Room): void {
   const r = round(room);
   if (room.phase === "choosing") {
@@ -472,6 +489,7 @@ const engine: GameEngine = {
   getPrivateView,
   getPhaseTimerEnd,
   migrateRound,
+  onPlayerOffline,
 };
 
 module.exports = engine;
