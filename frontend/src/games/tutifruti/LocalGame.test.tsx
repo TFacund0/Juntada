@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocalGame } from "./LocalGame";
 
@@ -27,9 +27,9 @@ describe("Tutifrutti LocalGame", () => {
 
     await user.click(screen.getByRole("button", { name: "🎲 Sortear letra" }));
 
-    expect(screen.getByText("A")).toBeInTheDocument();
+    const letterCard = screen.getByText("La letra es...").closest("div")!;
+    expect(within(letterCard).getByText("A")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "🔀 Nueva letra" })).toBeInTheDocument();
-    const letterCard = screen.getByText("A").closest("div")!;
     expect(letterCard).toHaveTextContent("Nombre");
   });
 

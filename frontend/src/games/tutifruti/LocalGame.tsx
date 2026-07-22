@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
-import { DEFAULT_CATEGORIES, LETTERS } from "@juntada/tutifruti-data";
+import { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } from "@juntada/tutifruti-data";
 
 interface Category {
   id: string;
@@ -25,19 +25,27 @@ export function LocalGame() {
   const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
     CATEGORIES.reduce((a, c, i) => ({ ...a, [c.id]: i < 3 }), {} as Record<string, boolean>),
   );
+  // Same idea as the online ConfigPanel: preselect the letters that usually
+  // have live words in most categories, leave the rest (Ñ, K, Q, W, X, Y, Z,
+  // plus a few borderline ones) off by default but still toggleable.
+  const [enabledLetters, setEnabledLetters] = useState<Record<string, boolean>>(() =>
+    (LETTERS as string[]).reduce((a, l) => ({ ...a, [l]: (COMMON_LETTERS as string[]).includes(l) }), {} as Record<string, boolean>),
+  );
   const [letter, setLetter] = useState<string | null>(null);
   const [usedLetters, setUsedLetters] = useState<string[]>([]);
   const [page, setPage] = useState(0);
 
   const activeCats = CATEGORIES.filter(c => enabled[c.id]);
+  const activeLetters = (LETTERS as string[]).filter(l => enabledLetters[l]);
   const pageCount = Math.ceil(CATEGORIES.length / CATEGORIES_PER_PAGE);
   const currentPage = Math.min(page, pageCount - 1);
   const pagedCategories = CATEGORIES.slice(currentPage * CATEGORIES_PER_PAGE, (currentPage + 1) * CATEGORIES_PER_PAGE);
 
   const drawLetter = () => {
-    let available = (LETTERS as string[]).filter(l => !usedLetters.includes(l));
+    if (activeLetters.length === 0) return;
+    let available = activeLetters.filter(l => !usedLetters.includes(l));
     if (available.length === 0) {
-      available = LETTERS as string[];
+      available = activeLetters;
       setUsedLetters([]);
     }
     const picked = available[Math.floor(Math.random() * available.length)];
@@ -60,7 +68,53 @@ export function LocalGame() {
           </div>
         )}
       </div>
-      <Btn onClick={drawLetter}>{letter ? "🔀 Nueva letra" : "🎲 Sortear letra"}</Btn>
+      <Btn onClick={drawLetter} disabled={activeLetters.length === 0}>
+        {letter ? "🔀 Nueva letra" : "🎲 Sortear letra"}
+      </Btn>
+      {activeLetters.length === 0 && (
+        <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
+          Activá al menos una letra abajo para poder sortear.
+        </p>
+      )}
+
+      <div style={{ ...S.card, marginTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={S.label}>Letras</span>
+          <span style={{ fontSize: 12, color: "#9089c0", fontWeight: 700 }}>
+            {activeLetters.length} activa{activeLetters.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+          Tocá una letra para activarla o desactivarla — ya vienen preseleccionadas las más comunes.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {(LETTERS as string[]).map(l => {
+            const active = !!enabledLetters[l];
+            return (
+              <button
+                key={l}
+                onClick={() => setEnabledLetters(prev => ({ ...prev, [l]: !prev[l] }))}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
+                  background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
+                  color: active ? "#fff" : "#9089c0",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                {l}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div style={{ ...S.card, marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
