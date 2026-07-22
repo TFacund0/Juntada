@@ -53,6 +53,12 @@ importers:
       '@juntada/limon-limon-deck':
         specifier: workspace:*
         version: link:../packages/limon-limon-deck
+      '@juntada/rayado-libre-data':
+        specifier: workspace:*
+        version: link:../packages/rayado-libre-data
+      '@juntada/rayado-libre-scoring':
+        specifier: workspace:*
+        version: link:../packages/rayado-libre-scoring
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
@@ -129,6 +135,12 @@ importers:
       '@juntada/limon-limon-deck':
         specifier: workspace:*
         version: link:../packages/limon-limon-deck
+      '@juntada/rayado-libre-data':
+        specifier: workspace:*
+        version: link:../packages/rayado-libre-data
+      '@juntada/rayado-libre-scoring':
+        specifier: workspace:*
+        version: link:../packages/rayado-libre-scoring
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
@@ -205,6 +217,10 @@ importers:
   packages/impostor-match-rules: {}
 
   packages/limon-limon-deck: {}
+
+  packages/rayado-libre-data: {}
+
+  packages/rayado-libre-scoring: {}
 
   packages/shared-types:
     dependencies:

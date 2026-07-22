@@ -197,9 +197,15 @@ function removePlayer(room: Room, playerId: string): void {
 // ever getting a say. The existing 5-minute auto-kick grace period
 // (schedulePlayerKick, ws/roomHandlers.ts) already re-runs maybeAdvance once
 // a still-offline player is actually removed — that's the only path that
-// should let the rest of the room move on without them. Engines that need a
-// low-stakes, immediate reaction instead (e.g. handing off a strict turn
-// rotation) opt into that via onPlayerOffline — see engineTypes.ts.
+// should let the rest of the room move on without them.
+//
+// Same reasoning applies to onPlayerOffline (a game's own low-stakes,
+// turn-skipping reaction — e.g. handing off a strict turn rotation): it
+// doesn't fire from here either. The caller (ws/handlers.ts's
+// handleDisconnect) schedules it through ws/shared.ts's
+// scheduleOfflineReaction instead, which waits a minute to see if the
+// player reconnects on their own (answering a text, a few seconds of bad
+// signal) before treating it as something worth reacting to.
 function markOffline(room: Room, playerId: string): void {
   const p = room.players.find(p => p.id === playerId);
   if (p) p.online = false;
@@ -210,7 +216,6 @@ function markOffline(room: Room, playerId: string): void {
   // reconnectDelayMs on the client is built around. reassignHostIfNeeded
   // still runs on the paths that mean they're actually, finally gone:
   // kickPlayer/removePlayer, including the 5-minute auto-kick timeout.
-  getEngine(room.gameType)?.onPlayerOffline?.(room, playerId);
 }
 
 function isRoomFullyOffline(room: Room): boolean {

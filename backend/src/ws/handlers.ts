@@ -22,7 +22,7 @@ const { rooms, groups, clients, activeSockets } = require("../state/roomStore") 
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
 const { sendTo, broadcastState, broadcastGroupState, getRoomPublicState, broadcastRoundReveal } = require("./messaging");
-const { syncPhaseTimer } = require("./shared");
+const { syncPhaseTimer, scheduleOfflineReaction } = require("./shared");
 const roomHandlers = require("./roomHandlers");
 const groupHandlers = require("./groupHandlers");
 
@@ -74,6 +74,12 @@ function handleDisconnect(ws: WS): void {
       broadcastState(room);
       if (room.phase === "result") broadcastRoundReveal(room);
       if (room.round) syncPhaseTimer(room);
+      // Gives them a real minute to reconnect on their own (bad signal, or
+      // just answering a text) before a game's own onPlayerOffline reaction
+      // (e.g. skipping whoever's turn it is) treats this as a real absence
+      // — see scheduleOfflineReaction's own comment for why that's not
+      // instant.
+      if (room.round) scheduleOfflineReaction(room.code, info.playerId);
       // A group instance getting the same reap-after-5-minutes treatment as
       // a standalone room (instead of being skipped) matters: schedulePlayerKick
       // itself bails out when the whole room is already offline (on the
@@ -144,6 +150,12 @@ const HANDLERS: Record<string, Handler> = {
   spin: roomHandlers.gameAction("spin"),
   confirm_eliminate: roomHandlers.gameAction("confirm_eliminate"),
   spin_again: roomHandlers.gameAction("spin_again"),
+  choose_word: roomHandlers.gameAction("choose_word"),
+  draw_stroke: roomHandlers.gameAction("draw_stroke"),
+  draw_fill: roomHandlers.gameAction("draw_fill"),
+  draw_clear: roomHandlers.gameAction("draw_clear"),
+  draw_undo: roomHandlers.gameAction("draw_undo"),
+  guess: roomHandlers.gameAction("guess"),
   back_to_lobby: roomHandlers.backToLobby,
   kick_player: roomHandlers.kickPlayer,
   kick_member: groupHandlers.kickMember,

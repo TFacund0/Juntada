@@ -25,6 +25,14 @@ const { rooms, groups } = require("./roomStore") as { rooms: Map<string, Room>; 
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
 const { syncPhaseTimer } = require("../ws/shared");
+const { getEngine } = require("../games/registry") as { getEngine: (gameType: string | null | undefined) => import("../games/engineTypes").GameEngine | undefined };
+
+// Bumped only as a breadcrumb for whoever's debugging a restore issue later —
+// nothing here actually branches on it yet (no migration framework), but
+// logging a mismatch beats silently loading a shape a newer/older server
+// might not fully understand. Each engine defends its own round shape via
+// the optional migrateRound() hook instead of a real migration path.
+const SCHEMA_VERSION = 1;
 
 // Namespaced (see REDIS_NAMESPACE in env.ts) so staging and production can
 // share one Redis database without one environment's restart restoring the
@@ -51,6 +59,7 @@ const enabled = redis !== null;
 async function saveSnapshot(): Promise<void> {
   if (!redis) return;
   const payload = JSON.stringify({
+    schemaVersion: SCHEMA_VERSION,
     rooms: [...rooms.entries()],
     groups: [...groups.entries()],
   });
@@ -73,12 +82,19 @@ async function loadSnapshot(): Promise<void> {
   }
   if (!raw) return;
 
-  let data: { rooms: [string, Room][]; groups: [string, Group][] };
+  let data: { schemaVersion?: number; rooms: [string, Room][]; groups: [string, Group][] };
   try {
     data = JSON.parse(raw);
   } catch (err) {
     logger.error({ err }, "snapshot in redis is corrupt, ignoring");
     return;
+  }
+
+  if (data.schemaVersion !== SCHEMA_VERSION) {
+    logger.warn(
+      { snapshotVersion: data.schemaVersion, currentVersion: SCHEMA_VERSION },
+      "restoring a snapshot saved by a different schema version — each engine's migrateRound() should backfill whatever it needs",
+    );
   }
 
   // Nobody has a live socket yet right after a restart — every restored
@@ -89,6 +105,11 @@ async function loadSnapshot(): Promise<void> {
       p.online = false;
     });
     rooms.set(code, room);
+    // Backfills whatever fields that room's engine has added to its round
+    // shape since this snapshot was saved — see migrateRound's own comment
+    // (engineTypes.ts) for why this lives per-engine instead of a shared
+    // migration framework.
+    if (room.round) getEngine(room.gameType)?.migrateRound?.(room);
     // Every restored room is fully offline by construction (see above), so
     // this reuses the existing 5-minute grace-period reaper instead of
     // leaving abandoned restored rooms sitting around forever.
