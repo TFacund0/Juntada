@@ -3,6 +3,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 
 interface Entry {
@@ -84,8 +85,21 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
   const finished = room.phase === "result";
   const showResult = round.result && !spinning;
   const hostPlayer = room.players.find(p => p.id === room.hostId);
+  // Cuántos giros ya se confirmaron esta sesión — se deriva de los datos que
+  // ya llegan (no hace falta un contador nuevo en el server): en "eliminar"
+  // son las entradas ya sacadas de la ruleta, en "repetir" es la suma de
+  // cuántas veces salió cada una. El giro en curso (round.result todavía sin
+  // confirmar) se suma aparte solo para mostrar su número de orden.
+  const settledSpins = round.mode === "eliminate" ? round.eliminated.length : Object.values(round.counts).reduce((a, b) => a + b, 0);
 
   return (
+    // Keyed en settledSpins (giros ya confirmados), no en el giro en curso —
+    // un giro en marcha setea round.result de inmediato, y remontar el árbol
+    // justo ahí mataría la transición CSS propia de la rueda a mitad de la
+    // animación. Usando solo el conteo asentado, el fade-in se repite recién
+    // cuando un giro se confirma (confirm_eliminate/spin_again) o al pasar
+    // a la pantalla de resultado final, nunca mientras la rueda está girando.
+    <PhaseTransition phaseKey={`spin-${settledSpins}-${finished}`}>
     <div>
       {/* Con una sola entrada en el pool, un slice de 360° es un arco
           degenerado (el punto de inicio y fin coinciden) y no dibuja nada —
@@ -157,6 +171,12 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
             </svg>
           </div>
         </div>
+      )}
+
+      {!finished && (
+        <p style={{ textAlign: "center", fontSize: 13, color: "#9089c0", marginBottom: 8 }}>
+          Giro {settledSpins + 1}
+        </p>
       )}
 
       {!finished && !showResult && isHost && (
@@ -306,7 +326,7 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
         </div>
       )}
 
-      {finished && isHost && <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>}
+      {finished && isHost && <StartButton onClick={() => send({ type: "start_round" })}>Nueva partida</StartButton>}
       {/* Mismo botón que el modo local (setPhase("setup")) — siempre
           disponible, no solo cuando termina la rueda, así cualquiera puede
           volver a la carga de entradas (que ahora vive en la pestaña
@@ -315,5 +335,6 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
           al grupo" en el shell. */}
       <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
     </div>
+    </PhaseTransition>
   );
 }

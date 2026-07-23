@@ -244,8 +244,9 @@ function submitSpectrum(room: Room, playerId: string, payload: Record<string, un
   return { handled: true, rerolled: true }; // fresh private info (target) for everyone
 }
 
-// Host-only: wipes the accumulated score and round history and starts a
-// fresh round-setup step, for after a fixed-round-count game has ended.
+// Host-only: wipes the accumulated score and round history and sends
+// everyone back to the lobby to reconfigure before the next match, for after
+// a fixed-round-count game has ended — same as tutifruti's own new_game.
 function newGame(room: Room, playerId: string): { handled: boolean } {
   if (playerId !== room.hostId) return { handled: false };
   cfg(room).score = {};
@@ -253,8 +254,12 @@ function newGame(room: Room, playerId: string): { handled: boolean } {
   // A brand-new match shouldn't still avoid pairs used in the *previous*
   // match — those are unrelated games from the players' perspective.
   room.usedWords.spectrums = [];
-  const res = startRound(room);
-  return { handled: !!res.success };
+  room.round = null;
+  room.phase = "lobby";
+  room.players.forEach(p => {
+    p.ready = false;
+  });
+  return { handled: true };
 }
 
 function handleAction(

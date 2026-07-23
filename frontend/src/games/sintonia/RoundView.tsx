@@ -7,6 +7,7 @@ import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Collapsible } from "../../components/Collapsible";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
@@ -115,6 +116,17 @@ function Scoreboard({ players, score }: { players: PublicPlayer[]; score: Record
   );
 }
 
+// "Ronda X/Y" indicator, shown at the top of every phase — hidden entirely
+// in endless mode (no fixed round count to count down against).
+function RoundBadge({ round }: { round: SintoniaRoundState | null }) {
+  if (!round || round.playMode !== "rounds") return null;
+  return (
+    <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>
+      Ronda {(round.roundsPlayed ?? 0) + 1}/{round.roundLimit}
+    </p>
+  );
+}
+
 // Covers this game's in-progress phases (clue/guess/result) inside a
 // multiplayer room. Props per the registry contract in games/registry.js.
 export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, isHost, send }: RoundViewProps) {
@@ -167,9 +179,14 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
     const round = roundSetup;
     if (!isHost) {
       return (
-        <div style={{ ...S.card, textAlign: "center" }}>
-          <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión configure la ronda...</p>
-        </div>
+        <PhaseTransition phaseKey="setup">
+          <div>
+            <RoundBadge round={round} />
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión configure la ronda...</p>
+            </div>
+          </div>
+        </PhaseTransition>
       );
     }
 
@@ -183,9 +200,11 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
     };
 
     return (
-      <div>
-        <div style={S.card}>
-          <span style={S.label}>¿Quién es el psíquico esta ronda?</span>
+      <PhaseTransition phaseKey="setup">
+        <div>
+          <RoundBadge round={round} />
+          <div style={S.card}>
+            <span style={S.label}>¿Quién es el psíquico esta ronda?</span>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {room.players.map(p => (
               <button
@@ -217,6 +236,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           Continuar
         </Btn>
       </div>
+      </PhaseTransition>
     );
   }
 
@@ -256,7 +276,9 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
       };
 
       return (
+        <PhaseTransition phaseKey="spectrum">
         <div>
+          <RoundBadge round={round} />
           <div style={{ ...S.cardHighlight, textAlign: "center" }}>
             <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
           </div>
@@ -325,24 +347,35 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
             Confirmar y ver el objetivo
           </Btn>
         </div>
+        </PhaseTransition>
       );
     }
 
-    return <PsychicStatus name={psychic?.name ?? ""} status="Está eligiendo el par de conceptos para esta ronda..." />;
+    return (
+      <PhaseTransition phaseKey="spectrum">
+        <div>
+          <RoundBadge round={round} />
+          <PsychicStatus name={psychic?.name ?? ""} status="Está eligiendo el par de conceptos para esta ronda..." />
+        </div>
+      </PhaseTransition>
+    );
   }
 
   if (room.phase === "clue") {
     if (!isPsychic) {
       return (
-        <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "#9089c0" }}>Espectro de esta ronda</p>
-            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>
-              {round.left} ↔ {round.right}
-            </p>
+        <PhaseTransition phaseKey="clue">
+          <div>
+            <RoundBadge round={round} />
+            <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: "#9089c0" }}>Espectro de esta ronda</p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>
+                {round.left} ↔ {round.right}
+              </p>
+            </div>
+            <PsychicStatus name={psychic?.name ?? ""} status="Está pensando una pista para ubicar el objetivo secreto..." />
           </div>
-          <PsychicStatus name={psychic?.name ?? ""} status="Está pensando una pista para ubicar el objetivo secreto..." />
-        </div>
+        </PhaseTransition>
       );
     }
 
@@ -353,36 +386,39 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
     };
 
     return (
-      <div>
-        <div style={{ ...S.card, textAlign: "center" }}>
-          <Dial value={role!.target!} target={role!.target!} leftLabel={round.left!} rightLabel={round.right!} />
-        </div>
-        <p style={{ ...S.muted, textAlign: "center", margin: "12px 0" }}>
-          Sos el psíquico. Escribí una pista (una palabra, una frase, lo que sea) que ubique ese punto entre "{round.left}" y "{round.right}
-          ", sin decir el objetivo directamente.
-        </p>
-        {!clueSubmitted ? (
-          <div style={S.card}>
-            <span style={S.label}>Tu pista</span>
-            <input
-              style={S.input}
-              placeholder="Escribí tu pista..."
-              value={clueText}
-              onChange={e => setClueText(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") submitClue();
-              }}
-            />
-            <Btn variant="success" disabled={!clueText.trim()} onClick={submitClue} style={{ marginTop: 8 }}>
-              Enviar pista
-            </Btn>
-          </div>
-        ) : (
+      <PhaseTransition phaseKey="clue">
+        <div>
+          <RoundBadge round={round} />
           <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#5DCAA5" }}>Pista enviada — esperando que adivinen</p>
+            <Dial value={role!.target!} target={role!.target!} leftLabel={round.left!} rightLabel={round.right!} />
           </div>
-        )}
-      </div>
+          <p style={{ ...S.muted, textAlign: "center", margin: "12px 0" }}>
+            Sos el psíquico. Escribí una pista (una palabra, una frase, lo que sea) que ubique ese punto entre "{round.left}" y "{round.right}
+            ", sin decir el objetivo directamente.
+          </p>
+          {!clueSubmitted ? (
+            <div style={S.card}>
+              <span style={S.label}>Tu pista</span>
+              <input
+                style={S.input}
+                placeholder="Escribí tu pista..."
+                value={clueText}
+                onChange={e => setClueText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter") submitClue();
+                }}
+              />
+              <Btn variant="success" disabled={!clueText.trim()} onClick={submitClue} style={{ marginTop: 8 }}>
+                Enviar pista
+              </Btn>
+            </div>
+          ) : (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#5DCAA5" }}>Pista enviada — esperando que adivinen</p>
+            </div>
+          )}
+        </div>
+      </PhaseTransition>
     );
   }
 
@@ -408,18 +444,21 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
 
     if (isPsychic) {
       return (
-        <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "#9089c0" }}>Tu pista</p>
-            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>"{round.clue}"</p>
+        <PhaseTransition phaseKey="guess">
+          <div>
+            <RoundBadge round={round} />
+            <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: "#9089c0" }}>Tu pista</p>
+              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>"{round.clue}"</p>
+            </div>
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#9089c0", fontSize: 14 }}>
+                Esperando que adivinen: {round.submittedCount}/{round.guessersOnline}
+              </p>
+            </div>
+            {forceFinishBanner}
           </div>
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#9089c0", fontSize: 14 }}>
-              Esperando que adivinen: {round.submittedCount}/{round.guessersOnline}
-            </p>
-          </div>
-          {forceFinishBanner}
-        </div>
+        </PhaseTransition>
       );
     }
 
@@ -429,38 +468,41 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
     };
 
     return (
-      <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-          <p style={{ fontSize: 12, color: "#9089c0" }}>Pista de {psychic?.name}</p>
-          <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>"{round.clue}"</p>
-        </div>
-        {!guessSubmitted ? (
-          <>
-            <div style={S.card}>
-              <Dial value={guessValue} leftLabel={round.left!} rightLabel={round.right!} />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={guessValue}
-                onChange={e => setGuessValue(+e.target.value)}
-                style={{ width: "100%", marginTop: 16 }}
-              />
-            </div>
-            <Btn variant="success" onClick={submitGuess}>
-              Confirmar adivinanza
-            </Btn>
-          </>
-        ) : (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#5DCAA5" }}>Adivinanza enviada</p>
-            <p style={{ ...S.muted, marginTop: 6 }}>
-              {round.submittedCount}/{round.guessersOnline} confirmaron
-            </p>
+      <PhaseTransition phaseKey="guess">
+        <div>
+          <RoundBadge round={round} />
+          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+            <p style={{ fontSize: 12, color: "#9089c0" }}>Pista de {psychic?.name}</p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>"{round.clue}"</p>
           </div>
-        )}
-        {forceFinishBanner}
-      </div>
+          {!guessSubmitted ? (
+            <>
+              <div style={S.card}>
+                <Dial value={guessValue} leftLabel={round.left!} rightLabel={round.right!} />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={guessValue}
+                  onChange={e => setGuessValue(+e.target.value)}
+                  style={{ width: "100%", marginTop: 16 }}
+                />
+              </div>
+              <Btn variant="success" onClick={submitGuess}>
+                Confirmar adivinanza
+              </Btn>
+            </>
+          ) : (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#5DCAA5" }}>Adivinanza enviada</p>
+              <p style={{ ...S.muted, marginTop: 6 }}>
+                {round.submittedCount}/{round.guessersOnline} confirmaron
+              </p>
+            </div>
+          )}
+          {forceFinishBanner}
+        </div>
+      </PhaseTransition>
     );
   }
 
@@ -483,6 +525,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
     if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando el objetivo..." />;
 
     return (
+      <PhaseTransition phaseKey="result">
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>
           <span style={S.label}>Pista de {psychic?.name}</span>
@@ -566,6 +609,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           </div>
         )}
       </div>
+      </PhaseTransition>
     );
   }
 

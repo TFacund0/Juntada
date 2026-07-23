@@ -3,6 +3,7 @@ import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Board } from "./Board";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 
 interface TatetiRoundState {
@@ -107,19 +108,25 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
   );
 
   if (room.phase === "round" && round) {
+    // Keyed on the phase alone, not on round.turn — unlike a turn-based game
+    // with a whole different screen per turn (Rayado Libre, Impostor), here
+    // the board just stays put and a mark appears; replaying the fade-in on
+    // every single move would read as flicker rather than a helpful cue.
     return (
-      <div>
-        {Scoreboard}
-        <p style={{ textAlign: "center", fontSize: 14, color: "#9089c0", marginBottom: 14 }}>
-          {myTurn ? <strong style={{ color: "#5DCAA5" }}>Tu turno</strong> : `Turno de ${opponent?.name}`}
-        </p>
-        <Board board={round.board} winningLine={round.winningLine} onCellClick={mark} disabled={!myTurn} />
-        {ResetScoreControl}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
-            Available to any player, not just the host — quitting a 1v1 mid-game
-            shouldn't require disconnecting and waiting out the auto-kick timeout. */}
-        {LeaveToLobby}
-      </div>
+      <PhaseTransition phaseKey="round">
+        <div>
+          {Scoreboard}
+          <p style={{ textAlign: "center", fontSize: 14, color: "#9089c0", marginBottom: 14 }}>
+            {myTurn ? <strong style={{ color: "#5DCAA5" }}>Tu turno</strong> : `Turno de ${opponent?.name}`}
+          </p>
+          <Board board={round.board} winningLine={round.winningLine} onCellClick={mark} disabled={!myTurn} />
+          {ResetScoreControl}
+          {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+              Available to any player, not just the host — quitting a 1v1 mid-game
+              shouldn't require disconnecting and waiting out the auto-kick timeout. */}
+          {LeaveToLobby}
+        </div>
+      </PhaseTransition>
     );
   }
 
@@ -128,6 +135,7 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
     const iWon = !!me && round.winner === me.playerId;
 
     return (
+      <PhaseTransition phaseKey="result">
       <div>
         {Scoreboard}
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
@@ -158,6 +166,7 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
         {!round.forfeited && ResetScoreControl}
         {LeaveToLobby}
       </div>
+      </PhaseTransition>
     );
   }
 

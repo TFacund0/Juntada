@@ -475,3 +475,29 @@ test("the whole game ends in result once every turn has been played", () => {
 
   assert.equal(room.phase, "result");
 });
+
+test("new_game is host-only, resets the accumulated score, and sends the room back to the lobby", () => {
+  const room: any = makeRoom({ hostId: "p1" } as any);
+  room.hostId = "p1";
+  room.config.totalRounds = 1;
+  enableAllCategories(room);
+  engine.startRound(room);
+
+  for (let i = 0; i < room.players.length; i++) {
+    engine.handleAction(room, room.round.drawerId, "choose_word", { word: room.round.wordChoices[0] });
+    const guesser = room.players.find((p: TestPlayer) => p.id !== room.round.drawerId)!.id;
+    engine.handleAction(room, guesser, "guess", { text: room.round.word });
+    engine.forceReadyAndAdvance(room); // drawing -> reveal (in case not everyone guessed)
+    confirmAllReady(room); // reveal -> next turn (or result)
+  }
+  assert.ok(Object.keys(room.config.score).length > 0);
+
+  const wrongPlayer = engine.handleAction(room, "p2", "new_game", {});
+  assert.equal(wrongPlayer.handled, false);
+
+  const res = engine.handleAction(room, "p1", "new_game", {});
+  assert.equal(res.handled, true);
+  assert.deepEqual(room.config.score, {});
+  assert.equal(room.round, null);
+  assert.equal(room.phase, "lobby");
+});

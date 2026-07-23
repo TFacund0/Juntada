@@ -6,6 +6,7 @@ import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
@@ -333,6 +334,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     };
 
     return (
+      <PhaseTransition phaseKey={`round-${currentTurnId}`}>
       <div>
         {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 
@@ -407,6 +409,11 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
         <div style={S.card}>
           <span style={S.label}>Ronda de turnos</span>
+          {turnOrder.length > 0 && (
+            <p style={{ ...S.muted, textAlign: "center", marginBottom: 8 }}>
+              Turno {turnIndex + 1}/{turnOrder.length}
+            </p>
+          )}
           <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} clues={round?.clues} meId={me?.playerId} />
 
           {isMyTurn && !clueSubmitted ? (
@@ -437,12 +444,14 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
         <CluesReview clues={round?.clues} players={room.players} />
       </div>
+      </PhaseTransition>
     );
   }
 
   if (room.phase === "discussion") {
     const myReadyState = myPlayer?.ready;
     return (
+      <PhaseTransition phaseKey="discussion">
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 14, color: "#9089c0" }}>Momento de pensar</p>
@@ -470,6 +479,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           </div>
         )}
       </div>
+      </PhaseTransition>
     );
   }
 
@@ -504,6 +514,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     };
 
     return (
+      <PhaseTransition phaseKey={`voting-${round?.revoteCount ?? 0}`}>
       <div>
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
@@ -569,6 +580,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           </div>
         )}
       </div>
+      </PhaseTransition>
     );
   }
 
@@ -596,6 +608,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const winnerColor = abortedReason ? "#E2C44A" : winner === "innocents" ? "#5DCAA5" : "#F09595";
 
     return (
+      <PhaseTransition phaseKey="result">
       <div>
         {matchOver && (
           <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
@@ -707,6 +720,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
           </div>
         )}
       </div>
+      </PhaseTransition>
     );
   }
 

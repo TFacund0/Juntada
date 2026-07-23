@@ -23,7 +23,7 @@ import {
 } from "@juntada/rayado-libre-scoring";
 import { Canvas, type DrawAction, type Tool } from "./Canvas";
 import { Toolbar } from "./Toolbar";
-import { PhaseTransition } from "./PhaseTransition";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import { Scoreboard } from "./Scoreboard";
 
 // ═══════════════════════════════════════════════════════════════════════════════

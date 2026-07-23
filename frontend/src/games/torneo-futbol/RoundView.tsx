@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
+import { StartButton } from "../../components/StartButton";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -98,6 +100,7 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
     const leakiest = trackGoals && s.length ? [...s].sort((a, b) => b.goalsAgainst - a.goalsAgainst)[0] : null;
     const amIChampion = myPlayer && champion.id === myPlayer.id;
     return (
+      <PhaseTransition phaseKey="champion">
       <div>
         <div style={{ textAlign: "center", padding: "10px 0 20px" }}>
           <div style={{ fontSize: 56 }}>🏆</div>
@@ -194,7 +197,7 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
                   margin: "0 0 6px",
                 }}
               >
-                {roundNames[ri]}
+                {roundNames[ri]} ({ri + 1}/{rounds.length})
               </p>
               {round.map((m, mi) => (
                 <div key={mi} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 13 }}>
@@ -232,10 +235,18 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
           ))}
         </div>
 
+        {isHost ? (
+          <StartButton onClick={() => send({ type: "back_to_lobby" })}>Nuevo torneo</StartButton>
+        ) : (
+          <div style={{ ...S.card, textAlign: "center" }}>
+            <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión arme otro torneo</p>
+          </div>
+        )}
         {/* Group instances use the shell's persistent "Volver al grupo" link instead.
             Available to any player, not just the host. */}
         <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
       </div>
+      </PhaseTransition>
     );
   }
 
@@ -267,8 +278,18 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
     whiteSpace: "nowrap" as const,
   };
 
+  // La ronda "activa" es la primera que todavía tiene algún partido sin
+  // decidir — una vez que todos los partidos de una ronda tienen ganador, el
+  // torneo ya avanzó a la siguiente (propagateByes ya corrió los cruces).
+  const currentRoundIdx = rounds.findIndex(r => r.some(m => !m.winner));
+  const activeRoundIdx = currentRoundIdx === -1 ? rounds.length - 1 : currentRoundIdx;
+
   return (
+    <PhaseTransition phaseKey={`bracket-${activeRoundIdx}`}>
     <div>
+      <p style={{ textAlign: "center", fontSize: 13, color: "#9089c0", marginBottom: 8 }}>
+        {roundNames[activeRoundIdx]} ({activeRoundIdx + 1}/{rounds.length})
+      </p>
       {!isHost && (
         <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
           <p style={{ fontSize: 13, color: "#9089c0", margin: 0 }}>
@@ -278,7 +299,9 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
       )}
       {rounds.map((round, ri) => (
         <div key={ri} style={{ marginBottom: 18 }}>
-          <span style={{ ...S.label, marginBottom: 12 }}>{roundNames[ri]}</span>
+          <span style={{ ...S.label, marginBottom: 12 }}>
+            {roundNames[ri]} ({ri + 1}/{rounds.length})
+          </span>
           {round.map((m, mi) => {
             const editing = editingMatch && editingMatch.roundIdx === ri && editingMatch.matchIdx === mi;
             const playable = m.a && m.b && !m.winner;
@@ -404,5 +427,6 @@ export function RoundView({ room, myPlayer, isHost, send }: RoundViewProps) {
         </div>
       ))}
     </div>
+    </PhaseTransition>
   );
 }
