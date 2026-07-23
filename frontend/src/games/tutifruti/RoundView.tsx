@@ -5,6 +5,7 @@ import { StartButton } from "../../components/StartButton";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import { shuffle } from "../../utils/shuffle";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
@@ -600,16 +601,50 @@ function ResultPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHo
     return () => clearTimeout(id);
   }, [finalStage]);
 
-  if (round.isFinalRound && finalStage === "loading") return <FinalResultsLoading />;
-  if (round.isFinalRound && finalStage === "final") return <FinalStandings room={room} round={round} isHost={isHost} send={send} />;
-  return <RoundResult room={room} round={round} isHost={isHost} onShowFinal={() => setFinalStage("loading")} send={send} />;
+  if (round.isFinalRound && finalStage === "loading") {
+    return (
+      <PhaseTransition phaseKey="loading">
+        <FinalResultsLoading />
+      </PhaseTransition>
+    );
+  }
+  if (round.isFinalRound && finalStage === "final") {
+    return (
+      <PhaseTransition phaseKey="final">
+        <FinalStandings room={room} round={round} isHost={isHost} send={send} />
+      </PhaseTransition>
+    );
+  }
+  return (
+    <PhaseTransition phaseKey={`round-${round.roundNumber}`}>
+      <RoundResult room={room} round={round} isHost={isHost} onShowFinal={() => setFinalStage("loading")} send={send} />
+    </PhaseTransition>
+  );
 }
 
 export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundViewProps) {
   if (!room.round) return null;
-  if (room.phase === "setup") return <SetupPhase room={room} isHost={isHost} send={send} />;
-  if (room.phase === "writing") return <WritingPhase room={room} me={me} myPlayer={myPlayer} myRole={myRole} isHost={isHost} send={send} />;
-  if (room.phase === "review") return <ReviewPhase room={room} me={me} send={send} />;
+  if (room.phase === "setup") {
+    return (
+      <PhaseTransition phaseKey="setup">
+        <SetupPhase room={room} isHost={isHost} send={send} />
+      </PhaseTransition>
+    );
+  }
+  if (room.phase === "writing") {
+    return (
+      <PhaseTransition phaseKey="writing">
+        <WritingPhase room={room} me={me} myPlayer={myPlayer} myRole={myRole} isHost={isHost} send={send} />
+      </PhaseTransition>
+    );
+  }
+  if (room.phase === "review") {
+    return (
+      <PhaseTransition phaseKey="review">
+        <ReviewPhase room={room} me={me} send={send} />
+      </PhaseTransition>
+    );
+  }
   if (room.phase === "result") return <ResultPhase room={room} isHost={isHost} send={send} />;
   return null;
 }

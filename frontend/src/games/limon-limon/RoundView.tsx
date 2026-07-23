@@ -10,6 +10,7 @@ import { DescriptionToggle } from "./DescriptionToggle";
 import { ScoreToggleButton } from "./ScoreToggleButton";
 import { cardKey, getDescription } from "./deck";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
 import type { Card } from "@juntada/limon-limon-deck";
@@ -123,7 +124,8 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
 
   if (room.phase === "round") {
     return (
-      <div>
+      <PhaseTransition phaseKey={`${round.turnId}-${round.current ? "revealed" : "waiting"}`}>
+        <div>
         <TurnOrder players={room.players} order={round.order || []} turnId={round.turnId} />
 
         {!round.current && (
@@ -206,14 +208,16 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
             </div>
           )}
         </div>
-      </div>
+        </div>
+      </PhaseTransition>
     );
   }
 
   if (room.phase === "result") {
     if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando la tabla final..." />;
     return (
-      <div>
+      <PhaseTransition phaseKey="result">
+        <div>
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>
           <p style={S.bigReveal}>{round.remaining > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
         </div>
@@ -237,7 +241,8 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
             <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
           </div>
         )}
-      </div>
+        </div>
+      </PhaseTransition>
     );
   }
 
