@@ -210,5 +210,6 @@ test("new_game is host-only and resets score and round history", () => {
   assert.equal(res.handled, true);
   assert.deepEqual(room.config.score, {});
   assert.equal(room.roundHistory.length, 0);
-  assert.equal(room.phase, "setup");
+  assert.equal(room.phase, "lobby");
+  assert.equal(room.round, null);
 });

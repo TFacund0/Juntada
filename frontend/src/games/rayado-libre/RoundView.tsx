@@ -9,7 +9,7 @@ import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { TURN_SECONDS } from "@juntada/rayado-libre-scoring";
 import { Canvas, type DrawAction, type Tool } from "./Canvas";
 import { Toolbar } from "./Toolbar";
-import { PhaseTransition } from "./PhaseTransition";
+import { PhaseTransition } from "../../components/PhaseTransition";
 import { EyeToggle } from "./EyeToggle";
 import { Scoreboard } from "./Scoreboard";
 import type { RoundViewProps } from "../gameTypes";
@@ -235,6 +235,9 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundVie
 
     return (
       <PhaseTransition phaseKey="reveal">
+        <p style={{ textAlign: "center", fontSize: 13, color: "#9089c0", marginBottom: 8 }}>
+          Turno {round.turnNumber}/{round.totalTurns}
+        </p>
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>
           <p style={{ fontSize: 13, color: "#9089c0" }}>La palabra era</p>
           <p style={S.bigReveal}>{round.word}</p>
@@ -293,7 +296,7 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundVie
           title="Tabla final"
         />
         {isHost ? (
-          <StartButton onClick={() => send({ type: "start_round" })}>Nueva partida</StartButton>
+          <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
         ) : (
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>

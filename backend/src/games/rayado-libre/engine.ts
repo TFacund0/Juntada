@@ -345,6 +345,23 @@ function handleAction(
   const r = round(room);
 
   switch (action) {
+    // Sends everyone back to the lobby so the host can reconfigure
+    // (categories, rounds, ...) before the next match, and clears the
+    // cumulative score — same as tutifruti/sintonia's own new_game. Without
+    // this, cfg(room).score never resets on its own: startRound (the
+    // "Nueva partida" path before this existed) only rebuilds turnQueue, so
+    // points kept accumulating across every match played in the same room.
+    case "new_game": {
+      if (playerId !== room.hostId) return { handled: false };
+      cfg(room).score = {};
+      room.round = null;
+      room.phase = "lobby";
+      room.players.forEach(p => {
+        p.ready = false;
+      });
+      return { handled: true };
+    }
+
     case "choose_word": {
       if (room.phase !== "choosing" || playerId !== r.drawerId) return { handled: false };
       const word = String(payload.word ?? "");
