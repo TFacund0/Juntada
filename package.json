@@ -18,7 +18,7 @@
     "format:check": "prettier --check .",
     "prepare": "husky"
   },
-  "license": "ISC",
+  "license": "UNLICENSED",
   "lint-staged": {
     "*.{ts,tsx,js,json,md}": "prettier --write"
   },

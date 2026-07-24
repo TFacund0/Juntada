@@ -10,7 +10,7 @@
     "test": "tsx --test",
     "typecheck": "tsc --noEmit"
   },
-  "license": "ISC",
+  "license": "UNLICENSED",
   "dependencies": {
     "@juntada/impostor-data": "workspace:*",
     "@juntada/impostor-match-rules": "workspace:*",
