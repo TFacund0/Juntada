@@ -20,7 +20,16 @@ const { getEngine } = require("../games/registry") as {
   getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
 };
 const roomService = require("../rooms/roomService");
-const { sendTo, sendError, broadcast, getRoomPublicState, sendPrivateInfo, broadcastState, broadcastGroupState, broadcastRoundReveal } = require("./messaging");
+const {
+  sendTo,
+  sendError,
+  broadcast,
+  getRoomPublicState,
+  sendPrivateInfo,
+  broadcastState,
+  broadcastGroupState,
+  broadcastRoundReveal,
+} = require("./messaging");
 const { stopTimer, syncPhaseTimer, broadcastToRoom, releaseStaleIdentity } = require("./shared");
 
 function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>): void {

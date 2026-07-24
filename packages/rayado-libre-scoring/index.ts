@@ -50,11 +50,7 @@ export function scoreForGuess(secondsRemaining: number): GuessScore {
 const DIACRITICS_RANGE = new RegExp("[\\u0300-\\u036f]", "g");
 
 export function normalizeGuess(text: string): string {
-  return text
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(DIACRITICS_RANGE, "");
+  return text.trim().toLowerCase().normalize("NFD").replace(DIACRITICS_RANGE, "");
 }
 
 export function isCorrectGuess(guess: string, word: string): boolean {

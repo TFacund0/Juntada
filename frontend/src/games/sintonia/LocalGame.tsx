@@ -337,12 +337,16 @@ export function LocalGame() {
                 onChange={v => setConfig(c => ({ ...c, writtenClues: v }))}
               />
               <p style={{ ...S.muted, margin: "10px 0 0", lineHeight: 1.4 }}>
-                Con pistas escritas, el psíquico la tipea en el dispositivo antes de pasarlo. Sin esto, la dice en voz alta y
-                el dispositivo pasa directo a que el resto adivine.
+                Con pistas escritas, el psíquico la tipea en el dispositivo antes de pasarlo. Sin esto, la dice en voz alta y el dispositivo
+                pasa directo a que el resto adivine.
               </p>
             </div>
 
-            <PlayModeConfig playMode={config.playMode} roundLimit={config.roundLimit} onChange={patch => setConfig(c => ({ ...c, ...patch }))} />
+            <PlayModeConfig
+              playMode={config.playMode}
+              roundLimit={config.roundLimit}
+              onChange={patch => setConfig(c => ({ ...c, ...patch }))}
+            />
           </>
         )}
 
@@ -610,7 +614,14 @@ export function LocalGame() {
           )}
         </div>
         <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <Dial value={round.target!} target={round.target} leftLabel={round.left!} rightLabel={round.right!} markers={markers} showNeedle={false} />
+          <Dial
+            value={round.target!}
+            target={round.target}
+            leftLabel={round.left!}
+            rightLabel={round.right!}
+            markers={markers}
+            showNeedle={false}
+          />
           {guessers.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 10px", marginTop: 10 }}>
               {guessers.map((p, i) => (

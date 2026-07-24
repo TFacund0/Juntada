@@ -25,7 +25,9 @@ const { rooms, groups } = require("./roomStore") as { rooms: Map<string, Room>; 
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
 const { syncPhaseTimer } = require("../ws/shared");
-const { getEngine } = require("../games/registry") as { getEngine: (gameType: string | null | undefined) => import("../games/engineTypes").GameEngine | undefined };
+const { getEngine } = require("../games/registry") as {
+  getEngine: (gameType: string | null | undefined) => import("../games/engineTypes").GameEngine | undefined;
+};
 
 // Bumped only as a breadcrumb for whoever's debugging a restore issue later —
 // nothing here actually branches on it yet (no migration framework), but

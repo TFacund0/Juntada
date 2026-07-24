@@ -473,7 +473,9 @@ function RoundResult({
       <div style={S.card}>
         <span style={S.label}>Desglose ({round.letter})</span>
         {round.categories.map(cat => {
-          const entries = room.players.map(p => (breakdown[p.id] || {})[cat.id]).filter((b): b is TutifrutiAnswerBreakdown => !!b && !!b.word);
+          const entries = room.players
+            .map(p => (breakdown[p.id] || {})[cat.id])
+            .filter((b): b is TutifrutiAnswerBreakdown => !!b && !!b.word);
           if (entries.length === 0) return null;
           return (
             <div key={cat.id} style={{ marginBottom: 12 }}>
@@ -527,7 +529,8 @@ function RoundResult({
         groupCode={room.groupCode}
         send={send}
         confirm={{
-          message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+          message:
+            "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
         }}
       />
     </div>
@@ -584,7 +587,8 @@ function FinalStandings({
         groupCode={room.groupCode}
         send={send}
         confirm={{
-          message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+          message:
+            "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
         }}
       />
     </div>

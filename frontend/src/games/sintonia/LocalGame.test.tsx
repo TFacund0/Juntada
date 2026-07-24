@@ -55,28 +55,24 @@ describe("Sintonía LocalGame", () => {
     expect(screen.getByText("Jugadores (3)")).toBeInTheDocument();
   });
 
-  test(
-    "plays a full round from setup through result",
-    async () => {
-      const user = userEvent.setup();
-      render(<LocalGame />);
+  test("plays a full round from setup through result", async () => {
+    const user = userEvent.setup();
+    render(<LocalGame />);
 
-      await startRound(user);
-      expect(screen.getByText("Pasále el dispositivo solo a esta persona")).toBeInTheDocument();
+    await startRound(user);
+    expect(screen.getByText("Pasále el dispositivo solo a esta persona")).toBeInTheDocument();
 
-      await revealAndProceed(user);
-      expect(screen.getByText(/Turno 1 de 2/)).toBeInTheDocument();
+    await revealAndProceed(user);
+    expect(screen.getByText(/Turno 1 de 2/)).toBeInTheDocument();
 
-      await guessAllPlayers(user);
+    await guessAllPlayers(user);
 
-      // The result view holds behind a few-second reveal countdown
-      // (RevealCountdown/useRevealCountdown) before showing the actual
-      // scores — findByText waits it out instead of asserting synchronously.
-      expect(await screen.findByText("Puntos de la ronda", {}, { timeout: 4000 })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Siguiente ronda" })).toBeInTheDocument();
-    },
-    8000,
-  );
+    // The result view holds behind a few-second reveal countdown
+    // (RevealCountdown/useRevealCountdown) before showing the actual
+    // scores — findByText waits it out instead of asserting synchronously.
+    expect(await screen.findByText("Puntos de la ronda", {}, { timeout: 4000 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Siguiente ronda" })).toBeInTheDocument();
+  }, 8000);
 
   test("the psychic can type their own pair of concepts instead of a random one", async () => {
     const user = userEvent.setup();

@@ -9,7 +9,8 @@ export const tiempoExactoGame: GameDef = {
   id: "tiempo-exacto",
   label: "Tiempo Exacto",
   icon: "⏱️",
-  description: "Se muestra un tiempo objetivo en segundos y después se oculta el cronómetro. Hay que calcular mentalmente y tocar la pantalla justo cuando creas que pasó ese tiempo.",
+  description:
+    "Se muestra un tiempo objetivo en segundos y después se oculta el cronómetro. Hay que calcular mentalmente y tocar la pantalla justo cuando creas que pasó ese tiempo.",
   minPlayers: 1,
   category: "rapidos",
   comingSoon: true,

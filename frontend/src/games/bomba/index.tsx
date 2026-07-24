@@ -8,7 +8,8 @@ export const bombaGame: GameDef = {
   id: "bomba",
   label: "Bomba",
   icon: "💣",
-  description: "Un temporizador oculto puede explotar en cualquier momento. Los jugadores se van pasando la bomba por turnos, y quien la tenga cuando explota pierde.",
+  description:
+    "Un temporizador oculto puede explotar en cualquier momento. Los jugadores se van pasando la bomba por turnos, y quien la tenga cuando explota pierde.",
   minPlayers: 3,
   category: "grupo",
   comingSoon: true,

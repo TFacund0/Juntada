@@ -12,7 +12,8 @@ export const rayadoLibreGame: GameDef = {
   id: "rayado-libre",
   label: "Rayado Libre",
   icon: "🎨",
-  description: "Un jugador dibuja una palabra secreta y el resto del grupo intenta adivinarla escribiendo en el chat antes de que se acabe el tiempo.",
+  description:
+    "Un jugador dibuja una palabra secreta y el resto del grupo intenta adivinarla escribiendo en el chat antes de que se acabe el tiempo.",
   minPlayers: 3,
   category: "equipos",
   rules: [

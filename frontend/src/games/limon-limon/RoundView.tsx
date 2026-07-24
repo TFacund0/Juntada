@@ -126,88 +126,86 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
     return (
       <PhaseTransition phaseKey={`${round.turnId}-${round.current ? "revealed" : "waiting"}`}>
         <div>
-        <TurnOrder players={room.players} order={round.order || []} turnId={round.turnId} />
+          <TurnOrder players={room.players} order={round.order || []} turnId={round.turnId} />
 
-        {!round.current && (
-          <p style={{ textAlign: "center", fontSize: 14, color: "#9089c0", marginBottom: 14 }}>
-            {myTurn ? (
-              <>
-                Tu turno — <strong style={{ color: "#5DCAA5" }}>tocá el mazo</strong>
-              </>
-            ) : (
-              <>
-                Turno de <strong>{turnPlayer?.name}</strong>
-              </>
-            )}
-          </p>
-        )}
-
-        <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
-          <DeckStack cardsLeft={round.remaining} />
-          <div style={{ position: "relative" }}>
-            <CardView card={round.current} onClick={myTurn && !round.current ? () => send({ type: "reveal" }) : undefined} />
-          </div>
-        </div>
-
-        <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {round.remaining} cartas en el mazo</p>
-
-        {round.current && (
-          <div style={{ marginTop: 14 }}>
-            <DescriptionToggle
-              key={cardKey(round.current.suit, round.current.value)}
-              description={getDescription(descriptions, round.current)}
-            />
-          </div>
-        )}
-
-        {round.current && (
-          <div style={{ ...S.cardHighlight, marginTop: 14 }}>
-            {myTurn ? (
-              <>
-                <AssignPicker
-                  players={room.players}
-                  selected={selectedAssignee}
-                  onSelect={setSelectedAssignee}
-                  onConfirm={() => send({ type: "assign", targetId: selectedAssignee })}
-                />
-              </>
-            ) : (
-              <p style={{ textAlign: "center", ...S.muted }}>Esperando que {turnPlayer?.name} reparta la carta</p>
-            )}
-          </div>
-        )}
-
-        <ScoreToggleButton show={showRanking} onToggle={() => setShowRanking(v => !v)} />
-        {showRanking && <Ranking players={room.players} pileCounts={round.pileCounts} />}
-
-        {/* Chico a propósito — terminar antes es la excepción, no algo a lo
-            que se quiera empujar al grupo — pero en rojo como el resto de
-            los "terminar partida" del modo local, ya que corta el juego. */}
-        <div style={{ textAlign: "center", marginTop: 18 }}>
-          <button
-            onClick={() => setShowEndVote(v => !v)}
-            style={{ ...S.btn("danger"), width: "auto", padding: "6px 14px", fontSize: 12 }}
-          >
-            {(round.endVotes || []).length > 0
-              ? `Terminar antes (${round.endVotes.length}/${round.endVoteThreshold})`
-              : "Terminar antes"}
-          </button>
-          {showEndVote && (
-            <div style={{ ...S.card, marginTop: 10, textAlign: "left" }}>
-              <p style={{ ...S.muted, marginBottom: 10 }}>
-                Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
-                {round.current && " La carta que está revelada ahora mismo quedaría sin repartir, sin sumarle a nadie."}
-              </p>
-              {me && (round.endVotes || []).includes(me.playerId) ? (
-                <p style={{ ...S.muted, margin: 0 }}>Votaste terminar — esperando al resto</p>
+          {!round.current && (
+            <p style={{ textAlign: "center", fontSize: 14, color: "#9089c0", marginBottom: 14 }}>
+              {myTurn ? (
+                <>
+                  Tu turno — <strong style={{ color: "#5DCAA5" }}>tocá el mazo</strong>
+                </>
               ) : (
-                <Btn variant="ghost" onClick={() => send({ type: "vote_end" })}>
-                  Votar para terminar
-                </Btn>
+                <>
+                  Turno de <strong>{turnPlayer?.name}</strong>
+                </>
+              )}
+            </p>
+          )}
+
+          <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
+            <DeckStack cardsLeft={round.remaining} />
+            <div style={{ position: "relative" }}>
+              <CardView card={round.current} onClick={myTurn && !round.current ? () => send({ type: "reveal" }) : undefined} />
+            </div>
+          </div>
+
+          <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {round.remaining} cartas en el mazo</p>
+
+          {round.current && (
+            <div style={{ marginTop: 14 }}>
+              <DescriptionToggle
+                key={cardKey(round.current.suit, round.current.value)}
+                description={getDescription(descriptions, round.current)}
+              />
+            </div>
+          )}
+
+          {round.current && (
+            <div style={{ ...S.cardHighlight, marginTop: 14 }}>
+              {myTurn ? (
+                <>
+                  <AssignPicker
+                    players={room.players}
+                    selected={selectedAssignee}
+                    onSelect={setSelectedAssignee}
+                    onConfirm={() => send({ type: "assign", targetId: selectedAssignee })}
+                  />
+                </>
+              ) : (
+                <p style={{ textAlign: "center", ...S.muted }}>Esperando que {turnPlayer?.name} reparta la carta</p>
               )}
             </div>
           )}
-        </div>
+
+          <ScoreToggleButton show={showRanking} onToggle={() => setShowRanking(v => !v)} />
+          {showRanking && <Ranking players={room.players} pileCounts={round.pileCounts} />}
+
+          {/* Chico a propósito — terminar antes es la excepción, no algo a lo
+            que se quiera empujar al grupo — pero en rojo como el resto de
+            los "terminar partida" del modo local, ya que corta el juego. */}
+          <div style={{ textAlign: "center", marginTop: 18 }}>
+            <button
+              onClick={() => setShowEndVote(v => !v)}
+              style={{ ...S.btn("danger"), width: "auto", padding: "6px 14px", fontSize: 12 }}
+            >
+              {(round.endVotes || []).length > 0 ? `Terminar antes (${round.endVotes.length}/${round.endVoteThreshold})` : "Terminar antes"}
+            </button>
+            {showEndVote && (
+              <div style={{ ...S.card, marginTop: 10, textAlign: "left" }}>
+                <p style={{ ...S.muted, marginBottom: 10 }}>
+                  Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
+                  {round.current && " La carta que está revelada ahora mismo quedaría sin repartir, sin sumarle a nadie."}
+                </p>
+                {me && (round.endVotes || []).includes(me.playerId) ? (
+                  <p style={{ ...S.muted, margin: 0 }}>Votaste terminar — esperando al resto</p>
+                ) : (
+                  <Btn variant="ghost" onClick={() => send({ type: "vote_end" })}>
+                    Votar para terminar
+                  </Btn>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </PhaseTransition>
     );
@@ -218,29 +216,29 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
     return (
       <PhaseTransition phaseKey="result">
         <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <p style={S.bigReveal}>{round.remaining > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
-        </div>
-        {round.current && (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <span style={S.label}>Quedó sin repartir</span>
-            <CardView card={round.current} size="small" />
-            <p style={{ ...S.muted, marginTop: 8 }}>
-              Se votó terminar justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.
-            </p>
+          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+            <p style={S.bigReveal}>{round.remaining > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
           </div>
-        )}
-        <Ranking players={room.players} pileCounts={round.pileCounts} />
-        {isHost ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-            <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>
-            <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
-          </div>
-        ) : (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
-          </div>
-        )}
+          {round.current && (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <span style={S.label}>Quedó sin repartir</span>
+              <CardView card={round.current} size="small" />
+              <p style={{ ...S.muted, marginTop: 8 }}>
+                Se votó terminar justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.
+              </p>
+            </div>
+          )}
+          <Ranking players={room.players} pileCounts={round.pileCounts} />
+          {isHost ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+              <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>
+              <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
+            </div>
+          ) : (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
+            </div>
+          )}
         </div>
       </PhaseTransition>
     );

@@ -92,16 +92,7 @@ export function Dial({ value, target = null, leftLabel, rightLabel, markers = []
               if (target <= 1 || target >= 99) return null;
               const [lx, ly] = pointAt(R - 11, target);
               return (
-                <text
-                  key={i}
-                  x={lx}
-                  y={ly}
-                  fill="#0f0c1d"
-                  fontSize={11}
-                  fontWeight={800}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                >
+                <text key={i} x={lx} y={ly} fill="#0f0c1d" fontSize={11} fontWeight={800} textAnchor="middle" dominantBaseline="middle">
                   {z.points}
                 </text>
               );
