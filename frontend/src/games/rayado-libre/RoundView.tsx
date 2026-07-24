@@ -173,7 +173,9 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundVie
 
         {isDrawer && myWord && (
           <div style={{ ...S.cardHighlight, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            <p style={{ fontSize: 20, fontWeight: 800, margin: 0, color: "#AFA9EC", visibility: wordVisible ? "visible" : "hidden" }}>{myWord}</p>
+            <p style={{ fontSize: 20, fontWeight: 800, margin: 0, color: "#AFA9EC", visibility: wordVisible ? "visible" : "hidden" }}>
+              {myWord}
+            </p>
             <EyeToggle visible={wordVisible} onClick={() => setWordVisible(v => !v)} />
           </div>
         )}

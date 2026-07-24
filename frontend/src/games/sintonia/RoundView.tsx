@@ -58,10 +58,7 @@ interface SintoniaWordReveal {
 // this preview — and whatever it ends up confirming — actually respects the
 // same no-repeat-within-a-cycle pool the server enforces, falling back to
 // the full list once every pair's been used (same reset the server does).
-function pickRandomSpectrum(
-  usedKeys: string[],
-  exclude?: { left: string; right: string } | null,
-): { left: string; right: string } {
+function pickRandomSpectrum(usedKeys: string[], exclude?: { left: string; right: string } | null): { left: string; right: string } {
   const used = new Set(usedKeys);
   let pool = SPECTRUMS.filter(([l, r]) => !used.has(`${l}|${r}`));
   if (pool.length === 0) pool = SPECTRUMS;
@@ -205,37 +202,37 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
           <RoundBadge round={round} />
           <div style={S.card}>
             <span style={S.label}>¿Quién es el psíquico esta ronda?</span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {room.players.map(p => (
-              <button
-                key={p.id}
-                onClick={() => setSetupPsychicId(p.id)}
-                style={{
-                  ...S.btn(chosenPsychicId === p.id && setupPsychicId !== "random" ? "primary" : "ghost"),
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  justifyContent: "flex-start",
-                  padding: "10px 14px",
-                }}
-              >
-                <Avatar name={p.name} size={28} />
-                <span>{p.name}</span>
-                {p.id === round?.suggestedPsychicId && (
-                  <span style={{ ...S.muted, marginLeft: "auto", fontSize: 11 }}>sugerido por turno</span>
-                )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {room.players.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setSetupPsychicId(p.id)}
+                  style={{
+                    ...S.btn(chosenPsychicId === p.id && setupPsychicId !== "random" ? "primary" : "ghost"),
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    justifyContent: "flex-start",
+                    padding: "10px 14px",
+                  }}
+                >
+                  <Avatar name={p.name} size={28} />
+                  <span>{p.name}</span>
+                  {p.id === round?.suggestedPsychicId && (
+                    <span style={{ ...S.muted, marginLeft: "auto", fontSize: 11 }}>sugerido por turno</span>
+                  )}
+                </button>
+              ))}
+              <button onClick={() => setSetupPsychicId("random")} style={{ ...S.btn(setupPsychicId === "random" ? "primary" : "ghost") }}>
+                🎲 Elegir al azar
               </button>
-            ))}
-            <button onClick={() => setSetupPsychicId("random")} style={{ ...S.btn(setupPsychicId === "random" ? "primary" : "ghost") }}>
-              🎲 Elegir al azar
-            </button>
+            </div>
           </div>
-        </div>
 
-        <Btn variant="success" onClick={confirm}>
-          Continuar
-        </Btn>
-      </div>
+          <Btn variant="success" onClick={confirm}>
+            Continuar
+          </Btn>
+        </div>
       </PhaseTransition>
     );
   }
@@ -262,8 +259,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
       // What the dial actually shows — unlike resolvedPair, manual mode
       // previews live as each side gets typed instead of waiting for both,
       // so the graph updates immediately as a visual reference while typing.
-      const previewPair =
-        spectrumMode === "manual" ? { left: spectrumLeft || "?", right: spectrumRight || "?" } : resolvedPair;
+      const previewPair = spectrumMode === "manual" ? { left: spectrumLeft || "?", right: spectrumRight || "?" } : resolvedPair;
 
       const confirmSpectrum = () => {
         if (!resolvedPair) return;
@@ -277,76 +273,76 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
 
       return (
         <PhaseTransition phaseKey="spectrum">
-        <div>
-          <RoundBadge round={round} />
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
-          </div>
-          {previewPair && (
-            <div style={S.card}>
-              <Dial value={50} showNeedle={false} leftLabel={previewPair.left} rightLabel={previewPair.right} />
+          <div>
+            <RoundBadge round={round} />
+            <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+              <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
             </div>
-          )}
-          <div style={S.card}>
-            <span style={S.label}>¿Qué par de conceptos usamos?</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {round.lastSpectrum && (
-                <button
-                  onClick={() => setSpectrumMode("same")}
-                  style={{ ...S.btn(spectrumMode === "same" ? "primary" : "ghost"), textAlign: "left" }}
-                >
-                  Repetir: {round.lastSpectrum.left} / {round.lastSpectrum.right}
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setSpectrumMode("random");
-                  if (!randomPreview) setRandomPreview(pickRandomSpectrum(round.usedSpectrums || []));
-                }}
-                style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
-              >
-                Uno al azar de la base
-              </button>
-              <button
-                onClick={() => setSpectrumMode("manual")}
-                style={{ ...S.btn(spectrumMode === "manual" ? "primary" : "ghost"), textAlign: "left" }}
-              >
-                Elegirlo yo mismo
-              </button>
-            </div>
-            {spectrumMode === "random" && (
-              <Btn
-                variant="ghost"
-                onClick={() => setRandomPreview(pickRandomSpectrum(round.usedSpectrums || [], randomPreview))}
-                style={{ marginTop: 10 }}
-              >
-                🔀 Ver otra
-              </Btn>
-            )}
-            {spectrumMode === "manual" && (
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <input
-                  style={{ ...S.input, flex: 1 }}
-                  placeholder="Extremo izquierdo"
-                  value={spectrumLeft}
-                  onChange={e => setSpectrumLeft(e.target.value)}
-                />
-                <input
-                  style={{ ...S.input, flex: 1 }}
-                  placeholder="Extremo derecho"
-                  value={spectrumRight}
-                  onChange={e => setSpectrumRight(e.target.value)}
-                />
+            {previewPair && (
+              <div style={S.card}>
+                <Dial value={50} showNeedle={false} leftLabel={previewPair.left} rightLabel={previewPair.right} />
               </div>
             )}
-            {spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim()) && (
-              <p style={{ fontSize: 12, color: "#E2C44A", marginTop: 8 }}>Completá los dos extremos para poder continuar</p>
-            )}
+            <div style={S.card}>
+              <span style={S.label}>¿Qué par de conceptos usamos?</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {round.lastSpectrum && (
+                  <button
+                    onClick={() => setSpectrumMode("same")}
+                    style={{ ...S.btn(spectrumMode === "same" ? "primary" : "ghost"), textAlign: "left" }}
+                  >
+                    Repetir: {round.lastSpectrum.left} / {round.lastSpectrum.right}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setSpectrumMode("random");
+                    if (!randomPreview) setRandomPreview(pickRandomSpectrum(round.usedSpectrums || []));
+                  }}
+                  style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
+                >
+                  Uno al azar de la base
+                </button>
+                <button
+                  onClick={() => setSpectrumMode("manual")}
+                  style={{ ...S.btn(spectrumMode === "manual" ? "primary" : "ghost"), textAlign: "left" }}
+                >
+                  Elegirlo yo mismo
+                </button>
+              </div>
+              {spectrumMode === "random" && (
+                <Btn
+                  variant="ghost"
+                  onClick={() => setRandomPreview(pickRandomSpectrum(round.usedSpectrums || [], randomPreview))}
+                  style={{ marginTop: 10 }}
+                >
+                  🔀 Ver otra
+                </Btn>
+              )}
+              {spectrumMode === "manual" && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <input
+                    style={{ ...S.input, flex: 1 }}
+                    placeholder="Extremo izquierdo"
+                    value={spectrumLeft}
+                    onChange={e => setSpectrumLeft(e.target.value)}
+                  />
+                  <input
+                    style={{ ...S.input, flex: 1 }}
+                    placeholder="Extremo derecho"
+                    value={spectrumRight}
+                    onChange={e => setSpectrumRight(e.target.value)}
+                  />
+                </div>
+              )}
+              {spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim()) && (
+                <p style={{ fontSize: 12, color: "#E2C44A", marginTop: 8 }}>Completá los dos extremos para poder continuar</p>
+              )}
+            </div>
+            <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
+              Confirmar y ver el objetivo
+            </Btn>
           </div>
-          <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
-            Confirmar y ver el objetivo
-          </Btn>
-        </div>
         </PhaseTransition>
       );
     }
@@ -393,7 +389,8 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
             <Dial value={role!.target!} target={role!.target!} leftLabel={round.left!} rightLabel={round.right!} />
           </div>
           <p style={{ ...S.muted, textAlign: "center", margin: "12px 0" }}>
-            Sos el psíquico. Escribí una pista (una palabra, una frase, lo que sea) que ubique ese punto entre "{round.left}" y "{round.right}
+            Sos el psíquico. Escribí una pista (una palabra, una frase, lo que sea) que ubique ese punto entre "{round.left}" y "
+            {round.right}
             ", sin decir el objetivo directamente.
           </p>
           {!clueSubmitted ? (
@@ -526,89 +523,90 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
 
     return (
       <PhaseTransition phaseKey="result">
-      <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <span style={S.label}>Pista de {psychic?.name}</span>
-          <p style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>"{round.clue}"</p>
-        </div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <Dial value={target} target={target} leftLabel={left} rightLabel={right} markers={markers} showNeedle={false} />
-          {guessers.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 10px", marginTop: 10 }}>
-              {guessers.map((p, i) => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span
-                    style={{
-                      width: 13,
-                      height: 13,
-                      borderRadius: "50%",
-                      background: MARKER_COLORS[i % MARKER_COLORS.length],
-                      border: p.id === myId ? "2px solid #fff" : "1.5px solid rgba(255,255,255,0.4)",
-                      display: "inline-block",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: p.id === myId ? 800 : 600, color: p.id === myId ? "#fff" : "#b8b0d4" }}>
-                    {labels[i]} — {p.name}
-                    {p.id === myId ? " (vos)" : ""}
-                  </span>
-                </div>
-              ))}
+        <div>
+          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+            <span style={S.label}>Pista de {psychic?.name}</span>
+            <p style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>"{round.clue}"</p>
+          </div>
+          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+            <Dial value={target} target={target} leftLabel={left} rightLabel={right} markers={markers} showNeedle={false} />
+            {guessers.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 10px", marginTop: 10 }}>
+                {guessers.map((p, i) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span
+                      style={{
+                        width: 13,
+                        height: 13,
+                        borderRadius: "50%",
+                        background: MARKER_COLORS[i % MARKER_COLORS.length],
+                        border: p.id === myId ? "2px solid #fff" : "1.5px solid rgba(255,255,255,0.4)",
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ fontSize: 11, fontWeight: p.id === myId ? 800 : 600, color: p.id === myId ? "#fff" : "#b8b0d4" }}>
+                      {labels[i]} — {p.name}
+                      {p.id === myId ? " (vos)" : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Collapsible title="Puntos de la ronda">
+            {room.players.map(p => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
+                <span style={{ color: "#b8b0d4" }}>
+                  {p.name}
+                  {p.id === round.psychicId ? " (psíquico)" : ""}
+                </span>
+                <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
+              </div>
+            ))}
+          </Collapsible>
+          <Scoreboard players={room.players} score={room.config.score as Record<string, number>} />
+          {(() => {
+            const score = room.config.score as Record<string, number>;
+            const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
+            if (!gameOver) return null;
+            const topScore = Math.max(...room.players.map(p => score?.[p.id] || 0));
+            const winners = room.players.filter(p => (score?.[p.id] || 0) === topScore);
+            const isTie = winners.length > 1;
+            return (
+              <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+                <span style={S.label}>Partida terminada</span>
+                <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+                  🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
+                </p>
+                <p style={S.muted}>
+                  {round.roundsPlayed} rondas jugadas · {topScore} puntos
+                </p>
+              </div>
+            );
+          })()}
+          {isHost &&
+            (round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity) ? (
+              <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
+            ) : (
+              <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
+            ))}
+          {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+            Available to any player, not just the host. */}
+          <LeaveToLobbyButton
+            groupCode={room.groupCode}
+            send={send}
+            confirm={{
+              message:
+                "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+            }}
+          />
+          {!isHost && (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
             </div>
           )}
         </div>
-        <Collapsible title="Puntos de la ronda">
-          {room.players.map(p => (
-            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-              <span style={{ color: "#b8b0d4" }}>
-                {p.name}
-                {p.id === round.psychicId ? " (psíquico)" : ""}
-              </span>
-              <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
-            </div>
-          ))}
-        </Collapsible>
-        <Scoreboard players={room.players} score={room.config.score as Record<string, number>} />
-        {(() => {
-          const score = room.config.score as Record<string, number>;
-          const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
-          if (!gameOver) return null;
-          const topScore = Math.max(...room.players.map(p => score?.[p.id] || 0));
-          const winners = room.players.filter(p => (score?.[p.id] || 0) === topScore);
-          const isTie = winners.length > 1;
-          return (
-            <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-              <span style={S.label}>Partida terminada</span>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
-                🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
-              </p>
-              <p style={S.muted}>
-                {round.roundsPlayed} rondas jugadas · {topScore} puntos
-              </p>
-            </div>
-          );
-        })()}
-        {isHost &&
-          (round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity) ? (
-            <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
-          ) : (
-            <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
-          ))}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
-            Available to any player, not just the host. */}
-        <LeaveToLobbyButton
-          groupCode={room.groupCode}
-          send={send}
-          confirm={{
-            message: "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
-          }}
-        />
-        {!isHost && (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
-          </div>
-        )}
-      </div>
       </PhaseTransition>
     );
   }

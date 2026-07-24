@@ -8,7 +8,8 @@ export const reaccionGame: GameDef = {
   id: "reaccion",
   label: "Reacción",
   icon: "⚡",
-  description: "La pantalla cambia de color en un momento aleatorio. Hay que tocarla lo más rápido posible apenas cambia, sin tocar antes de tiempo.",
+  description:
+    "La pantalla cambia de color en un momento aleatorio. Hay que tocarla lo más rápido posible apenas cambia, sin tocar antes de tiempo.",
   minPlayers: 2,
   category: "rapidos",
   comingSoon: true,

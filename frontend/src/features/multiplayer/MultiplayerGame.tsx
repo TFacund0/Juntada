@@ -543,7 +543,14 @@ export function MultiplayerGame({
                   }}
                 >
                   <p style={{ margin: 0, fontSize: 13, color: "#E2C44A" }}>
-                    Ese código es de un grupo{roomPreview.name ? <> (<b>{roomPreview.name}</b>)</> : null}, no de una sala.
+                    Ese código es de un grupo
+                    {roomPreview.name ? (
+                      <>
+                        {" "}
+                        (<b>{roomPreview.name}</b>)
+                      </>
+                    ) : null}
+                    , no de una sala.
                   </p>
                   <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
                     <Btn
@@ -941,9 +948,13 @@ export function MultiplayerGame({
                       {activeGame?.startLabel ?? "Iniciar ronda"}
                     </StartButton>
                     {notEnoughPlayers ? (
-                      <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>
+                      <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>
+                        Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores
+                      </p>
                     ) : (
-                      notReadyReason && <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>{notReadyReason}</p>
+                      notReadyReason && (
+                        <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>{notReadyReason}</p>
+                      )
                     )}
                   </>
                 );

@@ -22,7 +22,16 @@ const { getEngine } = require("../games/registry") as {
 };
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
-const { sendTo, sendError, broadcast, getRoomPublicState, getGroupPublicState, sendPrivateInfo, broadcastGroupState, broadcastRoundReveal } = require("./messaging");
+const {
+  sendTo,
+  sendError,
+  broadcast,
+  getRoomPublicState,
+  getGroupPublicState,
+  sendPrivateInfo,
+  broadcastGroupState,
+  broadcastRoundReveal,
+} = require("./messaging");
 const { syncPhaseTimer, cleanupRoomIfEmpty, releaseStaleIdentity } = require("./shared");
 
 function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" }>): void {

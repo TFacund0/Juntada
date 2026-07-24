@@ -8,7 +8,8 @@ export const ultimoEnTocarGame: GameDef = {
   id: "ultimo-en-tocar",
   label: "Último en Tocar Pierde",
   icon: "🫸",
-  description: "Todos mantienen el dedo apoyado en la pantalla. En un momento aleatorio el juego termina, y quien no estaba tocando en ese instante pierde.",
+  description:
+    "Todos mantienen el dedo apoyado en la pantalla. En un momento aleatorio el juego termina, y quien no estaba tocando en ese instante pierde.",
   minPlayers: 2,
   category: "rapidos",
   comingSoon: true,

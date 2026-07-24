@@ -8,7 +8,8 @@ export const quienSoyGame: GameDef = {
   id: "quien-soy",
   label: "¿Quién Soy?",
   icon: "🎭",
-  description: "A cada jugador se le asigna un personaje secreto que todos ven menos él. Hay que adivinar quién sos haciendo preguntas de sí o no.",
+  description:
+    "A cada jugador se le asigna un personaje secreto que todos ven menos él. Hay que adivinar quién sos haciendo preguntas de sí o no.",
   minPlayers: 3,
   category: "grupo",
   comingSoon: true,

@@ -8,7 +8,8 @@ export const yoNuncaGame: GameDef = {
   id: "yo-nunca",
   label: "Yo Nunca Nunca",
   icon: "🙈",
-  description: "Aparece una frase 'yo nunca nunca...' y cada jugador confiesa si la hizo o no. Quien la hizo, pierde una vida (o toma, si juegan con bebida).",
+  description:
+    "Aparece una frase 'yo nunca nunca...' y cada jugador confiesa si la hizo o no. Quien la hizo, pierde una vida (o toma, si juegan con bebida).",
   minPlayers: 2,
   category: "grupo",
   comingSoon: true,

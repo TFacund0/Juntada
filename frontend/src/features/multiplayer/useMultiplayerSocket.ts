@@ -97,10 +97,7 @@ type InboundMessage =
 // — the caller (MultiplayerGame) uses it to tell App.tsx to leave the whole
 // group flow, since "menu" alone doesn't distinguish that from the very
 // first screen before ever joining anything.
-export function useMultiplayerSocket({
-  onLeftGroup,
-  entryKind,
-}: { onLeftGroup?: () => void; entryKind?: "room" | "group" } = {}) {
+export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?: () => void; entryKind?: "room" | "group" } = {}) {
   // menu|create|join, then mirrors room.phase directly ("lobby" and whatever
   // in-game phases the active game defines — this hook doesn't know or care
   // what those are) once a room is attached, or "group" once a group is
@@ -123,7 +120,13 @@ export function useMultiplayerSocket({
   // Result of the join screen's live "check_room_code" lookup — a read-only
   // preview of what a typed code points to, shown before the player commits
   // to actually joining (see MultiplayerGame's join-room form).
-  const [roomPreview, setRoomPreview] = useState<{ code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean } | null>(null);
+  const [roomPreview, setRoomPreview] = useState<{
+    code: string;
+    found: boolean;
+    name?: string;
+    gameType?: string;
+    isGroupCode?: boolean;
+  } | null>(null);
   const [error, setError] = useState("");
   // Bumped every time an error is (re-)raised, even if the message text is
   // identical to what's already showing — lets the UI key off this to replay
@@ -203,137 +206,141 @@ export function useMultiplayerSocket({
     setReconnectFailed(false);
   }, []);
 
-  const connect = useCallback((onOpen?: (ws: WebSocket) => void) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      onOpen?.(wsRef.current);
-      return;
-    }
-    const ws = new WebSocket(WS_URL);
-    wsRef.current = ws;
-    ws.onopen = () => {
-      if (onOpen) onOpen(ws);
-      else if (groupSessionEnabled && groupMeRef.current)
-        ws.send(JSON.stringify({ type: "rejoin_group", groupCode: groupMeRef.current.groupCode, playerId: groupMeRef.current.playerId }));
-      else if (meRef.current) ws.send(JSON.stringify({ type: "rejoin", roomCode: meRef.current.roomCode, playerId: meRef.current.playerId }));
-    };
-    ws.onmessage = e => {
-      let msg: InboundMessage;
-      try {
-        msg = JSON.parse(e.data);
-      } catch {
+  const connect = useCallback(
+    (onOpen?: (ws: WebSocket) => void) => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        onOpen?.(wsRef.current);
         return;
       }
-      if (msg.type === "joined") {
-        setMe({ playerId: msg.playerId, roomCode: msg.roomCode });
-        setRoom(msg.room);
-        setConnectionPhase(msg.room.phase);
-        clearError();
-        onReconnected();
-      } else if (msg.type === "state") {
-        setRoom(msg.room);
-        setConnectionPhase(msg.room.phase);
-        clearError();
-        onReconnected();
-      } else if (msg.type === "group_joined") {
-        setGroupMe({ playerId: msg.playerId, groupCode: msg.groupCode });
-        setGroup(msg.group);
-        // A rejoin_group may be immediately followed by a "joined" for a
-        // still-live instance — don't force the group screen if that's
-        // about to happen; only switch phase here if we're not already
-        // sitting on a room (a plain group_state update from the group
-        // screen itself takes this branch too, harmlessly).
-        setRoom(prevRoom => {
-          if (!prevRoom) setConnectionPhase("group");
-          return prevRoom;
-        });
-        clearError();
-        onReconnected();
-      } else if (msg.type === "group_state") {
-        setGroup(msg.group);
-        clearError();
-        onReconnected();
-      } else if (msg.type === "left_instance") {
-        setMe(null);
-        setRoom(null);
-        setMyRole(null);
-        setWordReveal(null);
-        setConnectionPhase("group");
-        clearError();
-      } else if (msg.type === "left_group") {
-        setMe(null);
-        setRoom(null);
-        setGroupMe(null);
-        setGroup(null);
-        setMyRole(null);
-        setWordReveal(null);
-        setConnectionPhase("menu");
-        clearError();
-        onLeftGroupRef.current?.();
-      } else if (msg.type === "private_role") {
-        setMyRole(msg);
-        setWordReveal(null);
-      } else if (msg.type === "word_reveal") {
-        setWordReveal(msg);
-      } else if (msg.type === "error") {
-        flashError(msg.message);
-        // Failed before ever landing in a room/group — either a fresh
-        // join with a bad code, or a restored/rejoin session whose
-        // room/group has since expired. Either way, never leave the UI
-        // stuck: drop the stale session and send them back to the menu
-        // instead of an infinite "Conectando..." with nothing to rejoin.
-        if (!roomRef.current && !groupMeRef.current) {
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+      ws.onopen = () => {
+        if (onOpen) onOpen(ws);
+        else if (groupSessionEnabled && groupMeRef.current)
+          ws.send(JSON.stringify({ type: "rejoin_group", groupCode: groupMeRef.current.groupCode, playerId: groupMeRef.current.playerId }));
+        else if (meRef.current)
+          ws.send(JSON.stringify({ type: "rejoin", roomCode: meRef.current.roomCode, playerId: meRef.current.playerId }));
+      };
+      ws.onmessage = e => {
+        let msg: InboundMessage;
+        try {
+          msg = JSON.parse(e.data);
+        } catch {
+          return;
+        }
+        if (msg.type === "joined") {
+          setMe({ playerId: msg.playerId, roomCode: msg.roomCode });
+          setRoom(msg.room);
+          setConnectionPhase(msg.room.phase);
+          clearError();
+          onReconnected();
+        } else if (msg.type === "state") {
+          setRoom(msg.room);
+          setConnectionPhase(msg.room.phase);
+          clearError();
+          onReconnected();
+        } else if (msg.type === "group_joined") {
+          setGroupMe({ playerId: msg.playerId, groupCode: msg.groupCode });
+          setGroup(msg.group);
+          // A rejoin_group may be immediately followed by a "joined" for a
+          // still-live instance — don't force the group screen if that's
+          // about to happen; only switch phase here if we're not already
+          // sitting on a room (a plain group_state update from the group
+          // screen itself takes this branch too, harmlessly).
+          setRoom(prevRoom => {
+            if (!prevRoom) setConnectionPhase("group");
+            return prevRoom;
+          });
+          clearError();
+          onReconnected();
+        } else if (msg.type === "group_state") {
+          setGroup(msg.group);
+          clearError();
+          onReconnected();
+        } else if (msg.type === "left_instance") {
           setMe(null);
           setRoom(null);
-          setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
-        } else if (!roomRef.current && groupMeRef.current && msg.code === "REJOIN_GROUP_FAILED") {
+          setMyRole(null);
+          setWordReveal(null);
+          setConnectionPhase("group");
+          clearError();
+        } else if (msg.type === "left_group") {
+          setMe(null);
+          setRoom(null);
           setGroupMe(null);
           setGroup(null);
+          setMyRole(null);
+          setWordReveal(null);
           setConnectionPhase("menu");
-        }
-      } else if (msg.type === "room_preview") {
-        setRoomPreview(msg);
-      } else if (msg.type === "kicked") {
-        setConnectionPhase(groupMeRef.current ? "group" : "menu");
-        setMe(null);
-        setRoom(null);
-        setMyRole(null);
-        flashError("Fuiste expulsado de la sala");
-        setReconnecting(false);
-      } else if (msg.type === "kicked_from_group") {
-        setMe(null);
-        setRoom(null);
-        setGroupMe(null);
-        setGroup(null);
-        setMyRole(null);
-        setWordReveal(null);
-        setConnectionPhase("menu");
-        flashError("Fuiste expulsado del grupo");
-        setReconnecting(false);
-        onLeftGroupRef.current?.();
-      }
-    };
-    ws.onclose = () => {
-      if (!meRef.current && !(groupSessionEnabled && groupMeRef.current)) return;
-      setReconnecting(true);
-      // A fresh drop mid-retry-loop shouldn't still show a stale
-      // "Reconectado" from an earlier, unrelated recovery.
-      setJustReconnected(false);
-      if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
-      setReconnectAttempt(prevAttempt => {
-        const attempt = prevAttempt + 1;
-        if (attempt > MAX_RECONNECT_ATTEMPTS) {
+          clearError();
+          onLeftGroupRef.current?.();
+        } else if (msg.type === "private_role") {
+          setMyRole(msg);
+          setWordReveal(null);
+        } else if (msg.type === "word_reveal") {
+          setWordReveal(msg);
+        } else if (msg.type === "error") {
+          flashError(msg.message);
+          // Failed before ever landing in a room/group — either a fresh
+          // join with a bad code, or a restored/rejoin session whose
+          // room/group has since expired. Either way, never leave the UI
+          // stuck: drop the stale session and send them back to the menu
+          // instead of an infinite "Conectando..." with nothing to rejoin.
+          if (!roomRef.current && !groupMeRef.current) {
+            setMe(null);
+            setRoom(null);
+            setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
+          } else if (!roomRef.current && groupMeRef.current && msg.code === "REJOIN_GROUP_FAILED") {
+            setGroupMe(null);
+            setGroup(null);
+            setConnectionPhase("menu");
+          }
+        } else if (msg.type === "room_preview") {
+          setRoomPreview(msg);
+        } else if (msg.type === "kicked") {
+          setConnectionPhase(groupMeRef.current ? "group" : "menu");
+          setMe(null);
+          setRoom(null);
+          setMyRole(null);
+          flashError("Fuiste expulsado de la sala");
           setReconnecting(false);
-          setReconnectFailed(true);
-          return prevAttempt;
+        } else if (msg.type === "kicked_from_group") {
+          setMe(null);
+          setRoom(null);
+          setGroupMe(null);
+          setGroup(null);
+          setMyRole(null);
+          setWordReveal(null);
+          setConnectionPhase("menu");
+          flashError("Fuiste expulsado del grupo");
+          setReconnecting(false);
+          onLeftGroupRef.current?.();
         }
-        reconnectRef.current = setTimeout(() => {
-          if (meRef.current || (groupSessionEnabled && groupMeRef.current)) connect();
-        }, reconnectDelayMs(attempt));
-        return attempt;
-      });
-    };
-    ws.onerror = () => flashError("No se pudo conectar al servidor");
-  }, [onReconnected, flashError, clearError, groupSessionEnabled]);
+      };
+      ws.onclose = () => {
+        if (!meRef.current && !(groupSessionEnabled && groupMeRef.current)) return;
+        setReconnecting(true);
+        // A fresh drop mid-retry-loop shouldn't still show a stale
+        // "Reconectado" from an earlier, unrelated recovery.
+        setJustReconnected(false);
+        if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
+        setReconnectAttempt(prevAttempt => {
+          const attempt = prevAttempt + 1;
+          if (attempt > MAX_RECONNECT_ATTEMPTS) {
+            setReconnecting(false);
+            setReconnectFailed(true);
+            return prevAttempt;
+          }
+          reconnectRef.current = setTimeout(() => {
+            if (meRef.current || (groupSessionEnabled && groupMeRef.current)) connect();
+          }, reconnectDelayMs(attempt));
+          return attempt;
+        });
+      };
+      ws.onerror = () => flashError("No se pudo conectar al servidor");
+    },
+    [onReconnected, flashError, clearError, groupSessionEnabled],
+  );
 
   // Manual retry after the automatic loop gave up (see reconnectFailed) —
   // resets the attempt count/backoff so the player gets a fresh full run
@@ -385,11 +392,14 @@ export function useMultiplayerSocket({
     [],
   );
 
-  const send = useCallback((msg: ClientMessage | Record<string, unknown>) => {
-    const ws = wsRef.current;
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
-    else flashError("Sin conexión con el servidor");
-  }, [flashError]);
+  const send = useCallback(
+    (msg: ClientMessage | Record<string, unknown>) => {
+      const ws = wsRef.current;
+      if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+      else flashError("Sin conexión con el servidor");
+    },
+    [flashError],
+  );
 
   // Explicit leave (kicked, "Menú principal", etc.) should forget the
   // session so a later fresh visit doesn't try to rejoin a room/group the

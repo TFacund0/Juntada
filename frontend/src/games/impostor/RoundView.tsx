@@ -335,115 +335,115 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
     return (
       <PhaseTransition phaseKey={`round-${currentTurnId}`}>
-      <div>
-        {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
+        <div>
+          {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 
-        <div
-          style={{
-            ...S.card,
-            textAlign: "center",
-            cursor: "pointer",
-            minHeight: 140,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          onClick={() => setWordVisible(v => !v)}
-        >
-          {!myRole ? (
-            <p style={{ color: "#6b6490" }}>Cargando tu rol...</p>
-          ) : !wordVisible ? (
-            <p style={{ color: "#6b6490", fontSize: 14 }}>Tocá para ver tu palabra</p>
-          ) : myRole.isImpostor ? (
-            <>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#F09595", margin: "0 0 8px" }}>Sos el impostor</p>
-              {myRole.hint ? <p style={{ fontSize: 13, color: "#9089c0" }}>{String(myRole.hint)}</p> : null}
-              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
-            </>
-          ) : (
-            <>
-              <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Tu palabra secreta</p>
-              <p style={S.bigReveal}>{String(myRole.word)}</p>
-              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 6 }}>Tocá para ocultar</p>
-            </>
-          )}
-        </div>
-
-        {round &&
-          (() => {
-            const skipVoterIds: string[] = round.skipVoterIds || [];
-            const amSkipRequesting = !!me?.playerId && skipVoterIds.includes(me.playerId);
-            return (
-              <div style={{ ...S.card, textAlign: "center" }}>
-                {!amSkipRequesting ? (
-                  <Btn variant="ghost" onClick={() => send({ type: "skip_word" })}>
-                    No conozco esta palabra, pedir otra
-                  </Btn>
-                ) : (
-                  <>
-                    <p style={{ fontSize: 13, color: "#9089c0" }}>
-                      Pediste cambiarla — {round.skipVotes}/{round.skipVotesNeeded} necesarios para cambiarla
-                    </p>
-                    <Btn variant="ghost" onClick={() => send({ type: "cancel_skip_word" })} style={{ marginTop: 8 }}>
-                      Cancelar pedido
-                    </Btn>
-                  </>
-                )}
-                {skipVoterIds.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 10 }}>
-                    {skipVoterIds.map(id => {
-                      const p = room.players.find(x => x.id === id);
-                      if (!p) return null;
-                      return (
-                        <span key={id} style={S.pill(true)}>
-                          {p.name}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-        <div style={S.card}>
-          <span style={S.label}>Ronda de turnos</span>
-          {turnOrder.length > 0 && (
-            <p style={{ ...S.muted, textAlign: "center", marginBottom: 8 }}>
-              Turno {turnIndex + 1}/{turnOrder.length}
-            </p>
-          )}
-          <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} clues={round?.clues} meId={me?.playerId} />
-
-          {isMyTurn && !clueSubmitted ? (
-            requiresWrittenClue ? (
+          <div
+            style={{
+              ...S.card,
+              textAlign: "center",
+              cursor: "pointer",
+              minHeight: 140,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            onClick={() => setWordVisible(v => !v)}
+          >
+            {!myRole ? (
+              <p style={{ color: "#6b6490" }}>Cargando tu rol...</p>
+            ) : !wordVisible ? (
+              <p style={{ color: "#6b6490", fontSize: 14 }}>Tocá para ver tu palabra</p>
+            ) : myRole.isImpostor ? (
               <>
-                <span style={S.label}>Tu palabra</span>
-                <input style={S.input} placeholder="Escribí tu palabra..." value={clueText} onChange={e => setClueText(e.target.value)} />
-                <Btn variant="success" disabled={!clueText.trim()} onClick={submitClue} style={{ marginTop: 8 }}>
-                  Enviar palabra
-                </Btn>
+                <p style={{ fontSize: 20, fontWeight: 800, color: "#F09595", margin: "0 0 8px" }}>Sos el impostor</p>
+                {myRole.hint ? <p style={{ fontSize: 13, color: "#9089c0" }}>{String(myRole.hint)}</p> : null}
+                <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
               </>
             ) : (
               <>
-                <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Es tu turno — decí tu palabra en voz alta y confirmá.</p>
-                <Btn variant="success" onClick={submitClue}>
-                  Ya dije mi palabra
-                </Btn>
+                <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Tu palabra secreta</p>
+                <p style={S.bigReveal}>{String(myRole.word)}</p>
+                <p style={{ fontSize: 12, color: "#5a5280", marginTop: 6 }}>Tocá para ocultar</p>
               </>
-            )
-          ) : isMyTurn && clueSubmitted ? (
-            <p style={{ color: "#5DCAA5", fontSize: 14, textAlign: "center" }}>Palabra enviada — pasando el turno...</p>
-          ) : (
-            <p style={{ ...S.muted, textAlign: "center" }}>
-              {currentTurnPlayer ? `Esperando a ${currentTurnPlayer.name}...` : "Esperando..."}
-            </p>
-          )}
-        </div>
+            )}
+          </div>
 
-        <CluesReview clues={round?.clues} players={room.players} />
-      </div>
+          {round &&
+            (() => {
+              const skipVoterIds: string[] = round.skipVoterIds || [];
+              const amSkipRequesting = !!me?.playerId && skipVoterIds.includes(me.playerId);
+              return (
+                <div style={{ ...S.card, textAlign: "center" }}>
+                  {!amSkipRequesting ? (
+                    <Btn variant="ghost" onClick={() => send({ type: "skip_word" })}>
+                      No conozco esta palabra, pedir otra
+                    </Btn>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: 13, color: "#9089c0" }}>
+                        Pediste cambiarla — {round.skipVotes}/{round.skipVotesNeeded} necesarios para cambiarla
+                      </p>
+                      <Btn variant="ghost" onClick={() => send({ type: "cancel_skip_word" })} style={{ marginTop: 8 }}>
+                        Cancelar pedido
+                      </Btn>
+                    </>
+                  )}
+                  {skipVoterIds.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 10 }}>
+                      {skipVoterIds.map(id => {
+                        const p = room.players.find(x => x.id === id);
+                        if (!p) return null;
+                        return (
+                          <span key={id} style={S.pill(true)}>
+                            {p.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+          <div style={S.card}>
+            <span style={S.label}>Ronda de turnos</span>
+            {turnOrder.length > 0 && (
+              <p style={{ ...S.muted, textAlign: "center", marginBottom: 8 }}>
+                Turno {turnIndex + 1}/{turnOrder.length}
+              </p>
+            )}
+            <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} clues={round?.clues} meId={me?.playerId} />
+
+            {isMyTurn && !clueSubmitted ? (
+              requiresWrittenClue ? (
+                <>
+                  <span style={S.label}>Tu palabra</span>
+                  <input style={S.input} placeholder="Escribí tu palabra..." value={clueText} onChange={e => setClueText(e.target.value)} />
+                  <Btn variant="success" disabled={!clueText.trim()} onClick={submitClue} style={{ marginTop: 8 }}>
+                    Enviar palabra
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Es tu turno — decí tu palabra en voz alta y confirmá.</p>
+                  <Btn variant="success" onClick={submitClue}>
+                    Ya dije mi palabra
+                  </Btn>
+                </>
+              )
+            ) : isMyTurn && clueSubmitted ? (
+              <p style={{ color: "#5DCAA5", fontSize: 14, textAlign: "center" }}>Palabra enviada — pasando el turno...</p>
+            ) : (
+              <p style={{ ...S.muted, textAlign: "center" }}>
+                {currentTurnPlayer ? `Esperando a ${currentTurnPlayer.name}...` : "Esperando..."}
+              </p>
+            )}
+          </div>
+
+          <CluesReview clues={round?.clues} players={room.players} />
+        </div>
       </PhaseTransition>
     );
   }
@@ -452,33 +452,33 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     const myReadyState = myPlayer?.ready;
     return (
       <PhaseTransition phaseKey="discussion">
-      <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-          <p style={{ fontSize: 14, color: "#9089c0" }}>Momento de pensar</p>
-          <p style={{ fontSize: 12, color: "#7F77DD" }}>Analicen las palabras antes de votar</p>
-        </div>
-
-        {round?.discussionEnd ? (
-          <Timer timerEnd={round.discussionEnd} total={config.discussionTime} label="Tiempo de discusión" />
-        ) : (
-          <p style={{ ...S.muted, textAlign: "center" }}>Sin límite de tiempo — avancen cuando estén listos</p>
-        )}
-
-        <CluesReview clues={round?.clues} players={room.players} />
-
-        <PlayerReadyPills players={room.players} />
-
-        {!myReadyState && (
-          <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>
-            Listo para votar
-          </Btn>
-        )}
-        {myReadyState && (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#5DCAA5" }}>Listo — esperando a los demás para pasar a la votación</p>
+        <div>
+          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+            <p style={{ fontSize: 14, color: "#9089c0" }}>Momento de pensar</p>
+            <p style={{ fontSize: 12, color: "#7F77DD" }}>Analicen las palabras antes de votar</p>
           </div>
-        )}
-      </div>
+
+          {round?.discussionEnd ? (
+            <Timer timerEnd={round.discussionEnd} total={config.discussionTime} label="Tiempo de discusión" />
+          ) : (
+            <p style={{ ...S.muted, textAlign: "center" }}>Sin límite de tiempo — avancen cuando estén listos</p>
+          )}
+
+          <CluesReview clues={round?.clues} players={room.players} />
+
+          <PlayerReadyPills players={room.players} />
+
+          {!myReadyState && (
+            <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>
+              Listo para votar
+            </Btn>
+          )}
+          {myReadyState && (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#5DCAA5" }}>Listo — esperando a los demás para pasar a la votación</p>
+            </div>
+          )}
+        </div>
       </PhaseTransition>
     );
   }
@@ -515,71 +515,71 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
     return (
       <PhaseTransition phaseKey={`voting-${round?.revoteCount ?? 0}`}>
-      <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-          <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
-          <p style={{ fontSize: 12, color: "#7F77DD" }}>
-            {totalVoted}/{onlinePlayers.length} confirmaron su voto
-          </p>
-        </div>
-
-        {isRevote && (
-          <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
-            <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>Hubo un empate</p>
-            <p style={{ fontSize: 13, color: "#b8b0d4", marginTop: 4 }}>Se vota de nuevo solo entre los más votados</p>
-          </div>
-        )}
-
-        {offlineAlive.length > 0 && (
-          <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
-            <p style={{ fontSize: 13, color: "#E2C44A", fontWeight: 700, margin: 0 }}>
-              Esperando a que se reconecte{offlineAlive.length === 1 ? "" : "n"}: {offlineAlive.map(p => p.name).join(", ")}
-            </p>
-            <p style={{ fontSize: 12, color: "#b8b0d4", marginTop: 4 }}>La votación sigue pausada hasta que vuelvan.</p>
-          </div>
-        )}
-
-        <CluesReview clues={round?.clues} players={room.players} />
-
-        {!voteConfirmed ? (
-          <>
-            <p style={{ fontSize: 14, color: "#9089c0", marginBottom: 12, textAlign: "center" }}>Elegí a quién sospechás y confirmá</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
-              {suspects.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedSuspect(p.id)}
-                  style={{
-                    ...S.btn(selectedSuspect === p.id ? "danger" : "ghost"),
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "14px 16px",
-                    textAlign: "left",
-                    borderRadius: 12,
-                  }}
-                >
-                  <Avatar name={p.name} size={36} />
-                  <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>
-                    {p.name}
-                    {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <Btn variant="success" disabled={!selectedSuspect} onClick={confirmVote}>
-              Confirmar voto
-            </Btn>
-          </>
-        ) : (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ fontSize: 15, color: "#9089c0" }}>Voto confirmado. Esperando a los demás</p>
-            <p style={{ fontSize: 13, color: "#5a5280", marginTop: 6 }}>
+        <div>
+          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+            <p style={{ fontSize: 14, color: "#9089c0" }}>¿Quién es el impostor?</p>
+            <p style={{ fontSize: 12, color: "#7F77DD" }}>
               {totalVoted}/{onlinePlayers.length} confirmaron su voto
             </p>
           </div>
-        )}
-      </div>
+
+          {isRevote && (
+            <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
+              <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>Hubo un empate</p>
+              <p style={{ fontSize: 13, color: "#b8b0d4", marginTop: 4 }}>Se vota de nuevo solo entre los más votados</p>
+            </div>
+          )}
+
+          {offlineAlive.length > 0 && (
+            <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
+              <p style={{ fontSize: 13, color: "#E2C44A", fontWeight: 700, margin: 0 }}>
+                Esperando a que se reconecte{offlineAlive.length === 1 ? "" : "n"}: {offlineAlive.map(p => p.name).join(", ")}
+              </p>
+              <p style={{ fontSize: 12, color: "#b8b0d4", marginTop: 4 }}>La votación sigue pausada hasta que vuelvan.</p>
+            </div>
+          )}
+
+          <CluesReview clues={round?.clues} players={room.players} />
+
+          {!voteConfirmed ? (
+            <>
+              <p style={{ fontSize: 14, color: "#9089c0", marginBottom: 12, textAlign: "center" }}>Elegí a quién sospechás y confirmá</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
+                {suspects.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedSuspect(p.id)}
+                    style={{
+                      ...S.btn(selectedSuspect === p.id ? "danger" : "ghost"),
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      textAlign: "left",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <Avatar name={p.name} size={36} />
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: 16 }}>
+                      {p.name}
+                      {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <Btn variant="success" disabled={!selectedSuspect} onClick={confirmVote}>
+                Confirmar voto
+              </Btn>
+            </>
+          ) : (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ fontSize: 15, color: "#9089c0" }}>Voto confirmado. Esperando a los demás</p>
+              <p style={{ fontSize: 13, color: "#5a5280", marginTop: 6 }}>
+                {totalVoted}/{onlinePlayers.length} confirmaron su voto
+              </p>
+            </div>
+          )}
+        </div>
       </PhaseTransition>
     );
   }
@@ -609,117 +609,115 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
 
     return (
       <PhaseTransition phaseKey="result">
-      <div>
-        {matchOver && (
-          <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: winnerColor, marginTop: 8 }}>
-              {abortedReason === "impostor_disconnected"
-                ? "🔌 El impostor se desconectó"
-                : winner === "innocents"
-                  ? "Ganaron los inocentes"
-                  : "Ganaron los impostores"}
-            </p>
-            {abortedReason === "impostor_disconnected" && (
-              <p style={{ fontSize: 13, color: "#9089c0", marginTop: 4 }}>
-                La partida se cerró sin definir un ganador porque el impostor abandonó.
-                {votesDiscarded && " Los votos que ya se habían emitido en esta ronda no se cuentan."}
+        <div>
+          {matchOver && (
+            <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+              <p style={{ fontSize: 22, fontWeight: 800, color: winnerColor, marginTop: 8 }}>
+                {abortedReason === "impostor_disconnected"
+                  ? "🔌 El impostor se desconectó"
+                  : winner === "innocents"
+                    ? "Ganaron los inocentes"
+                    : "Ganaron los impostores"}
               </p>
-            )}
-          </div>
-        )}
-
-        {!abortedReason && tieBrokenRandomly && (
-          <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", margin: "0 0 8px" }}>
-            🎲 Empate persistente — se sorteó entre los más votados
-          </p>
-        )}
-
-        {eliminated && <EliminatedPlayerCard name={eliminated.name} wasImpostor={wasImpostor} />}
-
-        {matchOver && word && (
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{String(word)}</p>
-          </div>
-        )}
-
-        {matchOver && impostors.length > 0 && (
-          <div style={S.card}>
-            <span style={S.label}>{impostors.length === 1 ? "El impostor era" : "Los impostores eran"}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "8px 0 0" }}>
-              {impostors.map(p => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Avatar name={p.name} size={28} />
-                  <span style={{ fontWeight: 700, fontSize: 14 }}>
-                    {p.name}
-                    {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
-                  </span>
-                </div>
-              ))}
+              {abortedReason === "impostor_disconnected" && (
+                <p style={{ fontSize: 13, color: "#9089c0", marginTop: 4 }}>
+                  La partida se cerró sin definir un ganador porque el impostor abandonó.
+                  {votesDiscarded && " Los votos que ya se habían emitido en esta ronda no se cuentan."}
+                </p>
+              )}
             </div>
-            {impostors.length > 1 && (
-              <>
-                <p style={{ ...S.muted, margin: "14px 0 6px" }}>Atrapados durante la partida</p>
-                {impostors.filter(p => matchEliminatedIds.includes(p.id)).length > 0 ? (
-                  impostors
-                    .filter(p => matchEliminatedIds.includes(p.id))
-                    .map(p => (
-                      <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <Avatar name={p.name} size={24} />
-                        <span style={{ fontSize: 13 }}>{p.name}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p style={{ ...S.muted, margin: 0 }}>Ninguno.</p>
-                )}
-              </>
-            )}
-          </div>
-        )}
+          )}
 
-        <div style={S.card}>
-          <span style={S.label}>Votos</span>
-          {roundParticipants.map(p => {
-            const count = Object.values(votes).filter(v => v === p.id).length;
-            const total = Math.max(1, roundParticipants.length - 1);
-            return (
-              <div key={p.id} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 13 }}>{p.name}</span>
-                  <span style={S.muted}>{count} votos</span>
-                </div>
-                <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
-                  <div
-                    style={{
-                      height: "100%",
-                      borderRadius: 3,
-                      width: `${Math.round((count / total) * 100)}%`,
-                      background: p.id === (round?.eliminated ?? lastH?.eliminated) ? "#E24B4A" : "#534AB7",
-                      transition: "width 0.6s",
-                    }}
-                  />
-                </div>
+          {!abortedReason && tieBrokenRandomly && (
+            <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", margin: "0 0 8px" }}>
+              🎲 Empate persistente — se sorteó entre los más votados
+            </p>
+          )}
+
+          {eliminated && <EliminatedPlayerCard name={eliminated.name} wasImpostor={wasImpostor} />}
+
+          {matchOver && word && (
+            <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+              <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
+              <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{String(word)}</p>
+            </div>
+          )}
+
+          {matchOver && impostors.length > 0 && (
+            <div style={S.card}>
+              <span style={S.label}>{impostors.length === 1 ? "El impostor era" : "Los impostores eran"}</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "8px 0 0" }}>
+                {impostors.map(p => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Avatar name={p.name} size={28} />
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>
+                      {p.name}
+                      {!p.online && <span style={{ fontWeight: 600, fontSize: 12, color: "#9089c0" }}> · desconectado</span>}
+                    </span>
+                  </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+              {impostors.length > 1 && (
+                <>
+                  <p style={{ ...S.muted, margin: "14px 0 6px" }}>Atrapados durante la partida</p>
+                  {impostors.filter(p => matchEliminatedIds.includes(p.id)).length > 0 ? (
+                    impostors
+                      .filter(p => matchEliminatedIds.includes(p.id))
+                      .map(p => (
+                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          <Avatar name={p.name} size={24} />
+                          <span style={{ fontSize: 13 }}>{p.name}</span>
+                        </div>
+                      ))
+                  ) : (
+                    <p style={{ ...S.muted, margin: 0 }}>Ninguno.</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
-        {isHost && matchOver && <StartButton onClick={() => send({ type: "start_round" })}>Nueva partida</StartButton>}
-        {isHost && !matchOver && (
-          <StartButton onClick={() => send({ type: "continue_round" })}>Siguiente ronda</StartButton>
-        )}
-        {/* Group instances use the shell's persistent "Volver al grupo" link instead.
+          <div style={S.card}>
+            <span style={S.label}>Votos</span>
+            {roundParticipants.map(p => {
+              const count = Object.values(votes).filter(v => v === p.id).length;
+              const total = Math.max(1, roundParticipants.length - 1);
+              return (
+                <div key={p.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13 }}>{p.name}</span>
+                    <span style={S.muted}>{count} votos</span>
+                  </div>
+                  <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        borderRadius: 3,
+                        width: `${Math.round((count / total) * 100)}%`,
+                        background: p.id === (round?.eliminated ?? lastH?.eliminated) ? "#E24B4A" : "#534AB7",
+                        transition: "width 0.6s",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {isHost && matchOver && <StartButton onClick={() => send({ type: "start_round" })}>Nueva partida</StartButton>}
+          {isHost && !matchOver && <StartButton onClick={() => send({ type: "continue_round" })}>Siguiente ronda</StartButton>}
+          {/* Group instances use the shell's persistent "Volver al grupo" link instead.
             Available to any player, not just the host — it only interrupts the
             current match for everyone, same as leaving an instance. */}
-        <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
-        {!isHost && (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#9089c0", fontSize: 14 }}>
-              {matchOver ? "Esperando que el anfitrión inicie otra partida" : "Esperando que el anfitrión continúe la ronda"}
-            </p>
-          </div>
-        )}
-      </div>
+          <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
+          {!isHost && (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#9089c0", fontSize: 14 }}>
+                {matchOver ? "Esperando que el anfitrión inicie otra partida" : "Esperando que el anfitrión continúe la ronda"}
+              </p>
+            </div>
+          )}
+        </div>
       </PhaseTransition>
     );
   }

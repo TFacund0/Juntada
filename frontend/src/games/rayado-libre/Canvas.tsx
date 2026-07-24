@@ -84,7 +84,8 @@ function floodFill(ctx: CanvasRenderingContext2D, startX: number, startY: number
   const fill = hexToRgba(fillColor);
   if (target[0] === fill[0] && target[1] === fill[1] && target[2] === fill[2] && target[3] === fill[3]) return;
 
-  const matches = (i: number) => data[i] === target[0] && data[i + 1] === target[1] && data[i + 2] === target[2] && data[i + 3] === target[3];
+  const matches = (i: number) =>
+    data[i] === target[0] && data[i + 1] === target[1] && data[i + 2] === target[2] && data[i + 3] === target[3];
   const setPixel = (i: number) => {
     data[i] = fill[0];
     data[i + 1] = fill[1];

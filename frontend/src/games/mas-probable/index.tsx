@@ -8,7 +8,8 @@ export const masProbableGame: GameDef = {
   id: "mas-probable",
   label: "¿Quién es Más Probable Que...?",
   icon: "🤔",
-  description: "Aparece una pregunta como '¿quién es más probable que llegue tarde a todo?' y todos votan en secreto por alguien del grupo.",
+  description:
+    "Aparece una pregunta como '¿quién es más probable que llegue tarde a todo?' y todos votan en secreto por alguien del grupo.",
   minPlayers: 3,
   category: "grupo",
   comingSoon: true,

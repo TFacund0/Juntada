@@ -117,7 +117,10 @@ test("the second drawer actually receives their word choices over the wire", asy
   for (const p of players) {
     p.ws.send(JSON.stringify({ type: "player_ready" }));
   }
-  const secondChoosingState = await waitFor(host.queue, m => m.type === "state" && m.room.phase === "choosing" && m.room.round.drawerId !== firstDrawerId);
+  const secondChoosingState = await waitFor(
+    host.queue,
+    m => m.type === "state" && m.room.phase === "choosing" && m.room.round.drawerId !== firstDrawerId,
+  );
   const secondDrawerId = secondChoosingState.room.round.drawerId;
   const secondDrawer = players.find(p => p.playerId === secondDrawerId)!;
 
