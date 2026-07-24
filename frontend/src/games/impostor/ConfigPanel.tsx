@@ -91,8 +91,8 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             </div>
             {maxImp < 3 && (
               <p style={{ ...S.muted, marginTop: 8, lineHeight: 1.4 }}>
-                Con {room.players.length} jugadores, como máximo puede haber {maxImp}{" "}
-                {maxImp === 1 ? "impostor" : "impostores"} — tienen que ser menos que los inocentes.
+                Con {room.players.length} jugadores, como máximo puede haber {maxImp} {maxImp === 1 ? "impostor" : "impostores"} — tienen
+                que ser menos que los inocentes.
               </p>
             )}
           </div>
@@ -183,7 +183,11 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           <div style={S.card}>
             <span style={S.label}>
               Tiempo de discusión:{" "}
-              {config.discussionUnlimited ? "Sin límite" : config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
+              {config.discussionUnlimited
+                ? "Sin límite"
+                : config.discussionTime === 0
+                  ? "Sin fase de discusión"
+                  : `${config.discussionTime}s`}
             </span>
             <p style={{ ...S.muted, margin: "4px 0 8px", lineHeight: 1.4 }}>Cuánto dura la charla antes de pasar a la votación.</p>
             <input
@@ -197,7 +201,10 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
               style={{ width: "100%", opacity: config.discussionUnlimited ? 0.4 : 1 }}
             />
             <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
-              <div style={S.toggle(!!config.discussionUnlimited)} onClick={() => updateConfig({ discussionUnlimited: !config.discussionUnlimited })}>
+              <div
+                style={S.toggle(!!config.discussionUnlimited)}
+                onClick={() => updateConfig({ discussionUnlimited: !config.discussionUnlimited })}
+              >
                 <div style={S.knob(!!config.discussionUnlimited)} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "#6b6490" }}>
@@ -219,7 +226,15 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                     enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
                   })
                 }
-                style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#7F77DD",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                }}
               >
                 Todas
               </button>
@@ -229,7 +244,15 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                     enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
                   })
                 }
-                style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#7F77DD",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                }}
               >
                 Ninguna
               </button>
@@ -274,7 +297,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             })}
           </div>
           <p style={{ ...S.muted, marginTop: 14 }}>
-            {activeCount === 0 ? "No elegiste ninguna categoría todavía." : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}
+            {activeCount === 0
+              ? "No elegiste ninguna categoría todavía."
+              : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}
           </p>
           {allCategoriesExhausted && (
             <p style={{ fontSize: 12, color: "#F09595", marginTop: 4 }}>
@@ -299,7 +324,15 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 <button
                   onClick={() => moveTurn(i, -1)}
                   disabled={i === 0}
-                  style={{ ...S.btn("ghost"), width: 44, height: 44, padding: 0, borderRadius: 10, fontSize: 18, opacity: i === 0 ? 0.35 : 1 }}
+                  style={{
+                    ...S.btn("ghost"),
+                    width: 44,
+                    height: 44,
+                    padding: 0,
+                    borderRadius: 10,
+                    fontSize: 18,
+                    opacity: i === 0 ? 0.35 : 1,
+                  }}
                 >
                   ↑
                 </button>

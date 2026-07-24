@@ -11,7 +11,11 @@ function makePlayers(): PublicPlayer[] {
   ];
 }
 
-function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, configOverrides: Record<string, unknown> = {}): RoomPublicState {
+function makeRoom(
+  phase: string,
+  roundOverrides: Record<string, unknown> = {},
+  configOverrides: Record<string, unknown> = {},
+): RoomPublicState {
   return {
     code: "TEST1",
     name: "Sala de prueba",

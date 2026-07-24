@@ -549,7 +549,11 @@ export function LocalGame() {
             <div style={S.card}>
               <span style={S.label}>
                 Tiempo de discusión:{" "}
-                {config.discussionUnlimited ? "Sin límite" : config.discussionTime === 0 ? "Sin fase de discusión" : `${config.discussionTime}s`}
+                {config.discussionUnlimited
+                  ? "Sin límite"
+                  : config.discussionTime === 0
+                    ? "Sin fase de discusión"
+                    : `${config.discussionTime}s`}
               </span>
               <input
                 type="range"
@@ -588,7 +592,15 @@ export function LocalGame() {
                       enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
                     }))
                   }
-                  style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#7F77DD",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: "inherit",
+                  }}
                 >
                   Todas
                 </button>
@@ -599,13 +611,23 @@ export function LocalGame() {
                       enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
                     }))
                   }
-                  style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#7F77DD",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: "inherit",
+                  }}
                 >
                   Ninguna
                 </button>
               </div>
             </div>
-            <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
+            <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+              Elegí de qué van a ser las palabras. Tocá una categoría para activarla.
+            </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {Object.entries(CATEGORIES).map(([k, cat]) => {
                 const active = !!config.enabledCategories[k];
@@ -657,7 +679,9 @@ export function LocalGame() {
         {tab === "config" && configTab === "order" && (
           <div style={S.card}>
             <span style={S.label}>Orden de turno para dar la palabra</span>
-            <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>Así van a ir pasando el dispositivo y dando su palabra en la ronda.</p>
+            <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
+              Así van a ir pasando el dispositivo y dando su palabra en la ronda.
+            </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {players.map((p, i) => (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
@@ -667,7 +691,15 @@ export function LocalGame() {
                   <button
                     onClick={() => movePlayer(i, -1)}
                     disabled={i === 0}
-                    style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 14, opacity: i === 0 ? 0.35 : 1 }}
+                    style={{
+                      ...S.btn("ghost"),
+                      width: 32,
+                      height: 32,
+                      padding: 0,
+                      borderRadius: 8,
+                      fontSize: 14,
+                      opacity: i === 0 ? 0.35 : 1,
+                    }}
                   >
                     ↑
                   </button>

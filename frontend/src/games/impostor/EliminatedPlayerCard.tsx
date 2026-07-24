@@ -7,13 +7,7 @@ import { Avatar } from "../../components/Avatar";
 // role pill sits on its own line below the name (not squeezed to the side
 // of it) precisely so it never has to share horizontal space with a long
 // name — no width a narrow phone screen can run out of.
-export function EliminatedPlayerCard({
-  name,
-  wasImpostor,
-}: {
-  name: string;
-  wasImpostor: boolean | undefined;
-}) {
+export function EliminatedPlayerCard({ name, wasImpostor }: { name: string; wasImpostor: boolean | undefined }) {
   const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
   return (
     <div

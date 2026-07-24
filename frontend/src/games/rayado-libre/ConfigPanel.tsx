@@ -14,13 +14,29 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           <div style={{ display: "flex", gap: 10 }}>
             <button
               onClick={() => updateConfig({ enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}) })}
-              style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#7F77DD",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "inherit",
+              }}
             >
               Todas
             </button>
             <button
               onClick={() => updateConfig({ enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}) })}
-              style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#7F77DD",
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "inherit",
+              }}
             >
               Ninguna
             </button>
@@ -56,12 +72,16 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           })}
         </div>
         <p style={{ ...S.muted, marginTop: 14 }}>
-          {activeCount === 0 ? "No elegiste ninguna categoría todavía." : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}
+          {activeCount === 0
+            ? "No elegiste ninguna categoría todavía."
+            : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}
         </p>
       </div>
 
       <div style={S.card}>
-        <span style={S.label}>Vueltas: cada jugador dibuja {config.totalRounds ?? 3} {(config.totalRounds ?? 3) === 1 ? "vez" : "veces"}</span>
+        <span style={S.label}>
+          Vueltas: cada jugador dibuja {config.totalRounds ?? 3} {(config.totalRounds ?? 3) === 1 ? "vez" : "veces"}
+        </span>
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           {[1, 2, 3, 4, 5].map(n => (
             <button

@@ -8,7 +8,8 @@ export const terminaHistoriaGame: GameDef = {
   id: "termina-historia",
   label: "Termina la Historia",
   icon: "📖",
-  description: "Arranca una historia con una frase y cada jugador suma una línea por turno, armando entre todos un relato cada vez más disparatado.",
+  description:
+    "Arranca una historia con una frase y cada jugador suma una línea por turno, armando entre todos un relato cada vez más disparatado.",
   minPlayers: 2,
   category: "grupo",
   comingSoon: true,

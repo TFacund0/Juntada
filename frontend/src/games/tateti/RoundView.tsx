@@ -136,36 +136,42 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
 
     return (
       <PhaseTransition phaseKey="result">
-      <div>
-        {Scoreboard}
-        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-          <p style={S.bigReveal}>
-            {/* Only the player still here ever sees a forfeited result — the
+        <div>
+          {Scoreboard}
+          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+            <p style={S.bigReveal}>
+              {/* Only the player still here ever sees a forfeited result — the
                 one who left (kicked after the usual 5-minute grace period)
                 is gone from room.players by the time this state exists, so
                 there's no "opponent" to name and always a win from this
                 viewer's side. */}
-            {round.forfeited ? "Ganaste — tu rival abandonó la partida" : isDraw ? "Empate" : iWon ? "¡Ganaste!" : `Ganó ${opponent?.name}`}
-          </p>
-        </div>
-        <Board board={round.board} winningLine={round.winningLine} disabled />
-
-        <div style={{ marginTop: 16 }}>
-          {round.forfeited ? (
-            <p style={{ ...S.muted, textAlign: "center" }}>
-              Volvé al lobby para esperar a alguien más — hace falta un segundo jugador para seguir.
+              {round.forfeited
+                ? "Ganaste — tu rival abandonó la partida"
+                : isDraw
+                  ? "Empate"
+                  : iWon
+                    ? "¡Ganaste!"
+                    : `Ganó ${opponent?.name}`}
             </p>
-          ) : myPlayer?.ready ? (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#5DCAA5" }}>Listo — esperando a {opponent?.name} para la revancha</p>
-            </div>
-          ) : (
-            <StartButton onClick={() => send({ type: "player_ready" })}>Jugar de nuevo</StartButton>
-          )}
+          </div>
+          <Board board={round.board} winningLine={round.winningLine} disabled />
+
+          <div style={{ marginTop: 16 }}>
+            {round.forfeited ? (
+              <p style={{ ...S.muted, textAlign: "center" }}>
+                Volvé al lobby para esperar a alguien más — hace falta un segundo jugador para seguir.
+              </p>
+            ) : myPlayer?.ready ? (
+              <div style={{ ...S.card, textAlign: "center" }}>
+                <p style={{ color: "#5DCAA5" }}>Listo — esperando a {opponent?.name} para la revancha</p>
+              </div>
+            ) : (
+              <StartButton onClick={() => send({ type: "player_ready" })}>Jugar de nuevo</StartButton>
+            )}
+          </div>
+          {!round.forfeited && ResetScoreControl}
+          {LeaveToLobby}
         </div>
-        {!round.forfeited && ResetScoreControl}
-        {LeaveToLobby}
-      </div>
       </PhaseTransition>
     );
   }

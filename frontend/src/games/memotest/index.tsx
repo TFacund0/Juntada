@@ -8,7 +8,8 @@ export const memotestGame: GameDef = {
   id: "memotest",
   label: "Memotest",
   icon: "🧩",
-  description: "Cartas boca abajo: por turnos, cada uno da vuelta dos cartas buscando encontrar una pareja igual. Gana quien junte más parejas.",
+  description:
+    "Cartas boca abajo: por turnos, cada uno da vuelta dos cartas buscando encontrar una pareja igual. Gana quien junte más parejas.",
   minPlayers: 2,
   category: "rapidos",
   comingSoon: true,

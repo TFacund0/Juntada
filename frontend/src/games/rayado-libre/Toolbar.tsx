@@ -56,13 +56,22 @@ export function Toolbar({ tool, onChange, onClear, onUndo }: ToolbarProps) {
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => onChange({ ...tool, mode: "draw" })} style={{ ...S.btn(tool.mode === "draw" ? "primary" : "ghost"), flex: 1, padding: "10px", fontSize: 13 }}>
+        <button
+          onClick={() => onChange({ ...tool, mode: "draw" })}
+          style={{ ...S.btn(tool.mode === "draw" ? "primary" : "ghost"), flex: 1, padding: "10px", fontSize: 13 }}
+        >
           ✏️ Lápiz
         </button>
-        <button onClick={() => onChange({ ...tool, mode: "erase" })} style={{ ...S.btn(tool.mode === "erase" ? "primary" : "ghost"), flex: 1, padding: "10px", fontSize: 13 }}>
+        <button
+          onClick={() => onChange({ ...tool, mode: "erase" })}
+          style={{ ...S.btn(tool.mode === "erase" ? "primary" : "ghost"), flex: 1, padding: "10px", fontSize: 13 }}
+        >
           🧼 Goma
         </button>
-        <button onClick={() => onChange({ ...tool, mode: "fill" })} style={{ ...S.btn(tool.mode === "fill" ? "primary" : "ghost"), flex: 1, padding: "10px", fontSize: 13 }}>
+        <button
+          onClick={() => onChange({ ...tool, mode: "fill" })}
+          style={{ ...S.btn(tool.mode === "fill" ? "primary" : "ghost"), flex: 1, padding: "10px", fontSize: 13 }}
+        >
           🪣 Balde
         </button>
       </div>

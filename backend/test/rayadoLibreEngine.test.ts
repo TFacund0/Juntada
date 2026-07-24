@@ -194,10 +194,7 @@ test("draw_stroke/draw_fill/draw_clear are only accepted from the drawer during 
   const other = room.players.find((p: TestPlayer) => p.id !== drawerId)!.id;
   engine.handleAction(room, drawerId, "choose_word", { word: room.round.wordChoices[0] });
 
-  assert.equal(
-    engine.handleAction(room, other, "draw_stroke", { points: [[0, 0]], color: "#000", size: 4 }).handled,
-    false,
-  );
+  assert.equal(engine.handleAction(room, other, "draw_stroke", { points: [[0, 0]], color: "#000", size: 4 }).handled, false);
   const strokeRes = engine.handleAction(room, drawerId, "draw_stroke", { points: [[0, 0]], color: "#000", size: 4 });
   assert.equal(strokeRes.handled, true);
   assert.equal(room.round.strokes.length, 1);

@@ -33,18 +33,18 @@ de datos.
 
 ## Juegos disponibles
 
-| Juego | Local | Online | Jugadores |
-| --- | --- | --- | --- |
-| El Impostor | ✅ | ✅ | 3+ |
-| Torneo de Fútbol | ✅ | ✅ | 2+ |
-| Ruleta | ✅ | ✅ | 2+ |
-| Ta-Te-Ti | ✅ | ✅ | 2 |
-| Sintonía | ✅ | ✅ | 2+ |
-| Limón Limón | ✅ | ✅ | 2+ |
-| Tutifrutti | ✅ (sin puntaje) | ✅ | 2+ |
-| Trivia | — | — | _Próximamente_ |
-| Clave Secreta | — | — | _Próximamente_ |
-| Tiempo Exacto | — | — | _Próximamente_ |
+| Juego            | Local            | Online | Jugadores      |
+| ---------------- | ---------------- | ------ | -------------- |
+| El Impostor      | ✅               | ✅     | 3+             |
+| Torneo de Fútbol | ✅               | ✅     | 2+             |
+| Ruleta           | ✅               | ✅     | 2+             |
+| Ta-Te-Ti         | ✅               | ✅     | 2              |
+| Sintonía         | ✅               | ✅     | 2+             |
+| Limón Limón      | ✅               | ✅     | 2+             |
+| Tutifrutti       | ✅ (sin puntaje) | ✅     | 2+             |
+| Trivia           | —                | —      | _Próximamente_ |
+| Clave Secreta    | —                | —      | _Próximamente_ |
+| Tiempo Exacto    | —                | —      | _Próximamente_ |
 
 Los marcados "Próximamente" están registrados en el menú (`comingSoon:
 true`) pero todavía no son jugables — ver [Agregar un juego
@@ -213,14 +213,14 @@ valor inválido falla explícito, no en silencio.
 
 ## Scripts
 
-| Comando | Qué hace |
-| --- | --- |
-| `pnpm dev:backend` | Backend en modo desarrollo (hot-reload con `tsx`) |
-| `pnpm dev:frontend` | Frontend en modo desarrollo (Vite) |
-| `pnpm build:frontend` | Build de producción del frontend (`frontend/dist`) |
-| `pnpm start` | Levanta el backend en `$PORT`, sirviendo `frontend/dist` |
-| `pnpm lint` | ESLint en todo el monorepo |
-| `pnpm format` / `pnpm format:check` | Prettier |
+| Comando                             | Qué hace                                                 |
+| ----------------------------------- | -------------------------------------------------------- |
+| `pnpm dev:backend`                  | Backend en modo desarrollo (hot-reload con `tsx`)        |
+| `pnpm dev:frontend`                 | Frontend en modo desarrollo (Vite)                       |
+| `pnpm build:frontend`               | Build de producción del frontend (`frontend/dist`)       |
+| `pnpm start`                        | Levanta el backend en `$PORT`, sirviendo `frontend/dist` |
+| `pnpm lint`                         | ESLint en todo el monorepo                               |
+| `pnpm format` / `pnpm format:check` | Prettier                                                 |
 
 ## Tests, tipos y lint
 

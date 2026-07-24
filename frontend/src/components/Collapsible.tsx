@@ -31,7 +31,9 @@ export function Collapsible({ title, defaultOpen = false, children }: Collapsibl
         }}
       >
         <span style={{ ...S.label, marginBottom: 0 }}>{title}</span>
-        <span style={{ color: "#7F77DD", fontSize: 12, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>▼</span>
+        <span style={{ color: "#7F77DD", fontSize: 12, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+          ▼
+        </span>
       </button>
       {open && children}
     </div>

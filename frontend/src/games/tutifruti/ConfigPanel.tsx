@@ -47,7 +47,17 @@ function PageNumbers({ pageCount, currentPage, onChange }: { pageCount: number; 
   );
 }
 
-function CategoryChip({ cat, active, onToggle, onRemove }: { cat: Category; active: boolean; onToggle: () => void; onRemove?: () => void }) {
+function CategoryChip({
+  cat,
+  active,
+  onToggle,
+  onRemove,
+}: {
+  cat: Category;
+  active: boolean;
+  onToggle: () => void;
+  onRemove?: () => void;
+}) {
   return (
     <div
       style={{
@@ -164,12 +174,22 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#e8e4f0" }}>
-          {activeCount === 0 ? "Ninguna categoría activa" : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}`}
+          {activeCount === 0
+            ? "Ninguna categoría activa"
+            : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}`}
         </span>
         {activeCount > 0 && (
           <button
             onClick={() => setShowActive(v => !v)}
-            style={{ background: "none", border: "none", color: "#7F77DD", cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: 700 }}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#7F77DD",
+              cursor: "pointer",
+              fontSize: 13,
+              fontFamily: "inherit",
+              fontWeight: 700,
+            }}
           >
             {showActive ? "Ocultar" : "Ver cuáles"}
           </button>
@@ -266,7 +286,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             <>
               <div style={divider} />
               <span style={S.label}>Tus categorías</span>
-              <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>Las que agregaste vos, siempre a mano sin importar la página.</p>
+              <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>
+                Las que agregaste vos, siempre a mano sin importar la página.
+              </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {customCategories.map(cat => (
                   <CategoryChip
@@ -284,7 +306,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           <div style={divider} />
 
           <span style={S.label}>Categorías</span>
-          <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Tocá una categoría para activarla o desactivarla en la partida.</p>
+          <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+            Tocá una categoría para activarla o desactivarla en la partida.
+          </p>
           {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {pagedCategories.map(cat => (

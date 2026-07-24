@@ -249,8 +249,7 @@ export function LocalGame() {
     revealTimers.current.push(t);
   };
 
-  const bumpManualCount = (id: number, delta: number) =>
-    setManualCounts(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + delta) }));
+  const bumpManualCount = (id: number, delta: number) => setManualCounts(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + delta) }));
 
   // ── SETUP ──
   if (phase === "setup")
@@ -301,10 +300,16 @@ export function LocalGame() {
             <div style={S.card}>
               <span style={S.label}>Modo de juego</span>
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                <button onClick={() => setMode("circle")} style={{ ...S.btn(mode === "circle" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
+                <button
+                  onClick={() => setMode("circle")}
+                  style={{ ...S.btn(mode === "circle" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}
+                >
                   En círculo
                 </button>
-                <button onClick={() => setMode("reveal")} style={{ ...S.btn(mode === "reveal" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}>
+                <button
+                  onClick={() => setMode("reveal")}
+                  style={{ ...S.btn(mode === "reveal" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}
+                >
                   Revelar cartas
                 </button>
               </div>
@@ -457,11 +462,11 @@ export function LocalGame() {
 
         <ScoreToggleButton show={showRanking} onToggle={() => setShowRanking(v => !v)} />
 
-        {showRanking && (
-          <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />
-        )}
+        {showRanking && <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />}
 
-        {addingPlayer && <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />}
+        {addingPlayer && (
+          <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />
+        )}
 
         <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
           <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>

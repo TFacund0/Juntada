@@ -8,7 +8,8 @@ export const mimicaGame: GameDef = {
   id: "mimica",
   label: "Dígalo con Mímica",
   icon: "🤸",
-  description: "Un jugador actúa una palabra o frase secreta sin hablar ni hacer sonidos, y el resto tiene que adivinarla antes de que se acabe el tiempo.",
+  description:
+    "Un jugador actúa una palabra o frase secreta sin hablar ni hacer sonidos, y el resto tiene que adivinarla antes de que se acabe el tiempo.",
   minPlayers: 3,
   category: "equipos",
   comingSoon: true,

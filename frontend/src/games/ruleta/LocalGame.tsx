@@ -57,8 +57,7 @@ export function LocalGame() {
   // A simple incrementing counter can't collide.
   const nextEntryId = useRef(1);
 
-  const addEntry = (name: string, description: string) =>
-    setEntries(prev => [...prev, { id: nextEntryId.current++, name, description }]);
+  const addEntry = (name: string, description: string) => setEntries(prev => [...prev, { id: nextEntryId.current++, name, description }]);
 
   const removeEntry = (id: number) => setEntries(prev => prev.filter(e => e.id !== id));
 

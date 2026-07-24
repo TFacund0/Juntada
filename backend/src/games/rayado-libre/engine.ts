@@ -18,28 +18,25 @@ interface Category {
   words: string[];
 }
 
-const { CATEGORIES, activeWordPool, pickThreeWords: pickThreeWordsFromPool } = require("@juntada/rayado-libre-data") as {
+const {
+  CATEGORIES,
+  activeWordPool,
+  pickThreeWords: pickThreeWordsFromPool,
+} = require("@juntada/rayado-libre-data") as {
   CATEGORIES: Record<string, Category>;
   activeWordPool: (categories: Record<string, Category>, activeKeys: readonly string[]) => string[];
   pickThreeWords: (pool: readonly string[], usedWords: readonly string[]) => { words: string[]; resetUsed: boolean };
 };
-const {
-  scoreForGuess,
-  isCorrectGuess,
-  TURN_SECONDS,
-  DRAWER_POINTS_PER_GUESS,
-  buildHintOrder,
-  computeWordHint,
-  popLastDrawUnit,
-} = require("@juntada/rayado-libre-scoring") as {
-  scoreForGuess: (secondsRemaining: number) => { points: number; jumpToSeconds: number | null };
-  isCorrectGuess: (guess: string, word: string) => boolean;
-  TURN_SECONDS: number;
-  DRAWER_POINTS_PER_GUESS: number;
-  buildHintOrder: (word: string) => number[];
-  computeWordHint: (word: string, hintOrder: readonly number[], elapsedSeconds: number) => string;
-  popLastDrawUnit: (strokes: readonly DrawAction[]) => DrawAction[];
-};
+const { scoreForGuess, isCorrectGuess, TURN_SECONDS, DRAWER_POINTS_PER_GUESS, buildHintOrder, computeWordHint, popLastDrawUnit } =
+  require("@juntada/rayado-libre-scoring") as {
+    scoreForGuess: (secondsRemaining: number) => { points: number; jumpToSeconds: number | null };
+    isCorrectGuess: (guess: string, word: string) => boolean;
+    TURN_SECONDS: number;
+    DRAWER_POINTS_PER_GUESS: number;
+    buildHintOrder: (word: string) => number[];
+    computeWordHint: (word: string, hintOrder: readonly number[], elapsedSeconds: number) => string;
+    popLastDrawUnit: (strokes: readonly DrawAction[]) => DrawAction[];
+  };
 const { shuffle } = require("../../utils/shuffle");
 
 const MIN_PLAYERS = 3;
@@ -57,7 +54,7 @@ const MAX_STROKES = 3000;
 const CHAT_LOG_LIMIT = 30;
 
 type DrawAction =
-  import("@juntada/rayado-libre-scoring").StrokeAction
+  | import("@juntada/rayado-libre-scoring").StrokeAction
   | import("@juntada/rayado-libre-scoring").FillAction
   | import("@juntada/rayado-libre-scoring").ClearAction;
 
