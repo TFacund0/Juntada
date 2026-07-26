@@ -66,6 +66,21 @@ function handleAction(room: Room, playerId: string, action: string, _payload: Re
   const mode = cfg(room).mode;
 
   switch (action) {
+    // Sends everyone back to the lobby so the host can reconfigure (entries,
+    // mode) before spinning again, same as every other game's "Nueva
+    // partida" — start_round alone would skip straight into a fresh round
+    // with whatever entries were already loaded.
+    case "new_game": {
+      if (room.hostId !== playerId) return { handled: false };
+      if (room.phase !== "result") return { handled: false };
+      room.round = null;
+      room.phase = "lobby";
+      room.players.forEach(p => {
+        p.ready = false;
+      });
+      return { handled: true };
+    }
+
     case "spin": {
       if (!r || room.phase !== "round") return { handled: false };
       if (room.hostId !== playerId) return { handled: false };

@@ -7,6 +7,7 @@ import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { PhaseTransition } from "../../components/PhaseTransition";
+import { TurnCircle } from "../../components/TurnCircle";
 import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
@@ -99,136 +100,6 @@ function CluesReview({ clues, players }: { clues: Record<string, string> | undef
           </p>
         );
       })}
-    </div>
-  );
-}
-
-// The round phase's turn order laid out as a circle: whoever's turn it is
-// glows, players who already went are dimmed with a checkmark, and everyone
-// else waits their turn — so it's visually obvious who's up without reading
-// a list of names.
-function TurnCircle({
-  turnOrder,
-  turnIndex,
-  players,
-  clues,
-  meId,
-}: {
-  turnOrder: string[];
-  turnIndex: number;
-  players: PublicPlayer[];
-  clues: Record<string, string> | undefined;
-  meId: string | undefined;
-}) {
-  const size = 260;
-  const radius = 96;
-  const center = size / 2;
-  const ordered = turnOrder.map(id => players.find(p => p.id === id)).filter((p): p is PublicPlayer => Boolean(p));
-  const n = ordered.length;
-  const current = ordered[turnIndex];
-
-  return (
-    <div style={{ position: "relative", width: size, height: size, margin: "0 auto 12px" }}>
-      {ordered.map((p, i) => {
-        const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
-        const x = center + radius * Math.cos(angle);
-        const y = center + radius * Math.sin(angle);
-        const isCurrent = i === turnIndex;
-        const hasGone = i < turnIndex;
-        const isMe = p.id === meId;
-        return (
-          <div
-            key={p.id}
-            style={{
-              position: "absolute",
-              left: x,
-              top: y,
-              transform: "translate(-50%, -50%)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 3,
-              width: 68,
-            }}
-          >
-            <div
-              style={{
-                position: "relative",
-                borderRadius: "50%",
-                padding: 3,
-                border: isCurrent ? "2px solid #5DCAA5" : hasGone ? "2px solid rgba(127,119,221,0.45)" : "2px solid transparent",
-                boxShadow: isCurrent ? "0 0 14px rgba(93,202,165,0.55)" : "none",
-                opacity: !p.online ? 0.4 : hasGone && !isCurrent ? 0.55 : 1,
-                transition: "all 0.2s",
-              }}
-            >
-              <Avatar name={p.name} size={44} />
-              {!p.online ? (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -2,
-                    right: -2,
-                    background: "#6b6490",
-                    color: "#fff",
-                    borderRadius: "50%",
-                    width: 16,
-                    height: 16,
-                    fontSize: 9,
-                    fontWeight: 800,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  ⏸
-                </span>
-              ) : (
-                hasGone && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: -2,
-                      right: -2,
-                      background: "#5DCAA5",
-                      color: "#0f0c1d",
-                      borderRadius: "50%",
-                      width: 16,
-                      height: 16,
-                      fontSize: 10,
-                      fontWeight: 800,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    ✓
-                  </span>
-                )
-              )}
-            </div>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: isCurrent ? 800 : 600,
-                color: !p.online ? "#6b6490" : isCurrent ? "#5DCAA5" : isMe ? "#fff" : "#9089c0",
-                textAlign: "center",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                maxWidth: 68,
-              }}
-            >
-              {isMe ? "Vos" : p.name}
-              {!p.online ? " (desc.)" : ""}
-            </span>
-          </div>
-        );
-      })}
-      <div style={{ position: "absolute", left: center, top: center, transform: "translate(-50%, -50%)", textAlign: "center" }}>
-        <p style={{ fontSize: 11, color: "#9089c0", margin: 0 }}>Turno de</p>
-        <p style={{ fontSize: 15, fontWeight: 800, color: "#AFA9EC", margin: 0, maxWidth: 100 }}>{current?.name ?? "—"}</p>
-      </div>
     </div>
   );
 }
@@ -414,7 +285,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                 Turno {turnIndex + 1}/{turnOrder.length}
               </p>
             )}
-            <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} clues={round?.clues} meId={me?.playerId} />
+            <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} meId={me?.playerId} />
 
             {isMyTurn && !clueSubmitted ? (
               requiresWrittenClue ? (
@@ -704,7 +575,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
             })}
           </div>
 
-          {isHost && matchOver && <StartButton onClick={() => send({ type: "start_round" })}>Nueva partida</StartButton>}
+          {isHost && matchOver && <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>}
           {isHost && !matchOver && <StartButton onClick={() => send({ type: "continue_round" })}>Siguiente ronda</StartButton>}
           {/* Group instances use the shell's persistent "Volver al grupo" link instead.
             Available to any player, not just the host — it only interrupts the

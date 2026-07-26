@@ -284,6 +284,11 @@ function forceReadyAndAdvance(room: Room): void {
   }
 }
 
+function resetProgress(room: Room): void {
+  cfg(room).score = {};
+  room.roundHistory.length = 0;
+}
+
 function getPhaseTimerEnd(room: Room): number | null {
   if (room.phase === "writing" && round(room)?.endMode === "timer") return round(room).timerEnd;
   if (room.phase === "review") return round(room)?.reviewEnd ?? null;
@@ -304,8 +309,7 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
     // before the next match instead of reusing whatever was set last time.
     case "new_game": {
       if (playerId !== room.hostId) return { handled: false };
-      cfg(room).score = {};
-      room.roundHistory.length = 0;
+      resetProgress(room);
       room.round = null;
       room.phase = "lobby";
       room.players.forEach(p => {
@@ -456,6 +460,7 @@ const engine: GameEngine = {
   getPublicRoundView,
   getPrivateView,
   getPhaseTimerEnd,
+  resetProgress,
 };
 
 module.exports = engine;

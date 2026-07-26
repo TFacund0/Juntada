@@ -304,7 +304,11 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundVie
             <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
           </div>
         )}
-        <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
+        <LeaveToLobbyButton
+          groupCode={room.groupCode}
+          send={send}
+          confirm={{ message: "Se pierde la tabla de puntuación de esta partida." }}
+        />
       </PhaseTransition>
     );
   }

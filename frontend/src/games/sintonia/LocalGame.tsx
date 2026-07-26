@@ -684,8 +684,14 @@ export function LocalGame() {
           )}
           <ConfirmBackButton
             title="¿Terminar la partida?"
-            message="Se interrumpe la partida. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva."
-            onConfirm={() => setPhase("setup")}
+            message="Se interrumpe la partida y se pierde la tabla de puntuación."
+            onConfirm={() => {
+              setHistory([]);
+              setLastPsychicId(null);
+              setRound(null);
+              setPool([]);
+              setPhase("setup");
+            }}
           >
             Terminar partida
           </ConfirmBackButton>

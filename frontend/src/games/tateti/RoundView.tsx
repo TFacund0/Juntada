@@ -26,7 +26,7 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
     <LeaveToLobbyButton
       groupCode={room.groupCode}
       send={send}
-      confirm={{ message: "Se interrumpe la partida para los dos. El marcador se mantiene si vuelven a jugar sin reiniciarlo." }}
+      confirm={{ message: "Se interrumpe la partida para los dos y se pierde el marcador." }}
     />
   );
   const score: Record<string, number> = (room.config.score as Record<string, number>) || {};

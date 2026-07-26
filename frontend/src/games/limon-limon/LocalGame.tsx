@@ -13,7 +13,7 @@ import { AssignPicker } from "./AssignPicker";
 import { DescriptionToggle } from "./DescriptionToggle";
 import { DescriptionsEditor } from "./DescriptionsEditor";
 import { ScoreToggleButton } from "./ScoreToggleButton";
-import { AddPlayerForm } from "./AddPlayerForm";
+import { AddPlayerForm } from "../../components/AddPlayerForm";
 import { EndMatchButton } from "./EndMatchButton";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";

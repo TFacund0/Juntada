@@ -102,6 +102,12 @@ export default function App() {
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const [showRules, setShowRules] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // "Volver" from inside a chosen mode (local or online) is one tap away
+  // from the round/lobby itself and, unlike "Menú principal", had no
+  // confirmation — a mis-tap silently dropped the whole match. Only that
+  // branch of goBack is destructive enough to warn about; going back from
+  // "elegí local u online" (mode still null) has nothing in progress to lose.
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [showDevNotice, setShowDevNotice] = useState(() => {
     try {
       return !localStorage.getItem("impostorgame:devNoticeSeen");
@@ -184,15 +190,20 @@ export default function App() {
       return;
     }
     if (mode) {
-      if (mode === "multi") clearMultiplayerSession();
-      setMode(null);
-      // Group flow jumps straight from home into multi mode with no "pick
-      // mode" step in between, so going back from it goes straight home too.
-      if (groupFlow) setGroupFlow(false);
+      setShowBackConfirm(true);
     } else {
       setGameId(null);
       setShowRules(false);
     }
+  };
+
+  const confirmGoBack = () => {
+    if (mode === "multi") clearMultiplayerSession();
+    setMode(null);
+    // Group flow jumps straight from home into multi mode with no "pick
+    // mode" step in between, so going back from it goes straight home too.
+    if (groupFlow) setGroupFlow(false);
+    setShowBackConfirm(false);
   };
 
   const goHome = () => {
@@ -423,6 +434,17 @@ export default function App() {
       </div>
 
       {showDevNotice && <DevNoticeDialog onClose={dismissDevNotice} />}
+
+      {showBackConfirm && (
+        <ConfirmDialog
+          title="¿Volver atrás?"
+          message="Vas a salir del juego actual y perder el progreso de esta partida."
+          confirmLabel="Sí, volver"
+          cancelLabel="Seguir jugando"
+          onConfirm={confirmGoBack}
+          onCancel={() => setShowBackConfirm(false)}
+        />
+      )}
 
       {showExitConfirm && (
         <ConfirmDialog

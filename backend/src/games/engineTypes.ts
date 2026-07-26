@@ -36,6 +36,13 @@ export interface GameEngine {
   // confirm count belongs in maybeAdvance instead, so a brief reconnect
   // blip can't cost them their say.
   onPlayerOffline?(room: Room, playerId: string): void;
+  // Wipes this room's cross-round progress (score, round history) without
+  // touching phase/round/ready — called by the shared "back_to_lobby"
+  // handler so leaving to the lobby always starts the next match from zero,
+  // the same way "new_game" does. Optional since not every game accrues
+  // progress across rounds (e.g. a single-elimination bracket has nothing
+  // meaningful to wipe here).
+  resetProgress?(room: Room): void;
   // Backfills any round field that's missing on `room.round` because it was
   // persisted (Redis snapshot restore, see state/persistence.ts) by an older
   // version of this engine that didn't have that field yet — called once
