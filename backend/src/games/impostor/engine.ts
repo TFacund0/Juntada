@@ -560,6 +560,21 @@ function handleAction(
 ): { handled: boolean; rerolled?: boolean } {
   if (!room.round) return { handled: false };
   switch (action) {
+    // Sends everyone back to the lobby so the host can reconfigure
+    // (categories, number of impostors, ...) before the next match, same as
+    // every other game's "Nueva partida" — startRound alone would skip
+    // straight into a fresh match with whatever config was already set.
+    case "new_game": {
+      if (playerId !== room.hostId) return { handled: false };
+      if (!round(room).matchOver) return { handled: false };
+      room.round = null;
+      room.phase = "lobby";
+      room.players.forEach(p => {
+        p.ready = false;
+      });
+      return { handled: true };
+    }
+
     // Turn-based: only the player whose turn it currently is can submit —
     // with writtenClues on they have to actually type something; otherwise
     // this is just their "I said it out loud" confirmation (empty clue).

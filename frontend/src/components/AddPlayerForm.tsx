@@ -1,11 +1,12 @@
-import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { ErrorBanner } from "../../components/ErrorBanner";
+import { S } from "../theme/styles";
+import { Btn } from "./Btn";
+import { ErrorBanner } from "./ErrorBanner";
 
-// Shared "sumar jugador" form — same card, same layout, in both local modes
-// (players can join mid-deck in circle mode, mid-deal in reveal mode). Name
-// dedupe/validation stays with the caller (it needs the live players list),
-// this just renders the input + confirm + error.
+// Shared "sumar jugador" form — same card, same layout, across every local
+// mode that lets you build a roster (limon-limon's circle/reveal setup,
+// color-correcto's pass-and-play setup, ...). Name dedupe/validation stays
+// with the caller (it needs the live players list), this just renders the
+// input + confirm + error.
 export function AddPlayerForm({
   name,
   onNameChange,

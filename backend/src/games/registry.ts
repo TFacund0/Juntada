@@ -38,6 +38,8 @@ const limonLimonEngine: GameEngine = require("./limon-limon/engine");
 const tutifrutiEngine: GameEngine = require("./tutifruti/engine");
 const ruletaEngine: GameEngine = require("./ruleta/engine");
 const rayadoLibreEngine: GameEngine = require("./rayado-libre/engine");
+const colorCorrectoEngine: GameEngine = require("./color-correcto/engine");
+const quienSoyEngine: GameEngine = require("./quien-soy/engine");
 
 const GAMES: Record<string, GameEngine> = {
   [impostorEngine.id]: impostorEngine,
@@ -48,6 +50,8 @@ const GAMES: Record<string, GameEngine> = {
   [tutifrutiEngine.id]: tutifrutiEngine,
   [ruletaEngine.id]: ruletaEngine,
   [rayadoLibreEngine.id]: rayadoLibreEngine,
+  [colorCorrectoEngine.id]: colorCorrectoEngine,
+  [quienSoyEngine.id]: quienSoyEngine,
 };
 
 function getEngine(gameType: string | null | undefined): GameEngine | undefined {

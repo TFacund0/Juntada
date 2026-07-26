@@ -183,6 +183,10 @@ function backToLobby(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   stopTimer(room.code);
   room.phase = "lobby";
   room.round = null;
+  // "Volver al lobby" interrupts the match entirely, not just the current
+  // round — the next "Iniciar ronda" from the lobby is a brand-new match, so
+  // whatever score/round history had piled up shouldn't carry over into it.
+  getEngine(room.gameType)?.resetProgress?.(room);
   room.players.forEach((p: Room["players"][number]) => {
     p.ready = false;
   });

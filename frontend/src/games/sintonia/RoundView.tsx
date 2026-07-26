@@ -597,8 +597,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
             groupCode={room.groupCode}
             send={send}
             confirm={{
-              message:
-                "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+              message: "Se interrumpe la partida para todos y se pierde la tabla de puntuación.",
             }}
           />
           {!isHost && (
