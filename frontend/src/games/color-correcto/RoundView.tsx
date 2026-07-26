@@ -161,7 +161,15 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     return (
       <PhaseTransition phaseKey="result">
         <div>
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Así quedó cada uno</p>
+          {(() => {
+            const score = room.config.score as Record<string, number>;
+            const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
+            const standings = room.players
+              .map(p => ({ id: p.id, name: p.name, score: score?.[p.id] || 0, online: p.online }))
+              .sort((a, b) => b.score - a.score);
+            return <Leaderboard standings={standings} finished={gameOver} />;
+          })()}
+          <p style={{ ...S.muted, textAlign: "center", margin: "14px 0 10px" }}>Así quedó cada uno</p>
           {room.players.map(p => (
             <ColorCompareRow
               key={p.id}
@@ -173,14 +181,6 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
               isRoundWinner={scores[p.id] === roundBestScore}
             />
           ))}
-          {(() => {
-            const score = room.config.score as Record<string, number>;
-            const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
-            const standings = room.players
-              .map(p => ({ id: p.id, name: p.name, score: score?.[p.id] || 0, online: p.online }))
-              .sort((a, b) => b.score - a.score);
-            return <Leaderboard standings={standings} finished={gameOver} />;
-          })()}
           {isHost &&
             (round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity) ? (
               <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>

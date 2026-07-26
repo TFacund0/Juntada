@@ -470,7 +470,15 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
   if (room.phase === "drawing") {
     const elapsedSeconds = r.drawingStartedAt ? (Date.now() - r.drawingStartedAt) / 1000 : 0;
     const wordHint = r.word ? computeWordHint(r.word, r.hintOrder, elapsedSeconds) : "";
-    return { ...base, timerEnd: r.timerEnd, strokes: r.strokes, chatLog: r.chatLog, correctGuessers: r.correctGuessers, wordHint };
+    return {
+      ...base,
+      timerEnd: r.timerEnd,
+      strokes: r.strokes,
+      chatLog: r.chatLog,
+      correctGuessers: r.correctGuessers,
+      roundPoints: r.roundPoints,
+      wordHint,
+    };
   }
   if (room.phase === "reveal") {
     return { ...base, word: r.word, correctGuessers: r.correctGuessers, chatLog: r.chatLog, roundPoints: r.roundPoints };
