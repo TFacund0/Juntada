@@ -50,6 +50,9 @@ importers:
 
   backend:
     dependencies:
+      '@juntada/color-correcto-scoring':
+        specifier: workspace:*
+        version: link:../packages/color-correcto-scoring
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
@@ -132,6 +135,9 @@ importers:
 
   frontend:
     dependencies:
+      '@juntada/color-correcto-scoring':
+        specifier: workspace:*
+        version: link:../packages/color-correcto-scoring
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
@@ -217,6 +223,8 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@26.1.1)(jsdom@29.1.1)(terser@5.49.0)
+
+  packages/color-correcto-scoring: {}
 
   packages/impostor-data: {}
 

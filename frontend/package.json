@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@juntada/color-correcto-scoring": "workspace:*",
     "@juntada/impostor-data": "workspace:*",
     "@juntada/impostor-match-rules": "workspace:*",
     "@juntada/limon-limon-deck": "workspace:*",
