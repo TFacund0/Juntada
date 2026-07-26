@@ -117,10 +117,14 @@ function getPhaseTimerEnd(room: Room): number | null {
   return null;
 }
 
-function newGame(room: Room, playerId: string): { handled: boolean } {
-  if (playerId !== room.hostId) return { handled: false };
+function resetProgress(room: Room): void {
   cfg(room).score = {};
   room.roundHistory.length = 0;
+}
+
+function newGame(room: Room, playerId: string): { handled: boolean } {
+  if (playerId !== room.hostId) return { handled: false };
+  resetProgress(room);
   room.round = null;
   room.phase = "lobby";
   room.players.forEach(p => {
@@ -207,6 +211,7 @@ const engine: GameEngine = {
   getPhaseTimerEnd,
   forceReadyAndAdvance,
   getRevealMessage,
+  resetProgress,
 };
 
 module.exports = engine;

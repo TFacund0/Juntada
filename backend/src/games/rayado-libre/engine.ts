@@ -331,6 +331,10 @@ function getPhaseTimerEnd(room: Room): number | null {
   return null;
 }
 
+function resetProgress(room: Room): void {
+  cfg(room).score = {};
+}
+
 function handleAction(
   room: Room,
   playerId: string,
@@ -350,7 +354,7 @@ function handleAction(
     // points kept accumulating across every match played in the same room.
     case "new_game": {
       if (playerId !== room.hostId) return { handled: false };
-      cfg(room).score = {};
+      resetProgress(room);
       room.round = null;
       room.phase = "lobby";
       room.players.forEach(p => {
@@ -504,6 +508,7 @@ const engine: GameEngine = {
   getPhaseTimerEnd,
   migrateRound,
   onPlayerOffline,
+  resetProgress,
 };
 
 module.exports = engine;

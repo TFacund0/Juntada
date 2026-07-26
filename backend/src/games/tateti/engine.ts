@@ -129,6 +129,12 @@ function finishWithDraw(room: Room): void {
   cfg(room).draws = (cfg(room).draws || 0) + 1;
 }
 
+function resetProgress(room: Room): void {
+  cfg(room).score = {};
+  cfg(room).draws = 0;
+  cfg(room).resetVotes = [];
+}
+
 function handleAction(room: Room, playerId: string, action: string, payload: Record<string, unknown>): { handled: boolean } {
   switch (action) {
     case "mark": {
@@ -166,9 +172,7 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
       if (!votes.includes(playerId)) votes.push(playerId);
       const online = room.players.filter(p => p.online);
       if (online.length === MAX_PLAYERS && online.every(p => votes.includes(p.id))) {
-        cfg(room).score = {};
-        cfg(room).draws = 0;
-        cfg(room).resetVotes = [];
+        resetProgress(room);
       }
       return { handled: true };
     }
@@ -220,6 +224,7 @@ const engine: GameEngine = {
   getPublicRoundView,
   getPrivateView,
   getRevealMessage,
+  resetProgress,
 };
 
 module.exports = engine;

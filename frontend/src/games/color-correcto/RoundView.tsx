@@ -191,13 +191,12 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             groupCode={room.groupCode}
             send={send}
             confirm={{
-              message:
-                "Se interrumpe la partida para todos. La tabla de puntuación se mantiene si vuelven a jugar sin arrancar una partida nueva.",
+              message: "Se interrumpe la partida para todos y se pierde la tabla de puntuación.",
             }}
           />
           {!isHost && (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
+            <div style={{ ...S.card, marginTop: 14, textAlign: "center" }}>
+              <p style={{ color: "#9089c0", fontSize: 14, margin: 0 }}>Esperando que el anfitrión inicie otra ronda</p>
             </div>
           )}
         </div>

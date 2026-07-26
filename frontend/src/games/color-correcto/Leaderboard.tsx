@@ -21,13 +21,15 @@ export function Leaderboard({ standings, finished = false }: { standings: Leader
 
   return (
     <div>
-      <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-        <span style={S.label}>{finished ? "Ganador" + (isTie ? "es" : "") : isTie ? "Van primeros" : "Va primero"}</span>
-        <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
-          🏆 {isTie ? winners.map(w => w.name).join(" y ") : winners[0].name}
-        </p>
-        <p style={S.muted}>{topScore.toFixed(2)} puntos</p>
-      </div>
+      {finished && (
+        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+          <span style={S.label}>{"Ganador" + (isTie ? "es" : "")}</span>
+          <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+            🏆 {isTie ? winners.map(w => w.name).join(" y ") : winners[0].name}
+          </p>
+          <p style={S.muted}>{topScore.toFixed(2)} puntos</p>
+        </div>
+      )}
 
       <div style={S.card}>
         <span style={S.label}>Tabla de puntuación</span>

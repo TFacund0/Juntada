@@ -117,9 +117,15 @@ export const SCHEMAS = {
   continue_round: z.object({
     type: z.literal("continue_round"),
   }),
+  // Shared by Sintonía (a 0-100 dial value) and Encuentra el Color Correcto
+  // (a "#rrggbb" hex string) — each engine's own handleAction re-validates
+  // the shape it actually expects and rejects the other's, so a permissive
+  // union here just keeps both games off the same wire-level schema instead
+  // of needing two differently-named actions for what's conceptually the
+  // same "submit my answer for this round" message.
   submit_guess: z.object({
     type: z.literal("submit_guess"),
-    value: z.number().int().min(0).max(100),
+    value: z.union([z.number().int().min(0).max(100), z.string().max(20)]),
   }),
   confirm_round_setup: z.object({
     type: z.literal("confirm_round_setup"),
@@ -246,6 +252,34 @@ export const SCHEMAS = {
   guess: z.object({
     type: z.literal("guess"),
     text: z.string().trim().min(1).max(60),
+  }),
+  // ¿Quién Soy? — see backend/src/games/quien-soy/engine.ts. One word per
+  // other player in the room, keyed by their player id — submitted together
+  // as a single batch rather than one at a time.
+  submit_suggestion: z.object({
+    type: z.literal("submit_suggestion"),
+    suggestions: z.record(z.string(), z.string().trim().min(1).max(60)),
+  }),
+  vote_suggestion: z.object({
+    type: z.literal("vote_suggestion"),
+    suggestionIndex: z.number().int().min(0).max(50),
+  }),
+  // Host-only: moves on from the "assign" phase (words decided, briefly
+  // shown) into "playing" once everyone's ready to start asking questions.
+  confirm_words_ready: z.object({
+    type: z.literal("confirm_words_ready"),
+  }),
+  ask_question: z.object({
+    type: z.literal("ask_question"),
+    text: z.string().trim().min(1).max(200),
+  }),
+  answer_question: z.object({
+    type: z.literal("answer_question"),
+    answer: z.enum(["si", "no"]),
+    comment: z.string().trim().max(200).optional(),
+  }),
+  concede: z.object({
+    type: z.literal("concede"),
   }),
 } as const;
 

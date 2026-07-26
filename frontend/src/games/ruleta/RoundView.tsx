@@ -323,7 +323,7 @@ export function RoundView({ room, isHost, send }: RoundViewProps) {
           </div>
         )}
 
-        {finished && isHost && <StartButton onClick={() => send({ type: "start_round" })}>Nueva partida</StartButton>}
+        {finished && isHost && <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>}
         {/* Mismo botón que el modo local (setPhase("setup")) — siempre
           disponible, no solo cuando termina la rueda, así cualquiera puede
           volver a la carga de entradas (que ahora vive en la pestaña

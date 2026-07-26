@@ -244,16 +244,20 @@ function submitSpectrum(room: Room, playerId: string, payload: Record<string, un
   return { handled: true, rerolled: true }; // fresh private info (target) for everyone
 }
 
-// Host-only: wipes the accumulated score and round history and sends
-// everyone back to the lobby to reconfigure before the next match, for after
-// a fixed-round-count game has ended — same as tutifruti's own new_game.
-function newGame(room: Room, playerId: string): { handled: boolean } {
-  if (playerId !== room.hostId) return { handled: false };
+function resetProgress(room: Room): void {
   cfg(room).score = {};
   room.roundHistory.length = 0;
   // A brand-new match shouldn't still avoid pairs used in the *previous*
   // match — those are unrelated games from the players' perspective.
   room.usedWords.spectrums = [];
+}
+
+// Host-only: wipes the accumulated score and round history and sends
+// everyone back to the lobby to reconfigure before the next match, for after
+// a fixed-round-count game has ended — same as tutifruti's own new_game.
+function newGame(room: Room, playerId: string): { handled: boolean } {
+  if (playerId !== room.hostId) return { handled: false };
+  resetProgress(room);
   room.round = null;
   room.phase = "lobby";
   room.players.forEach(p => {
@@ -400,6 +404,7 @@ const engine: GameEngine = {
   getPublicRoundView,
   getPrivateView,
   getRevealMessage,
+  resetProgress,
 };
 
 module.exports = engine;

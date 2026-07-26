@@ -62,6 +62,9 @@ importers:
       '@juntada/limon-limon-deck':
         specifier: workspace:*
         version: link:../packages/limon-limon-deck
+      '@juntada/quien-soy-data':
+        specifier: workspace:*
+        version: link:../packages/quien-soy-data
       '@juntada/rayado-libre-data':
         specifier: workspace:*
         version: link:../packages/rayado-libre-data
@@ -147,6 +150,9 @@ importers:
       '@juntada/limon-limon-deck':
         specifier: workspace:*
         version: link:../packages/limon-limon-deck
+      '@juntada/quien-soy-data':
+        specifier: workspace:*
+        version: link:../packages/quien-soy-data
       '@juntada/rayado-libre-data':
         specifier: workspace:*
         version: link:../packages/rayado-libre-data
@@ -231,6 +237,8 @@ importers:
   packages/impostor-match-rules: {}
 
   packages/limon-limon-deck: {}
+
+  packages/quien-soy-data: {}
 
   packages/rayado-libre-data: {}
 

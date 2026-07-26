@@ -328,7 +328,7 @@ describe("Impostor RoundView — result phase", () => {
     vi.useRealTimers();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Nueva partida" }));
-    expect(send).toHaveBeenCalledWith({ type: "start_round" });
+    expect(send).toHaveBeenCalledWith({ type: "new_game" });
   });
 
   test("a non-decisive elimination lets the host continue the match instead of starting over", async () => {

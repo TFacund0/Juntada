@@ -16,6 +16,7 @@
     "@juntada/impostor-data": "workspace:*",
     "@juntada/impostor-match-rules": "workspace:*",
     "@juntada/limon-limon-deck": "workspace:*",
+    "@juntada/quien-soy-data": "workspace:*",
     "@juntada/rayado-libre-data": "workspace:*",
     "@juntada/rayado-libre-scoring": "workspace:*",
     "@juntada/shared-types": "workspace:*",
