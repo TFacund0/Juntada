@@ -49,6 +49,47 @@ function roomScore(room: RoundViewProps["room"]): Record<string, number> {
   return ((room.config as { score?: Record<string, number> })?.score ?? {}) as Record<string, number>;
 }
 
+// Live "quién ya adivinó" panel shown during "drawing" — every guesser gets a
+// row so it's clear at a glance who's still thinking versus who already
+// scored (and how much), instead of having to scan the scrolling chat log.
+function GuessersStatus({
+  players,
+  drawerId,
+  correctGuessers,
+  roundPoints,
+}: {
+  players: RoundViewProps["room"]["players"];
+  drawerId: string;
+  correctGuessers: string[];
+  roundPoints: Record<string, number>;
+}) {
+  const guessers = players.filter(p => p.id !== drawerId);
+  if (guessers.length === 0) return null;
+  return (
+    <div style={{ ...S.card, marginBottom: 12 }}>
+      <span style={S.label}>Quién ya adivinó</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+        {guessers.map(p => {
+          const solved = correctGuessers.includes(p.id);
+          return (
+            <div
+              key={p.id}
+              style={{
+                ...S.pill(solved),
+                opacity: p.online ? 1 : 0.55,
+              }}
+            >
+              {solved ? "✓ " : ""}
+              {p.name}
+              {solved ? ` · +${roundPoints[p.id] ?? 0}` : ""}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface RayadoLibreRoundState {
   turnNumber: number;
   totalTurns: number;
@@ -186,6 +227,13 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundVie
           </div>
         )}
 
+        <GuessersStatus
+          players={room.players}
+          drawerId={round.drawerId}
+          correctGuessers={correctGuessers}
+          roundPoints={round.roundPoints ?? {}}
+        />
+
         <Canvas
           strokes={strokes}
           interactive={isDrawer}
@@ -275,7 +323,7 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundVie
 
         {!iAmReady ? (
           <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>
-            Listo para el siguiente turno
+            {isLastTurn ? "Listo para ver los resultados" : "Listo para el siguiente turno"}
           </Btn>
         ) : (
           <div style={{ ...S.card, textAlign: "center" }}>

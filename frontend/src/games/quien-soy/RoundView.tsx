@@ -10,12 +10,15 @@ import { TurnCircle } from "../../components/TurnCircle";
 import { Standings, computeMatchRanks, type StandingEntry } from "./Standings";
 import type { RoundViewProps } from "../gameTypes";
 
+interface QAResponse {
+  answer: "si" | "no" | "skip";
+  comment: string | null;
+}
+
 interface QAEntry {
   turnPlayerId: string;
   question: string;
-  answeredBy: string;
-  answer: "si" | "no";
-  comment: string | null;
+  responses: Record<string, QAResponse>;
 }
 
 interface QuienSoyRoundState {
@@ -27,7 +30,7 @@ interface QuienSoyRoundState {
   currentTurnPlayerId?: string | null;
   turnOrder?: string[];
   lapNumber?: number;
-  pendingQuestion?: { by: string; text: string } | null;
+  pendingQuestion?: { by: string; text: string; responses: Record<string, QAResponse> } | null;
   qaLog?: QAEntry[];
   guessLog?: { playerId: string; correct: boolean }[];
   wrongGuesses?: Record<string, number>;
@@ -190,7 +193,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     const myOutcome = round.results?.find(r => r.playerId === myId)?.outcome ?? null;
     const isMyTurn = round.currentTurnPlayerId === myId;
     const pending = round.pendingQuestion;
-    const canAnswer = pending && pending.by !== myId;
+    const myResponse = pending && myId ? pending.responses[myId] : undefined;
+    const canAnswer = pending && pending.by !== myId && !myResponse;
+    const pendingRespondedCount = pending ? Object.keys(pending.responses).length : 0;
+    const pendingOwedCount = pending ? room.players.filter(p => p.online && p.id !== pending.by).length : 0;
     const wrongGuesses = round.wrongGuesses || {};
     // Every player's questions are about a different secret word, so mixing
     // them all into one shared log reads as noise — each player only cares
@@ -215,8 +221,8 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
       setGuessText("");
       setActionMode("idle");
     };
-    const answer = (value: "si" | "no") => {
-      send({ type: "answer_question", answer: value, comment: answerComment.trim() || undefined });
+    const answer = (value: "si" | "no" | "skip") => {
+      send({ type: "answer_question", answer: value, comment: value === "skip" ? undefined : answerComment.trim() || undefined });
       setAnswerComment("");
     };
 
@@ -304,10 +310,19 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                       <Btn variant="danger" onClick={() => answer("no")} style={{ flex: 1 }}>
                         No
                       </Btn>
+                      <Btn variant="ghost" onClick={() => answer("skip")} style={{ width: "auto", padding: "13px 14px" }}>
+                        Paso
+                      </Btn>
                     </div>
                   </>
+                ) : pending.by === myId ? (
+                  <p style={S.muted}>
+                    Esperando respuestas... {pendingRespondedCount}/{pendingOwedCount}
+                  </p>
                 ) : (
-                  <p style={S.muted}>Esperando que alguien responda...</p>
+                  <p style={{ color: "#5DCAA5" }}>
+                    Ya respondiste — esperando al resto ({pendingRespondedCount}/{pendingOwedCount})
+                  </p>
                 )}
               </div>
             )}
@@ -417,10 +432,20 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                     </span>
                   </button>
                   {isOpen && (
-                    <p style={{ margin: "6px 0 0", color: qa.answer === "si" ? "#5DCAA5" : "#F09595" }}>
-                      {nameOf(room, qa.answeredBy)} respondió: {qa.answer === "si" ? "Sí" : "No"}
-                      {qa.comment ? ` — "${qa.comment}"` : ""}
-                    </p>
+                    <div style={{ margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 4 }}>
+                      {Object.entries(qa.responses).map(([playerId, resp]) =>
+                        resp.answer === "skip" ? (
+                          <p key={playerId} style={{ margin: 0, color: "#9089c0" }}>
+                            {nameOf(room, playerId)} prefirió no responder
+                          </p>
+                        ) : (
+                          <p key={playerId} style={{ margin: 0, color: resp.answer === "si" ? "#5DCAA5" : "#F09595" }}>
+                            {nameOf(room, playerId)} respondió: {resp.answer === "si" ? "Sí" : "No"}
+                            {resp.comment ? ` — "${resp.comment}"` : ""}
+                          </p>
+                        ),
+                      )}
+                    </div>
                   )}
                 </div>
               );
