@@ -57,12 +57,15 @@ interface Suggestion {
   text: string;
 }
 
+interface QAResponse {
+  answer: "si" | "no" | "skip";
+  comment: string | null;
+}
+
 interface QAEntry {
   turnPlayerId: string;
   question: string;
-  answeredBy: string;
-  answer: "si" | "no";
-  comment: string | null;
+  responses: Record<string, QAResponse>;
 }
 
 interface GuessLogEntry {
@@ -99,7 +102,7 @@ interface QuienSoyRound {
   lapNumber: number;
   turnsThisLap: number;
   lapSize: number;
-  pendingQuestion: { by: string; text: string } | null;
+  pendingQuestion: { by: string; text: string; responses: Record<string, QAResponse> } | null;
   qaLog: QAEntry[];
   guessLog: GuessLogEntry[];
 }
@@ -382,19 +385,37 @@ function askQuestion(room: Room, playerId: string, payload: Record<string, unkno
   if (r.pendingQuestion) return { handled: false };
   const text = String(payload?.text || "").trim();
   if (!text) return { handled: false };
-  r.pendingQuestion = { by: playerId, text };
+  r.pendingQuestion = { by: playerId, text, responses: {} };
   return { handled: true };
 }
 
+// Only online players (besides the asker) are owed a response — someone who
+// disconnects mid-question shouldn't stall the turn forever waiting on an
+// answer that may never come (same reasoning as rayado-libre's onlineGuessers).
+function pendingQuestionSettled(room: Room, pending: { by: string; responses: Record<string, QAResponse> }): boolean {
+  return room.players.filter(p => p.online && p.id !== pending.by).every(p => pending.responses[p.id]);
+}
+
+// Everyone but the asker gets a say on a pending question — answering "sí"
+// or "no" or explicitly passing ("skip", for whoever doesn't want to write
+// anything) — and the turn only moves on once every one of them has
+// responded one way or another. That's what lets the asker later review
+// every answer they got (see qaLog), instead of just whoever happened to
+// reply first winning the only slot.
 function answerQuestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
   if (!room.round || room.phase !== "playing") return { handled: false };
   const r = round(room);
   if (!r.pendingQuestion || r.pendingQuestion.by === playerId) return { handled: false };
-  const answer = payload?.answer === "si" || payload?.answer === "no" ? payload.answer : null;
+  if (r.pendingQuestion.responses[playerId]) return { handled: false };
+  const answer = payload?.answer === "si" || payload?.answer === "no" || payload?.answer === "skip" ? payload.answer : null;
   if (!answer) return { handled: false };
-  const comment = String(payload?.comment || "").trim() || null;
+  const comment = answer === "skip" ? null : String(payload?.comment || "").trim() || null;
 
-  r.qaLog.push({ turnPlayerId: r.pendingQuestion.by, question: r.pendingQuestion.text, answeredBy: playerId, answer, comment });
+  r.pendingQuestion.responses[playerId] = { answer, comment };
+
+  if (!pendingQuestionSettled(room, r.pendingQuestion)) return { handled: true };
+
+  r.qaLog.push({ turnPlayerId: r.pendingQuestion.by, question: r.pendingQuestion.text, responses: r.pendingQuestion.responses });
   r.pendingQuestion = null;
   finishTurn(room, true);
   return { handled: true };
@@ -445,6 +466,15 @@ function maybeAdvance(room: Room): void {
   if (r.turnQueue.length !== before && r.turnQueue.length === 0) {
     finalizeResults(room);
     room.phase = "result";
+    return;
+  }
+  // Someone going offline mid-question shouldn't leave the asker stuck
+  // waiting on a response that may never come — settle it with whatever
+  // responses already came in from whoever's still online.
+  if (r.pendingQuestion && pendingQuestionSettled(room, r.pendingQuestion)) {
+    r.qaLog.push({ turnPlayerId: r.pendingQuestion.by, question: r.pendingQuestion.text, responses: r.pendingQuestion.responses });
+    r.pendingQuestion = null;
+    finishTurn(room, true);
   }
 }
 
