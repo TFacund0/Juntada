@@ -225,13 +225,13 @@ test("suggested mode: confirm_words_ready is host-only, only works in 'assign', 
   assert.equal(room.phase, "playing");
 });
 
-test("asking a question is turn-holder-only, and answering advances the turn", () => {
+test("asking a question is turn-holder-only, and the turn only advances once everyone else has answered or passed", () => {
   const room = makeRoom();
   engine.startRound(room);
   const turnPlayer = room.round.turnQueue[0];
-  const other = room.players.map((p: TestPlayer) => p.id).find((id: string) => id !== turnPlayer)!;
+  const others = room.players.map((p: TestPlayer) => p.id).filter((id: string) => id !== turnPlayer);
 
-  const wrongAsker = engine.handleAction(room, other, "ask_question", { text: "¿Sos famoso?" });
+  const wrongAsker = engine.handleAction(room, others[0], "ask_question", { text: "¿Sos famoso?" });
   assert.equal(wrongAsker.handled, false);
 
   engine.handleAction(room, turnPlayer, "ask_question", { text: "¿Sos famoso?" });
@@ -240,10 +240,20 @@ test("asking a question is turn-holder-only, and answering advances the turn", (
   const selfAnswer = engine.handleAction(room, turnPlayer, "answer_question", { answer: "si" });
   assert.equal(selfAnswer.handled, false, "the asker can't answer their own question");
 
-  const res = engine.handleAction(room, other, "answer_question", { answer: "si", comment: "más o menos" });
+  const firstAnswer = engine.handleAction(room, others[0], "answer_question", { answer: "si", comment: "más o menos" });
+  assert.equal(firstAnswer.handled, true);
+  assert.ok(room.round.pendingQuestion, "still waiting on the rest before the turn advances");
+  assert.equal(room.round.qaLog.length, 0);
+
+  const repeatAnswer = engine.handleAction(room, others[0], "answer_question", { answer: "no" });
+  assert.equal(repeatAnswer.handled, false, "can't answer the same question twice");
+
+  const res = engine.handleAction(room, others[1], "answer_question", { answer: "skip" });
   assert.equal(res.handled, true);
   assert.equal(room.round.qaLog.length, 1);
-  assert.equal(room.round.qaLog[0].answer, "si");
+  assert.equal(room.round.qaLog[0].responses[others[0]].answer, "si");
+  assert.equal(room.round.qaLog[0].responses[others[0]].comment, "más o menos");
+  assert.equal(room.round.qaLog[0].responses[others[1]].answer, "skip");
   assert.equal(room.round.pendingQuestion, null);
   assert.notEqual(room.round.turnQueue[0], turnPlayer, "turn moved on");
 });
