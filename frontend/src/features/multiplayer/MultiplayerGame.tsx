@@ -1,22 +1,14 @@
-import { useState, useEffect, useRef, Suspense } from "react";
-import { S } from "../../theme/styles";
+import { useState, useEffect, useRef } from "react";
 import { Btn } from "../../components/Btn";
-import { Avatar } from "../../components/Avatar";
-import { CodeDisplay } from "../../components/CodeDisplay";
-import { QRDialog } from "../../components/QRDialog";
-import { QRScannerDialog } from "../../components/QRScannerDialog";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { SetupTabs } from "../../components/SetupTabs";
-import { Toast } from "../../components/Toast";
-import { ErrorBanner } from "../../components/ErrorBanner";
-import { StickyActionBar } from "../../components/StickyActionBar";
-import { StartButton } from "../../components/StartButton";
-import { NamePillEditor } from "../../components/NamePillEditor";
 import { getGame, GAME_LIST } from "../../games/registry";
 import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
-import { buildRoomJoinUrl, buildGroupJoinUrl, extractScannedCode } from "./joinLink";
+import { extractScannedCode } from "./joinLink";
+import { MenuScreen } from "./MenuScreen";
+import { GroupScreen } from "./GroupScreen";
+import { LobbyScreen } from "./LobbyScreen";
+import { RoundScreen } from "./RoundScreen";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:
@@ -30,6 +22,13 @@ import { buildRoomJoinUrl, buildGroupJoinUrl, extractScannedCode } from "./joinL
 //     screen. The instance itself, once attached (`joined`), reuses the same
 //     per-game lobby/round/result UI as a standalone room — that machinery is
 //     unrelated to the group/room distinction.
+//
+// This file owns every bit of session/UI state (join code, dialogs, toasts,
+// the socket connection itself via useMultiplayerSocket) and the handlers
+// that mutate it — MenuScreen/GroupScreen/LobbyScreen/RoundScreen are pure
+// renders of one connectionPhase slice each, so a change to what's ON
+// screen for a given phase touches one of those files, while a change to
+// session/reconnect/toast behavior (shared across every phase) stays here.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface MultiplayerGameProps {
@@ -451,546 +450,111 @@ export function MultiplayerGame({
   // ── MENU ──
   if (connectionPhase === "menu" || connectionPhase === "create" || connectionPhase === "join")
     return (
-      <div>
-        {reconnectBanner}
-        <ErrorBanner message={error} flashKey={errorKey} variant="block" />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 16 }}>
-          <NamePillEditor name={playerName} onSave={saveName} avatarSize={22} editing={editingName} onEditingChange={setEditingName} />
-        </div>
-        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-          <Btn
-            variant={connectionPhase === "create" ? "primary" : "ghost"}
-            onClick={() => setConnectionPhase("create")}
-            style={{ flex: 1 }}
-          >
-            {inGroup ? "Crear grupo" : "Crear partida"}
-          </Btn>
-          <Btn variant={connectionPhase === "join" ? "primary" : "ghost"} onClick={() => setConnectionPhase("join")} style={{ flex: 1 }}>
-            Unirse
-          </Btn>
-        </div>
-        {inGroup && connectionPhase === "create" && (
-          <div style={S.card}>
-            <span style={S.label}>Nombre del grupo</span>
-            <input style={S.input} placeholder="Ej: Los pibes" value={roomName} onChange={e => setRoomName(e.target.value)} />
-            <p style={{ ...S.muted, marginTop: 10 }}>Elegís qué jugar una vez adentro, con todo el grupo</p>
-          </div>
-        )}
-        {connectionPhase === "create" && (
-          <div style={S.card}>
-            <span style={S.label}>Código de acceso</span>
-            <p style={{ ...S.muted, margin: 0 }}>
-              El servidor genera un código random de 5 caracteres (ej. XJ7K2), listo cuando toques "Crear".
-            </p>
-            <Btn onClick={() => runTransition(createRoom)} style={{ marginTop: 14 }}>
-              {inGroup ? "Crear grupo" : "Crear partida"}
-            </Btn>
-          </div>
-        )}
-        {connectionPhase === "join" && (
-          <div style={S.card}>
-            <span style={S.label}>{inGroup ? "Código del grupo" : "Código de sala"}</span>
-            <input
-              style={{ ...S.input, letterSpacing: "0.2em", textTransform: "uppercase", fontSize: 20, fontWeight: 700, textAlign: "center" }}
-              placeholder="XXXXX"
-              maxLength={5}
-              value={joinCode}
-              onChange={e => setJoinCode(e.target.value.toUpperCase())}
-            />
-            <button
-              onClick={() => setShowScanner(true)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 6,
-                width: "100%",
-                margin: "10px 0 0",
-                background: "none",
-                border: "none",
-                color: "#7F77DD",
-                cursor: "pointer",
-                fontSize: 13,
-                fontFamily: "inherit",
-                fontWeight: 700,
-              }}
-            >
-              📷 Escanear código QR
-            </button>
-            {!inGroup &&
-              roomPreview &&
-              roomPreview.code === joinCode.trim().toUpperCase() &&
-              (roomPreview.found ? (
-                <div
-                  style={{
-                    marginTop: 10,
-                    padding: "8px 10px",
-                    borderRadius: 8,
-                    background: "rgba(93,202,165,0.1)",
-                    border: "1px solid rgba(93,202,165,0.3)",
-                  }}
-                >
-                  <p style={{ margin: 0, fontSize: 13, color: "#5DCAA5" }}>
-                    {getGame(roomPreview.gameType ?? "")?.icon} Vas a unirte a: <b>{roomPreview.name}</b>
-                  </p>
-                  {selectedGame && roomPreview.gameType !== selectedGame.id && (
-                    <p style={{ margin: "4px 0 0", fontSize: 11, color: "#EF9F27" }}>
-                      Ojo: esa sala es de {getGame(roomPreview.gameType ?? "")?.label ?? roomPreview.gameType}, no de {selectedGame.label}
-                    </p>
-                  )}
-                </div>
-              ) : roomPreview.isGroupCode ? (
-                <div
-                  style={{
-                    marginTop: 10,
-                    padding: "10px 12px",
-                    borderRadius: 8,
-                    background: "rgba(226,196,74,0.1)",
-                    border: "1px solid rgba(226,196,74,0.3)",
-                  }}
-                >
-                  <p style={{ margin: 0, fontSize: 13, color: "#E2C44A" }}>
-                    Ese código es de un grupo
-                    {roomPreview.name ? (
-                      <>
-                        {" "}
-                        (<b>{roomPreview.name}</b>)
-                      </>
-                    ) : null}
-                    , no de una sala.
-                  </p>
-                  <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                    <Btn
-                      variant="success"
-                      onClick={() => onSwitchToGroup?.(roomPreview.code)}
-                      style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}
-                    >
-                      Unirme al grupo
-                    </Btn>
-                    <Btn variant="ghost" onClick={() => setJoinCode("")} style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}>
-                      Cancelar
-                    </Btn>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ ...S.muted, marginTop: 10, fontSize: 12 }}>No encontramos ninguna sala con ese código</p>
-              ))}
-            <Btn onClick={() => runTransition(joinRoom)} style={{ marginTop: 12 }}>
-              Unirse →
-            </Btn>
-          </div>
-        )}
-        {showScanner && (
-          <QRScannerDialog
-            title={inGroup ? "Escaneá el QR del grupo" : "Escaneá el QR de la sala"}
-            onScan={raw => {
-              const code = extractScannedCode(raw);
-              setShowScanner(false);
-              if (code) setJoinCode(code);
-              else setError("Ese código QR no es válido");
-            }}
-            onClose={() => setShowScanner(false)}
-          />
-        )}
-      </div>
+      <MenuScreen
+        connectionPhase={connectionPhase}
+        reconnectBanner={reconnectBanner}
+        error={error}
+        errorKey={errorKey}
+        playerName={playerName}
+        editingName={editingName}
+        onEditingChange={setEditingName}
+        onSaveName={saveName}
+        onSetPhase={setConnectionPhase}
+        inGroup={inGroup}
+        roomName={roomName}
+        onRoomNameChange={setRoomName}
+        onCreateRoom={() => runTransition(createRoom)}
+        joinCode={joinCode}
+        onJoinCodeChange={setJoinCode}
+        onJoinRoom={() => runTransition(joinRoom)}
+        showScanner={showScanner}
+        onShowScanner={setShowScanner}
+        roomPreview={roomPreview}
+        selectedGame={selectedGame}
+        onSwitchToGroup={onSwitchToGroup}
+        onScan={raw => {
+          const code = extractScannedCode(raw);
+          setShowScanner(false);
+          if (code) setJoinCode(code);
+          else setError("Ese código QR no es válido");
+        }}
+      />
     );
 
   // ── GROUP (attached to a group, no active instance) ──
   if (connectionPhase === "group" && group)
     return (
-      <div>
-        {reconnectBanner}
-        <p style={{ textAlign: "center", fontSize: 18, fontWeight: 800, color: "#AFA9EC", margin: "0 0 12px" }}>{group.name}</p>
-        <CodeDisplay code={group.code} />
-        <button
-          onClick={() => setShowQR(true)}
-          style={{
-            display: "block",
-            margin: "10px auto 0",
-            background: "none",
-            border: "none",
-            color: "#7F77DD",
-            cursor: "pointer",
-            fontSize: 13,
-            fontFamily: "inherit",
-            fontWeight: 700,
-          }}
-        >
-          Invitar
-        </button>
-        {showQR && (
-          <QRDialog
-            title="Escaneá para unirte"
-            subtitle={`${group.name} · Grupo ${group.code}`}
-            value={buildGroupJoinUrl(group.code)}
-            onClose={() => setShowQR(false)}
-          />
-        )}
-
-        <div style={{ ...S.card, marginTop: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={S.label}>
-              {group.members.length}/{group.maxMembers} en el grupo
-            </span>
-          </div>
-          {group.members.map(m => (
-            <div
-              key={m.id}
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 10,
-                padding: "8px 0",
-                borderBottom: "1px solid rgba(127,119,221,0.08)",
-              }}
-            >
-              <Avatar name={m.name} size={32} />
-              <span
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  fontWeight: m.id === me?.playerId ? 800 : 600,
-                  color: m.id === me?.playerId ? "#fff" : undefined,
-                }}
-              >
-                {m.name}
-                {m.id === me?.playerId && " (vos)"}
-              </span>
-              {m.id === group.hostId && <span style={S.pill(false)}>Anfitrión</span>}
-              {!m.online && <span style={S.pill(false)}>Desconectado</span>}
-              {isGroupHost && m.id !== me?.playerId && (
-                <div ref={openPlayerMenu === m.id ? playerMenuRef : undefined} style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setOpenPlayerMenu(v => (v === m.id ? null : m.id))}
-                    aria-label={`Opciones para ${m.name}`}
-                    style={{
-                      ...S.btn("ghost"),
-                      width: 30,
-                      height: 30,
-                      padding: 0,
-                      borderRadius: 8,
-                      fontSize: 16,
-                      lineHeight: 1,
-                      fontWeight: 800,
-                    }}
-                  >
-                    ⋮
-                  </button>
-                  {openPlayerMenu === m.id && (
-                    <div style={{ ...S.dropdownMenu, width: 170 }}>
-                      {m.online && (
-                        <button
-                          onClick={() => {
-                            send({ type: "transfer_host", targetId: m.id });
-                            setOpenPlayerMenu(null);
-                          }}
-                          style={S.dropdownMenuItem}
-                        >
-                          👑 Hacer anfitrión
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          send({ type: "kick_member", targetId: m.id });
-                          setOpenPlayerMenu(null);
-                        }}
-                        style={{ ...S.dropdownMenuItem, color: "#F09595" }}
-                      >
-                        🚫 Expulsar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div style={{ ...S.card, marginTop: 14 }}>
-          <span style={S.label}>Partidas abiertas</span>
-          {group.instances.length === 0 && <p style={{ ...S.muted, margin: "8px 0 0" }}>Nadie abrió una partida todavía.</p>}
-          {group.instances.map(inst => {
-            const g = getGame(inst.gameType) as GameDef | undefined;
-            const joinable = inst.phase === "lobby" && inst.playerCount < inst.maxPlayers;
-            return (
-              <div
-                key={inst.roomCode}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 0",
-                  borderBottom: "1px solid rgba(127,119,221,0.08)",
-                }}
-              >
-                <span style={{ fontSize: 22 }}>{g?.icon ?? "🎮"}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: 700, margin: 0 }}>{g?.label ?? inst.gameType}</p>
-                  <p style={{ ...S.muted, margin: 0, fontSize: 12 }}>
-                    {inst.hostName} · {inst.playerCount}/{inst.maxPlayers} {!joinable && inst.phase !== "lobby" && "· en curso"}
-                    {!joinable && inst.phase === "lobby" && "· llena"}
-                  </p>
-                </div>
-                <button
-                  disabled={!joinable || pendingJoinCode === inst.roomCode}
-                  onClick={() => joinInstance(inst.roomCode)}
-                  style={{
-                    ...S.btn(joinable ? "primary" : "ghost"),
-                    width: "auto",
-                    padding: "6px 14px",
-                    fontSize: 13,
-                    borderRadius: 8,
-                    opacity: joinable ? 1 : 0.5,
-                    cursor: joinable && pendingJoinCode !== inst.roomCode ? "pointer" : "not-allowed",
-                  }}
-                >
-                  {pendingJoinCode === inst.roomCode ? "Uniéndose..." : joinable ? "Unirse" : "—"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <Btn variant="ghost" onClick={() => setShowCreateInstance(v => !v)} style={{ marginTop: 10 }}>
-          {showCreateInstance ? "Cancelar" : "➕ Crear partida"}
-        </Btn>
-        {showCreateInstance && (
-          <div style={{ ...S.card, marginTop: 10 }}>
-            <span style={S.label}>Elegí un juego</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-              {playableGames().map(g => (
-                <button
-                  key={g.id}
-                  onClick={() => {
-                    send({ type: "create_instance", gameType: g.id });
-                    setShowCreateInstance(false);
-                  }}
-                  style={{
-                    ...S.btn("ghost"),
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    justifyContent: "flex-start",
-                    padding: "10px 14px",
-                  }}
-                >
-                  <span style={{ fontSize: 18 }}>{g.icon}</span>
-                  <span>{g.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Btn variant="ghost" onClick={() => setConfirmLeaveGroup(true)} style={{ marginTop: 14, opacity: 0.8 }}>
-          Salir del grupo
-        </Btn>
-        {confirmLeaveGroup && (
-          <ConfirmDialog
-            title="¿Salir del grupo?"
-            message="Dejás de formar parte de este grupo. Para volver vas a necesitar el código de nuevo."
-            confirmLabel="Sí, salir"
-            onConfirm={() => {
-              send({ type: "leave_group" });
-              setConfirmLeaveGroup(false);
-            }}
-            onCancel={() => setConfirmLeaveGroup(false)}
-          />
-        )}
-
-        <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
-      </div>
+      <GroupScreen
+        reconnectBanner={reconnectBanner}
+        group={group}
+        myPlayerId={me?.playerId}
+        isGroupHost={isGroupHost}
+        showQR={showQR}
+        onShowQR={setShowQR}
+        openPlayerMenu={openPlayerMenu}
+        onTogglePlayerMenu={setOpenPlayerMenu}
+        playerMenuRef={playerMenuRef}
+        onTransferHost={id => {
+          send({ type: "transfer_host", targetId: id });
+          setOpenPlayerMenu(null);
+        }}
+        onKickMember={id => {
+          send({ type: "kick_member", targetId: id });
+          setOpenPlayerMenu(null);
+        }}
+        playableGames={playableGames()}
+        showCreateInstance={showCreateInstance}
+        onToggleCreateInstance={() => setShowCreateInstance(v => !v)}
+        onCreateInstance={gameIdToCreate => {
+          send({ type: "create_instance", gameType: gameIdToCreate });
+          setShowCreateInstance(false);
+        }}
+        pendingJoinCode={pendingJoinCode}
+        onJoinInstance={joinInstance}
+        confirmLeaveGroup={confirmLeaveGroup}
+        onConfirmLeaveGroup={() => setConfirmLeaveGroup(true)}
+        onLeaveGroup={() => {
+          send({ type: "leave_group" });
+          setConfirmLeaveGroup(false);
+        }}
+        onCancelLeaveGroup={() => setConfirmLeaveGroup(false)}
+        error={error}
+        errorKey={errorKey}
+      />
     );
 
   // ── LOBBY ── (either a standalone room or a group instance's lobby)
   if (connectionPhase === "lobby" && room) {
-    const showLobbyTabs = isHost && !!activeGame?.tabbedLobby;
     return (
-      <div style={isHost ? { paddingBottom: 88 } : undefined}>
-        <Toast message={statusToast} onExpire={() => setStatusToast(null)} />
-        {reconnectBanner}
-        {/* A group instance isn't meant to be joined by raw code — group
-            membership (join_instance from the group screen) is how people
-            find it. A standalone room still shares its code here, since
-            that's its only invite mechanism. */}
-        {room.groupCode === null && (
-          <>
-            <CodeDisplay code={room.code} />
-            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 10 }}>
-              <button
-                onClick={() => setShowQR(true)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--jt-accent)",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                  fontWeight: 700,
-                }}
-              >
-                Invitar
-              </button>
-            </div>
-            {showQR && (
-              <QRDialog
-                title="Escaneá para unirte"
-                subtitle={`${room.name ? room.name + " · " : ""}Sala ${room.code} · ${activeGame?.label ?? ""}`}
-                value={buildRoomJoinUrl(room.gameType, room.code)}
-                onClose={() => setShowQR(false)}
-              />
-            )}
-          </>
-        )}
-        {showLobbyTabs && (
-          <div style={{ marginTop: 14 }}>
-            <SetupTabs tab={lobbyTab} onChange={setLobbyTab} />
-          </div>
-        )}
-
-        {(!showLobbyTabs || lobbyTab === "players") && (
-          <div style={{ ...S.card, marginTop: showLobbyTabs ? 0 : 14 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={S.label}>
-                {room.players.length}/{room.maxPlayers} jugadores
-              </span>
-              {room.players.length >= room.maxPlayers && <span style={S.pill(false)}>Sala llena</span>}
-            </div>
-            {room.players.map(p => (
-              <div
-                key={p.id}
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 0",
-                  borderBottom: "1px solid var(--jt-row-border, rgba(127,119,221,0.08))",
-                }}
-              >
-                <Avatar name={p.name} size={32} />
-                <span
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    fontWeight: p.id === me?.playerId ? 800 : 600,
-                    color: p.id === me?.playerId ? "#fff" : undefined,
-                  }}
-                >
-                  {p.name}
-                  {p.id === me?.playerId && " (vos)"}
-                </span>
-                {p.id === room.hostId && <span style={S.pill(false)}>Anfitrión</span>}
-                {!p.online && <span style={S.pill(false)}>Desconectado</span>}
-                {isHost && p.id !== me?.playerId && (
-                  <div ref={openPlayerMenu === p.id ? playerMenuRef : undefined} style={{ position: "relative" }}>
-                    <button
-                      onClick={() => setOpenPlayerMenu(v => (v === p.id ? null : p.id))}
-                      aria-label={`Opciones para ${p.name}`}
-                      style={{
-                        ...S.btn("ghost"),
-                        width: 30,
-                        height: 30,
-                        padding: 0,
-                        borderRadius: 8,
-                        fontSize: 16,
-                        lineHeight: 1,
-                        fontWeight: 800,
-                      }}
-                    >
-                      ⋮
-                    </button>
-                    {openPlayerMenu === p.id && (
-                      <div style={{ ...S.dropdownMenu, width: 170 }}>
-                        {p.online && (
-                          <button
-                            onClick={() => {
-                              send({ type: "transfer_host", targetId: p.id });
-                              setOpenPlayerMenu(null);
-                            }}
-                            style={S.dropdownMenuItem}
-                          >
-                            👑 Hacer anfitrión
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            send({ type: "kick_player", targetId: p.id });
-                            setOpenPlayerMenu(null);
-                          }}
-                          style={{ ...S.dropdownMenuItem, color: "#F09595" }}
-                        >
-                          🚫 Expulsar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {isHost && (
-          <>
-            {activeGame?.ConfigPanel && (!showLobbyTabs || lobbyTab === "config") && (
-              <Suspense fallback={null}>
-                <activeGame.ConfigPanel room={room} updateConfig={updateConfig} />
-              </Suspense>
-            )}
-            <StickyActionBar>
-              {(() => {
-                const notEnoughPlayers = room.players.length < (activeGame?.minPlayers ?? 3);
-                const notReadyReason = notEnoughPlayers ? null : (activeGame?.canStart?.(room) ?? null);
-                return (
-                  <>
-                    <StartButton disabled={notEnoughPlayers || !!notReadyReason} onClick={() => send({ type: "start_round" })}>
-                      {activeGame?.startLabel ?? "Iniciar ronda"}
-                    </StartButton>
-                    {notEnoughPlayers ? (
-                      <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>
-                        Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores
-                      </p>
-                    ) : (
-                      notReadyReason && (
-                        <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>{notReadyReason}</p>
-                      )
-                    )}
-                  </>
-                );
-              })()}
-            </StickyActionBar>
-          </>
-        )}
-
-        {!isHost && (
-          <>
-            {activeGame?.LobbyInfo && (
-              <Suspense fallback={null}>
-                <activeGame.LobbyInfo room={room} />
-              </Suspense>
-            )}
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ fontSize: 15, color: "#9089c0" }}>Esperando que el anfitrión inicie la partida</p>
-            </div>
-          </>
-        )}
-
-        {room.groupCode !== null && (
-          <Btn variant="ghost" onClick={leaveInstance} style={{ marginTop: 10 }}>
-            👥 Volver al grupo
-          </Btn>
-        )}
-
-        <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
-      </div>
+      <LobbyScreen
+        room={room}
+        myPlayerId={me?.playerId}
+        isHost={isHost}
+        activeGame={activeGame}
+        statusToast={statusToast}
+        onStatusToastExpire={() => setStatusToast(null)}
+        reconnectBanner={reconnectBanner}
+        showQR={showQR}
+        onShowQR={setShowQR}
+        lobbyTab={lobbyTab}
+        onLobbyTabChange={setLobbyTab}
+        openPlayerMenu={openPlayerMenu}
+        onTogglePlayerMenu={setOpenPlayerMenu}
+        playerMenuRef={playerMenuRef}
+        onTransferHost={id => {
+          send({ type: "transfer_host", targetId: id });
+          setOpenPlayerMenu(null);
+        }}
+        onKickPlayer={id => {
+          send({ type: "kick_player", targetId: id });
+          setOpenPlayerMenu(null);
+        }}
+        updateConfig={updateConfig}
+        onStartRound={() => send({ type: "start_round" })}
+        onLeaveInstance={leaveInstance}
+        error={error}
+        errorKey={errorKey}
+      />
     );
   }
 
@@ -1001,44 +565,23 @@ export function MultiplayerGame({
   // inválida, etc.) es un caso genérico común a cualquier juego.
   if (!["menu", "create", "join", "lobby", "group"].includes(connectionPhase) && room && activeGame) {
     return (
-      <div>
-        <Toast message={statusToast} onExpire={() => setStatusToast(null)} />
-        {reconnectBanner}
-        <ErrorBanner message={error} flashKey={errorKey} variant="block" />
-
-        <Suspense fallback={<p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>}>
-          {activeGame.RoundView && (
-            <activeGame.RoundView
-              room={room}
-              me={me}
-              myPlayer={myPlayer}
-              myRole={myRole}
-              wordReveal={wordReveal}
-              isHost={isHost}
-              send={send}
-            />
-          )}
-        </Suspense>
-
-        {room.groupCode !== null && (
-          <Btn variant="ghost" onClick={() => setConfirmLeaveInstance(true)} style={{ marginTop: 14 }}>
-            👥 Volver al grupo
-          </Btn>
-        )}
-
-        {confirmLeaveInstance && (
-          <ConfirmDialog
-            title="¿Volver al grupo?"
-            message="Vas a salir de esta partida en curso y perder tu progreso. El resto puede seguir jugando sin vos."
-            confirmLabel="Sí, volver"
-            onConfirm={() => {
-              leaveInstance();
-              setConfirmLeaveInstance(false);
-            }}
-            onCancel={() => setConfirmLeaveInstance(false)}
-          />
-        )}
-      </div>
+      <RoundScreen
+        activeGame={activeGame}
+        roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send }}
+        statusToast={statusToast}
+        onStatusToastExpire={() => setStatusToast(null)}
+        reconnectBanner={reconnectBanner}
+        error={error}
+        errorKey={errorKey}
+        showReturnToGroup={room.groupCode !== null}
+        confirmLeaveInstance={confirmLeaveInstance}
+        onRequestLeaveInstance={() => setConfirmLeaveInstance(true)}
+        onLeaveInstance={() => {
+          leaveInstance();
+          setConfirmLeaveInstance(false);
+        }}
+        onCancelLeaveInstance={() => setConfirmLeaveInstance(false)}
+      />
     );
   }
 
