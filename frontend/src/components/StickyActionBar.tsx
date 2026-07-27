@@ -14,7 +14,10 @@ export function StickyActionBar({ children }: { children: ReactNode }) {
         right: 0,
         bottom: 0,
         padding: "12px 16px calc(12px + env(safe-area-inset-bottom))",
-        background: "linear-gradient(rgba(15,12,29,0), #0f0c1d 24%)",
+        // Reads --jt-bg (theme/sharedChrome.css) instead of hardcoding
+        // #0f0c1d, so this fades into a themed game's actual background
+        // instead of always fading into the untheemed one.
+        background: "linear-gradient(transparent, var(--jt-bg, #0f0c1d) 24%)",
         zIndex: 10,
       }}
     >

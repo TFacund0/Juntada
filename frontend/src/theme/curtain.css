@@ -1,0 +1,36 @@
+/* Fade-to-black used when entering/leaving a themed game (see
+   gameThemes.ts + App.tsx's withCurtain) — the palette swap always happens
+   while the screen is fully covered, never as a hard cut mid-render. */
+.app-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  pointer-events: none;
+}
+
+.app-curtain.in {
+  animation: app-curtain-in 260ms ease forwards;
+}
+
+.app-curtain.out {
+  animation: app-curtain-out 380ms ease forwards;
+}
+
+@keyframes app-curtain-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes app-curtain-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

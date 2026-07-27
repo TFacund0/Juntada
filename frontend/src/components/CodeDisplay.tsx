@@ -18,16 +18,25 @@ export function CodeDisplay({ code }: CodeDisplayProps) {
         cursor: "pointer",
         textAlign: "center",
         padding: "16px",
-        background: "rgba(127,119,221,0.08)",
+        background: "var(--jt-accent-soft)",
         borderRadius: 12,
-        border: "1.5px dashed rgba(127,119,221,0.4)",
+        border: "1.5px dashed var(--jt-accent-border-soft)",
       }}
     >
-      <p style={{ fontSize: 11, letterSpacing: "0.15em", color: "#7F77DD", marginBottom: 6, fontWeight: 700 }}>CÓDIGO DE SALA</p>
-      <p style={{ fontSize: 36, fontWeight: 800, letterSpacing: "0.2em", color: "#AFA9EC", margin: 0, fontVariantNumeric: "tabular-nums" }}>
+      <p style={{ fontSize: 11, letterSpacing: "0.15em", color: "var(--jt-accent)", marginBottom: 6, fontWeight: 700 }}>CÓDIGO DE SALA</p>
+      <p
+        style={{
+          fontSize: 36,
+          fontWeight: 800,
+          letterSpacing: "0.2em",
+          color: "var(--jt-accent-strong)",
+          margin: 0,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
         {code}
       </p>
-      <p style={{ fontSize: 12, color: "#5a5280", marginTop: 6 }}>{copied ? "Copiado" : "Tocá para copiar"}</p>
+      <p style={{ fontSize: 12, color: "var(--jt-muted)", marginTop: 6 }}>{copied ? "Copiado" : "Tocá para copiar"}</p>
     </div>
   );
 }

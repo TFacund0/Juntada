@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense, type CSSProperties } from "react";
 import { S } from "./theme/styles";
+import { GAME_THEMES } from "./theme/gameThemes";
+import "./theme/curtain.css";
+import "./theme/sharedChrome.css";
 import { GAME_LIST, getGame } from "./games/registry";
 import type { GameDef } from "./games/gameTypes";
 import { isUnderMaintenance } from "./games/maintenance";
@@ -108,6 +111,22 @@ export default function App() {
   // branch of goBack is destructive enough to warn about; going back from
   // "elegí local u online" (mode still null) has nothing in progress to lose.
   const [showBackConfirm, setShowBackConfirm] = useState(false);
+  // Fade-to-black played whenever a themed game (see gameTheme on GameDef)
+  // is about to come on screen or leave it, so the full-app palette swap
+  // always happens under full black cover instead of as a hard cut.
+  const [curtain, setCurtain] = useState<"none" | "in" | "out">("none");
+  const withCurtain = useCallback((action: () => void, themed: boolean) => {
+    if (!themed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      action();
+      return;
+    }
+    setCurtain("in");
+    setTimeout(() => {
+      action();
+      setCurtain("out");
+      setTimeout(() => setCurtain("none"), 380);
+    }, 260);
+  }, []);
   const [showDevNotice, setShowDevNotice] = useState(() => {
     try {
       return !localStorage.getItem("impostorgame:devNoticeSeen");
@@ -147,8 +166,15 @@ export default function App() {
   // this is — a stale/mismatched join link (or gameId picked before the
   // room was known) shouldn't leave the header showing the wrong game while
   // the room content underneath is correct.
+  //
+  // Also the signal for whether a themed game's reskin (see gameTheme on
+  // GameDef) should be live: a room only exists once "Crear partida"/
+  // "Unirse" actually lands, not just from picking "Multijugador online" —
+  // this is null the whole time you're still on that create/join screen.
+  const [inRoom, setInRoom] = useState(false);
   const handleRoomGameType = useCallback(
     (roomGameType: string | null) => {
+      setInRoom(roomGameType !== null);
       if (roomGameType === null) {
         // No active instance (sitting on the group screen) — only relevant
         // while in the group flow, where there's no fixed gameId to fall back
@@ -192,31 +218,45 @@ export default function App() {
     if (mode) {
       setShowBackConfirm(true);
     } else {
+      // Reskin never turns on until "Modo local" or an actual online room
+      // (see inGameView/inRoom above) — with no mode chosen yet there was
+      // never anything themed on screen to fade out of.
       setGameId(null);
       setShowRules(false);
     }
   };
 
+  // Whether the themed reskin (see gameTheme on GameDef) is actually live
+  // right now, for games with one — used to decide whether leaving needs
+  // the fade-to-black curtain or can just happen instantly.
+  const themeIsLive = Boolean(game?.gameTheme) && (mode === "local" || (mode === "multi" && inRoom));
+
   const confirmGoBack = () => {
-    if (mode === "multi") clearMultiplayerSession();
-    setMode(null);
-    // Group flow jumps straight from home into multi mode with no "pick
-    // mode" step in between, so going back from it goes straight home too.
-    if (groupFlow) setGroupFlow(false);
-    setShowBackConfirm(false);
+    withCurtain(() => {
+      if (mode === "multi") clearMultiplayerSession();
+      setMode(null);
+      // Group flow jumps straight from home into multi mode with no "pick
+      // mode" step in between, so going back from it goes straight home too.
+      if (groupFlow) setGroupFlow(false);
+      setShowBackConfirm(false);
+    }, themeIsLive);
   };
 
   const goHome = () => {
-    if (mode === "multi") clearMultiplayerSession();
-    setGameId(null);
-    setMode(null);
-    setGroupFlow(false);
-    setShowRules(false);
-    setShowExitConfirm(false);
-    setGroupAttached(false);
+    withCurtain(() => {
+      if (mode === "multi") clearMultiplayerSession();
+      setGameId(null);
+      setMode(null);
+      setGroupFlow(false);
+      setShowRules(false);
+      setShowExitConfirm(false);
+      setGroupAttached(false);
+    }, themeIsLive);
   };
 
   const pickGame = (id: string) => {
+    // No curtain here either — picking a game from the list only sets
+    // gameId, well before "Modo local"/an actual room turns its theme on.
     setGameId(id);
     setMode(null);
     setShowRules(false);
@@ -267,9 +307,83 @@ export default function App() {
       </div>
     );
 
+  // Reskin is "live" whenever this game's actual LocalGame/RoundView is what
+  // the user sees, not just the game picker or the local/online mode choice
+  // — matches the same condition used below to decide what to render for
+  // "Paso 1.5"/"Paso 3".
+  const inGameView = game
+    ? game.localOnly
+      ? !game.comingSoon && !isUnderMaintenance(game)
+      : mode === "local" || (mode === "multi" && inRoom)
+    : false;
+  const activeTheme = inGameView && game?.gameTheme ? GAME_THEMES[game.gameTheme] : null;
+  const accentColor = activeTheme?.accent ?? "#7F77DD";
+  const mutedColor = activeTheme?.muted ?? "#6b6490";
+  const themedTitleStyle: CSSProperties = activeTheme
+    ? { ...S.title, background: "none", WebkitBackgroundClip: "unset", WebkitTextFillColor: "unset", color: accentColor }
+    : S.title;
+  // Every shared "join a room" component (CodeDisplay, QRDialog) reads
+  // these CSS vars instead of hardcoding the default purple/green — see
+  // theme/sharedChrome.css. Only set when a theme is actually live;
+  // otherwise the vars just keep sharedChrome.css's own :root defaults
+  // (this app's normal look, untouched for every non-themed game).
+  const chromeVars = activeTheme
+    ? ({
+        "--jt-accent": accentColor,
+        "--jt-accent-strong": activeTheme.accentStrong ?? accentColor,
+        "--jt-surface": activeTheme.surface ?? (activeTheme.app.background as string | undefined),
+        "--jt-muted": mutedColor,
+        // The "Iniciar ronda"-style CTA matches this theme's accent too,
+        // instead of staying the app-wide green.
+        "--jt-cta-from": accentColor,
+        "--jt-cta-to": `color-mix(in srgb, ${accentColor} 70%, black)`,
+        "--jt-cta-shadow": `color-mix(in srgb, ${accentColor} 35%, transparent)`,
+        // StickyActionBar's fade-to-bg strip (behind that same CTA).
+        "--jt-bg": activeTheme.app.background as string | undefined,
+        // The shared card/label/muted-text look (S.card/S.label/S.muted in
+        // theme/styles.ts) — covers the online lobby's player-list card for
+        // free, no per-screen changes needed.
+        "--jt-card-bg": "color-mix(in srgb, black 25%, transparent)",
+        "--jt-card-border": `color-mix(in srgb, ${accentColor} 30%, transparent)`,
+        "--jt-row-border": `color-mix(in srgb, ${accentColor} 15%, transparent)`,
+        "--jt-label": accentColor,
+        "--jt-muted-text": mutedColor,
+      } as CSSProperties)
+    : {};
+
   return (
-    <div style={S.app}>
-      <div style={S.wrap}>
+    <div
+      style={{
+        ...S.app,
+        ...activeTheme?.app,
+        ...chromeVars,
+        position: "relative",
+        transition: "background-color .4s ease, color .4s ease",
+      }}
+    >
+      {curtain !== "none" && <div className={`app-curtain ${curtain}`} />}
+      {activeTheme?.backdropEmoji && (
+        <div
+          aria-hidden
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "60vh",
+            lineHeight: 1,
+            opacity: 0.07,
+            color: accentColor,
+            userSelect: "none",
+            pointerEvents: "none",
+          }}
+        >
+          {activeTheme.backdropEmoji}
+        </div>
+      )}
+      <div style={{ ...S.wrap, position: "relative", zIndex: 1 }}>
         <div style={S.header}>
           {(gameId || mode) && (
             <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 8 }}>
@@ -278,7 +392,7 @@ export default function App() {
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#6b6490",
+                  color: mutedColor,
                   cursor: "pointer",
                   fontSize: 13,
                   fontFamily: "inherit",
@@ -292,7 +406,7 @@ export default function App() {
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#6b6490",
+                  color: mutedColor,
                   cursor: "pointer",
                   fontSize: 13,
                   fontFamily: "inherit",
@@ -308,8 +422,8 @@ export default function App() {
           ) : (
             <img src={logo} alt="Juntada" style={{ width: 64, height: 64, borderRadius: 16 }} />
           )}
-          <h1 style={S.title}>{game?.label ?? "Juntada"}</h1>
-          {!gameId && !groupFlow && <p style={{ color: "#6b6490", fontSize: 14, marginTop: 6 }}>Elegí un juego para arrancar</p>}
+          <h1 style={themedTitleStyle}>{game?.label ?? "Juntada"}</h1>
+          {!gameId && !groupFlow && <p style={{ color: mutedColor, fontSize: 14, marginTop: 6 }}>Elegí un juego para arrancar</p>}
           {!gameId && !groupFlow && (
             <>
               <div style={{ marginTop: 14 }}>
@@ -334,21 +448,42 @@ export default function App() {
           )}
           {gameId && !mode && (
             <p
-              style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}
+              style={{
+                color: accentColor,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginTop: 6,
+              }}
             >
               Elegí cómo jugar
             </p>
           )}
           {mode === "local" && (
             <p
-              style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}
+              style={{
+                color: accentColor,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginTop: 6,
+              }}
             >
               Modo local · Un dispositivo
             </p>
           )}
           {mode === "multi" && (
             <p
-              style={{ color: "#7F77DD", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 6 }}
+              style={{
+                color: accentColor,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginTop: 6,
+              }}
             >
               Modo multijugador · Online
             </p>
@@ -359,7 +494,7 @@ export default function App() {
               style={{
                 background: "none",
                 border: "none",
-                color: "#7F77DD",
+                color: accentColor,
                 cursor: "pointer",
                 fontSize: 13,
                 fontFamily: "inherit",
@@ -399,7 +534,10 @@ export default function App() {
               </div>
               <div style={{ color: "#7F77DD", fontSize: 20 }}>›</div>
             </div>
-            <div style={{ ...S.modeRow, borderLeft: "3px solid #5DCAA5" }} onClick={() => setMode("local")}>
+            <div
+              style={{ ...S.modeRow, borderLeft: "3px solid #5DCAA5" }}
+              onClick={() => withCurtain(() => setMode("local"), Boolean(game?.gameTheme))}
+            >
               <div style={{ ...S.modeIconBadge, background: "rgba(93,202,165,0.15)" }}>📱</div>
               <div style={{ flex: 1 }}>
                 <p style={S.modeRowTitle}>Modo local</p>
@@ -429,6 +567,7 @@ export default function App() {
             onSwitchToGroup={switchToGroupJoin}
             onGroupAttachedChange={setGroupAttached}
             onExposeReturnToGroup={exposeReturnToGroup}
+            runTransition={action => withCurtain(action, Boolean(game?.gameTheme))}
           />
         )}
       </div>

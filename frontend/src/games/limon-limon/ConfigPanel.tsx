@@ -1,6 +1,4 @@
-import { S } from "../../theme/styles";
-import { Avatar } from "../../components/Avatar";
-import { effectiveOrder } from "./deck";
+import { TurnOrderEditor } from "../../components/TurnOrderEditor";
 import { DescriptionsEditor } from "./DescriptionsEditor";
 import type { ConfigPanelProps } from "../gameTypes";
 
@@ -9,56 +7,16 @@ import type { ConfigPanelProps } from "../gameTypes";
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const config = room.config as { descriptions?: Record<string, string>; turnOrder?: string[] };
   const descriptions = config.descriptions || {};
-  const order = effectiveOrder(room.players, config.turnOrder);
-  const players = order.map(id => room.players.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
-
-  const move = (index: number, dir: number) => {
-    const target = index + dir;
-    if (target < 0 || target >= order.length) return;
-    const next = [...order];
-    [next[index], next[target]] = [next[target], next[index]];
-    updateConfig({ turnOrder: next });
-  };
 
   return (
     <div>
-      <div style={S.card}>
-        <span style={S.label}>Orden de turno</span>
-        <p style={{ ...S.muted, marginTop: -6, marginBottom: 12 }}>
-          Así van a ir pasando el mazo. Los que se sumen después entran al final.
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {players.map((p, i) => (
-            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-              <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
-              <Avatar name={p.name} size={28} />
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
-              <button
-                onClick={() => move(i, -1)}
-                disabled={i === 0}
-                style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 14, opacity: i === 0 ? 0.35 : 1 }}
-              >
-                ↑
-              </button>
-              <button
-                onClick={() => move(i, 1)}
-                disabled={i === players.length - 1}
-                style={{
-                  ...S.btn("ghost"),
-                  width: 32,
-                  height: 32,
-                  padding: 0,
-                  borderRadius: 8,
-                  fontSize: 14,
-                  opacity: i === players.length - 1 ? 0.35 : 1,
-                }}
-              >
-                ↓
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+      <TurnOrderEditor
+        players={room.players}
+        turnOrder={config.turnOrder}
+        onChange={turnOrder => updateConfig({ turnOrder })}
+        label="Orden de turno"
+        helpText="Así van a ir pasando el mazo. Los que se sumen después entran al final."
+      />
 
       <DescriptionsEditor
         descriptions={descriptions}

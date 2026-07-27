@@ -85,6 +85,12 @@ interface MultiplayerGameProps {
   // the group screen (the server's leave_instance is a no-op with nothing
   // attached), so mashing "Volver" repeatedly just leaves the player there.
   onExposeReturnToGroup?: (fn: () => void) => void;
+  // Wraps "Crear partida"/"Unirse" so a themed game (see gameTheme on
+  // GameDef) gets the same fade-to-black transition on the way into the
+  // room as it already gets entering online mode itself — App.tsx passes
+  // its withCurtain helper here. Defaults to calling the action straight
+  // through, so every other game's plain "create/join" stays instant.
+  runTransition?: (action: () => void) => void;
 }
 
 function playableGames(): GameDef[] {
@@ -103,6 +109,7 @@ export function MultiplayerGame({
   onSwitchToGroup,
   onGroupAttachedChange,
   onExposeReturnToGroup,
+  runTransition = action => action(),
 }: MultiplayerGameProps) {
   const {
     connectionPhase,
@@ -475,7 +482,7 @@ export function MultiplayerGame({
             <p style={{ ...S.muted, margin: 0 }}>
               El servidor genera un código random de 5 caracteres (ej. XJ7K2), listo cuando toques "Crear".
             </p>
-            <Btn onClick={createRoom} style={{ marginTop: 14 }}>
+            <Btn onClick={() => runTransition(createRoom)} style={{ marginTop: 14 }}>
               {inGroup ? "Crear grupo" : "Crear partida"}
             </Btn>
           </div>
@@ -568,7 +575,7 @@ export function MultiplayerGame({
               ) : (
                 <p style={{ ...S.muted, marginTop: 10, fontSize: 12 }}>No encontramos ninguna sala con ese código</p>
               ))}
-            <Btn onClick={joinRoom} style={{ marginTop: 12 }}>
+            <Btn onClick={() => runTransition(joinRoom)} style={{ marginTop: 12 }}>
               Unirse →
             </Btn>
           </div>
@@ -819,7 +826,7 @@ export function MultiplayerGame({
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#7F77DD",
+                  color: "var(--jt-accent)",
                   cursor: "pointer",
                   fontSize: 13,
                   fontFamily: "inherit",
@@ -862,7 +869,7 @@ export function MultiplayerGame({
                   alignItems: "center",
                   gap: 10,
                   padding: "8px 0",
-                  borderBottom: "1px solid rgba(127,119,221,0.08)",
+                  borderBottom: "1px solid var(--jt-row-border, rgba(127,119,221,0.08))",
                 }}
               >
                 <Avatar name={p.name} size={32} />

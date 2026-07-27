@@ -6,6 +6,7 @@ import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
 import { BackButton } from "../../components/BackButton";
+import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { buildDeck, buildDefaultDescriptions, cardKey, getDescription } from "./deck";
 import type { Card } from "./deck";
 import { CardView, DeckStack } from "./CardView";
@@ -328,9 +329,7 @@ export function LocalGame() {
           <StartButton onClick={startGame} disabled={players.length < MIN_PLAYERS}>
             Empezar a jugar
           </StartButton>
-          {players.length < MIN_PLAYERS && (
-            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
-          )}
+          <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
         </StickyActionBar>
       </div>
     );

@@ -36,6 +36,15 @@ function makeRoom(overrides: Partial<TestRoom> = {}): TestRoom {
   };
 }
 
+// Categories mode now passes through the same brief "assign" beat as
+// suggested mode before "playing" (see engine.ts's startRound) — tests that
+// only care about the "playing" phase itself use this to skip past it.
+function startCategoriesRound(room: TestRoom) {
+  const res = engine.startRound(room);
+  engine.handleAction(room, room.hostId, "confirm_words_ready");
+  return res;
+}
+
 test("startRound refuses below the minimum player count", () => {
   const room = makeRoom({ players: [{ id: "p1", name: "Ana", ready: false, online: true }] });
   const res = engine.startRound(room);
@@ -49,7 +58,7 @@ test("startRound succeeds with exactly 2 players and a full match resolves clean
       { id: "p2", name: "Beto", ready: false, online: true },
     ],
   });
-  const res = engine.startRound(room);
+  const res = startCategoriesRound(room);
   assert.equal(res.success, true);
   assert.equal(room.round.turnQueue.length, 2);
 
@@ -60,14 +69,22 @@ test("startRound succeeds with exactly 2 players and a full match resolves clean
   assert.equal(room.round.results.length, 2);
 });
 
-test("categories mode deals a distinct word to each player and goes straight to playing", () => {
+test("categories mode deals a distinct word to each player, then waits in 'assign' for the host before playing", () => {
   const room = makeRoom();
   const res = engine.startRound(room);
   assert.equal(res.success, true);
-  assert.equal(room.phase, "playing");
+  assert.equal(room.phase, "assign");
   assert.equal(Object.keys(room.round.words).length, 3);
   const words = Object.values(room.round.words);
   assert.equal(new Set(words).size, 3, "words should be distinct across players");
+
+  const byGuest = engine.handleAction(room, "p2", "confirm_words_ready");
+  assert.equal(byGuest.handled, false, "not the host");
+  assert.equal(room.phase, "assign");
+
+  const byHost = engine.handleAction(room, room.hostId, "confirm_words_ready");
+  assert.equal(byHost.handled, true);
+  assert.equal(room.phase, "playing");
   assert.equal(room.round.turnQueue.length, 3);
 });
 
@@ -227,7 +244,7 @@ test("suggested mode: confirm_words_ready is host-only, only works in 'assign', 
 
 test("asking a question is turn-holder-only, and the turn only advances once everyone else has answered or passed", () => {
   const room = makeRoom();
-  engine.startRound(room);
+  startCategoriesRound(room);
   const turnPlayer = room.round.turnQueue[0];
   const others = room.players.map((p: TestPlayer) => p.id).filter((id: string) => id !== turnPlayer);
 
@@ -260,7 +277,7 @@ test("asking a question is turn-holder-only, and the turn only advances once eve
 
 test("a correct guess solves the round for that player and removes them from the queue", () => {
   const room = makeRoom();
-  engine.startRound(room);
+  startCategoriesRound(room);
   const turnPlayer = room.round.turnQueue[0];
   const myWord = room.round.words[turnPlayer];
 
@@ -272,7 +289,7 @@ test("a correct guess solves the round for that player and removes them from the
 
 test("guessing is accent/case-insensitive", () => {
   const room = makeRoom({ config: { ...engine.createConfig(), activeCategories: { "personajes-famosos": true } } });
-  engine.startRound(room);
+  startCategoriesRound(room);
   const turnPlayer = room.round.turnQueue[0];
   const myWord = room.round.words[turnPlayer]; // e.g. "Lionel Messi"
 
@@ -281,9 +298,55 @@ test("guessing is accent/case-insensitive", () => {
   assert.equal(res.handled, true);
 });
 
+test("guessing just one significant word of a multi-word word still solves it", () => {
+  const room = makeRoom({
+    config: { ...engine.createConfig(), wordSource: "suggested" },
+    players: [
+      { id: "p1", name: "Ana", ready: false, online: true },
+      { id: "p2", name: "Beto", ready: false, online: true },
+    ],
+  });
+  engine.startRound(room);
+  // 2-player suggested mode assigns straight from the single suggestion —
+  // no vote needed (see suggestForEveryoneElse's own test for that rule).
+  engine.handleAction(room, "p1", "submit_suggestion", { suggestions: { p2: "Lionel Messi" } });
+  engine.handleAction(room, "p2", "submit_suggestion", { suggestions: { p1: "Cualquier Cosa" } });
+  engine.handleAction(room, room.hostId, "confirm_words_ready");
+
+  const turnPlayer = room.round.turnQueue.find((id: string) => room.round.words[id] === "Lionel Messi");
+  // Force it to be that player's turn regardless of shuffle order.
+  while (room.round.turnQueue[0] !== turnPlayer) engine.handleAction(room, room.round.turnQueue[0], "concede");
+
+  const res = engine.handleAction(room, turnPlayer, "guess", { text: "messi" });
+  assert.equal(res.handled, true);
+  assert.equal(room.round.guessLog[room.round.guessLog.length - 1].correct, true);
+  assert.equal(room.round.results.find((r: any) => r.playerId === turnPlayer)?.outcome, "solved");
+});
+
+test("guessing a short filler word of a multi-word word doesn't solve it", () => {
+  const room = makeRoom({
+    config: { ...engine.createConfig(), wordSource: "suggested" },
+    players: [
+      { id: "p1", name: "Ana", ready: false, online: true },
+      { id: "p2", name: "Beto", ready: false, online: true },
+    ],
+  });
+  engine.startRound(room);
+  engine.handleAction(room, "p1", "submit_suggestion", { suggestions: { p2: "Rey de Corazones" } });
+  engine.handleAction(room, "p2", "submit_suggestion", { suggestions: { p1: "Cualquier Cosa" } });
+  engine.handleAction(room, room.hostId, "confirm_words_ready");
+
+  const turnPlayer = room.round.turnQueue.find((id: string) => room.round.words[id] === "Rey de Corazones");
+  while (room.round.turnQueue[0] !== turnPlayer) engine.handleAction(room, room.round.turnQueue[0], "concede");
+
+  const res = engine.handleAction(room, turnPlayer, "guess", { text: "de" });
+  assert.equal(res.handled, true);
+  assert.equal(room.round.guessLog[room.round.guessLog.length - 1].correct, false);
+});
+
 test("three wrong guesses eliminate a player with zero points", () => {
   const room = makeRoom();
-  engine.startRound(room);
+  startCategoriesRound(room);
 
   for (let i = 0; i < 3; i++) {
     const turnPlayer = room.round.turnQueue[0];
@@ -305,7 +368,7 @@ test("three wrong guesses eliminate a player with zero points", () => {
 
 test("conceding on your turn removes you from the queue with no points", () => {
   const room = makeRoom();
-  engine.startRound(room);
+  startCategoriesRound(room);
   const turnPlayer = room.round.turnQueue[0];
 
   const res = engine.handleAction(room, turnPlayer, "concede");
@@ -316,7 +379,7 @@ test("conceding on your turn removes you from the queue with no points", () => {
 
 test("the game ends and scores when the queue empties, tying same-lap solvers at the same rank", () => {
   const room = makeRoom();
-  engine.startRound(room);
+  startCategoriesRound(room);
 
   // Everyone solves on their very first turn -> same lap -> tied for 1st.
   while (room.round.turnQueue.length > 0) {
@@ -336,7 +399,7 @@ test("the game ends and scores when the queue empties, tying same-lap solvers at
 
 test("new_game is host-only and resets the score", () => {
   const room = makeRoom();
-  engine.startRound(room);
+  startCategoriesRound(room);
   while (room.round.turnQueue.length > 0) {
     const turnPlayer = room.round.turnQueue[0];
     engine.handleAction(room, turnPlayer, "concede");
@@ -355,7 +418,7 @@ test("new_game is host-only and resets the score", () => {
 
 test("getPublicRoundView hides words until the result phase", () => {
   const room = makeRoom();
-  engine.startRound(room);
+  startCategoriesRound(room);
   assert.equal(engine.getPublicRoundView(room).words, null);
 
   while (room.round.turnQueue.length > 0) {

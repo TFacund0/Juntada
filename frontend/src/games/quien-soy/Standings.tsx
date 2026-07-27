@@ -1,5 +1,6 @@
 import { S } from "../../theme/styles";
 import { Avatar } from "../../components/Avatar";
+import { computeMatchRanks, type QuienSoyResult } from "@juntada/quien-soy-data";
 
 export interface StandingEntry {
   id: string;
@@ -8,6 +9,10 @@ export interface StandingEntry {
   rank: number | null; // null when still playing or didn't solve
   word: string | null; // revealed word, once known
   points: number;
+  // Cumulative score across matches (room.config.score online, or the
+  // equivalent local running total) — undefined hides the total entirely,
+  // so a lone match with nothing to accumulate yet doesn't show a stray 0.
+  totalScore?: number;
 }
 
 const OUTCOME_LABEL: Record<StandingEntry["outcome"], string> = {
@@ -17,25 +22,32 @@ const OUTCOME_LABEL: Record<StandingEntry["outcome"], string> = {
   playing: "Jugando…",
 };
 
-// Mirrors engine.ts's finalizeResults — same lap-tie logic, just computed
-// client-side purely for display (the authoritative cumulative score still
-// only ever gets written server-side, into room.config.score).
-export function computeMatchRanks(
-  results: { playerId: string; outcome: "solved" | "eliminated" | "conceded"; lap: number }[],
-  playerCount: number,
-): Record<string, { rank: number; points: number }> {
-  const solved = results.filter(r => r.outcome === "solved").sort((a, b) => a.lap - b.lap);
-  const out: Record<string, { rank: number; points: number }> = {};
-  let rank = 0;
-  let lastLap: number | null = null;
-  solved.forEach((res, i) => {
-    if (res.lap !== lastLap) {
-      rank = i + 1;
-      lastLap = res.lap;
-    }
-    out[res.playerId] = { rank, points: Math.max(0, playerCount - rank + 1) };
-  });
-  return out;
+// Turns the round's raw results + revealed words into the sorted entries
+// Standings renders — same shape-building logic local pass-and-play's
+// "final" screen and the online RoundView's "result" phase both need,
+// differing only in where `results`/`words` come from.
+export function buildStandingEntries(
+  players: { id: string; name: string }[],
+  results: QuienSoyResult[],
+  words: Record<string, string | null | undefined>,
+  totalScores?: Record<string, number>,
+): StandingEntry[] {
+  const ranks = computeMatchRanks(results, players.length);
+  return players
+    .map(p => {
+      const result = results.find(r => r.playerId === p.id);
+      const rankInfo = ranks[p.id];
+      return {
+        id: p.id,
+        name: p.name,
+        outcome: (result?.outcome ?? "playing") as StandingEntry["outcome"],
+        rank: rankInfo?.rank ?? null,
+        word: words[p.id] ?? null,
+        points: rankInfo?.points ?? 0,
+        totalScore: totalScores ? (totalScores[p.id] ?? 0) : undefined,
+      };
+    })
+    .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
 }
 
 // Final (or live, while still playing) ranking: who solved their word first
@@ -68,7 +80,10 @@ export function Standings({ entries }: { entries: StandingEntry[] }) {
               {entry.word ? ` — era "${entry.word}"` : ""}
             </p>
           </div>
-          {entry.points > 0 && <span style={{ fontWeight: 800, color: "#AFA9EC" }}>+{entry.points}</span>}
+          <div style={{ textAlign: "right" }}>
+            {entry.points > 0 && <span style={{ fontWeight: 800, color: "#AFA9EC" }}>+{entry.points}</span>}
+            {entry.totalScore != null && <p style={{ margin: "2px 0 0", fontSize: 11, color: "#6b6490" }}>Total: {entry.totalScore}</p>}
+          </div>
         </div>
       ))}
     </div>

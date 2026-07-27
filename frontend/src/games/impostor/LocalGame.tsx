@@ -11,6 +11,7 @@ import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
 import { BackButton } from "../../components/BackButton";
+import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
@@ -728,7 +729,7 @@ export function LocalGame() {
           <StartButton onClick={startRound} disabled={players.length < 3 || activeCats.length === 0 || allCategoriesExhausted}>
             Iniciar ronda
           </StartButton>
-          {players.length < 3 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 3 jugadores</p>}
+          <MinPlayersHint count={players.length} min={3} />
           {players.length >= 3 && activeCats.length === 0 && (
             <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
               Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar

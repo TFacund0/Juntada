@@ -8,6 +8,7 @@ import { Toggle } from "../../components/Toggle";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
+import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { shuffle } from "../../utils/shuffle";
 import { nextPlayerName } from "../../utils/playerNames";
@@ -354,9 +355,7 @@ export function LocalGame() {
           <StartButton onClick={startGame} disabled={players.length < MIN_PLAYERS}>
             Iniciar partida
           </StartButton>
-          {players.length < MIN_PLAYERS && (
-            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
-          )}
+          <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
         </StickyActionBar>
       </div>
     );

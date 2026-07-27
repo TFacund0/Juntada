@@ -22,6 +22,15 @@ export interface Hsl {
   l: number; // 0-100
 }
 
+// Both LocalGame and RoundView reset the picker to the same neutral gray
+// between turns/rounds — one shared value instead of two separately
+// declared object literals that happen to match.
+export const NEUTRAL_HSL: Hsl = { h: 0, s: 0, l: 50 };
+
+export function hexFromHsl(value: Hsl): string {
+  return hslToHex(value.h, value.s, value.l);
+}
+
 export function ColorPicker({ value, onChange }: { value: Hsl; onChange: (next: Hsl) => void }) {
   const { h, s, l } = value;
   const hex = hslToHex(h, s, l);
