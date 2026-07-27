@@ -53,7 +53,7 @@ function makeRoom(roundOverrides: Record<string, unknown> = {}): RoomPublicState
     gameType: "recamara",
     phase: "playing",
     players: makePlayers(),
-    maxPlayers: 4,
+    maxPlayers: 6,
     groupCode: null,
     config: {},
     round: makeRound(roundOverrides),

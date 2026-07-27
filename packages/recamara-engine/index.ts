@@ -62,10 +62,16 @@ export function randomItem(): ItemKind {
   return ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)];
 }
 
-// Up to 8 shells, any real/blank split — mirrors the tabletop rule this game
+// A blank drawn a little more often lands ahead of a live one in the shuffle
+// — not a hard guarantee (this is a soft bias on the sort key below, not a
+// forced ordering), just a slight lean toward blanks coming up earlier
+// rather than every ordering being equally likely.
+const BLANK_ORDER_BIAS = 0.15;
+
+// 3 to 8 shells, any real/blank split — mirrors the tabletop rule this game
 // is based on (see recamara/index.tsx's `rules`).
 export function buildShells(): Shell[] {
-  const total = 2 + Math.floor(Math.random() * 7); // 2..8
+  const total = 3 + Math.floor(Math.random() * 6); // 3..8
   const live = 1 + Math.floor(Math.random() * total); // 1..total
   const blank = total - live;
   const arr: Shell[] = (
@@ -77,11 +83,14 @@ export function buildShells(): Shell[] {
       .fill(null)
       .map(() => ({ kind: "blank" as const, spent: false, revealed: false })),
   );
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+  // Weighted shuffle instead of a plain Fisher-Yates: each shell gets a
+  // random sort key, but a blank's key gets nudged down (sorts earlier) by
+  // BLANK_ORDER_BIAS — still fully random, just leaning blanks toward the
+  // front of the order rather than every permutation being equally likely.
+  return arr
+    .map(shell => ({ shell, key: Math.random() - (shell.kind === "blank" ? BLANK_ORDER_BIAS : 0) }))
+    .sort((a, b) => a.key - b.key)
+    .map(({ shell }) => shell);
 }
 
 export function createInitialState(names: string[]): GameState {
