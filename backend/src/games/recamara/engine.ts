@@ -47,7 +47,7 @@ import {
 } from "@juntada/recamara-engine";
 
 const MIN_PLAYERS = 2;
-const MAX_PLAYERS = 4;
+const MAX_PLAYERS = 6;
 
 // PendingFire/LastItemEvent come straight from @juntada/recamara-engine —
 // same shapes RoundView.tsx reads, so a field rename here can't silently

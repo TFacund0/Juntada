@@ -142,7 +142,7 @@ export function LocalGame() {
   const blankCount = gameState ? gameState.shells.length - liveCount : 0;
   const bulletIcons = useMemo(() => shuffledBulletIcons(liveCount, blankCount), [liveCount, blankCount, roundNumber]);
 
-  const addPlayerName = () => setNames(n => (n.length < 4 ? [...n, `Jugador ${n.length + 1}`] : n));
+  const addPlayerName = () => setNames(n => (n.length < 6 ? [...n, `Jugador ${n.length + 1}`] : n));
   const removePlayerName = (i: number) => setNames(n => (n.length > 2 ? n.filter((_, idx) => idx !== i) : n));
   const renamePlayer = (i: number, v: string) => setNames(n => n.map((name, idx) => (idx === i ? v : name)));
 
@@ -157,6 +157,14 @@ export function LocalGame() {
     setRevealedCount(0);
     setWinner(null);
     setLog([]);
+    // A fresh game means a fresh gun — otherwise the arena mounting for the
+    // very first duel with these still at their default-but-never-reset
+    // values wouldn't matter here (nothing fired yet), but it's paired with
+    // the same reset below in continueAfterFire's reload branch, which does
+    // matter (see that comment).
+    setRecoil(false);
+    setFlash(false);
+    setLastShell(null);
     addLog({ text: `Se cargó la recámara. Empieza <b>${state.players[0].name}</b>.` });
   };
 
@@ -248,6 +256,16 @@ export function LocalGame() {
       setRevealIdx(0);
       setRevealedCount(0);
       setSubPhase("reveal");
+      // recoil/flash are plain booleans, never toggled back off after a shot
+      // (the CSS keyframe animation itself decays, not this state) — fine
+      // while the arena stays mounted, but the reveal beats ahead unmount it
+      // entirely. Left at true, the next duel's arena would remount with
+      // "recoil"/"flash" already on its very first paint, replaying both
+      // animations immediately with no shot fired — reading as the shotgun
+      // going off by itself right as the new round starts.
+      setRecoil(false);
+      setFlash(false);
+      setLastShell(null);
     } else {
       setGunAngle(frontAngle(result.state.order, result.state.order[result.state.turnPos]));
     }
@@ -301,7 +319,7 @@ export function LocalGame() {
     return (
       <div className="recamara">
         <div className="setup-card">
-          <h2>Jugadores (2 a 4)</h2>
+          <h2>Jugadores (2 a 6)</h2>
           {names.map((name, i) => (
             <div className="name-row" key={i}>
               <input value={name} onChange={e => renamePlayer(i, e.target.value)} maxLength={16} placeholder={`Jugador ${i + 1}`} />
@@ -314,7 +332,7 @@ export function LocalGame() {
             className="icon-btn"
             style={{ width: "100%" }}
             onClick={addPlayerName}
-            disabled={names.length >= 4}
+            disabled={names.length >= 6}
             title="Agregar jugador"
           >
             + Agregar jugador

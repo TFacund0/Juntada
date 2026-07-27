@@ -109,6 +109,16 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
       setRevealStage("announce");
       setRevealedCount(0);
       setReadySent(false);
+      // recoil/flash are plain booleans, never toggled back off after a shot
+      // (the CSS keyframe animation itself decays, not this state) — fine
+      // while the arena stays mounted, but the reveal beats ahead unmount it
+      // entirely. Left at true, the next duel's arena would remount with
+      // "recoil"/"flash" already on its very first paint, replaying both
+      // animations immediately with no shot fired — reading as the shotgun
+      // going off by itself right as the new round starts.
+      setRecoil(false);
+      setFlash(false);
+      setLastShell(null);
     }
   }, [round?.roundNumber, fireStage]);
 

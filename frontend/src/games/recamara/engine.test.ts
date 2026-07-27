@@ -12,10 +12,10 @@ import {
 } from "@juntada/recamara-engine";
 
 describe("recamara engine", () => {
-  test("buildShells stays within 2..8 shells and matches its own live/blank split", () => {
+  test("buildShells stays within 3..8 shells and matches its own live/blank split", () => {
     for (let i = 0; i < 50; i++) {
       const shells = buildShells();
-      expect(shells.length).toBeGreaterThanOrEqual(2);
+      expect(shells.length).toBeGreaterThanOrEqual(3);
       expect(shells.length).toBeLessThanOrEqual(8);
       expect(shells.every(s => !s.spent && !s.revealed)).toBe(true);
     }
@@ -70,7 +70,7 @@ describe("recamara engine", () => {
     const result = fireShot(state, state.players[1].id);
     expect(result.reloaded).toBe(true);
     result.state.players.forEach((p, i) => expect(p.items.length).toBe(before[i] + ITEMS_PER_RELOAD));
-    expect(result.state.shells.length).toBeGreaterThanOrEqual(2);
+    expect(result.state.shells.length).toBeGreaterThanOrEqual(3);
   });
 
   test("a reload never lets a player's item count exceed MAX_ITEMS", () => {
@@ -180,6 +180,23 @@ describe("recamara engine", () => {
     const nameOf = () => "Ana";
     expect(describeItemResult(result, nameOf, { revealPhoneHint: false }).text).toBe("<b>Ana</b> llama por teléfono.");
     expect(describeItemResult(result, nameOf).text).toContain("posición <b>2</b>");
+  });
+
+  test("buildShells leans blank shells toward the front of the order more often than not", () => {
+    // Not a hard guarantee (it's a soft weighted shuffle, see
+    // BLANK_ORDER_BIAS), so this checks the lean over many chambers rather
+    // than asserting it on any single one.
+    let blankFirstCount = 0;
+    let trials = 0;
+    for (let i = 0; i < 300; i++) {
+      const shells = buildShells();
+      if (!shells.every(s => s.kind === shells[0].kind)) {
+        trials++;
+        if (shells[0].kind === "blank") blankFirstCount++;
+      }
+    }
+    expect(trials).toBeGreaterThan(0);
+    expect(blankFirstCount / trials).toBeGreaterThan(0.5);
   });
 
   test("esposas cuffs the target, and their next turn is skipped and the cuff consumed", () => {
