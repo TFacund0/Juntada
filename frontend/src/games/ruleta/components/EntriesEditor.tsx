@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { ErrorBanner } from "../../components/ErrorBanner";
-import { useFlashError } from "../../hooks/useFlashError";
+import { S } from "../../../theme/styles";
+import { Btn } from "../../../components/Btn";
+import { ErrorBanner } from "../../../components/ErrorBanner";
+import { useFlashError } from "../../../hooks/useFlashError";
 
 export interface RuletaEntry<Id> {
   id: Id;

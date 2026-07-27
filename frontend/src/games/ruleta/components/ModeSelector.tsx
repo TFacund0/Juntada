@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 interface ModeSelectorProps {
   mode: "keep" | "eliminate";

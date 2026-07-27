@@ -5,8 +5,8 @@ import { TabRow } from "../../components/TabRow";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
-import { EntriesEditor } from "./EntriesEditor";
-import { ModeSelector } from "./ModeSelector";
+import { EntriesEditor } from "./components/EntriesEditor";
+import { ModeSelector } from "./components/ModeSelector";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RULETA — cargás entradas (un nombre, y opcionalmente una descripción más larga

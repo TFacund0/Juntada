@@ -14,11 +14,11 @@ import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/playerNames";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";
-import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
+import { Dial, MARKER_COLORS, markerLabels } from "./components/Dial";
 import { Collapsible } from "../../components/Collapsible";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
-import { PlayModeConfig } from "./PlayModeConfig";
+import { PlayModeConfig } from "./components/PlayModeConfig";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SINTONÍA (estilo Wavelength) — un solo dispositivo, se pasa de mano en mano.

@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 // Shared "¿Cómo se juega?" editor — identical copy/layout in the online
 // lobby's ConfigPanel and local mode's setup screen (both just wire it to
