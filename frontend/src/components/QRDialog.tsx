@@ -55,8 +55,8 @@ export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: "#171329",
-          border: "1px solid rgba(127,119,221,0.3)",
+          background: "var(--jt-surface)",
+          border: "1px solid var(--jt-accent-border)",
           borderRadius: 16,
           padding: "24px 20px",
           maxWidth: 340,
@@ -66,7 +66,7 @@ export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
         }}
       >
         <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>{title}</p>
-        {subtitle && <p style={{ color: "#a49dc9", fontSize: 13, margin: "0 0 18px", lineHeight: 1.4 }}>{subtitle}</p>}
+        {subtitle && <p style={{ color: "var(--jt-muted)", fontSize: 13, margin: "0 0 18px", lineHeight: 1.4 }}>{subtitle}</p>}
         <div style={{ display: "flex", justifyContent: "center", padding: 12, background: "#f2f0fb", borderRadius: 14, marginBottom: 18 }}>
           <QRCode value={value} />
         </div>

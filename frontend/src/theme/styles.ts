@@ -25,16 +25,21 @@ export const S = {
     WebkitTextFillColor: "transparent",
     margin: 0,
   } satisfies CSSProperties,
+  // background/border read theme/sharedChrome.css's --jt-card-*/--jt-accent-
+  // border vars — default values match exactly, so this stays a no-op for
+  // every game without a gameTheme; a themed game's lobby/setup cards
+  // (including the shared player-list card in the online lobby) pick up
+  // its own palette for free, with no per-game branching here.
   card: {
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(127,119,221,0.18)",
+    background: "var(--jt-card-bg, rgba(255,255,255,0.04))",
+    border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
     borderRadius: 16,
     padding: "18px 20px",
     marginBottom: 14,
   } satisfies CSSProperties,
   cardHighlight: {
-    background: "rgba(127,119,221,0.1)",
-    border: "1px solid rgba(127,119,221,0.35)",
+    background: "var(--jt-accent-soft, rgba(127,119,221,0.1))",
+    border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.35))",
     borderRadius: 16,
     padding: "18px 20px",
     marginBottom: 14,
@@ -44,7 +49,7 @@ export const S = {
     fontWeight: 700,
     letterSpacing: "0.1em",
     textTransform: "uppercase",
-    color: "#7F77DD",
+    color: "var(--jt-label, #7F77DD)",
     marginBottom: 10,
     display: "block",
   } satisfies CSSProperties,
@@ -84,13 +89,23 @@ export const S = {
         }
       : variant === "success"
         ? {
-            background: "linear-gradient(135deg,#1D9E75,#0F6E56)",
+            // Reads --jt-cta-from/to/shadow (theme/sharedChrome.css) — a
+            // themed game (see gameTheme on GameDef) can swap this CTA to
+            // its own accent instead of the app-wide green; every other
+            // game keeps that green via the vars' :root defaults.
+            background: "linear-gradient(135deg, var(--jt-cta-from, #1D9E75), var(--jt-cta-to, #0F6E56))",
             color: "#fff",
-            boxShadow: disabled ? "none" : "0 4px 20px rgba(29,158,117,0.3)",
+            boxShadow: disabled ? "none" : "0 4px 20px var(--jt-cta-shadow, rgba(29,158,117,0.3))",
           }
         : variant === "danger"
           ? { background: "rgba(226,75,74,0.15)", color: "#F09595", border: "1px solid rgba(226,75,74,0.3)" }
-          : { background: "rgba(127,119,221,0.1)", color: "#AFA9EC", border: "1px solid rgba(127,119,221,0.25)" }),
+          : {
+              // Reads the same --jt-accent-* vars CodeDisplay/QRDialog use
+              // (theme/sharedChrome.css) — same reasoning as "success" above.
+              background: "var(--jt-accent-soft, rgba(127,119,221,0.1))",
+              color: "var(--jt-accent-strong, #AFA9EC)",
+              border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.25))",
+            }),
   }),
   bigReveal: {
     fontSize: 28,
@@ -101,13 +116,13 @@ export const S = {
     margin: "12px 0",
     lineHeight: 1.2,
   } satisfies CSSProperties,
-  muted: { color: "#6b6490", fontSize: 13 } satisfies CSSProperties,
+  muted: { color: "var(--jt-muted-text, #6b6490)", fontSize: 13 } satisfies CSSProperties,
   sectionLabel: {
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
-    color: "#7F77DD",
+    color: "var(--jt-label, #7F77DD)",
     margin: "0 2px 8px",
   } satisfies CSSProperties,
   searchBar: {

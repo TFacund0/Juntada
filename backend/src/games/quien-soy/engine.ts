@@ -276,7 +276,12 @@ function startVotingOn(room: Room, targetId: string): void {
 // hard requirement is collective, not per-submitter: every target ends up
 // with at least one suggestion once all players have submitted — see
 // finalizeSuggestions' fallback for whoever nobody wrote anything for.
-function submitSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
+// Always rerolled: this always flips the submitter's own private
+// mySuggestionSubmitted flag (see getPrivateView), and once everyone's in,
+// finalizeSuggestions also reassigns r.words/starts voting for everyone —
+// without resending private info here, players would only see any of that
+// on their own next action (or a manual refresh).
+function submitSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: true } {
   if (!room.round || room.phase !== "suggest") return { handled: false };
   const r = round(room);
   if (r.submittedBy!.includes(playerId)) return { handled: false };
@@ -290,7 +295,7 @@ function submitSuggestion(room: Room, playerId: string, payload: Record<string, 
   r.submittedBy!.push(playerId);
 
   if (r.submittedBy!.length >= room.players.length) finalizeSuggestions(room);
-  return { handled: true };
+  return { handled: true, rerolled: true };
 }
 
 function tallySuggestionVotes(room: Room): void {
@@ -323,7 +328,12 @@ function confirmWordsReady(room: Room, playerId: string): { handled: boolean } {
   return { handled: true };
 }
 
-function voteSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
+// Always rerolled: this always flips the voter's own private myVote, and
+// once everyone eligible has voted, tallySuggestionVotes also moves
+// currentVoteTarget on to the next target (or into "assign") for everyone —
+// each of which needs a fresh voteSuggestions/wordsVisibleToMe push, not
+// just whatever the next actor happens to trigger themselves.
+function voteSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: true } {
   if (!room.round || room.phase !== "vote") return { handled: false };
   const r = round(room);
   if (playerId === r.currentVoteTarget) return { handled: false }; // can't vote on your own word
@@ -336,7 +346,7 @@ function voteSuggestion(room: Room, playerId: string, payload: Record<string, un
 
   const eligibleVoters = room.players.filter(p => p.id !== r.currentVoteTarget);
   if (eligibleVoters.every(p => r.votes![p.id] != null)) tallySuggestionVotes(room);
-  return { handled: true };
+  return { handled: true, rerolled: true };
 }
 
 // Moves the current turn holder off the front of the queue — rotated to the

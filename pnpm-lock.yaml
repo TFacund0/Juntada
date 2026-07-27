@@ -71,6 +71,9 @@ importers:
       '@juntada/rayado-libre-scoring':
         specifier: workspace:*
         version: link:../packages/rayado-libre-scoring
+      '@juntada/recamara-engine':
+        specifier: workspace:*
+        version: link:../packages/recamara-engine
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
@@ -159,6 +162,9 @@ importers:
       '@juntada/rayado-libre-scoring':
         specifier: workspace:*
         version: link:../packages/rayado-libre-scoring
+      '@juntada/recamara-engine':
+        specifier: workspace:*
+        version: link:../packages/recamara-engine
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
@@ -238,11 +244,17 @@ importers:
 
   packages/limon-limon-deck: {}
 
-  packages/quien-soy-data: {}
+  packages/quien-soy-data:
+    dependencies:
+      '@juntada/tutifruti-words':
+        specifier: workspace:*
+        version: link:../tutifruti-words
 
   packages/rayado-libre-data: {}
 
   packages/rayado-libre-scoring: {}
+
+  packages/recamara-engine: {}
 
   packages/shared-types:
     dependencies:

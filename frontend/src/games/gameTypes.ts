@@ -67,4 +67,12 @@ export interface GameDef {
   // Set when a game's own local-mode button uses different wording (ruleta:
   // "Empezar a girar") so online and local always say the same thing.
   startLabel?: string;
+  // Opts into a full-app reskin (background/text color/font of the shared
+  // chrome in App.tsx, not just this game's own components) while this
+  // game's LocalGame/RoundView is on screen — for games with a visual
+  // identity distinct enough that the default app look would clash. Must
+  // match a key in theme/gameThemes.ts. App.tsx also plays a fade-to-black
+  // transition when this flips on/off so the palette swap never happens as
+  // a hard cut. Absent for every game that shares the default look.
+  gameTheme?: string;
 }

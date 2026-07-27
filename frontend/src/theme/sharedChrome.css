@@ -1,0 +1,45 @@
+/* Shared cross-game chrome tokens — CodeDisplay, QRDialog, Btn's "success"/
+   "ghost" variants (see theme/styles.ts's S.btn), and anything else common
+   to every game read these CSS vars instead of hardcoding a color. A themed
+   game (see gameTheme on GameDef, theme/gameThemes.ts) overrides just a
+   handful of base vars via inline style on App.tsx's root — everything
+   else here derives from those automatically (color-mix), so adding a new
+   themed game never means hunting down more hardcoded colors across these
+   shared components one at a time.
+   Defaults below are this app's normal look — what every non-themed game
+   already gets, unchanged. */
+:root {
+  --jt-accent: #7f77dd;
+  --jt-accent-strong: #afa9ec;
+  --jt-surface: #171329;
+  --jt-muted: #5a5280;
+
+  --jt-accent-soft: color-mix(in srgb, var(--jt-accent) 8%, transparent);
+  --jt-accent-border: color-mix(in srgb, var(--jt-accent) 30%, transparent);
+  --jt-accent-border-soft: color-mix(in srgb, var(--jt-accent) 40%, transparent);
+
+  /* The primary "start/confirm" call-to-action gradient (StartButton, e.g.
+     "Iniciar ronda") — its own base color, independent of --jt-accent,
+     since that CTA is green by default across every game regardless of
+     that game's own accent. A theme that wants its CTA to match its accent
+     instead (recamara does) overrides these three explicitly. */
+  --jt-cta-from: #1d9e75;
+  --jt-cta-to: #0f6e56;
+  --jt-cta-shadow: rgba(29, 158, 117, 0.3);
+
+  /* The app's own plain background — StickyActionBar's fade-to-bg gradient
+     reads this instead of hardcoding #0f0c1d, so the strip behind a pinned
+     "Iniciar ronda"-style button actually fades into a themed background
+     instead of always fading into the untheemed one. */
+  --jt-bg: #0f0c1d;
+
+  /* theme/styles.ts's S.card/S.label/S.muted — the generic card/label/
+     muted-text look used everywhere (lobby player list, setup screens,
+     etc). Defaults here are those components' exact current colors, so
+     wiring them in is a no-op until a theme overrides them. */
+  --jt-card-bg: rgba(255, 255, 255, 0.04);
+  --jt-card-border: rgba(127, 119, 221, 0.18);
+  --jt-row-border: rgba(127, 119, 221, 0.08);
+  --jt-label: #7f77dd;
+  --jt-muted-text: #6b6490;
+}

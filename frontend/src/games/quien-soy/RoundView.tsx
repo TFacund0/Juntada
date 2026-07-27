@@ -132,7 +132,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     return (
       <PhaseTransition phaseKey="vote">
         <div>
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Votando la palabra de {nameOf(room, round.currentVoteTarget)}</p>
+          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 10 }}>
+            <p style={{ ...S.muted, margin: 0 }}>Votando la palabra de</p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0 0" }}>{nameOf(room, round.currentVoteTarget)}</p>
+          </div>
           {isMyWord ? (
             <div style={{ ...S.card, textAlign: "center" }}>
               <p style={{ color: "#9089c0" }}>Es tu palabra — no podés ver las opciones ni votar.</p>

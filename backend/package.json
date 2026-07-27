@@ -19,6 +19,7 @@
     "@juntada/quien-soy-data": "workspace:*",
     "@juntada/rayado-libre-data": "workspace:*",
     "@juntada/rayado-libre-scoring": "workspace:*",
+    "@juntada/recamara-engine": "workspace:*",
     "@juntada/shared-types": "workspace:*",
     "@juntada/sintonia-data": "workspace:*",
     "@juntada/sintonia-scoring": "workspace:*",

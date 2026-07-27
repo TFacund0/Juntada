@@ -212,6 +212,12 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
       clients.set(ws2, { groupCode: room.groupCode, roomCode: null, playerId: i2.playerId });
     } else {
       sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
+      // The kick (via maybeAdvance above) can itself trigger a phase change
+      // that affects what each remaining player should privately see (e.g.
+      // quien-soy's suggest/vote phases reassigning words or moving on to
+      // the next vote target) — resend private info so nobody's stuck
+      // showing stale options until their next action or a manual refresh.
+      if (i2.playerId) sendPrivateInfo(ws2, room, i2.playerId);
     }
   });
   if (room.phase === "result") broadcastRoundReveal(room);
@@ -243,7 +249,10 @@ function schedulePlayerKick(roomCode: string, playerId: string): void {
     logger.info({ roomCode, playerId }, "player auto-kicked after disconnect timeout");
     const engine = getEngine(room.gameType);
     engine?.maybeAdvance(room);
-    broadcastToRoom(room, (ws2: WS) => sendTo(ws2, { type: "state", room: getRoomPublicState(room) }));
+    broadcastToRoom(room, (ws2: WS, i2: ClientInfo) => {
+      sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
+      if (i2.playerId) sendPrivateInfo(ws2, room, i2.playerId);
+    });
     if (room.phase === "result") broadcastRoundReveal(room);
     syncPhaseTimer(room);
     if (room.groupCode) {
