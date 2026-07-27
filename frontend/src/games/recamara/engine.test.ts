@@ -2,6 +2,7 @@ import { describe, test, expect, vi } from "vitest";
 import {
   buildShells,
   createInitialState,
+  describeItemResult,
   fireShot,
   useItem,
   ITEMS_PER_RELOAD,
@@ -172,5 +173,28 @@ describe("recamara engine", () => {
     expect(result.phoneHint).toEqual({ positionFromNow: 2, shellKind: "live" });
     expect(result.state.shells[0].revealed).toBe(false);
     expect(result.state.shells[1].revealed).toBe(true);
+  });
+
+  test("describeItemResult redacts the teléfono hint when revealPhoneHint is false", () => {
+    const result = { playerId: 0, item: "📞" as const, phoneHint: { positionFromNow: 2, shellKind: "live" as const } };
+    const nameOf = () => "Ana";
+    expect(describeItemResult(result, nameOf, { revealPhoneHint: false }).text).toBe("<b>Ana</b> llama por teléfono.");
+    expect(describeItemResult(result, nameOf).text).toContain("posición <b>2</b>");
+  });
+
+  test("esposas cuffs the target, and their next turn is skipped and the cuff consumed", () => {
+    const state = createInitialState(["Ana", "Beto", "Caro"]);
+    state.players[0].items = ["🔒"];
+    const cuffResult = useItem(state, "🔒", { targetId: state.players[1].id });
+    expect(cuffResult.cuffedId).toBe(state.players[1].id);
+    expect(cuffResult.state.players.find(p => p.id === state.players[1].id)!.cuffed).toBe(true);
+
+    // Ana (turnPos 0) fires at Caro with a blank — turn would normally
+    // advance to Beto next, but he's cuffed, so it should skip to Caro.
+    const shotState = { ...cuffResult.state, shells: [{ kind: "blank" as const, spent: false, revealed: false }], idx: 0 };
+    const fireResult = fireShot(shotState, state.players[2].id);
+    expect(fireResult.skippedIds).toEqual([state.players[1].id]);
+    expect(fireResult.state.turnPos).toBe(shotState.order.indexOf(state.players[2].id));
+    expect(fireResult.state.players.find(p => p.id === state.players[1].id)!.cuffed).toBe(false);
   });
 });

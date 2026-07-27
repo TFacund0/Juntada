@@ -22,7 +22,7 @@ import { RoundAnnounce } from "./components/RoundAnnounce";
 import { ChamberCard } from "./components/ChamberCard";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { frontAngle, randomShellSpot, seatAngle, seatStyle, shuffledBulletIcons } from "./arena";
-import { AIM_MS, SHOT_MS, ITEM_ACTIVATE_MS, ROUND_INTRO_MS, ROUND_ANNOUNCE_MS } from "./timing";
+import { AIM_MS, SHOT_MS, ITEM_ACTIVATE_MS, ROUND_INTRO_MS } from "./timing";
 import type { RoundViewProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -37,7 +37,7 @@ import type { RoundViewProps } from "../gameTypes";
 // pendingFire.seq/lastItemEvent.seq más abajo.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function RoundView({ room, me, isHost, send }: RoundViewProps) {
+export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // RecamaraRoundView (see @juntada/recamara-engine) is the exact shape
   // backend/src/games/recamara/engine.ts's getPublicRoundView is typed to
   // return — one shared definition instead of two hand-mirrored copies
@@ -82,6 +82,11 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
   // ChestReveal) — purely client-side, since the items themselves were
   // never secret (same as local mode, just one shared screen there).
   const lastRoundNumberRef = useRef(0);
+  // Set only when a reload just ended a round (never for the very first
+  // round we ever see) — tells RoundAnnounce to close out that round before
+  // crossfading into the new one instead of jumping straight to the new
+  // number.
+  const [endedRoundNumber, setEndedRoundNumber] = useState<number | null>(null);
   const [revealStage, setRevealStage] = useState<"announce" | "chests" | "chamber">("announce");
   const [introEndsAt, setIntroEndsAt] = useState(0);
   const [revealedCount, setRevealedCount] = useState(0);
@@ -96,20 +101,16 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
   useEffect(() => {
     if (!round || fireStage !== "idle") return;
     if (round.roundNumber !== lastRoundNumberRef.current) {
+      // 0 is the ref's initial sentinel (never a real round number), so the
+      // very first round we ever see never gets a "terminada" beat, only
+      // reloads after it do.
+      setEndedRoundNumber(lastRoundNumberRef.current || null);
       lastRoundNumberRef.current = round.roundNumber;
       setRevealStage("announce");
       setRevealedCount(0);
       setReadySent(false);
     }
   }, [round?.roundNumber, fireStage]);
-
-  // The plain "Ronda N" announcement moves on by itself into the chests —
-  // brief on purpose, just registering the round changed before items show.
-  useEffect(() => {
-    if (!round || round.subPhase !== "reveal" || revealStage !== "announce") return;
-    const t = setTimeout(() => setRevealStage("chests"), ROUND_ANNOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [round?.subPhase, revealStage]);
 
   // The chamber card (gun + shell count) moves on by itself — sending
   // ready_for_duel — after ROUND_INTRO_MS, once your own chest is done.
@@ -245,7 +246,14 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
     // Beat 1: a plain "Ronda N" announcement — nothing else on it, moves on
     // by itself shortly after, so the round change itself gets its own
     // moment before items/gun show up.
-    if (revealStage === "announce") return <RoundAnnounce roundNumber={round.roundNumber} />;
+    if (revealStage === "announce")
+      return (
+        <RoundAnnounce
+          roundNumber={round.roundNumber}
+          previousRoundNumber={endedRoundNumber ?? undefined}
+          onDone={() => setRevealStage("chests")}
+        />
+      );
 
     // Beat 2: your own chest, items only — nothing about the gun/shells
     // here on purpose (that's its own separate screen next).
@@ -317,6 +325,16 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
     setPendingItem(null);
   };
   const useItemStealNoTarget = () => {
+    if (!pendingItem) return;
+    send({ type: "use_item", item: pendingItem });
+    setPendingItem(null);
+  };
+  const useItemCuff = (targetEngineId: number) => {
+    if (!pendingItem) return;
+    send({ type: "use_item", item: pendingItem, targetId: round.seatOrder[targetEngineId] });
+    setPendingItem(null);
+  };
+  const useItemCuffNoTarget = () => {
     if (!pendingItem) return;
     send({ type: "use_item", item: pendingItem });
     setPendingItem(null);
@@ -424,7 +442,23 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
           );
         })()}
 
-      {itemBanner && <OutcomeBanner line={describeItemResult(itemBanner, nameFor)} onContinue={continueAfterItem} />}
+      {itemBanner &&
+        (() => {
+          // 📞 only: the real hint never travels in itemBanner (public
+          // event, same for every client) — it only ever reaches this
+          // client's own private_role message, and only when it was this
+          // player who called and the seq lines up with this exact call.
+          const privateHint = myRole?.phoneHint as { seq: number; positionFromNow: number; shellKind: ShellKind } | undefined;
+          const canReveal = itemBanner.item === "📞" && itemBanner.playerId === myPlayerId && privateHint?.seq === itemBanner.seq;
+          const line = describeItemResult(
+            canReveal
+              ? { ...itemBanner, phoneHint: { positionFromNow: privateHint.positionFromNow, shellKind: privateHint.shellKind } }
+              : itemBanner,
+            nameFor,
+            { revealPhoneHint: itemBanner.item === "📞" ? canReveal : true },
+          );
+          return <OutcomeBanner line={line} onContinue={continueAfterItem} />;
+        })()}
 
       {activatingItem && <ItemActivatingOverlay icon={activatingItem} />}
 
@@ -445,6 +479,8 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
           onUseSimple={useItemSimple}
           onSteal={useItemSteal}
           onStealNoTarget={useItemStealNoTarget}
+          onCuff={useItemCuff}
+          onCuffNoTarget={useItemCuffNoTarget}
         />
       )}
 

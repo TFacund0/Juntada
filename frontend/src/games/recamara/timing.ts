@@ -18,3 +18,7 @@ export const ROUND_INTRO_MS = 5000;
 // The plain "Ronda N" announcement (no items, no gun yet) — short on
 // purpose, just long enough to register before moving on to items.
 export const ROUND_ANNOUNCE_MS = 1800;
+// How long the "Ronda N terminada" beat holds before crossfading into the
+// next round's number — only shown when there was a previous round to close
+// out (never on the very first round of a game).
+export const ROUND_END_MS = 1300;
