@@ -124,7 +124,7 @@ function maybeAdvance(_room: Room): void {}
 
 function fire(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
   const r = round(room);
-  if (r.subPhase !== "duel" || r.pendingFire) return { handled: false };
+  if (r.subPhase !== "duel") return { handled: false };
 
   const currentEngineId = r.state.order[r.state.turnPos];
   if (roomIdFor(r, currentEngineId) !== playerId) return { handled: false };
@@ -164,7 +164,7 @@ function fire(room: Room, playerId: string, payload: Record<string, unknown>): {
 
 function useItemAction(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
   const r = round(room);
-  if (r.subPhase !== "duel" || r.pendingFire) return { handled: false };
+  if (r.subPhase !== "duel") return { handled: false };
 
   const currentEngineId = r.state.order[r.state.turnPos];
   if (roomIdFor(r, currentEngineId) !== playerId) return { handled: false };

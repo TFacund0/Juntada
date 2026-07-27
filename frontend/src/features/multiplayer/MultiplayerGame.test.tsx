@@ -44,6 +44,43 @@ describe("MultiplayerGame — menu", () => {
   });
 });
 
+describe("MultiplayerGame — menu, creating", () => {
+  test("the create button shows a loading state while waiting for the server, then clears once the room arrives", async () => {
+    const user = userEvent.setup();
+    render(<MultiplayerGame entryKind="room" gameId={GAME_ID} playerName="Ana" />);
+    await user.click(screen.getByRole("button", { name: "Crear partida" }));
+    await user.click(screen.getAllByRole("button", { name: "Crear partida" }).slice(-1)[0]);
+
+    expect(screen.getByRole("button", { name: "Creando..." })).toBeDisabled();
+
+    const ws = lastSocket();
+    act(() => ws.simulateOpen());
+    act(() =>
+      ws.simulateMessage({
+        type: "joined",
+        playerId: "p1",
+        roomCode: "ABCDE",
+        room: {
+          code: "ABCDE",
+          name: "Mi sala",
+          hostId: "p1",
+          gameType: GAME_ID,
+          groupCode: null,
+          phase: "lobby",
+          players: [{ id: "p1", name: "Ana", ready: false, online: true, hasVoted: false }],
+          maxPlayers: 4,
+          config: {},
+          round: null,
+          usedWords: {},
+          roundHistory: [],
+        },
+      }),
+    );
+
+    expect(screen.queryByRole("button", { name: "Creando..." })).not.toBeInTheDocument();
+  });
+});
+
 describe("MultiplayerGame — standalone room lobby", () => {
   async function createRoomAsHost() {
     const user = userEvent.setup();

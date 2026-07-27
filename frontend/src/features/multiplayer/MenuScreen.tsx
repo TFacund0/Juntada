@@ -37,6 +37,7 @@ export function MenuScreen({
   selectedGame,
   onSwitchToGroup,
   onScan,
+  submitting,
 }: {
   connectionPhase: string;
   reconnectBanner: ReactNode;
@@ -60,6 +61,12 @@ export function MenuScreen({
   selectedGame: GameDef | undefined;
   onSwitchToGroup?: (code: string) => void;
   onScan: (raw: string) => void;
+  // Set from the moment "Crear partida"/"Unirse" is tapped until the room
+  // actually arrives (or the attempt fails) — see MultiplayerGame's
+  // submitting state. Disables the button and swaps its label so the tap
+  // reads as "in progress" instead of looking like nothing happened on a
+  // slow connection.
+  submitting: boolean;
 }) {
   return (
     <div>
@@ -89,8 +96,8 @@ export function MenuScreen({
           <p style={{ ...S.muted, margin: 0 }}>
             El servidor genera un código random de 5 caracteres (ej. XJ7K2), listo cuando toques "Crear".
           </p>
-          <Btn onClick={onCreateRoom} style={{ marginTop: 14 }}>
-            {inGroup ? "Crear grupo" : "Crear partida"}
+          <Btn onClick={onCreateRoom} disabled={submitting} style={{ marginTop: 14 }}>
+            {submitting ? "Creando..." : inGroup ? "Crear grupo" : "Crear partida"}
           </Btn>
         </div>
       )}
@@ -182,8 +189,8 @@ export function MenuScreen({
             ) : (
               <p style={{ ...S.muted, marginTop: 10, fontSize: 12 }}>No encontramos ninguna sala con ese código</p>
             ))}
-          <Btn onClick={onJoinRoom} style={{ marginTop: 12 }}>
-            Unirse →
+          <Btn onClick={onJoinRoom} disabled={submitting} style={{ marginTop: 12 }}>
+            {submitting ? "Uniéndose..." : "Unirse →"}
           </Btn>
         </div>
       )}

@@ -116,20 +116,28 @@ test("fire resolves immediately, sets pendingFire with a seq, and applies damage
   assert.equal(livesAfter, livesBefore - 1);
 });
 
-test("fire is rejected while a previous shot's pendingFire hasn't been superseded by a new one", () => {
+test("a second fire from whoever's turn it now is succeeds — pendingFire never blocks a later shot", () => {
+  // Regression test: pendingFire is set once fire() resolves and is never
+  // reset to null anywhere in this engine — it's a broadcast marker clients
+  // diff by `seq` for their own buffered animation, not an in-flight lock.
+  // A guard of `|| r.pendingFire` on fire()/use_item's entry check used to
+  // reject every action for the rest of the match after the very first shot,
+  // since nothing ever cleared it back to null.
   const room = makeRoom();
   enterDuel(room);
   const currentEngineId = room.round.state.order[room.round.state.turnPos];
   const currentPlayerId = room.round.seatOrder[currentEngineId];
 
-  engine.handleAction(room, currentPlayerId, "fire", { targetId: currentPlayerId });
+  const first = engine.handleAction(room, currentPlayerId, "fire", { targetId: currentPlayerId });
+  assert.equal(first.handled, true);
   assert.ok(room.round.pendingFire);
+  const firstSeq = room.round.pendingFire.seq;
 
-  // Same acting player as before this shot (turn may or may not have passed
-  // depending on the random shell) — either way, a second fire attempt from
-  // whoever it now is should still work normally; what this test actually
-  // guards is that pendingFire itself doesn't block *unrelated* reads.
-  assert.equal(typeof room.round.pendingFire.seq, "number");
+  const nextEngineId = room.round.state.order[room.round.state.turnPos];
+  const nextPlayerId = room.round.seatOrder[nextEngineId];
+  const second = engine.handleAction(room, nextPlayerId, "fire", { targetId: nextPlayerId });
+  assert.equal(second.handled, true);
+  assert.equal(room.round.pendingFire.seq, firstSeq + 1);
 });
 
 test("a shot ending the duel sets room.phase to 'result' and records the winner's room id", () => {

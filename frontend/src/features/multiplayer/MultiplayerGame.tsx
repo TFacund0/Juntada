@@ -56,6 +56,13 @@ interface MultiplayerGameProps {
   // game, not whatever the link happened to encode. Called with null when
   // there's no active instance (e.g. sitting on the group screen).
   onGameTypeChange?: (gameType: string | null) => void;
+  // Lets the parent decide whether returning to the group (its global
+  // "Volver" header button, see App.tsx's goBack) would actually interrupt
+  // something — anything other than "lobby" means a round is genuinely in
+  // progress (see components/ReturnToGroupButton's roomHasProgress, the
+  // same check this room's own in-screen "Volver al grupo" button uses).
+  // null when there's no active instance.
+  onRoomPhaseChange?: (roomPhase: string | null) => void;
   // Fires once the player has fully left the group (not just an instance
   // under it) — the group's own "menu" screen is indistinguishable from the
   // very first screen before ever connecting, so App.tsx needs this signal
@@ -87,9 +94,15 @@ interface MultiplayerGameProps {
   // Wraps "Crear partida"/"Unirse" so a themed game (see gameTheme on
   // GameDef) gets the same fade-to-black transition on the way into the
   // room as it already gets entering online mode itself — App.tsx passes
-  // its withCurtain helper here. Defaults to calling the action straight
+  // its withAsyncCurtain helper here. Defaults to calling the action straight
   // through, so every other game's plain "create/join" stays instant.
   runTransition?: (action: () => void) => void;
+  // Paired with runTransition: fires once whatever runTransition's curtain
+  // was covering actually resolved (the room/group arrived, or the attempt
+  // failed) — see the effect below. Lets the curtain in App.tsx stay down
+  // for as long as the real create/join round-trip takes instead of a fixed
+  // timer that doesn't know the network's actual latency.
+  onTransitionSettled?: () => void;
 }
 
 function playableGames(): GameDef[] {
@@ -104,11 +117,13 @@ export function MultiplayerGame({
   initialJoinCode,
   initialGroupIntent,
   onGameTypeChange,
+  onRoomPhaseChange,
   onLeaveGroup,
   onSwitchToGroup,
   onGroupAttachedChange,
   onExposeReturnToGroup,
   runTransition = action => action(),
+  onTransitionSettled,
 }: MultiplayerGameProps) {
   const {
     connectionPhase,
@@ -137,6 +152,12 @@ export function MultiplayerGame({
 
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
+  // Set the instant "Crear partida"/"Unirse" is tapped, cleared by the same
+  // two signals that settle the curtain (see the effects below) — the
+  // create/join round-trip can take a moment (slow connection, cold-started
+  // server), and without this the button just looked unresponsive, like the
+  // tap hadn't done anything at all.
+  const [submitting, setSubmitting] = useState(false);
   // Controlled (not just owned by NamePillEditor itself) because the "ya
   // está en uso" effect below also needs to force it open from outside.
   const [editingName, setEditingName] = useState(false);
@@ -186,10 +207,9 @@ export function MultiplayerGame({
     },
     [],
   );
-  // Leaving mid-game silently forfeits whatever's in progress, so that path
-  // gets a confirm — same pattern as the pre-existing "volver al lobby"
-  // confirms elsewhere. Leaving from the lobby (nothing to lose) doesn't.
-  const [confirmLeaveInstance, setConfirmLeaveInstance] = useState(false);
+  // Leaving mid-game silently forfeits whatever's in progress — the confirm
+  // for that (and for the equivalent lobby case, which has nothing to lose
+  // yet) lives in the shared ReturnToGroupButton itself now, not here.
   const [confirmLeaveGroup, setConfirmLeaveGroup] = useState(false);
   // Host-only per-player actions (transfer host / kick) live behind a small
   // "⋮" menu instead of two always-visible buttons — only one open at a
@@ -310,8 +330,8 @@ export function MultiplayerGame({
   }, [room?.gameType, onGameTypeChange]);
 
   useEffect(() => {
-    setConfirmLeaveInstance(false);
-  }, [room?.code]);
+    onRoomPhaseChange?.(room?.phase ?? null);
+  }, [room?.phase, onRoomPhaseChange]);
 
   // Live preview of a standalone room as soon as the code is fully typed —
   // read-only lookup, no commitment (see checkRoomCode/room_preview on the
@@ -341,7 +361,25 @@ export function MultiplayerGame({
     // manual retry.
     autoJoiningRef.current = false;
     if (error.includes("ya está en uso")) setEditingName(true);
-  }, [error]);
+    // Whatever runTransition's curtain was covering (create/join) is done
+    // either way once an error comes back — an unresolved request would
+    // otherwise leave it down until the safety timeout, hiding the error
+    // banner from view for that whole stretch.
+    onTransitionSettled?.();
+    setSubmitting(false);
+  }, [error, onTransitionSettled]);
+
+  // The other half of settling the curtain: a successful create/join lands
+  // here once connectionPhase actually leaves the pre-connection screens
+  // ("menu"/"create"/"join") for a real destination (lobby, group, or
+  // straight into a round on rejoin) — the moment there's something real to
+  // reveal instead of the same form the curtain covered.
+  useEffect(() => {
+    if (!["menu", "create", "join"].includes(connectionPhase)) {
+      onTransitionSettled?.();
+      setSubmitting(false);
+    }
+  }, [connectionPhase, onTransitionSettled]);
 
   const saveName = (name: string) => {
     onChangeName?.(name);
@@ -463,10 +501,17 @@ export function MultiplayerGame({
         inGroup={inGroup}
         roomName={roomName}
         onRoomNameChange={setRoomName}
-        onCreateRoom={() => runTransition(createRoom)}
+        onCreateRoom={() => {
+          setSubmitting(true);
+          runTransition(createRoom);
+        }}
         joinCode={joinCode}
         onJoinCodeChange={setJoinCode}
-        onJoinRoom={() => runTransition(joinRoom)}
+        onJoinRoom={() => {
+          setSubmitting(true);
+          runTransition(joinRoom);
+        }}
+        submitting={submitting}
         showScanner={showScanner}
         onShowScanner={setShowScanner}
         roomPreview={roomPreview}
@@ -573,14 +618,9 @@ export function MultiplayerGame({
         reconnectBanner={reconnectBanner}
         error={error}
         errorKey={errorKey}
-        showReturnToGroup={room.groupCode !== null}
-        confirmLeaveInstance={confirmLeaveInstance}
-        onRequestLeaveInstance={() => setConfirmLeaveInstance(true)}
-        onLeaveInstance={() => {
-          leaveInstance();
-          setConfirmLeaveInstance(false);
-        }}
-        onCancelLeaveInstance={() => setConfirmLeaveInstance(false)}
+        groupCode={room.groupCode}
+        roomPhase={room.phase}
+        onLeaveInstance={leaveInstance}
       />
     );
   }
