@@ -10,7 +10,7 @@ export default defineConfig({
       // from index.html) — inject the service worker registration without
       // having the plugin generate/overwrite that file.
       manifest: false,
-      injectRegister: "auto",
+      injectRegister: false,
       registerType: "autoUpdate",
       workbox: {
         // Precache the built JS/CSS/HTML/images so a repeat visit on a slow
@@ -19,6 +19,15 @@ export default defineConfig({
         // WebSocket, which this never touches — nothing multiplayer-related
         // is cached, only static assets.
         globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
+        // A waiting service worker otherwise only takes over once every tab
+        // is closed, so a deploy could sit "installed but inactive" for a
+        // long time — the app keeps serving the previous bundle until then.
+        // These force the new worker to activate and take control right
+        // away; registration in src/main.tsx then reloads the page once
+        // that happens, so a deploy shows up on the next check instead of
+        // needing ~10 manual refreshes.
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],
