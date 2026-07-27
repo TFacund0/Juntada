@@ -6,39 +6,14 @@ import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { PhaseTransition } from "../../components/PhaseTransition";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Timer } from "../../components/Timer";
-import { ColorPicker, type Hsl } from "./ColorPicker";
+import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./ColorPicker";
 import { ColorCompareRow } from "./ColorCompareRow";
 import { Leaderboard } from "./Leaderboard";
-import { hslToHex } from "@juntada/color-correcto-scoring";
+import { TargetSwatch } from "./TargetSwatch";
+import { type ColorCorrectoPrivateRole, type ColorCorrectoReveal, type ColorCorrectoRoundView } from "@juntada/color-correcto-scoring";
 import type { RoundViewProps } from "../gameTypes";
 
-// Mirrors backend/src/games/color-correcto/engine.ts's getPublicRoundView —
-// one flat shape across phases (show → guess → result), fields fill in as
-// the round progresses.
-interface ColorCorrectoRoundState {
-  target?: string | null;
-  showEndsAt?: number | null;
-  guessEndsAt?: number | null;
-  submittedCount?: number;
-  guessersOnline?: number;
-  guesses?: Record<string, string> | null;
-  scores?: Record<string, number> | null;
-  playMode?: "endless" | "rounds";
-  roundLimit?: number;
-  roundsPlayed?: number;
-}
-
-interface ColorCorrectoPrivateRole {
-  myGuess: string | null;
-}
-
-interface ColorCorrectoReveal {
-  target: string;
-}
-
-const NEUTRAL_GUESS: Hsl = { h: 0, s: 0, l: 50 };
-
-function RoundBadge({ round }: { round: ColorCorrectoRoundState | null }) {
+function RoundBadge({ round }: { round: ColorCorrectoRoundView | null }) {
   if (!round || round.playMode !== "rounds") return null;
   return (
     <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>
@@ -50,11 +25,11 @@ function RoundBadge({ round }: { round: ColorCorrectoRoundState | null }) {
 // Covers this game's in-progress phases (show/guess/result) inside a
 // multiplayer room. Props per the registry contract in games/gameTypes.ts.
 export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundViewProps) {
-  const [guessValue, setGuessValue] = useState(NEUTRAL_GUESS);
+  const [guessValue, setGuessValue] = useState(NEUTRAL_HSL);
   const [guessSubmitted, setGuessSubmitted] = useState(false);
   const revealCount = useRevealCountdown(room.roundHistory?.length ?? 0);
 
-  const round = room.round as ColorCorrectoRoundState | null;
+  const round = room.round as ColorCorrectoRoundView | null;
   const role = myRole as ColorCorrectoPrivateRole | null;
   const reveal = wordReveal as ColorCorrectoReveal | null;
 
@@ -66,7 +41,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
   // directly rather than round-tripping it back through the HSL picker.
   useEffect(() => {
     const myGuess = role?.myGuess;
-    setGuessValue(NEUTRAL_GUESS);
+    setGuessValue(NEUTRAL_HSL);
     setGuessSubmitted(myGuess != null);
   }, [myRole]);
 
@@ -77,17 +52,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
       <PhaseTransition phaseKey="show">
         <div>
           <RoundBadge round={round} />
-          {round.showEndsAt != null && <Timer timerEnd={round.showEndsAt} total={5} label="Se oculta en" />}
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Memorizá este color…</p>
-          <div
-            style={{
-              width: "100%",
-              aspectRatio: "1 / 1",
-              borderRadius: 20,
-              background: round.target ?? "#808080",
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}
-          />
+          <TargetSwatch target={round.target ?? "#808080"} timerEnd={round.showEndsAt ?? null} />
         </div>
       </PhaseTransition>
     );
@@ -109,7 +74,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     );
 
     const submitGuess = () => {
-      send({ type: "submit_guess", value: hslToHex(guessValue.h, guessValue.s, guessValue.l) });
+      send({ type: "submit_guess", value: hexFromHsl(guessValue) });
       setGuessSubmitted(true);
     };
 
@@ -133,7 +98,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                   width: "100%",
                   aspectRatio: "3 / 1",
                   borderRadius: 14,
-                  background: role?.myGuess ?? hslToHex(guessValue.h, guessValue.s, guessValue.l),
+                  background: role?.myGuess ?? hexFromHsl(guessValue),
                   marginBottom: 10,
                 }}
               />
@@ -154,21 +119,21 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     const scores = round.scores || {};
     const guesses = round.guesses || {};
     const myId = me?.playerId;
-    const roundBestScore = room.players.length > 1 ? Math.max(...Object.values(scores)) : -1;
+    const roundScores = Object.values(scores);
+    const roundBestScore = roundScores.length > 0 ? Math.max(...roundScores) : -1;
+    const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
 
     if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando el color..." />;
+
+    const score = room.config.score as Record<string, number>;
+    const standings = room.players
+      .map(p => ({ id: p.id, name: p.name, score: score?.[p.id] || 0, online: p.online }))
+      .sort((a, b) => b.score - a.score);
 
     return (
       <PhaseTransition phaseKey="result">
         <div>
-          {(() => {
-            const score = room.config.score as Record<string, number>;
-            const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
-            const standings = room.players
-              .map(p => ({ id: p.id, name: p.name, score: score?.[p.id] || 0, online: p.online }))
-              .sort((a, b) => b.score - a.score);
-            return <Leaderboard standings={standings} finished={gameOver} />;
-          })()}
+          <Leaderboard standings={standings} finished={gameOver} />
           <p style={{ ...S.muted, textAlign: "center", margin: "14px 0 10px" }}>Así quedó cada uno</p>
           {room.players.map(p => (
             <ColorCompareRow
@@ -182,7 +147,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             />
           ))}
           {isHost &&
-            (round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity) ? (
+            (gameOver ? (
               <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
             ) : (
               <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>

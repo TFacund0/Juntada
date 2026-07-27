@@ -13,7 +13,15 @@
 
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
-import { HEX_RE, randomTargetColor, scoreGuess } from "@juntada/color-correcto-scoring";
+import {
+  HEX_RE,
+  randomTargetColor,
+  scoreGuess,
+  SHOW_SECONDS,
+  type ColorCorrectoPrivateRole,
+  type ColorCorrectoReveal,
+  type ColorCorrectoRoundView,
+} from "@juntada/color-correcto-scoring";
 
 interface ColorCorrectoConfig {
   score: Record<string, number>;
@@ -41,7 +49,6 @@ function round(room: Room): ColorCorrectoRound {
 }
 
 const MIN_PLAYERS = 2;
-const SHOW_SECONDS = 5;
 
 function createConfig(): ColorCorrectoConfig {
   return { score: {}, playMode: "endless", roundLimit: 5, guessSeconds: 0 };
@@ -170,7 +177,7 @@ function handleAction(
   }
 }
 
-function getPublicRoundView(room: Room): Record<string, unknown> | null {
+function getPublicRoundView(room: Room): ColorCorrectoRoundView | null {
   const c = cfg(room);
   const gameProgress = { playMode: c.playMode, roundLimit: c.roundLimit, roundsPlayed: room.roundHistory.length };
   if (!room.round) return { ...gameProgress };
@@ -191,12 +198,12 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
 function getPrivateView(room: Room, playerId: string): Record<string, unknown> | null {
   if (!room.round) return null;
   const r = round(room);
-  return { myGuess: r.guesses[playerId] ?? null };
+  return { myGuess: r.guesses[playerId] ?? null } satisfies ColorCorrectoPrivateRole;
 }
 
 function getRevealMessage(room: Room): ({ type: string } & Record<string, unknown>) | null {
   if (!room.round) return null;
-  return { type: "word_reveal", target: round(room).target };
+  return { type: "word_reveal", target: round(room).target } satisfies { type: string } & ColorCorrectoReveal;
 }
 
 const engine: GameEngine = {
