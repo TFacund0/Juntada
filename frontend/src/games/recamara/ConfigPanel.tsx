@@ -4,7 +4,7 @@ import type { ConfigPanelProps } from "../gameTypes";
 // Recámara has no adjustable rules — same fixed duel as local mode (5 vidas,
 // hasta 8 cartuchos, 2 ítems por recarga). Nothing for the host to tweak
 // here, just a quick reminder of the headcount before starting.
-export function ConfigPanel({}: ConfigPanelProps) {
+export function ConfigPanel(_props: ConfigPanelProps) {
   return (
     <div className="recamara">
       <div className="setup-card">
