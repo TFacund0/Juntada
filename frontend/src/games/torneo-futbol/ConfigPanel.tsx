@@ -1,4 +1,4 @@
-import { TeamConfigPanel } from "./team-config/TeamConfigPanel";
+import { TeamConfigPanel } from "./components/TeamConfigPanel";
 import type { ConfigPanelProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════════

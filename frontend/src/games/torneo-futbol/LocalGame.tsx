@@ -6,7 +6,7 @@ import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { Avatar } from "../../components/Avatar";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
-import { TeamConfigPanel } from "./team-config/TeamConfigPanel";
+import { TeamConfigPanel } from "./components/TeamConfigPanel";
 import { buildBracket, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 import { ErrorBanner } from "../../components/ErrorBanner";
