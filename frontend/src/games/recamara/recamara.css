@@ -308,6 +308,14 @@
   filter: grayscale(1);
 }
 
+.recamara .token-cuffed {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
 .recamara .token-badge {
   position: absolute;
   top: -6px;
@@ -333,6 +341,18 @@
   text-align: center;
   padding: 40px 20px;
   animation: rec-round-intro-in 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Crossfade between "Ronda N terminada" and "Ronda N+1" inside the same
+   round-intro card — see RoundAnnounce.tsx's stage/visible state. Opacity
+   only, no layout shift, so the swap never reads as a hard cut. */
+.recamara .round-intro-fade {
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.recamara .round-intro-fade.visible {
+  opacity: 1;
 }
 
 .recamara .round-intro-eyebrow {

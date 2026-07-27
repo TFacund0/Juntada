@@ -25,7 +25,7 @@ export interface Shell {
   revealed: boolean;
 }
 
-export const ITEM_POOL = ["🔍", "🚬", "🪚", "🔄", "🧤", "📞"] as const;
+export const ITEM_POOL = ["🔍", "🚬", "🪚", "🔄", "🧤", "📞", "🔒"] as const;
 export type ItemKind = (typeof ITEM_POOL)[number];
 
 export const ITEM_LABEL: Record<ItemKind, string> = {
@@ -35,6 +35,7 @@ export const ITEM_LABEL: Record<ItemKind, string> = {
   "🔄": "Inversor — cambia el sentido de los turnos",
   "🧤": "Ladrón — robar un ítem al azar de otro jugador",
   "📞": "Teléfono — pista sobre una bala futura",
+  "🔒": "Esposas — el objetivo pierde su próximo turno",
 };
 
 export interface Player {
@@ -42,6 +43,9 @@ export interface Player {
   name: string;
   lives: number;
   items: ItemKind[];
+  // Set by 🔒 — cleared (and the turn skipped) the next time turn
+  // resolution would land on this player, see fireShot's skip loop below.
+  cuffed?: boolean;
 }
 
 export interface GameState {
@@ -159,6 +163,10 @@ export interface FireResult {
   reloaded: boolean;
   gameOver: boolean;
   winner: Player | null;
+  // Ids of players whose upcoming turn got skipped because they were
+  // cuffed (🔒), in the order they were skipped — empty on almost every
+  // shot, only ever non-empty right after a cuffed player's turn comes up.
+  skippedIds: number[];
 }
 
 export function fireShot(state: GameState, targetId: number): FireResult {
@@ -182,15 +190,32 @@ export function fireShot(state: GameState, targetId: number): FireResult {
       reloaded: false,
       gameOver: true,
       winner: alive[0] ?? null,
+      skippedIds: [],
     };
   }
 
   const reload = reloadIfNeeded(shells, players);
   const keepsTurn = targetId === shooter.id && shell.kind === "blank";
-  const turnPos = keepsTurn ? state.turnPos : nextAliveTurnPos(state.turnPos, state.direction, state.order, reload.players);
+  let turnPos = keepsTurn ? state.turnPos : nextAliveTurnPos(state.turnPos, state.direction, state.order, reload.players);
+  let finalPlayers = reload.players;
+  const skippedIds: number[] = [];
+
+  // A cuffed player's turn never actually happens — clear the cuff and keep
+  // advancing past them. Bounded by order.length so an (unreachable in
+  // practice) all-cuffed table can't loop forever.
+  if (!keepsTurn) {
+    for (let i = 0; i < state.order.length; i++) {
+      const landedId = state.order[turnPos];
+      const landed = finalPlayers.find(p => p.id === landedId);
+      if (!landed?.cuffed) break;
+      skippedIds.push(landedId);
+      finalPlayers = finalPlayers.map(p => (p.id === landedId ? { ...p, cuffed: false } : p));
+      turnPos = nextAliveTurnPos(turnPos, state.direction, state.order, finalPlayers);
+    }
+  }
 
   return {
-    state: { ...state, players: reload.players, shells: reload.shells, idx: reload.idx, sawedOff: false, turnPos },
+    state: { ...state, players: finalPlayers, shells: reload.shells, idx: reload.idx, sawedOff: false, turnPos },
     shooterId: shooter.id,
     targetId,
     shellKind: shell.kind,
@@ -198,6 +223,7 @@ export function fireShot(state: GameState, targetId: number): FireResult {
     reloaded: reload.reloaded,
     gameOver: false,
     winner: null,
+    skippedIds,
   };
 }
 
@@ -210,12 +236,14 @@ export interface ItemResult {
   victimId?: number | null;
   stolenItem?: ItemKind;
   phoneHint?: { positionFromNow: number; shellKind: ShellKind } | null;
+  cuffedId?: number | null;
 }
 
 export interface UseItemOptions {
-  // 🧤 only: rob this exact item from this exact opponent instead of a
-  // random item from a random opponent — the UI lets you look at a rival's
-  // items first and pick, so by the time this is called both are known.
+  // 🧤: rob this exact item from this exact opponent instead of a random
+  // item from a random opponent — the UI lets you look at a rival's items
+  // first and pick, so by the time this is called both are known.
+  // 🔒: cuff this exact opponent instead of a random one.
   targetId?: number;
   stolenItem?: ItemKind;
 }
@@ -305,6 +333,18 @@ export function useItem(state: GameState, item: ItemKind, options?: UseItemOptio
         phoneHint: { positionFromNow: pick - state.idx + 1, shellKind: state.shells[pick].kind },
       };
     }
+    case "🔒": {
+      const others = state.players.filter(p => p.id !== player.id && p.lives > 0);
+      if (others.length === 0) {
+        return { state: { ...state, players: consumeItem(state, player.id, item) }, playerId: player.id, item, cuffedId: null };
+      }
+      // Same defend-against-a-stale/malicious targetId pattern as 🧤 above —
+      // fall back to a random valid target instead of ever throwing.
+      const requestedTarget = options?.targetId != null ? others.find(p => p.id === options.targetId) : undefined;
+      const target = requestedTarget ?? others[Math.floor(Math.random() * others.length)];
+      const players = consumeItem(state, player.id, item).map(p => (p.id === target.id ? { ...p, cuffed: true } : p));
+      return { state: { ...state, players }, playerId: player.id, item, cuffedId: target.id };
+    }
   }
 }
 
@@ -358,6 +398,13 @@ export function describeFireResult<TId>(result: FireDescribeInput<TId>, nameOf: 
   return { text: `${actionLine} ${shellLine}.`, cls };
 }
 
+// The turn that never happened because that player was cuffed — its own
+// short log line, separate from the shot that triggered it, so it reads as
+// its own beat instead of being folded into the shot's line.
+export function describeSkippedTurn<TId>(playerId: TId, nameOf: (id: TId) => string): LogLine {
+  return { text: `<b>${nameOf(playerId)}</b> está esposado y pierde su turno.` };
+}
+
 export interface ItemDescribeInput<TId> {
   playerId: TId;
   item: ItemKind;
@@ -366,9 +413,24 @@ export interface ItemDescribeInput<TId> {
   victimId?: TId | null;
   stolenItem?: ItemKind;
   phoneHint?: { positionFromNow: number; shellKind: ShellKind } | null;
+  cuffedId?: TId | null;
 }
 
-export function describeItemResult<TId>(result: ItemDescribeInput<TId>, nameOf: (id: TId) => string): LogLine {
+export interface DescribeItemOptions {
+  // 📞 only: online play keeps the actual hint private to whoever used it
+  // (see backend/src/games/recamara/engine.ts's getPrivateView) — everyone
+  // else, including the shared round log, only ever learns the phone got
+  // used, never what it revealed. Local pass-and-play never sets this
+  // (defaults to fully revealing), since there's no one to hide it from —
+  // the whole table already shares one screen.
+  revealPhoneHint?: boolean;
+}
+
+export function describeItemResult<TId>(
+  result: ItemDescribeInput<TId>,
+  nameOf: (id: TId) => string,
+  options?: DescribeItemOptions,
+): LogLine {
   const name = nameOf(result.playerId);
   switch (result.item) {
     case "🔍":
@@ -385,10 +447,14 @@ export function describeItemResult<TId>(result: ItemDescribeInput<TId>, nameOf: 
         text: `<b>${name}</b> le roba ${result.stolenItem ?? "un ítem"} a <b>${nameOf(result.victimId)}</b>.`,
       };
     case "📞":
+      if (options?.revealPhoneHint === false) return { text: `<b>${name}</b> llama por teléfono.` };
       if (!result.phoneHint) return { text: `<b>${name}</b> llama por teléfono, pero no queda ninguna bala futura para espiar.` };
       return {
         text: `<b>${name}</b> recibe una pista por teléfono: la bala en la posición <b>${result.phoneHint.positionFromNow}</b> del cargador es <b>${result.phoneHint.shellKind === "live" ? "real" : "falsa"}</b>.`,
       };
+    case "🔒":
+      if (result.cuffedId == null) return { text: `<b>${name}</b> intenta esposar a alguien, pero no hay a quién.` };
+      return { text: `<b>${name}</b> le pone las esposas a <b>${nameOf(result.cuffedId)}</b>: pierde su próximo turno.` };
   }
 }
 
@@ -412,6 +478,9 @@ export interface PendingFire {
   gameOver: boolean;
   winnerId: string | null;
   reloaded: boolean;
+  // Room ids of players whose turn got skipped by a cuff on the way to
+  // whoever's turn it is now — see fireShot's skippedIds.
+  skippedIds: string[];
 }
 export interface LastItemEvent {
   seq: number;
@@ -421,7 +490,14 @@ export interface LastItemEvent {
   healedTo?: number;
   victimId?: string | null;
   stolenItem?: ItemKind;
+  // Never populated here — the real hint only ever reaches the player who
+  // used the phone, via their own private_role message (see
+  // backend/src/games/recamara/engine.ts's getPrivateView). Kept on this
+  // shared wire type only so describeItemResult's shape lines up whichever
+  // side (redacted public event, or the actor's own merged-in private hint)
+  // ends up calling it.
   phoneHint?: { positionFromNow: number; shellKind: ShellKind } | null;
+  cuffedId?: string | null;
 }
 export interface RecamaraRoundView {
   seatOrder: string[];

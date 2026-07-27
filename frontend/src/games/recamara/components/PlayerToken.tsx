@@ -22,6 +22,11 @@ export function PlayerToken({ player, isActive, style, onClick }: PlayerTokenPro
         ))}
       </span>
       {player.items.length > 0 && <span className="token-badge">{player.items.length}</span>}
+      {player.cuffed && (
+        <span className="token-cuffed" title="Esposado: pierde su próximo turno">
+          🔒
+        </span>
+      )}
     </button>
   );
 }

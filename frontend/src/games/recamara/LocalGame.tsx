@@ -5,6 +5,7 @@ import {
   describeFireOutcome,
   describeFireResult,
   describeItemResult,
+  describeSkippedTurn,
   fireShot,
   ITEM_LABEL,
   ITEMS_PER_RELOAD,
@@ -27,7 +28,7 @@ import { ChamberCard } from "./components/ChamberCard";
 import { FlashOverlay } from "./components/FlashOverlay";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { frontAngle, randomShellSpot, seatAngle, seatStyle, shuffledBulletIcons } from "./arena";
-import { AIM_MS, SHOT_MS, ITEM_ACTIVATE_MS, ROUND_INTRO_MS, ROUND_ANNOUNCE_MS } from "./timing";
+import { AIM_MS, SHOT_MS, ITEM_ACTIVATE_MS, ROUND_INTRO_MS } from "./timing";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RECÁMARA — un solo dispositivo, pasándoselo por turnos.
@@ -79,6 +80,10 @@ export function LocalGame() {
   const [revealIdx, setRevealIdx] = useState(0);
   const [revealedCount, setRevealedCount] = useState(0);
   const [handoffName, setHandoffName] = useState<string | null>(null);
+  // Set only when a reload just ended a round (never on the game's first
+  // round) — tells RoundAnnounce to close out that round before crossfading
+  // into the new one instead of jumping straight to the new number.
+  const [endedRoundNumber, setEndedRoundNumber] = useState<number | null>(null);
 
   const [recoil, setRecoil] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -130,14 +135,6 @@ export function LocalGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, revealStage, gameState]);
 
-  // The plain "Ronda N" announcement moves on by itself into the chests —
-  // brief on purpose, just registering the round changed before items show.
-  useEffect(() => {
-    if (phase !== "reveal" || revealStage !== "announce") return;
-    const t = setTimeout(() => setRevealStage("chests"), ROUND_ANNOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [phase, revealStage]);
-
   // Computed unconditionally (hooks can't live inside the phase branches
   // below) — shuffled once per round via useMemo so it doesn't reshuffle
   // on every unrelated re-render.
@@ -155,6 +152,7 @@ export function LocalGame() {
     setSubPhase("reveal");
     setRevealStage("announce");
     setRoundNumber(1);
+    setEndedRoundNumber(null);
     setRevealIdx(0);
     setRevealedCount(0);
     setWinner(null);
@@ -233,6 +231,7 @@ export function LocalGame() {
     if (!pendingFire) return;
     const { result, playersBefore } = pendingFire;
     addLog(describeFireResult(result, nameOf(playersBefore)));
+    result.skippedIds.forEach(id => addLog(describeSkippedTurn(id, nameOf(playersBefore))));
     setGameState(result.state);
     setPendingFire(null);
     setFireStage("idle");
@@ -243,6 +242,7 @@ export function LocalGame() {
     }
     if (result.reloaded) {
       addLog({ text: `Recámara vacía — se recarga y cada jugador recibe <b>${ITEMS_PER_RELOAD} ítems</b> nuevos.` });
+      setEndedRoundNumber(roundNumber);
       setRoundNumber(n => n + 1);
       setRevealStage("announce");
       setRevealIdx(0);
@@ -275,6 +275,16 @@ export function LocalGame() {
   };
 
   const useItemStealNoTarget = () => {
+    if (!gameState || !pendingItem) return;
+    showItemResult(applyItem(gameState, pendingItem));
+  };
+
+  const useItemCuff = (targetId: number) => {
+    if (!gameState || !pendingItem) return;
+    showItemResult(applyItem(gameState, pendingItem, { targetId }));
+  };
+
+  const useItemCuffNoTarget = () => {
     if (!gameState || !pendingItem) return;
     showItemResult(applyItem(gameState, pendingItem));
   };
@@ -343,7 +353,14 @@ export function LocalGame() {
     // Beat 1: a plain "Ronda N" announcement — nothing else on it, moves on
     // by itself shortly after, so the round change itself gets its own
     // moment before items/gun show up.
-    if (revealStage === "announce") return <RoundAnnounce roundNumber={roundNumber} />;
+    if (revealStage === "announce")
+      return (
+        <RoundAnnounce
+          roundNumber={roundNumber}
+          previousRoundNumber={endedRoundNumber ?? undefined}
+          onDone={() => setRevealStage("chests")}
+        />
+      );
 
     // Beat 2: the chest-cycling players open one at a time — items only,
     // nothing about the gun/shells here on purpose (that's its own separate
@@ -525,6 +542,8 @@ export function LocalGame() {
           onUseSimple={useItemSimple}
           onSteal={useItemSteal}
           onStealNoTarget={useItemStealNoTarget}
+          onCuff={useItemCuff}
+          onCuffNoTarget={useItemCuffNoTarget}
         />
       )}
     </div>

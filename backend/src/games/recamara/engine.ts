@@ -15,13 +15,15 @@
 // createInitialState in seat order) — `seatOrder` maps that back to this
 // room's actual player ids so actions/messages can use real player ids.
 //
-// There isn't really anything to keep *secret* here beyond what's already
-// hidden in local pass-and-play (the shell order) — items were always
-// visible to everyone on one shared screen, and stay that way online too.
-// So getPrivateView has nothing to send; the "each player opens their own
-// chest at their own pace" reveal is purely a client-side animation over
-// already-public data (see ChestReveal usage in RoundView.tsx), gated by
-// the `ready_for_duel` action once a player's done looking.
+// Beyond the shell order (already hidden the same way local pass-and-play
+// hides it), the one other secret here is 📞's actual hint — unlike local
+// mode (one shared screen, nothing to hide from anyone at the table),
+// online keeps that private to whoever called; see getPrivateView and
+// lastPhoneHint below. Everything else — items, the "each player opens
+// their own chest at their own pace" reveal — is purely public/client-side
+// animation over already-public data (see ChestReveal usage in
+// RoundView.tsx), gated by the `ready_for_duel` action once a player's done
+// looking.
 
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
@@ -29,6 +31,7 @@ import {
   createInitialState,
   describeFireResult,
   describeItemResult,
+  describeSkippedTurn,
   fireShot,
   ITEM_POOL,
   ITEMS_PER_RELOAD,
@@ -40,6 +43,7 @@ import {
   type PendingFire,
   type Player,
   type RecamaraRoundView,
+  type ShellKind,
 } from "@juntada/recamara-engine";
 
 const MIN_PLAYERS = 2;
@@ -63,6 +67,11 @@ interface RecamaraRound {
   lastItemEvent: LastItemEvent | null;
   log: LogLine[];
   winnerRoomId: string | null;
+  // 📞's real hint — kept off RecamaraRoundView/lastItemEvent entirely so it
+  // never reaches anyone but the player who called; getPrivateView below
+  // only ever hands it back to forPlayerId, matched by seq to lastItemEvent
+  // so a stale hint from an earlier call can't get mistaken for a new one.
+  lastPhoneHint: { forPlayerId: string; seq: number; positionFromNow: number; shellKind: ShellKind } | null;
 }
 
 function round(room: Room): RecamaraRound {
@@ -110,6 +119,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     lastItemEvent: null,
     log: [],
     winnerRoomId: null,
+    lastPhoneHint: null,
   };
   addLog(r, { text: `Se cargó la recámara. Empieza <b>${state.players[0].name}</b>.` });
 
@@ -147,8 +157,10 @@ function fire(room: Room, playerId: string, payload: Record<string, unknown>): {
     gameOver: result.gameOver,
     winnerId: roomIdFor(r, result.winner?.id),
     reloaded: result.reloaded,
+    skippedIds: result.skippedIds.map(id => roomIdFor(r, id)).filter((id): id is string => id != null),
   };
   addLog(r, describeFireResult(result, nameOf(playersBefore)));
+  result.skippedIds.forEach(id => addLog(r, describeSkippedTurn(id, nameOf(playersBefore))));
 
   if (result.gameOver) {
     r.winnerRoomId = r.pendingFire.winnerId;
@@ -162,7 +174,7 @@ function fire(room: Room, playerId: string, payload: Record<string, unknown>): {
   return { handled: true };
 }
 
-function useItemAction(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
+function useItemAction(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: boolean } {
   const r = round(room);
   if (r.subPhase !== "duel") return { handled: false };
 
@@ -193,10 +205,13 @@ function useItemAction(room: Room, playerId: string, payload: Record<string, unk
     healedTo: result.healedTo,
     victimId: result.victimId === undefined ? undefined : roomIdFor(r, result.victimId),
     stolenItem: result.stolenItem,
-    phoneHint: result.phoneHint,
+    // Never the real content — see this round's lastPhoneHint comment.
+    phoneHint: undefined,
+    cuffedId: result.cuffedId === undefined ? undefined : roomIdFor(r, result.cuffedId),
   };
-  addLog(r, describeItemResult(result, nameOf(playersBefore)));
-  return { handled: true };
+  r.lastPhoneHint = item === "📞" && result.phoneHint ? { forPlayerId: playerId, seq: r.itemSeq, ...result.phoneHint } : null;
+  addLog(r, describeItemResult(result, nameOf(playersBefore), { revealPhoneHint: false }));
+  return { handled: true, rerolled: item === "📞" };
 }
 
 function readyForDuel(room: Room, playerId: string): { handled: boolean } {
@@ -255,10 +270,17 @@ function getPublicRoundView(room: Room): RecamaraRoundView | null {
   };
 }
 
-// Nothing to hide beyond what's already stripped in getPublicRoundView —
-// see the file header comment.
-function getPrivateView(_room: Room, _playerId: string): Record<string, unknown> | null {
-  return null;
+// The one thing this game keeps genuinely private per-player: 📞's real
+// hint, sent only to whoever called (see lastPhoneHint on RecamaraRound).
+// Matched by seq on the client side against the (redacted) lastItemEvent,
+// so an old hint can never get displayed as if it belonged to a new call.
+function getPrivateView(room: Room, playerId: string): Record<string, unknown> | null {
+  if (!room.round) return null;
+  const r = round(room);
+  if (!r.lastPhoneHint || r.lastPhoneHint.forPlayerId !== playerId) return null;
+  return {
+    phoneHint: { seq: r.lastPhoneHint.seq, positionFromNow: r.lastPhoneHint.positionFromNow, shellKind: r.lastPhoneHint.shellKind },
+  };
 }
 
 const engine: GameEngine = {
