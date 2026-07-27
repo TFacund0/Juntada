@@ -37,7 +37,7 @@ const { scoreForGuess, isCorrectGuess, TURN_SECONDS, DRAWER_POINTS_PER_GUESS, bu
     computeWordHint: (word: string, hintOrder: readonly number[], elapsedSeconds: number) => string;
     popLastDrawUnit: (strokes: readonly DrawAction[]) => DrawAction[];
   };
-const { shuffle } = require("../../utils/shuffle");
+const { shuffle } = require("@juntada/core-utils");
 
 const MIN_PLAYERS = 3;
 const CHOOSE_SECONDS = 15;

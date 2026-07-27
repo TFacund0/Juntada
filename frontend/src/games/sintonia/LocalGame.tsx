@@ -10,7 +10,7 @@ import { StickyActionBar } from "../../components/StickyActionBar";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
-import { shuffle } from "../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/playerNames";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";

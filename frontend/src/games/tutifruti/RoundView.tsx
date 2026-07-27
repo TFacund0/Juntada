@@ -6,7 +6,7 @@ import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { Avatar } from "../../components/Avatar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { PhaseTransition } from "../../components/PhaseTransition";
-import { shuffle } from "../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../gameTypes";
 import type { RoomPublicState } from "@juntada/shared-types";

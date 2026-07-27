@@ -11,7 +11,7 @@ const { WebSocketServer } = require("ws");
 const { clients } = require("../state/roomStore");
 const { HANDLERS, handleDisconnect } = require("./handlers");
 const { validateMessage } = require("./validation");
-const { sendTo, sendError } = require("./messaging");
+const { sendError } = require("./messaging");
 const { isAllowed } = require("./rateLimiter");
 const { captureException } = require("../sentry");
 

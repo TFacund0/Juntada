@@ -52,7 +52,7 @@ import {
   type QuienSoyRoundView,
 } from "@juntada/quien-soy-data";
 
-const { shuffle } = require("../../utils/shuffle") as { shuffle: <T>(arr: readonly T[]) => T[] };
+const { shuffle } = require("@juntada/core-utils") as { shuffle: <T>(arr: readonly T[]) => T[] };
 
 interface QuienSoyConfig {
   wordSource: "categories" | "suggested";

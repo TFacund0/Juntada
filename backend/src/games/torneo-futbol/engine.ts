@@ -14,7 +14,7 @@ import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 
-const { shuffle } = require("../../utils/shuffle");
+const { shuffle } = require("@juntada/core-utils");
 const { buildBracket, propagateByes } = require("@juntada/torneo-futbol-bracket") as typeof import("@juntada/torneo-futbol-bracket");
 
 interface TorneoFutbolConfig {

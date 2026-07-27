@@ -38,6 +38,15 @@ interface RoomSession {
   roomCode: string;
 }
 
+// Result of the join screen's live "check_room_code" lookup — see roomPreview.
+export interface RoomPreview {
+  code: string;
+  found: boolean;
+  name?: string;
+  gameType?: string;
+  isGroupCode?: boolean;
+}
+
 interface GroupSession {
   playerId: string;
   groupCode: string;
@@ -119,14 +128,8 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   const [wordReveal, setWordReveal] = useState<Record<string, unknown> | null>(null);
   // Result of the join screen's live "check_room_code" lookup — a read-only
   // preview of what a typed code points to, shown before the player commits
-  // to actually joining (see MultiplayerGame's join-room form).
-  const [roomPreview, setRoomPreview] = useState<{
-    code: string;
-    found: boolean;
-    name?: string;
-    gameType?: string;
-    isGroupCode?: boolean;
-  } | null>(null);
+  // to actually joining (see MenuScreen's join-room form).
+  const [roomPreview, setRoomPreview] = useState<RoomPreview | null>(null);
   const [error, setError] = useState("");
   // Bumped every time an error is (re-)raised, even if the message text is
   // identical to what's already showing — lets the UI key off this to replay

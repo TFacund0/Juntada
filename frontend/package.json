@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@juntada/color-correcto-scoring": "workspace:*",
+    "@juntada/core-utils": "workspace:*",
     "@juntada/impostor-data": "workspace:*",
     "@juntada/impostor-match-rules": "workspace:*",
     "@juntada/limon-limon-deck": "workspace:*",
@@ -30,7 +31,8 @@
     "jsqr": "^1.4.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

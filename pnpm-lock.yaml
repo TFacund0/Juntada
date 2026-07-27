@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      workbox-window:
+        specifier: ^7.4.1
+        version: 7.4.1
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -53,6 +57,9 @@ importers:
       '@juntada/color-correcto-scoring':
         specifier: workspace:*
         version: link:../packages/color-correcto-scoring
+      '@juntada/core-utils':
+        specifier: workspace:*
+        version: link:../packages/core-utils
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
@@ -144,6 +151,9 @@ importers:
       '@juntada/color-correcto-scoring':
         specifier: workspace:*
         version: link:../packages/color-correcto-scoring
+      '@juntada/core-utils':
+        specifier: workspace:*
+        version: link:../packages/core-utils
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
@@ -198,6 +208,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      workbox-window:
+        specifier: ^7.4.1
+        version: 7.4.1
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
@@ -237,6 +250,8 @@ importers:
         version: 2.1.9(@types/node@26.1.1)(jsdom@29.1.1)(terser@5.49.0)
 
   packages/color-correcto-scoring: {}
+
+  packages/core-utils: {}
 
   packages/impostor-data: {}
 

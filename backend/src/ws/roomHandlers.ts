@@ -235,7 +235,7 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
 // scheduleRoomCleanup/scheduleGroupCleanup) already handles the case where
 // everyone is offline, so this only ever fires while someone else is still
 // around to keep playing without the disconnected player in the way.
-const PLAYER_OFFLINE_TIMEOUT_MS = 5 * 60 * 1000;
+const PLAYER_OFFLINE_TIMEOUT_MS = 10 * 60 * 1000;
 
 function schedulePlayerKick(roomCode: string, playerId: string): void {
   setTimeout(() => {

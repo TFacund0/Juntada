@@ -3,7 +3,7 @@ import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/Btn";
 import { Avatar } from "../../../components/Avatar";
 import { TabRow } from "../../../components/TabRow";
-import { shuffle } from "../../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { nextPowerOf2 } from "@juntada/torneo-futbol-bracket";
 
 // ═══════════════════════════════════════════════════════════════════════════════
