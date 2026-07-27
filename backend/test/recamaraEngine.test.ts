@@ -51,7 +51,7 @@ test("startRound refuses below the minimum or above the maximum player count", (
   assert.ok(engine.startRound(tooFew).error);
 
   const tooMany = makeRoom({
-    players: [1, 2, 3, 4, 5].map(i => ({ id: `p${i}`, name: `J${i}`, ready: false, online: true })),
+    players: [1, 2, 3, 4, 5, 6, 7].map(i => ({ id: `p${i}`, name: `J${i}`, ready: false, online: true })),
   });
   assert.ok(engine.startRound(tooMany).error);
 });
