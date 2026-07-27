@@ -10,6 +10,7 @@ import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
 import { GamePicker } from "./components/GamePicker";
 import { GameRules } from "./components/GameRules";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { RETURN_TO_GROUP_CONFIRM, roomHasProgress } from "./components/ReturnToGroupButton";
 import { DevNoticeDialog } from "./components/DevNoticeDialog";
 import { NamePillEditor } from "./components/NamePillEditor";
 import { clearMultiplayerSession } from "./features/multiplayer/useMultiplayerSocket";
@@ -115,6 +116,9 @@ export default function App() {
   // is about to come on screen or leave it, so the full-app palette swap
   // always happens under full black cover instead of as a hard cut.
   const [curtain, setCurtain] = useState<"none" | "in" | "out">("none");
+  // Used only by the synchronous case below ("Modo local") — action()
+  // finishes instantly, so a fixed timer is enough: no network round-trip to
+  // actually wait on.
   const withCurtain = useCallback((action: () => void, themed: boolean) => {
     if (!themed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       action();
@@ -126,6 +130,50 @@ export default function App() {
       setCurtain("out");
       setTimeout(() => setCurtain("none"), 380);
     }, 260);
+  }, []);
+  // Online create/join (see MultiplayerGame's runTransition) isn't
+  // synchronous — action() only *sends* the create/join request; the room
+  // actually arrives later, over the socket, whenever the server responds.
+  // A fixed timer here doesn't know that: on a slow connection the curtain
+  // used to lift before the room existed, flashing the old "Crear partida"
+  // screen back for a moment before the real lobby suddenly replaced it —
+  // read as the transition "happening twice". This variant keeps the
+  // curtain down until the caller explicitly signals the room actually
+  // showed up (see MultiplayerGame's onTransitionSettled), with a floor so a
+  // very fast response still gets to be seen as a deliberate transition
+  // instead of an instant flash, and a safety-net timeout so a connection
+  // that never responds at all doesn't trap the player behind black forever.
+  const curtainSettleRef = useRef<(() => void) | null>(null);
+  const withAsyncCurtain = useCallback((action: () => void, themed: boolean) => {
+    if (!themed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      action();
+      return;
+    }
+    setCurtain("in");
+    const shownAt = Date.now();
+    const MIN_VISIBLE_MS = 400;
+    const SAFETY_TIMEOUT_MS = 6000;
+    const lift = () => {
+      curtainSettleRef.current = null;
+      setCurtain("out");
+      setTimeout(() => setCurtain("none"), 380);
+    };
+    const settle = () => {
+      // A later call (a fresh transition) already replaced this one — don't
+      // let a stale settle/timeout clear a curtain that isn't "ours" anymore.
+      if (curtainSettleRef.current !== settle) return;
+      const elapsed = Date.now() - shownAt;
+      if (elapsed >= MIN_VISIBLE_MS) lift();
+      else setTimeout(lift, MIN_VISIBLE_MS - elapsed);
+    };
+    curtainSettleRef.current = settle;
+    setTimeout(action, 260);
+    setTimeout(settle, SAFETY_TIMEOUT_MS);
+  }, []);
+  // Called once the room/group this curtain was covering actually arrives
+  // (or fails) — see MultiplayerGame's connectionPhase-watching effect.
+  const settleAsyncCurtain = useCallback(() => {
+    curtainSettleRef.current?.();
   }, []);
   const [showDevNotice, setShowDevNotice] = useState(() => {
     try {
@@ -172,6 +220,11 @@ export default function App() {
   // "Unirse" actually lands, not just from picking "Multijugador online" —
   // this is null the whole time you're still on that create/join screen.
   const [inRoom, setInRoom] = useState(false);
+  // Lets goBack decide whether delegating to returnToGroupRef (see below)
+  // would actually interrupt a round in progress — the same question
+  // ReturnToGroupButton asks for its own in-screen control, via the same
+  // shared roomHasProgress check, instead of silently leaving either way.
+  const [roomPhase, setRoomPhase] = useState<string | null>(null);
   const handleRoomGameType = useCallback(
     (roomGameType: string | null) => {
       setInRoom(roomGameType !== null);
@@ -200,16 +253,20 @@ export default function App() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [showGroupMenu]);
 
+  const [showReturnToGroupConfirm, setShowReturnToGroupConfirm] = useState(false);
   const goBack = () => {
     // Inside a group with an active instance, "Volver" just sends the
     // player back to the group screen (same as the in-lobby/in-round "👥
-    // Volver al grupo" control) — no exit. But pressed again once already
-    // sitting on the group screen (no instance left to back out of), there's
-    // nowhere left to "go back" to except leaving the group, so it warns
-    // instead of doing that silently.
+    // Volver al grupo" control) — no exit. Confirms first iff a round is
+    // actually in progress (roomHasProgress), same check and same copy as
+    // that in-screen control uses for the identical leave_instance action —
+    // pressed again once already sitting on the group screen (no instance
+    // left to back out of), there's nowhere left to "go back" to except
+    // leaving the group, so it warns instead of doing that silently.
     if (groupAttached) {
       if (gameId) {
-        returnToGroupRef.current?.();
+        if (roomHasProgress(roomPhase)) setShowReturnToGroupConfirm(true);
+        else returnToGroupRef.current?.();
       } else {
         setShowExitConfirm(true);
       }
@@ -563,11 +620,13 @@ export default function App() {
             initialJoinCode={pendingGroupJoinCode ?? validJoinLink?.code}
             initialGroupIntent={groupIntent}
             onGameTypeChange={handleRoomGameType}
+            onRoomPhaseChange={setRoomPhase}
             onLeaveGroup={goHome}
             onSwitchToGroup={switchToGroupJoin}
             onGroupAttachedChange={setGroupAttached}
             onExposeReturnToGroup={exposeReturnToGroup}
-            runTransition={action => withCurtain(action, Boolean(game?.gameTheme))}
+            runTransition={action => withAsyncCurtain(action, Boolean(game?.gameTheme))}
+            onTransitionSettled={settleAsyncCurtain}
           />
         )}
       </div>
@@ -597,6 +656,17 @@ export default function App() {
           cancelLabel="Seguir jugando"
           onConfirm={goHome}
           onCancel={() => setShowExitConfirm(false)}
+        />
+      )}
+
+      {showReturnToGroupConfirm && (
+        <ConfirmDialog
+          {...RETURN_TO_GROUP_CONFIRM}
+          onConfirm={() => {
+            setShowReturnToGroupConfirm(false);
+            returnToGroupRef.current?.();
+          }}
+          onCancel={() => setShowReturnToGroupConfirm(false)}
         />
       )}
     </div>

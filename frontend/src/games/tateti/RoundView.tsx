@@ -2,7 +2,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
-import { Board } from "./Board";
+import { Board } from "./components/Board";
 import { PhaseTransition } from "../../components/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 
@@ -23,11 +23,7 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
   const opponent = room.players.find(p => p.id !== me?.playerId);
   const round = room.round as TatetiRoundState | null;
   const LeaveToLobby = (
-    <LeaveToLobbyButton
-      groupCode={room.groupCode}
-      send={send}
-      confirm={{ message: "Se interrumpe la partida para los dos y se pierde el marcador." }}
-    />
+    <LeaveToLobbyButton groupCode={room.groupCode} send={send} message="Se interrumpe la partida para los dos y se pierde el marcador." />
   );
   const score: Record<string, number> = (room.config.score as Record<string, number>) || {};
   const resetVotes: string[] = (room.config.resetVotes as string[]) || [];

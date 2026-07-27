@@ -13,14 +13,14 @@ import {
   type RecamaraRoundView,
   type ShellKind,
 } from "@juntada/recamara-engine";
-import { PlayerToken } from "./PlayerToken";
-import { PlayerItemsSheet } from "./PlayerItemsSheet";
-import { ItemUseModal } from "./ItemUseModal";
-import { ChestReveal } from "./ChestReveal";
-import { OutcomeBanner } from "./OutcomeBanner";
-import { RoundAnnounce } from "./RoundAnnounce";
-import { ChamberCard } from "./ChamberCard";
-import { ItemActivatingOverlay } from "./ItemActivatingOverlay";
+import { PlayerToken } from "./components/PlayerToken";
+import { PlayerItemsSheet } from "./components/PlayerItemsSheet";
+import { ItemUseModal } from "./components/ItemUseModal";
+import { ChestReveal } from "./components/ChestReveal";
+import { OutcomeBanner } from "./components/OutcomeBanner";
+import { RoundAnnounce } from "./components/RoundAnnounce";
+import { ChamberCard } from "./components/ChamberCard";
+import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { frontAngle, randomShellSpot, seatAngle, seatStyle, shuffledBulletIcons } from "./arena";
 import { AIM_MS, SHOT_MS, ITEM_ACTIVATE_MS, ROUND_INTRO_MS, ROUND_ANNOUNCE_MS } from "./timing";
 import type { RoundViewProps } from "../gameTypes";
@@ -460,7 +460,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
             ) : (
               <p style={{ color: "var(--rec-ink-dim)", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
             )}
-            <LeaveToLobbyButton groupCode={room.groupCode} send={send} confirm={{ message: "Se interrumpe el duelo para todos." }} />
+            <LeaveToLobbyButton groupCode={room.groupCode} send={send} message="Se interrumpe el duelo para todos." />
           </div>
         </div>
       )}

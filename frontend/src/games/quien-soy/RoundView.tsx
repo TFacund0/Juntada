@@ -7,8 +7,8 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { PhaseTransition } from "../../components/PhaseTransition";
 import { TurnCircle } from "../../components/TurnCircle";
-import { Standings, buildStandingEntries } from "./Standings";
-import { OthersWordsList } from "./OthersWordsList";
+import { Standings, buildStandingEntries } from "./components/Standings";
+import { OthersWordsList } from "./components/OthersWordsList";
 import {
   MAX_WRONG_GUESSES,
   type QAEntry,
@@ -17,6 +17,8 @@ import {
   type QuienSoyRoundView,
 } from "@juntada/quien-soy-data";
 import type { RoundViewProps } from "../gameTypes";
+
+const MAX_RESOLVED_QA_CARDS = 3;
 
 function nameOf(room: RoundViewProps["room"], id: string | null | undefined): string {
   return room.players.find(p => p.id === id)?.name ?? "…";
@@ -92,7 +94,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
   const [confirmingConcede, setConfirmingConcede] = useState(false);
   const [notes, setNotes] = useState("");
   const [openQuestions, setOpenQuestions] = useState<Set<number>>(new Set());
-  const [justResolvedQA, setJustResolvedQA] = useState<QAEntry | null>(null);
+  const [resolvedQACards, setResolvedQACards] = useState<{ id: number; qa: QAEntry }[]>([]);
   const lastQaLogLength = useRef<number | null>(null);
   const [showWrongGuessFlash, setShowWrongGuessFlash] = useState(false);
   const lastMyWrongGuesses = useRef<number | null>(null);
@@ -119,18 +121,19 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     lastMyWrongGuesses.current = count;
   }, [role?.myWrongGuesses]);
 
-  // Briefly surfaces every question's full set of answers to everyone (not
-  // just the asker's own "Mis preguntas" collapsible) right as it resolves —
-  // qaLog is public round data, so every client sees the same new entry land
-  // at the same time.
+  // Surfaces every question's full set of answers to everyone (not just the
+  // asker's own "Mis preguntas" collapsible) right as it resolves — qaLog is
+  // public round data, so every client sees the same new entry land at the
+  // same time. Cards stack (newest on top) instead of auto-dismissing, so
+  // each player closes them with the × whenever they're done reading; only
+  // the oldest gets dropped once a new one pushes the stack past the limit.
   useEffect(() => {
     const log = round?.qaLog ?? [];
     if (lastQaLogLength.current != null && log.length > lastQaLogLength.current) {
       const latest = log[log.length - 1];
-      setJustResolvedQA(latest);
-      const t = setTimeout(() => setJustResolvedQA(null), 6000);
+      setResolvedQACards(prev => [{ id: log.length - 1, qa: latest }, ...prev].slice(0, MAX_RESOLVED_QA_CARDS));
       lastQaLogLength.current = log.length;
-      return () => clearTimeout(t);
+      return;
     }
     lastQaLogLength.current = log.length;
   }, [round?.qaLog]);
@@ -323,16 +326,34 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             </div>
           )}
 
-          {justResolvedQA && (
-            <div style={{ ...S.cardHighlight, background: "rgba(127,119,221,0.1)" }}>
-              <span style={S.label}>
-                Pregunta de {nameOf(room, justResolvedQA.turnPlayerId)}: "{justResolvedQA.question}"
+          {resolvedQACards.map(({ id, qa }) => (
+            <div key={id} style={{ ...S.cardHighlight, background: "rgba(127,119,221,0.1)", position: "relative" }}>
+              <button
+                onClick={() => setResolvedQACards(prev => prev.filter(c => c.id !== id))}
+                aria-label="Cerrar"
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  background: "none",
+                  border: "none",
+                  color: "#9089c0",
+                  fontSize: 16,
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  padding: 4,
+                }}
+              >
+                ✕
+              </button>
+              <span style={{ ...S.label, paddingRight: 20, display: "block" }}>
+                Pregunta de {nameOf(room, qa.turnPlayerId)}: "{qa.question}"
               </span>
               <div style={{ marginTop: 6 }}>
-                <QAResponses room={room} qa={justResolvedQA} />
+                <QAResponses room={room} qa={qa} />
               </div>
             </div>
-          )}
+          ))}
 
           {myOutcome && (
             <div
@@ -582,7 +603,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
               <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
             </div>
           )}
-          <LeaveToLobbyButton groupCode={room.groupCode} send={send} confirm={{ message: "Se interrumpe la partida para todos." }} />
+          <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
         </div>
       </PhaseTransition>
     );
