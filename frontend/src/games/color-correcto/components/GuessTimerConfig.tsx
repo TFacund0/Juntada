@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 export const GUESS_TIMER_OPTIONS = [0, 5, 10, 15, 20];
 

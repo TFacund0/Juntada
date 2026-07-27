@@ -7,12 +7,12 @@ import { RevealCountdown, useRevealCountdown } from "../../components/RevealCoun
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { randomTargetColor, scoreGuess, SHOW_SECONDS } from "@juntada/color-correcto-scoring";
-import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./ColorPicker";
-import { ColorCompareRow } from "./ColorCompareRow";
-import { PlayersConfig } from "./PlayersConfig";
-import { GuessTimerConfig } from "./GuessTimerConfig";
-import { Leaderboard } from "./Leaderboard";
-import { TargetSwatch } from "./TargetSwatch";
+import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./components/ColorPicker";
+import { ColorCompareRow } from "./components/ColorCompareRow";
+import { PlayersConfig } from "./components/PlayersConfig";
+import { GuessTimerConfig } from "./components/GuessTimerConfig";
+import { Leaderboard } from "./components/Leaderboard";
+import { TargetSwatch } from "./components/TargetSwatch";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENCUENTRA EL COLOR CORRECTO — un solo dispositivo, pasándoselo por turnos.

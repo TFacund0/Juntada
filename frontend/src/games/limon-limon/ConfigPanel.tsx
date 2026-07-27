@@ -1,5 +1,5 @@
 import { TurnOrderEditor } from "../../components/TurnOrderEditor";
-import { DescriptionsEditor } from "./DescriptionsEditor";
+import { DescriptionsEditor } from "./components/DescriptionsEditor";
 import type { ConfigPanelProps } from "../gameTypes";
 
 // Host-only, se muestra en el lobby: define el orden de turno (arranca en

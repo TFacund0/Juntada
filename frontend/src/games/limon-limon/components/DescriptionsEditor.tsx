@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { S } from "../../theme/styles";
-import { SUITS, VALUES, cardKey, valueLabel, suitInfo } from "./deck";
+import { S } from "../../../theme/styles";
+import { SUITS, VALUES, cardKey, valueLabel, suitInfo } from "../deck";
 import { SuitGlyph } from "./SuitGlyph";
 
 const MAX_LENGTH = 300;

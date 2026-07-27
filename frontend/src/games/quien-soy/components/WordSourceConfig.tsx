@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 import { CATEGORIES } from "@juntada/quien-soy-data";
 
 // "¿De dónde salen las palabras?" editor — shared by local mode's own setup

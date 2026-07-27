@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { S } from "../../../theme/styles";
+import { ConfirmDialog } from "../../../components/ConfirmDialog";
 
 // Small, red, and easy to ignore on purpose — ending the match early is the
 // exception, not something to push players toward. Owns its own confirm-

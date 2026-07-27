@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 // Shared by both local modes (circle and reveal) — same full-width "Ver
 // puntaje" / "Ocultar puntaje" toggle, so the ranking panel below it opens

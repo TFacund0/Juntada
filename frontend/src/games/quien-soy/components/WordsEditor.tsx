@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 interface Player {
   id: string;

@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { suitInfo, valueLabel } from "./deck";
-import type { Card } from "./deck";
+import { suitInfo, valueLabel } from "../deck";
+import type { Card } from "../deck";
 import { SuitGlyph } from "./SuitGlyph";
 import { FaceIcon } from "./FaceIcon";
 

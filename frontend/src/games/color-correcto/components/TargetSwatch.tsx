@@ -1,5 +1,5 @@
-import { S } from "../../theme/styles";
-import { Timer } from "../../components/Timer";
+import { S } from "../../../theme/styles";
+import { Timer } from "../../../components/Timer";
 import { SHOW_SECONDS } from "@juntada/color-correcto-scoring";
 
 // The "show" phase screen — target color memorized before it's hidden.

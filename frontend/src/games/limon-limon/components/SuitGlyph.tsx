@@ -1,4 +1,4 @@
-import { suitInfo } from "./deck";
+import { suitInfo } from "../deck";
 
 interface SuitGlyphProps {
   suit: string;

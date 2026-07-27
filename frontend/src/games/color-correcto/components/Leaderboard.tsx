@@ -1,5 +1,5 @@
-import { S } from "../../theme/styles";
-import { Avatar } from "../../components/Avatar";
+import { S } from "../../../theme/styles";
+import { Avatar } from "../../../components/Avatar";
 
 export interface LeaderboardEntry {
   id: string;
