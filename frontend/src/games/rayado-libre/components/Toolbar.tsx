@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 import type { Tool } from "./Canvas";
 
 const PALETTE = ["#1a1a1a", "#e2432a", "#2e7dd6", "#2fa85a", "#f2b705", "#a5459b", "#f2872e", "#7a5230", "#ffffff"];

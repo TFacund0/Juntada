@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 // The card's rule text stays collapsed until someone asks for it — shared by
 // every mode (local circle, local reveal, online) instead of showing it

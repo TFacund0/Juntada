@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 import { hslToHex } from "@juntada/color-correcto-scoring";
 
 // Three-slider HSL picker (hue / saturation / brillo) — dialed.gg-style,

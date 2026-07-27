@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 // One player's result row for a round: name + score, target color vs. their
 // guess side by side so the gap between them is visible at a glance. Shared

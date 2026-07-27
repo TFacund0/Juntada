@@ -525,13 +525,7 @@ function RoundResult({
       )}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
-      <LeaveToLobbyButton
-        groupCode={room.groupCode}
-        send={send}
-        confirm={{
-          message: "Se interrumpe la partida para todos y se pierde la tabla de puntuación.",
-        }}
-      />
+      <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
     </div>
   );
 }
@@ -582,13 +576,7 @@ function FinalStandings({
       {!isHost && <p style={{ ...S.muted, textAlign: "center" }}>Esperando a que el anfitrión arranque una partida nueva.</p>}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.
           Available to any player, not just the host. */}
-      <LeaveToLobbyButton
-        groupCode={room.groupCode}
-        send={send}
-        confirm={{
-          message: "Se interrumpe la partida para todos y se pierde la tabla de puntuación.",
-        }}
-      />
+      <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
     </div>
   );
 }

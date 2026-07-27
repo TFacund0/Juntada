@@ -17,15 +17,15 @@ import {
   type Player,
   type ShellKind,
 } from "@juntada/recamara-engine";
-import { PlayerToken } from "./PlayerToken";
-import { PlayerItemsSheet } from "./PlayerItemsSheet";
-import { ItemUseModal } from "./ItemUseModal";
-import { ChestReveal } from "./ChestReveal";
-import { OutcomeBanner } from "./OutcomeBanner";
-import { RoundAnnounce } from "./RoundAnnounce";
-import { ChamberCard } from "./ChamberCard";
-import { FlashOverlay } from "./FlashOverlay";
-import { ItemActivatingOverlay } from "./ItemActivatingOverlay";
+import { PlayerToken } from "./components/PlayerToken";
+import { PlayerItemsSheet } from "./components/PlayerItemsSheet";
+import { ItemUseModal } from "./components/ItemUseModal";
+import { ChestReveal } from "./components/ChestReveal";
+import { OutcomeBanner } from "./components/OutcomeBanner";
+import { RoundAnnounce } from "./components/RoundAnnounce";
+import { ChamberCard } from "./components/ChamberCard";
+import { FlashOverlay } from "./components/FlashOverlay";
+import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { frontAngle, randomShellSpot, seatAngle, seatStyle, shuffledBulletIcons } from "./arena";
 import { AIM_MS, SHOT_MS, ITEM_ACTIVATE_MS, ROUND_INTRO_MS, ROUND_ANNOUNCE_MS } from "./timing";
 

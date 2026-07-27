@@ -7,11 +7,11 @@ import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { TURN_SECONDS } from "@juntada/rayado-libre-scoring";
-import { Canvas, type DrawAction, type Tool } from "./Canvas";
-import { Toolbar } from "./Toolbar";
+import { Canvas, type DrawAction, type Tool } from "./components/Canvas";
+import { Toolbar } from "./components/Toolbar";
 import { PhaseTransition } from "../../components/PhaseTransition";
-import { EyeToggle } from "./EyeToggle";
-import { Scoreboard } from "./Scoreboard";
+import { EyeToggle } from "./components/EyeToggle";
+import { Scoreboard } from "./components/Scoreboard";
 import type { RoundViewProps } from "../gameTypes";
 
 const CHOOSE_SECONDS = 15;
@@ -352,11 +352,7 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send }: RoundVie
             <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
           </div>
         )}
-        <LeaveToLobbyButton
-          groupCode={room.groupCode}
-          send={send}
-          confirm={{ message: "Se pierde la tabla de puntuación de esta partida." }}
-        />
+        <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
       </PhaseTransition>
     );
   }

@@ -1,7 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import { Suspense } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
 import { CodeDisplay } from "../../components/CodeDisplay";
 import { QRDialog } from "../../components/QRDialog";
@@ -10,6 +9,7 @@ import { Toast } from "../../components/Toast";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
+import { ReturnToGroupButton } from "../../components/ReturnToGroupButton";
 import type { GameDef } from "../../games/gameTypes";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 import { buildRoomJoinUrl } from "./joinLink";
@@ -225,11 +225,7 @@ export function LobbyScreen({
         </>
       )}
 
-      {room.groupCode !== null && (
-        <Btn variant="ghost" onClick={onLeaveInstance} style={{ marginTop: 10 }}>
-          👥 Volver al grupo
-        </Btn>
-      )}
+      <ReturnToGroupButton groupCode={room.groupCode} roomPhase={room.phase} onLeave={onLeaveInstance} />
 
       <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
     </div>

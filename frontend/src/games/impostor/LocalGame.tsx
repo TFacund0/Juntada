@@ -12,7 +12,7 @@ import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
 import { BackButton } from "../../components/BackButton";
 import { MinPlayersHint } from "../../components/MinPlayersHint";
-import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
+import { EliminatedPlayerCard } from "./components/EliminatedPlayerCard";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
 

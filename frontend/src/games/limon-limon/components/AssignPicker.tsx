@@ -1,6 +1,6 @@
-import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { Avatar } from "../../components/Avatar";
+import { S } from "../../../theme/styles";
+import { Btn } from "../../../components/Btn";
+import { Avatar } from "../../../components/Avatar";
 
 // Shared between local (pass-and-play) and online: picking who eats the
 // revealed card is two steps, not one tap — select a player (highlighted,

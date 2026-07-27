@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-import { Btn } from "../../components/Btn";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { ReturnToGroupButton } from "../../components/ReturnToGroupButton";
 import { Toast } from "../../components/Toast";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import type { GameDef, RoundViewProps } from "../../games/gameTypes";
@@ -21,11 +20,9 @@ export function RoundScreen({
   reconnectBanner,
   error,
   errorKey,
-  showReturnToGroup,
-  confirmLeaveInstance,
-  onRequestLeaveInstance,
+  groupCode,
+  roomPhase,
   onLeaveInstance,
-  onCancelLeaveInstance,
 }: {
   activeGame: GameDef;
   roundViewProps: RoundViewProps;
@@ -34,13 +31,11 @@ export function RoundScreen({
   reconnectBanner: ReactNode;
   error: string;
   errorKey: number;
-  // Whether this room belongs to a group instance (room.groupCode !== null)
-  // — a standalone room has no group screen to return to.
-  showReturnToGroup: boolean;
-  confirmLeaveInstance: boolean;
-  onRequestLeaveInstance: () => void;
+  // A standalone room has no group screen to return to — ReturnToGroupButton
+  // itself renders nothing when this is null.
+  groupCode: string | null;
+  roomPhase: string;
   onLeaveInstance: () => void;
-  onCancelLeaveInstance: () => void;
 }) {
   return (
     <div>
@@ -52,21 +47,7 @@ export function RoundScreen({
         {activeGame.RoundView && <activeGame.RoundView {...roundViewProps} />}
       </Suspense>
 
-      {showReturnToGroup && (
-        <Btn variant="ghost" onClick={onRequestLeaveInstance} style={{ marginTop: 14 }}>
-          👥 Volver al grupo
-        </Btn>
-      )}
-
-      {confirmLeaveInstance && (
-        <ConfirmDialog
-          title="¿Volver al grupo?"
-          message="Vas a salir de esta partida en curso y perder tu progreso. El resto puede seguir jugando sin vos."
-          confirmLabel="Sí, volver"
-          onConfirm={onLeaveInstance}
-          onCancel={onCancelLeaveInstance}
-        />
-      )}
+      <ReturnToGroupButton groupCode={groupCode} roomPhase={roomPhase} onLeave={onLeaveInstance} />
     </div>
   );
 }

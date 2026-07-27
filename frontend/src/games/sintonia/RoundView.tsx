@@ -3,7 +3,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { Avatar } from "../../components/Avatar";
-import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
+import { Dial, MARKER_COLORS, markerLabels } from "./components/Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Collapsible } from "../../components/Collapsible";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
@@ -593,13 +593,7 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
             ))}
           {/* Group instances use the shell's persistent "Volver al grupo" link instead.
             Available to any player, not just the host. */}
-          <LeaveToLobbyButton
-            groupCode={room.groupCode}
-            send={send}
-            confirm={{
-              message: "Se interrumpe la partida para todos y se pierde la tabla de puntuación.",
-            }}
-          />
+          <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
           {!isHost && (
             <div style={{ ...S.card, textAlign: "center" }}>
               <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>

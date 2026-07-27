@@ -22,10 +22,10 @@ import {
   computeWordHint,
   popLastDrawUnit,
 } from "@juntada/rayado-libre-scoring";
-import { Canvas, type DrawAction, type Tool } from "./Canvas";
-import { Toolbar } from "./Toolbar";
+import { Canvas, type DrawAction, type Tool } from "./components/Canvas";
+import { Toolbar } from "./components/Toolbar";
 import { PhaseTransition } from "../../components/PhaseTransition";
-import { Scoreboard } from "./Scoreboard";
+import { Scoreboard } from "./components/Scoreboard";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RAYADO LIBRE — modo local: pantalla compartida + juez manual. Un solo

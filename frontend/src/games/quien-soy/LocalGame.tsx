@@ -13,9 +13,9 @@ import { useFlashError } from "../../hooks/useFlashError";
 import { nextPlayerName } from "../../utils/playerNames";
 import { shuffle } from "@juntada/core-utils";
 import { isCorrectGuess, MAX_WRONG_GUESSES, computeMatchRanks, type QuienSoyResult } from "@juntada/quien-soy-data";
-import { WordsEditor } from "./WordsEditor";
-import { Standings, buildStandingEntries } from "./Standings";
-import { OthersWordsList } from "./OthersWordsList";
+import { WordsEditor } from "./components/WordsEditor";
+import { Standings, buildStandingEntries } from "./components/Standings";
+import { OthersWordsList } from "./components/OthersWordsList";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ¿QUIÉN SOY? — un solo dispositivo, pasándoselo por turnos. El grupo anota
@@ -53,6 +53,12 @@ export function LocalGame() {
   const [score, setScore] = useState<Record<string, number>>({});
 
   const [turnQueue, setTurnQueue] = useState<string[]>([]);
+  // Stable snapshot from when the round started — turnQueue itself rotates
+  // and shrinks as players finish, which is right for deciding whose turn it
+  // is but wrong for display: the circle should keep every avatar in its
+  // original slot and just move the highlight, same as the online engine's
+  // turnOrder (see backend/src/games/quien-soy/engine.ts).
+  const [turnOrder, setTurnOrder] = useState<string[]>([]);
   const [lapNumber, setLapNumber] = useState(1);
   const [turnsThisLap, setTurnsThisLap] = useState(0);
   const [lapSize, setLapSize] = useState(0);
@@ -84,6 +90,7 @@ export function LocalGame() {
     setResults([]);
     const queue = shuffle(players.map(p => p.id));
     setTurnQueue(queue);
+    setTurnOrder(queue);
     setLapNumber(1);
     setTurnsThisLap(0);
     setLapSize(queue.length);
@@ -241,11 +248,20 @@ export function LocalGame() {
 
   if (phase === "turnAction") {
     const playerId = turnQueue[0];
+    const outcomeByPlayer = Object.fromEntries(results.map(r => [r.playerId, r.outcome]));
     return (
       <div>
         <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Ronda {lapNumber}</p>
 
-        <TurnCircle turnOrder={turnQueue} turnIndex={0} players={players} meId={playerId} />
+        <div style={S.card}>
+          <TurnCircle
+            turnOrder={turnOrder}
+            turnIndex={Math.max(0, turnOrder.indexOf(playerId))}
+            players={players}
+            meId={playerId}
+            outcomes={outcomeByPlayer}
+          />
+        </div>
 
         <div style={S.card}>
           <span style={S.label}>Palabras del resto</span>

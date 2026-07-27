@@ -1,5 +1,5 @@
-import { S } from "../../theme/styles";
-import { Avatar } from "../../components/Avatar";
+import { S } from "../../../theme/styles";
+import { Avatar } from "../../../components/Avatar";
 
 // Result-screen card showing who got voted out and (once revealed) whether
 // they were the impostor — identical between the online RoundView and local

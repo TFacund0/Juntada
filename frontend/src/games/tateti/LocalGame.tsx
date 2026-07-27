@@ -4,7 +4,7 @@ import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Board } from "./Board";
+import { Board } from "./components/Board";
 import { checkWinner } from "@juntada/tateti-board";
 
 // ═══════════════════════════════════════════════════════════════════════════════

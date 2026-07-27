@@ -6,10 +6,10 @@ import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { PhaseTransition } from "../../components/PhaseTransition";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Timer } from "../../components/Timer";
-import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./ColorPicker";
-import { ColorCompareRow } from "./ColorCompareRow";
-import { Leaderboard } from "./Leaderboard";
-import { TargetSwatch } from "./TargetSwatch";
+import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./components/ColorPicker";
+import { ColorCompareRow } from "./components/ColorCompareRow";
+import { Leaderboard } from "./components/Leaderboard";
+import { TargetSwatch } from "./components/TargetSwatch";
 import { type ColorCorrectoPrivateRole, type ColorCorrectoReveal, type ColorCorrectoRoundView } from "@juntada/color-correcto-scoring";
 import type { RoundViewProps } from "../gameTypes";
 
@@ -152,13 +152,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             ) : (
               <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
             ))}
-          <LeaveToLobbyButton
-            groupCode={room.groupCode}
-            send={send}
-            confirm={{
-              message: "Se interrumpe la partida para todos y se pierde la tabla de puntuación.",
-            }}
-          />
+          <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
           {!isHost && (
             <div style={{ ...S.card, marginTop: 14, textAlign: "center" }}>
               <p style={{ color: "#9089c0", fontSize: 14, margin: 0 }}>Esperando que el anfitrión inicie otra ronda</p>

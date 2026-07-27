@@ -8,7 +8,7 @@ import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { PhaseTransition } from "../../components/PhaseTransition";
 import { TurnCircle } from "../../components/TurnCircle";
-import { EliminatedPlayerCard } from "./EliminatedPlayerCard";
+import { EliminatedPlayerCard } from "./components/EliminatedPlayerCard";
 import type { RoundViewProps } from "../gameTypes";
 import type { PublicPlayer } from "@juntada/shared-types";
 
