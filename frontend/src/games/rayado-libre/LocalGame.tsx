@@ -9,6 +9,7 @@ import { ErrorBanner } from "../../components/ErrorBanner";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
+import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { useFlashError } from "../../hooks/useFlashError";
 import { shuffle } from "../../utils/shuffle";
 import { nextPlayerName } from "../../utils/playerNames";
@@ -355,9 +356,7 @@ export function LocalGame() {
             <StartButton disabled={players.length < MIN_PLAYERS || activeCatKeys.length === 0} onClick={startGame}>
               Empezar a jugar
             </StartButton>
-            {players.length < MIN_PLAYERS && (
-              <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
-            )}
+            <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
             {activeCatKeys.length === 0 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Elegí al menos una categoría</p>}
           </StickyActionBar>
         </div>

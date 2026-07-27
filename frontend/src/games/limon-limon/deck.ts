@@ -31,13 +31,3 @@ export function valueLabel(value: number): string {
 export function buildDeck(): Card[] {
   return shuffle(orderedDeck());
 }
-
-// El orden de turno guardado (room.config.turnOrder) respeta lo que haya
-// definido el anfitrión, pero agrega al final a cualquier jugador que no
-// figure ahí (recién unido) y descarta ids que ya no están en la sala.
-export function effectiveOrder(players: { id: string }[], turnOrder: string[] | undefined): string[] {
-  const ids = players.map(p => p.id);
-  const stored = (turnOrder || []).filter(id => ids.includes(id));
-  const missing = ids.filter(id => !stored.includes(id));
-  return [...stored, ...missing];
-}
