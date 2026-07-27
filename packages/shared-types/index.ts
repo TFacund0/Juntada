@@ -275,7 +275,7 @@ export const SCHEMAS = {
   }),
   answer_question: z.object({
     type: z.literal("answer_question"),
-    answer: z.enum(["si", "no"]),
+    answer: z.enum(["si", "no", "skip"]),
     comment: z.string().trim().max(200).optional(),
   }),
   concede: z.object({
