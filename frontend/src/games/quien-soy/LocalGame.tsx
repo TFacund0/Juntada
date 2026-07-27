@@ -11,7 +11,7 @@ import { TurnCircle } from "../../components/TurnCircle";
 import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { useFlashError } from "../../hooks/useFlashError";
 import { nextPlayerName } from "../../utils/playerNames";
-import { shuffle } from "../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { isCorrectGuess, MAX_WRONG_GUESSES, computeMatchRanks, type QuienSoyResult } from "@juntada/quien-soy-data";
 import { WordsEditor } from "./WordsEditor";
 import { Standings, buildStandingEntries } from "./Standings";

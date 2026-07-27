@@ -1,4 +1,4 @@
-import { shuffle } from "../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { SUIT_IDS, VALUES, cardKey, buildDefaultDescriptions, getDescription, orderedDeck } from "@juntada/limon-limon-deck";
 import type { Card } from "@juntada/limon-limon-deck";
 

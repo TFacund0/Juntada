@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors, matchWinner } from "@juntada/impostor-match-rules";
-import { shuffle } from "../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/playerNames";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";

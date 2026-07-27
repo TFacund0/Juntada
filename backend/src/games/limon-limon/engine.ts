@@ -14,7 +14,7 @@ import type { GameEngine } from "../engineTypes";
 import type { Card } from "@juntada/limon-limon-deck";
 
 const { buildDefaultDescriptions, orderedDeck } = require("@juntada/limon-limon-deck") as typeof import("@juntada/limon-limon-deck");
-const { shuffle } = require("../../utils/shuffle");
+const { shuffle } = require("@juntada/core-utils");
 
 const MIN_PLAYERS = 2;
 
