@@ -70,7 +70,10 @@ describe("Sintonía LocalGame", () => {
     // The result view holds behind a few-second reveal countdown
     // (RevealCountdown/useRevealCountdown) before showing the actual
     // scores — findByText waits it out instead of asserting synchronously.
-    expect(await screen.findByText("Puntos de la ronda", {}, { timeout: 4000 })).toBeInTheDocument();
+    // Default playMode is "endless", which shows only the scoreboard
+    // (this round's own points included next to the running total) —
+    // "Puntos de la ronda" is a separate block only shown in "rounds" mode.
+    expect(await screen.findByText("Tabla de puntuación", {}, { timeout: 4000 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Siguiente ronda" })).toBeInTheDocument();
   }, 8000);
 
