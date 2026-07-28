@@ -94,6 +94,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
 
   const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
   const [pendingItem, setPendingItem] = useState<ItemKind | null>(null);
+  const [showWinner, setShowWinner] = useState(false);
 
   // A fresh reveal beat (game start, or right after a reload) resets the
   // local chest/ready UI — never mid an in-flight shot animation, so a
@@ -205,6 +206,23 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     return () => clearTimeout(t);
   }, [round?.lastItemEvent?.seq]);
 
+  // The final shot's own aim/fire/result banner must fully play out and get
+  // dismissed (fireStage back to idle) before the winner overlay is allowed
+  // to appear — round.winnerRoomId is already set well before that, so
+  // waiting on `busy` here (not on winnerRoomId directly) is what keeps the
+  // two from fighting for the screen. The extra timeout is purely a beat of
+  // breathing room so the overlay fades in rather than popping the instant
+  // the last banner closes.
+  useEffect(() => {
+    if (!round?.winnerRoomId || fireStage !== "idle") {
+      setShowWinner(false);
+      return;
+    }
+    const t = setTimeout(() => setShowWinner(true), 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.winnerRoomId, fireStage]);
+
   // Shuffled once per round via useMemo so it doesn't reshuffle on every
   // unrelated re-render (this component re-renders on every server update).
   const bulletIcons = useMemo(
@@ -215,11 +233,24 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   if (!round || !myPlayerId) return null;
 
   const continueAfterFire = () => {
+    // The fire-processing effect only refreshes settledStateRef while idle,
+    // and won't re-run just because we're switching back to idle here (its
+    // deps are round.pendingFire.seq/round.state, neither of which changes
+    // on this local transition) — refresh it explicitly so the next shot's
+    // freeze snapshot reflects this shot's damage instead of the one before it.
+    settledStateRef.current = round.state;
     setFireStage("idle");
     setFrozenState(null);
   };
 
   const continueAfterItem = () => setItemBanner(null);
+
+  // The winner overlay must never fight the final shot's own aim/fire/
+  // result banner for the screen — round.winnerRoomId is already true the
+  // instant that shot's server update lands, well before its animation
+  // finishes playing locally, so gate on `!busy` (idle again, i.e. the
+  // player already tapped through the result banner) and add a short delay
+  // so it fades in instead of popping the moment that banner closes.
 
   const nameFor = (roomId: string | null): string => {
     if (!roomId) return "";
@@ -454,18 +485,25 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
 
       {itemBanner &&
         (() => {
-          // 📞 only: the real hint never travels in itemBanner (public
-          // event, same for every client) — it only ever reaches this
-          // client's own private_role message, and only when it was this
-          // player who called and the seq lines up with this exact call.
+          // 📞/🔍 only: the real hint/reveal never travels in itemBanner
+          // (public event, same for every client) — it only ever reaches
+          // this client's own private_role message, and only when it was
+          // this player who called and the seq lines up with this exact call.
           const privateHint = myRole?.phoneHint as { seq: number; positionFromNow: number; shellKind: ShellKind } | undefined;
           const canReveal = itemBanner.item === "📞" && itemBanner.playerId === myPlayerId && privateHint?.seq === itemBanner.seq;
+          const privateLupaHint = myRole?.lupaHint as { seq: number; shellKind: ShellKind } | undefined;
+          const canRevealLupa = itemBanner.item === "🔍" && itemBanner.playerId === myPlayerId && privateLupaHint?.seq === itemBanner.seq;
           const line = describeItemResult(
             canReveal
               ? { ...itemBanner, phoneHint: { positionFromNow: privateHint.positionFromNow, shellKind: privateHint.shellKind } }
-              : itemBanner,
+              : canRevealLupa
+                ? { ...itemBanner, revealedShellKind: privateLupaHint.shellKind }
+                : itemBanner,
             nameFor,
-            { revealPhoneHint: itemBanner.item === "📞" ? canReveal : true },
+            {
+              revealPhoneHint: itemBanner.item === "📞" ? canReveal : true,
+              revealLupaHint: itemBanner.item === "🔍" ? canRevealLupa : true,
+            },
           );
           return <OutcomeBanner line={line} onContinue={continueAfterItem} />;
         })()}
@@ -494,19 +532,25 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         />
       )}
 
-      {round.winnerRoomId && (
-        <div className="rec-overlay">
-          <div className="table final-card" style={{ maxWidth: 420 }}>
+      {showWinner && round.winnerRoomId && (
+        <div className="rec-overlay winner-overlay">
+          <div className="table final-card winner-in" style={{ maxWidth: 420 }}>
             <p className="mono eyebrow">Fin del duelo</p>
             <p className="display winner">
               Gana <span>{round.winnerRoomId === myPlayerId ? "vos" : nameFor(round.winnerRoomId)}</span>
             </p>
             {isHost ? (
-              <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
+              // Recámara's rematch goes back through the lobby (not a
+              // straight start_round like other games' "jugar de nuevo") so
+              // the host can add/remove players before the next chamber —
+              // see backToLobby in backend/src/ws/roomHandlers.ts.
+              <StartButton onClick={() => send({ type: "back_to_lobby" })}>Volver a la sala</StartButton>
             ) : (
-              <p style={{ color: "var(--rec-ink-dim)", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
+              <p style={{ color: "var(--rec-ink-dim)", fontSize: 14 }}>Esperando que el anfitrión vuelva a la sala</p>
             )}
-            <LeaveToLobbyButton groupCode={room.groupCode} send={send} message="Se interrumpe el duelo para todos." />
+            {/* Host's primary button above already sends back_to_lobby — this is
+                only useful for a non-host who doesn't want to wait for the host. */}
+            {!isHost && <LeaveToLobbyButton groupCode={room.groupCode} send={send} message="Se interrumpe el duelo para todos." />}
           </div>
         </div>
       )}

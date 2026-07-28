@@ -1165,9 +1165,28 @@
   border-color: var(--rec-live-glow);
 }
 
+.recamara .rec-overlay.winner-overlay {
+  animation: rec-fade-in 0.6s ease-out;
+}
+
 .recamara .final-card {
   text-align: center;
   padding: 24px;
+}
+
+.recamara .final-card.winner-in {
+  animation: rec-winner-in 0.6s ease-out both;
+}
+
+@keyframes rec-winner-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .recamara .final-card .winner {
