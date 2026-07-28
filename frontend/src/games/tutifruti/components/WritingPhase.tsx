@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/Btn";
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import type { RoundViewProps } from "../../gameTypes";
 import type { TutifrutiRoundState, TutifrutiPrivateRole } from "../types";
 import { RoundBadge } from "./RoundBadge";
@@ -37,7 +36,6 @@ export function WritingPhase({
   const letterRef = useRef(round.letter);
   const onlinePlayers = room.players.filter(p => p.online);
   const readyCount = onlinePlayers.filter(p => p.ready).length;
-  const [confirmBasta, setConfirmBasta] = useState(false);
 
   useEffect(() => {
     if (letterRef.current !== round.letter) {
@@ -114,22 +112,15 @@ export function WritingPhase({
         ))}
       </div>
       {round.endMode === "basta" && (
-        <Btn variant="danger" onClick={() => setConfirmBasta(true)}>
-          ¡BASTA!
-        </Btn>
-      )}
-      {confirmBasta && (
-        <ConfirmDialog
-          title="¿Gritar BASTA?"
-          message={`Corta la ronda para todos ahora mismo — ${round.doneCount ?? 0} de ${room.players.length} ya enviaron alguna respuesta. Nadie más va a poder seguir escribiendo.`}
-          confirmLabel="¡BASTA!"
-          onConfirm={() => {
-            setConfirmBasta(false);
+        <Btn
+          variant="danger"
+          onClick={() => {
             flushPending();
             send({ type: "call_basta" });
           }}
-          onCancel={() => setConfirmBasta(false)}
-        />
+        >
+          ¡BASTA!
+        </Btn>
       )}
       {round.endMode === "timer" &&
         (myPlayer?.ready ? (

@@ -30,9 +30,9 @@ const MIN_PLAYERS = 2;
 // none at all — one player alt-tabbing, forgetting, or dropping without
 // their client ever flipping `online: false` left everyone else stuck
 // waiting on a confirm that might never come. Fixed rather than
-// host-configurable since review is normally quick and doesn't need the
-// same tuning as writing time.
-const REVIEW_TIME_MS = 90 * 1000;
+// host-configurable — reviewing every category for every player can take a
+// while with a full table, so this leans generous rather than rushing it.
+const REVIEW_TIME_MS = 180 * 1000;
 
 interface TutifrutiConfig {
   score: Record<string, number>;
