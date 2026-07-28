@@ -48,10 +48,12 @@ describe("Rayado Libre LocalGame", () => {
     for (const btn of guessButtons) await user.click(btn);
 
     expect(screen.getByText("La palabra era")).toBeInTheDocument();
-    expect(screen.getByText("Todos listos para seguir")).toBeInTheDocument();
+    // No per-player ready vote in local mode (single shared device) — just
+    // one button to move the whole table on to the next turn.
+    expect(screen.getByText("Siguiente turno")).toBeInTheDocument();
   });
 
-  test("reveal only advances to the next turn once every player taps ready", async () => {
+  test("tapping 'Siguiente turno' on the reveal screen moves straight to the next turn", async () => {
     render(<LocalGame />);
     const user = userEvent.setup();
 
@@ -59,21 +61,11 @@ describe("Rayado Libre LocalGame", () => {
     await user.click(screen.getByText(/Ya tengo el dispositivo/));
     const choicesCard = screen.getByText("Elegí qué vas a dibujar").parentElement as HTMLElement;
     await user.click(choicesCard.querySelectorAll("button")[0]);
-    await user.click(screen.getByText("Nadie más adivinó, terminar turno"));
+    const guessCard = screen.getByText("¿Quién acertó?").closest("div") as HTMLElement;
+    for (const btn of Array.from(guessCard.querySelectorAll("button"))) await user.click(btn);
 
     expect(screen.getByText("La palabra era")).toBeInTheDocument();
-    const readyCard = screen.getByText("Todos listos para seguir").closest("div") as HTMLElement;
-    const readyButtons = Array.from(readyCard.querySelectorAll("button"));
-    expect(readyButtons.length).toBe(3);
-
-    await user.click(readyButtons[0]);
-    expect(screen.getByText("La palabra era")).toBeInTheDocument(); // still on reveal
-    await user.click(readyButtons[1]);
-    expect(screen.getByText("La palabra era")).toBeInTheDocument(); // still on reveal
-
-    await user.click(readyButtons[2]);
-    // Every player confirmed — moved on to the next turn (back to wordReveal
-    // or straight to a new choosing screen).
-    expect(screen.queryByText("Todos listos para seguir")).not.toBeInTheDocument();
+    await user.click(screen.getByText("Siguiente turno"));
+    expect(screen.queryByText("La palabra era")).not.toBeInTheDocument();
   });
 });
