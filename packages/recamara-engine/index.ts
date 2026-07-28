@@ -329,7 +329,11 @@ export function useItem(state: GameState, item: ItemKind, options?: UseItemOptio
       return { state: { ...state, players }, playerId: player.id, item, victimId: victim.id, stolenItem: stolen };
     }
     case "📞": {
-      const futureIdx = state.shells.map((_, i) => i).filter(i => i > state.idx && !state.shells[i].revealed);
+      // Any not-yet-fired shell is fair game, including the very next one
+      // (state.idx itself) — the one real constraint is that it can never
+      // point at an already-fired shell, which `!revealed` already rules
+      // out (fireShot marks the spent shell revealed too).
+      const futureIdx = state.shells.map((_, i) => i).filter(i => i >= state.idx && !state.shells[i].revealed);
       if (futureIdx.length === 0) {
         return { state: { ...state, players: consumeItem(state, player.id, item) }, playerId: player.id, item, phoneHint: null };
       }
@@ -433,6 +437,11 @@ export interface DescribeItemOptions {
   // (defaults to fully revealing), since there's no one to hide it from —
   // the whole table already shares one screen.
   revealPhoneHint?: boolean;
+  // 🔍 only: same idea as revealPhoneHint — online play keeps what the
+  // lupa revealed private to whoever used it, so the shared round log only
+  // ever learns the lupa got used, never what shell it showed. Local
+  // pass-and-play never sets this (defaults to fully revealing).
+  revealLupaHint?: boolean;
 }
 
 export function describeItemResult<TId>(
@@ -443,6 +452,7 @@ export function describeItemResult<TId>(
   const name = nameOf(result.playerId);
   switch (result.item) {
     case "🔍":
+      if (options?.revealLupaHint === false) return { text: `<b>${name}</b> usa la lupa.` };
       return { text: `<b>${name}</b> usa la lupa: la próxima bala es <b>${result.revealedShellKind === "live" ? "real" : "falsa"}</b>.` };
     case "🚬":
       return { text: `<b>${name}</b> fuma un cigarrillo y recupera 1 vida.` };

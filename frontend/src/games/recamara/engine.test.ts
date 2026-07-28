@@ -161,7 +161,7 @@ describe("recamara engine", () => {
     expect(result.state.players.find(p => p.id === state.players[0].id)!.items).toContain(result.stolenItem);
   });
 
-  test("teléfono reveals a future shell without touching the current one", () => {
+  test("teléfono can reveal the very next shell (position 1), not just later ones", () => {
     const state = createInitialState(["Ana", "Beto"]);
     state.players[0].items = ["📞"];
     state.shells = [
@@ -169,10 +169,31 @@ describe("recamara engine", () => {
       { kind: "live", spent: false, revealed: false },
     ];
     state.idx = 0;
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
     const result = useItem(state, "📞");
-    expect(result.phoneHint).toEqual({ positionFromNow: 2, shellKind: "live" });
-    expect(result.state.shells[0].revealed).toBe(false);
-    expect(result.state.shells[1].revealed).toBe(true);
+    randomSpy.mockRestore();
+    expect(result.phoneHint).toEqual({ positionFromNow: 1, shellKind: "blank" });
+    expect(result.state.shells[0].revealed).toBe(true);
+  });
+
+  test("teléfono never picks an already-fired shell", () => {
+    const state = createInitialState(["Ana", "Beto"]);
+    state.players[0].items = ["📞"];
+    state.shells = [
+      { kind: "live", spent: true, revealed: true },
+      { kind: "blank", spent: false, revealed: false },
+      { kind: "live", spent: false, revealed: false },
+    ];
+    state.idx = 1;
+    // Array.from(...).forEach instead of a for-loop — a plain `for` calling
+    // useItem trips eslint's react-hooks/rules-of-hooks (it's only named
+    // like a hook, it isn't one, but the lint rule can't tell the
+    // difference from a bare loop).
+    Array.from({ length: 20 }).forEach(() => {
+      const result = useItem(state, "📞");
+      expect(result.phoneHint?.positionFromNow).toBeGreaterThanOrEqual(1);
+      expect(result.state.shells[0].revealed).toBe(true); // already revealed, untouched
+    });
   });
 
   test("describeItemResult redacts the teléfono hint when revealPhoneHint is false", () => {

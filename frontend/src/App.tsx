@@ -625,7 +625,14 @@ export default function App() {
             onSwitchToGroup={switchToGroupJoin}
             onGroupAttachedChange={setGroupAttached}
             onExposeReturnToGroup={exposeReturnToGroup}
-            runTransition={action => withAsyncCurtain(action, Boolean(game?.gameTheme))}
+            // `game` only reflects the *route's* gameId (set upfront for a
+            // standalone room) — a group instance's game is picked from
+            // inside the group screen itself, so `game` is still whatever it
+            // was before (often null) at the exact moment a group create/
+            // join fires. Callers there know the target game synchronously
+            // (the picker's own gameId, or the instance's gameType) and pass
+            // it as `themedOverride` instead of relying on this closure.
+            runTransition={(action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme))}
             onTransitionSettled={settleAsyncCurtain}
           />
         )}

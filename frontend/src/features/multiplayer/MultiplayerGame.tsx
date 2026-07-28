@@ -96,7 +96,12 @@ interface MultiplayerGameProps {
   // room as it already gets entering online mode itself — App.tsx passes
   // its withAsyncCurtain helper here. Defaults to calling the action straight
   // through, so every other game's plain "create/join" stays instant.
-  runTransition?: (action: () => void) => void;
+  // `themedOverride`: App.tsx's own closure only knows the *route's* game
+  // (fixed upfront for entryKind "room") — a group's create/join-instance
+  // targets a game picked from inside the group screen itself, so callers
+  // here pass the target game's own themed-ness explicitly instead of
+  // leaving App.tsx to guess from a gameId that hasn't caught up yet.
+  runTransition?: (action: () => void, themedOverride?: boolean) => void;
   // Paired with runTransition: fires once whatever runTransition's curtain
   // was covering actually resolved (the room/group arrived, or the attempt
   // failed) — see the effect below. Lets the curtain in App.tsx stay down
@@ -173,16 +178,19 @@ export function MultiplayerGame({
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const pendingJoinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const joinInstance = (roomCode: string) => {
-    setPendingJoinCode(roomCode);
-    send({ type: "join_instance", roomCode });
-    if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
-    // Covers the rare case where neither a success (phase leaves "group")
-    // nor a server "error" ever comes back — without this the button would
-    // stay stuck on "Uniéndose..." forever.
-    pendingJoinTimeoutRef.current = setTimeout(() => {
-      setPendingJoinCode(null);
-      setError("No se pudo unir a la partida — probá de nuevo");
-    }, 8000);
+    const targetGame = getGame(group?.instances.find(i => i.roomCode === roomCode)?.gameType ?? "") as GameDef | undefined;
+    runTransition(() => {
+      setPendingJoinCode(roomCode);
+      send({ type: "join_instance", roomCode });
+      if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
+      // Covers the rare case where neither a success (phase leaves "group")
+      // nor a server "error" ever comes back — without this the button would
+      // stay stuck on "Uniéndose..." forever.
+      pendingJoinTimeoutRef.current = setTimeout(() => {
+        setPendingJoinCode(null);
+        setError("No se pudo unir a la partida — probá de nuevo");
+      }, 8000);
+    }, Boolean(targetGame?.gameTheme));
   };
   // Cleared once the join actually succeeds — connectionPhase moves off
   // "group" (into "lobby"). Deliberately not cleared on a generic error:
@@ -551,8 +559,11 @@ export function MultiplayerGame({
         showCreateInstance={showCreateInstance}
         onToggleCreateInstance={() => setShowCreateInstance(v => !v)}
         onCreateInstance={gameIdToCreate => {
-          send({ type: "create_instance", gameType: gameIdToCreate });
-          setShowCreateInstance(false);
+          const targetGame = getGame(gameIdToCreate) as GameDef | undefined;
+          runTransition(() => {
+            send({ type: "create_instance", gameType: gameIdToCreate });
+            setShowCreateInstance(false);
+          }, Boolean(targetGame?.gameTheme));
         }}
         pendingJoinCode={pendingJoinCode}
         onJoinInstance={joinInstance}

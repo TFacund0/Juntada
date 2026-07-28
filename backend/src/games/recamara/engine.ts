@@ -72,6 +72,11 @@ interface RecamaraRound {
   // only ever hands it back to forPlayerId, matched by seq to lastItemEvent
   // so a stale hint from an earlier call can't get mistaken for a new one.
   lastPhoneHint: { forPlayerId: string; seq: number; positionFromNow: number; shellKind: ShellKind } | null;
+  // 🔍's real reveal — same privacy treatment as lastPhoneHint above: kept
+  // off RecamaraRoundView/lastItemEvent entirely so it never reaches anyone
+  // but the player who called; getPrivateView only ever hands it back to
+  // forPlayerId, matched by seq to lastItemEvent.
+  lastLupaHint: { forPlayerId: string; seq: number; shellKind: ShellKind } | null;
 }
 
 function round(room: Room): RecamaraRound {
@@ -120,6 +125,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     log: [],
     winnerRoomId: null,
     lastPhoneHint: null,
+    lastLupaHint: null,
   };
   addLog(r, { text: `Se cargó la recámara. Empieza <b>${state.players[0].name}</b>.` });
 
@@ -201,7 +207,8 @@ function useItemAction(room: Room, playerId: string, payload: Record<string, unk
     seq: r.itemSeq,
     playerId,
     item: result.item,
-    revealedShellKind: result.revealedShellKind,
+    // Never the real content — see this round's lastLupaHint comment.
+    revealedShellKind: undefined,
     healedTo: result.healedTo,
     victimId: result.victimId === undefined ? undefined : roomIdFor(r, result.victimId),
     stolenItem: result.stolenItem,
@@ -210,7 +217,9 @@ function useItemAction(room: Room, playerId: string, payload: Record<string, unk
     cuffedId: result.cuffedId === undefined ? undefined : roomIdFor(r, result.cuffedId),
   };
   r.lastPhoneHint = item === "📞" && result.phoneHint ? { forPlayerId: playerId, seq: r.itemSeq, ...result.phoneHint } : null;
-  addLog(r, describeItemResult(result, nameOf(playersBefore), { revealPhoneHint: false }));
+  r.lastLupaHint =
+    item === "🔍" && result.revealedShellKind ? { forPlayerId: playerId, seq: r.itemSeq, shellKind: result.revealedShellKind } : null;
+  addLog(r, describeItemResult(result, nameOf(playersBefore), { revealPhoneHint: false, revealLupaHint: false }));
   return { handled: true, rerolled: item === "📞" };
 }
 
@@ -270,17 +279,24 @@ function getPublicRoundView(room: Room): RecamaraRoundView | null {
   };
 }
 
-// The one thing this game keeps genuinely private per-player: 📞's real
-// hint, sent only to whoever called (see lastPhoneHint on RecamaraRound).
-// Matched by seq on the client side against the (redacted) lastItemEvent,
-// so an old hint can never get displayed as if it belonged to a new call.
+// The things this game keeps genuinely private per-player: 📞's real hint
+// and 🔍's real reveal, sent only to whoever called (see lastPhoneHint/
+// lastLupaHint on RecamaraRound). Matched by seq on the client side against
+// the (redacted) lastItemEvent, so an old hint can never get displayed as
+// if it belonged to a new call.
 function getPrivateView(room: Room, playerId: string): Record<string, unknown> | null {
   if (!room.round) return null;
   const r = round(room);
-  if (!r.lastPhoneHint || r.lastPhoneHint.forPlayerId !== playerId) return null;
-  return {
-    phoneHint: { seq: r.lastPhoneHint.seq, positionFromNow: r.lastPhoneHint.positionFromNow, shellKind: r.lastPhoneHint.shellKind },
-  };
+  const phoneHint =
+    r.lastPhoneHint && r.lastPhoneHint.forPlayerId === playerId
+      ? { seq: r.lastPhoneHint.seq, positionFromNow: r.lastPhoneHint.positionFromNow, shellKind: r.lastPhoneHint.shellKind }
+      : undefined;
+  const lupaHint =
+    r.lastLupaHint && r.lastLupaHint.forPlayerId === playerId
+      ? { seq: r.lastLupaHint.seq, shellKind: r.lastLupaHint.shellKind }
+      : undefined;
+  if (!phoneHint && !lupaHint) return null;
+  return { phoneHint, lupaHint };
 }
 
 const engine: GameEngine = {

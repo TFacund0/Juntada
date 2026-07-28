@@ -290,9 +290,9 @@ export const SCHEMAS = {
   }),
   use_item: z.object({
     type: z.literal("use_item"),
-    item: z.enum(["🔍", "🚬", "🪚", "🔄", "🧤", "📞"]),
+    item: z.enum(["🔍", "🚬", "🪚", "🔄", "🧤", "📞", "🔒"]),
     targetId: uuid.optional(),
-    stolenItem: z.enum(["🔍", "🚬", "🪚", "🔄", "🧤", "📞"]).optional(),
+    stolenItem: z.enum(["🔍", "🚬", "🪚", "🔄", "🧤", "📞", "🔒"]).optional(),
   }),
   ready_for_duel: z.object({
     type: z.literal("ready_for_duel"),
