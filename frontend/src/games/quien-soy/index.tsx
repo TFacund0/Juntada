@@ -18,7 +18,7 @@ export const quienSoyGame: GameDef = {
   description:
     "A cada jugador se le asigna un personaje secreto que todos ven menos él. Hay que adivinar quién sos haciendo preguntas de sí o no, con tres intentos antes de quedar eliminado.",
   minPlayers: 2,
-  category: "grupo",
+  category: "palabras",
   tabbedLobby: true,
   rules: [
     "A cada jugador se le asigna una palabra o personaje secreto, visible para todos menos para él.",

@@ -10,7 +10,7 @@ export const triviaGame: GameDef = {
   icon: "🧠",
   description: "Preguntas de opción múltiple para todos a la vez. Sumás más puntos cuanto más rápido y correcto respondas.",
   minPlayers: 2,
-  category: "grupo",
+  category: "palabras",
   comingSoon: true,
   rules: [
     "Se muestra una pregunta de opción múltiple a todos al mismo tiempo.",
