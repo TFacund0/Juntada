@@ -28,7 +28,7 @@ export interface LobbyInfoProps {
 
 // Groups games in the picker screen (search + category sections). A game
 // without a category falls into "otros" — see CATEGORY_LABEL in GamePicker.
-export type GameCategory = "destacados" | "grupo" | "rapidos" | "equipos" | "otros";
+export type GameCategory = "destacados" | "rapidos" | "palabras" | "fiesta" | "equipos" | "tematicos" | "otros";
 
 export interface GameDef {
   id: string;

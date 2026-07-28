@@ -15,7 +15,7 @@ export const rielSalvajeGame: GameDef = {
   description:
     "Seis forajidos, un tren en marcha. Apilás tus cartas de acción turno a turno y después se revelan y ejecutan todas en orden — quien junte más botín al final de la 5ª ronda gana.",
   minPlayers: 3,
-  category: "equipos",
+  category: "tematicos",
   comingSoon: true,
   rules: [
     "Cada ronda tiene dos fases: Planificación y Acción.",

@@ -11,7 +11,7 @@ export const yoNuncaGame: GameDef = {
   description:
     "Aparece una frase 'yo nunca nunca...' y cada jugador confiesa si la hizo o no. Quien la hizo, pierde una vida (o toma, si juegan con bebida).",
   minPlayers: 2,
-  category: "grupo",
+  category: "fiesta",
   comingSoon: true,
   rules: [
     "Se muestra una frase del tipo 'yo nunca nunca hice tal cosa'.",

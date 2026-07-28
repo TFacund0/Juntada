@@ -135,7 +135,17 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
         <div>
           {Scoreboard}
           <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-            <p style={S.bigReveal}>
+            <p
+              style={{
+                ...S.bigReveal,
+                // "¡Ganaste!"/"Empate" are short, fixed strings — keep the
+                // usual big size. The forfeit message and "Ganó <name>" can
+                // run much longer (a name has no length limit), so both
+                // shrink a step to keep this card from looming as large as
+                // a two-word win does.
+                fontSize: round.forfeited || (!isDraw && !iWon) ? 20 : 28,
+              }}
+            >
               {/* Only the player still here ever sees a forfeited result — the
                 one who left (kicked after the usual 5-minute grace period)
                 is gone from room.players by the time this state exists, so

@@ -208,6 +208,13 @@ function confirmRoundSetup(room: Room, playerId: string, payload: Record<string,
     psychicBonus: null,
   } satisfies SintoniaRound;
   room.phase = "spectrum";
+  // Clears out any leftover "listo para ver los resultados finales" vote
+  // from the round that just ended (see player_ready below) — otherwise it'd
+  // still read as confirmed for whichever round turns out to be the next
+  // (and possibly final) one, skipping that vote entirely.
+  room.players.forEach(p => {
+    p.ready = false;
+  });
   return { handled: true, rerolled: true }; // everyone needs to know who the fresh psychic is
 }
 
@@ -304,6 +311,19 @@ function handleAction(
       if (!Number.isInteger(value) || value < 0 || value > 100) return { handled: false };
       round(room).guesses[playerId] = value;
       maybeAdvance(room);
+      return { handled: true };
+    }
+
+    // Marks this player as having voted to see the final results, once the
+    // last configured round has just finished (see RoundView.tsx's gameOver)
+    // — purely informational for the client's own reveal gate below
+    // (getPublicRoundView doesn't even need to change: room.players[].ready
+    // already broadcasts with every state update), nothing here auto-
+    // advances since there's no next phase to move to once the match is over.
+    case "player_ready": {
+      if (!room.round || room.phase !== "result") return { handled: false };
+      const p = room.players.find(p => p.id === playerId);
+      if (p) p.ready = true;
       return { handled: true };
     }
 

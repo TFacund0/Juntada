@@ -11,7 +11,7 @@ export const terminaHistoriaGame: GameDef = {
   description:
     "Arranca una historia con una frase y cada jugador suma una línea por turno, armando entre todos un relato cada vez más disparatado.",
   minPlayers: 2,
-  category: "grupo",
+  category: "palabras",
   comingSoon: true,
   rules: [
     "Se arranca la historia con una frase inicial (al azar o elegida por el grupo).",

@@ -43,16 +43,19 @@ function QAResponses({ room, qa }: { room: RoundViewProps["room"]; qa: QAEntry }
   );
 }
 
-// A brief, centered, self-dismissing flash for "wrong guess" — separate from
-// Toast (which drops in from the top for connection/room-wide notices) since
-// this needs to grab attention right in the middle of the screen for the
-// guesser specifically, the same beat rayado-libre's own points toast gives
-// a correct guess.
-function WrongGuessFlash() {
+// A brief, centered, self-dismissing flash for the guesser's own attempt at
+// *their own* word — separate from Toast (which drops in from the top for
+// connection/room-wide notices) since this needs to grab attention right in
+// the middle of the screen for the guesser specifically, the same beat
+// rayado-libre's own points toast gives a correct guess. Same shape/timing
+// for a hit as for a miss — only the icon/color/copy change — so neither
+// outcome reads as an afterthought next to the other.
+function GuessFlash({ correct }: { correct: boolean }) {
+  const color = correct ? "#5DCAA5" : "#F09595";
   return (
     <>
       <style>{`
-        @keyframes wrong-guess-pop {
+        @keyframes guess-flash-pop {
           0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
           15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
           25% { transform: translate(-50%, -50%) scale(1); }
@@ -67,17 +70,17 @@ function WrongGuessFlash() {
           left: "50%",
           zIndex: 2000,
           pointerEvents: "none",
-          background: "rgba(240,149,149,0.15)",
-          border: "1px solid rgba(240,149,149,0.5)",
+          background: `color-mix(in srgb, ${color} 15%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${color} 50%, transparent)`,
           borderRadius: 16,
           padding: "22px 32px",
           textAlign: "center",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-          animation: "wrong-guess-pop 1.4s ease-out forwards",
+          animation: "guess-flash-pop 1.4s ease-out forwards",
         }}
       >
-        <p style={{ fontSize: 32, margin: 0 }}>❌</p>
-        <p style={{ fontSize: 18, fontWeight: 800, color: "#F09595", margin: "6px 0 0" }}>Intento fallido</p>
+        <p style={{ fontSize: 32, margin: 0 }}>{correct ? "🎉" : "❌"}</p>
+        <p style={{ fontSize: 18, fontWeight: 800, color, margin: "6px 0 0" }}>{correct ? "¡Acertaste!" : "Intento fallido"}</p>
       </div>
     </>
   );
@@ -96,7 +99,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
   const [openQuestions, setOpenQuestions] = useState<Set<number>>(new Set());
   const [resolvedQACards, setResolvedQACards] = useState<{ id: number; qa: QAEntry }[]>([]);
   const lastQaLogLength = useRef<number | null>(null);
-  const [showWrongGuessFlash, setShowWrongGuessFlash] = useState(false);
+  // null = hidden; true/false = showing the hit/miss flash for that outcome
+  // (see GuessFlash above) — one flag for both since they're the same shape,
+  // just a different color/icon/copy.
+  const [guessFlash, setGuessFlash] = useState<boolean | null>(null);
   const lastMyWrongGuesses = useRef<number | null>(null);
   const [lastGuessAttempt, setLastGuessAttempt] = useState<{ playerId: string; text: string; correct: boolean } | null>(null);
   const lastGuessLogLength = useRef<number | null>(null);
@@ -113,8 +119,8 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
   useEffect(() => {
     const count = role?.myWrongGuesses ?? 0;
     if (lastMyWrongGuesses.current != null && count > lastMyWrongGuesses.current) {
-      setShowWrongGuessFlash(true);
-      const t = setTimeout(() => setShowWrongGuessFlash(false), 1400);
+      setGuessFlash(false);
+      const t = setTimeout(() => setGuessFlash(null), 1400);
       lastMyWrongGuesses.current = count;
       return () => clearTimeout(t);
     }
@@ -140,18 +146,28 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
 
   // Same idea for guesses — guessLog is public too, so everyone (not just
   // the guesser) sees what was attempted and whether it landed, right as it
-  // happens, instead of only the guesser's own private outcome.
+  // happens, instead of only the guesser's own private outcome. A correct
+  // guess of *my own* word additionally gets the same GuessFlash treatment
+  // as a miss (see that component's comment) — the miss case learns of its
+  // own outcome via the private myWrongGuesses counter above since a public
+  // guessLog entry alone can't distinguish "the guesser" from "everyone
+  // else", but a hit needs no such privacy: it's already this guessLog
+  // entry's own playerId.
   useEffect(() => {
     const log = round?.guessLog ?? [];
     if (lastGuessLogLength.current != null && log.length > lastGuessLogLength.current) {
       const latest = log[log.length - 1];
       setLastGuessAttempt(latest);
-      const t = setTimeout(() => setLastGuessAttempt(null), 5000);
+      const timeouts = [setTimeout(() => setLastGuessAttempt(null), 5000)];
+      if (latest.correct && latest.playerId === myId) {
+        setGuessFlash(true);
+        timeouts.push(setTimeout(() => setGuessFlash(null), 1400));
+      }
       lastGuessLogLength.current = log.length;
-      return () => clearTimeout(t);
+      return () => timeouts.forEach(clearTimeout);
     }
     lastGuessLogLength.current = log.length;
-  }, [round?.guessLog]);
+  }, [round?.guessLog, myId]);
 
   if (!round) return null;
 
@@ -306,7 +322,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     return (
       <PhaseTransition phaseKey="playing">
         <div>
-          {showWrongGuessFlash && <WrongGuessFlash />}
+          {guessFlash != null && <GuessFlash correct={guessFlash} />}
           <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Ronda {round.lapNumber}</p>
 
           {lastGuessAttempt && (

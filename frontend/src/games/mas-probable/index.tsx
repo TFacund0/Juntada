@@ -11,7 +11,7 @@ export const masProbableGame: GameDef = {
   description:
     "Aparece una pregunta como '¿quién es más probable que llegue tarde a todo?' y todos votan en secreto por alguien del grupo.",
   minPlayers: 3,
-  category: "grupo",
+  category: "fiesta",
   comingSoon: true,
   rules: [
     "Se muestra una pregunta del tipo '¿quién es más probable que...?'.",

@@ -20,7 +20,7 @@ export const limonLimonGame: GameDef = {
   icon: "🍋",
   description: "Con un mazo de truco, se revela una carta por turno y el grupo decide quién se la come. El que junta más cartas, pierde.",
   minPlayers: 2,
-  category: "grupo",
+  category: "fiesta",
   maintenance: false,
   tabbedLobby: true,
   rules: [

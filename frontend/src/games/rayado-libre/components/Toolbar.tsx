@@ -21,14 +21,14 @@ export function Toolbar({ tool, onChange, onClear, onUndo }: ToolbarProps) {
         {PALETTE.map(color => (
           <button
             key={color}
-            onClick={() => onChange({ ...tool, mode: "draw", color })}
+            onClick={() => onChange({ ...tool, color })}
             aria-label={`Color ${color}`}
             style={{
               width: 30,
               height: 30,
               borderRadius: "50%",
               background: color,
-              border: tool.mode === "draw" && tool.color === color ? "3px solid #7F77DD" : "1px solid rgba(255,255,255,0.25)",
+              border: tool.color === color ? "3px solid #7F77DD" : "1px solid rgba(255,255,255,0.25)",
               cursor: "pointer",
               padding: 0,
             }}

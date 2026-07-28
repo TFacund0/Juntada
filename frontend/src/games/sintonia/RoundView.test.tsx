@@ -290,4 +290,111 @@ describe("Sintonía RoundView — result phase", () => {
     expect(screen.getByText("Esperando que el anfitrión inicie otra ronda")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Nueva ronda" })).not.toBeInTheDocument();
   });
+
+  test("endless mode shows only the scoreboard, with this round's own points beside the running total", async () => {
+    render(
+      <RoundView
+        room={makeRoom("result", {
+          clue: "Templado",
+          psychicBonus: 4,
+          pointsByPlayer: { p1: 4, p2: 4 },
+          playMode: "endless",
+        })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={null}
+        wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(screen.queryByText("Puntos de la ronda")).not.toBeInTheDocument();
+    expect(screen.getByText("Tabla de puntuación")).toBeInTheDocument();
+    vi.useRealTimers();
+    await userEvent.setup().click(screen.getByText("Tabla de puntuación")); // Collapsible starts closed
+    expect(screen.getAllByText("+4")).toHaveLength(2); // p1 and p2 both scored 4 this round
+  });
+
+  test("rounds mode's last round hides the winner/scoreboard behind a vote, only revealing them once everyone's tapped through", async () => {
+    const send = vi.fn();
+    const players: PublicPlayer[] = [
+      { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+      { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+      { id: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false },
+    ];
+    const room = makeRoom(
+      "result",
+      { clue: "Templado", psychicBonus: 4, pointsByPlayer: { p1: 4, p2: 4 }, playMode: "rounds", roundLimit: 1, roundsPlayed: 1 },
+      players,
+    );
+    room.config = { score: { p1: 10, p2: 4, p3: 2 } };
+
+    const { rerender } = render(
+      <RoundView
+        room={room}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={players[0]}
+        myRole={null}
+        wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
+        isHost={true}
+        send={send}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    // Not revealed yet — nobody's voted, so no winner, no scoreboard, no
+    // "Nueva partida" button either.
+    expect(screen.queryByText("Partida terminada")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tabla de puntuación")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Nueva partida" })).not.toBeInTheDocument();
+    vi.useRealTimers();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Ver resultados finales" }));
+    expect(send).toHaveBeenCalledWith({ type: "player_ready" });
+
+    // The click only sends the vote — the "Listo, esperando..." message only
+    // shows once the server broadcasts it back as part of room.players.
+    const myVoteRoom = { ...room, players: players.map(p => (p.id === "p1" ? { ...p, ready: true } : p)) };
+    rerender(
+      <RoundView
+        room={myVoteRoom}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ ...players[0], ready: true }}
+        myRole={null}
+        wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
+        isHost={true}
+        send={send}
+      />,
+    );
+    expect(screen.getByText("Listo — esperando a los demás para ver los resultados finales")).toBeInTheDocument();
+
+    // Everyone else votes too — the same room update that flips their
+    // `ready` flags is what actually reveals it, nothing local to this vote.
+    const readyRoom = {
+      ...room,
+      players: players.map(p => ({ ...p, ready: true })),
+    };
+    rerender(
+      <RoundView
+        room={readyRoom}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ ...players[0], ready: true }}
+        myRole={null}
+        wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    expect(screen.getByText("Partida terminada")).toBeInTheDocument();
+    expect(screen.getByText("Tabla de puntuación")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nueva partida" })).toBeInTheDocument();
+  });
 });

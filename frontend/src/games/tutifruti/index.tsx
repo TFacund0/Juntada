@@ -21,7 +21,7 @@ export const tutifrutiGame: GameDef = {
   description:
     "Sale una letra al azar y todos completan categorías (país, animal, color...) con una palabra que empiece con esa letra, contrarreloj.",
   minPlayers: 2,
-  category: "rapidos",
+  category: "destacados",
   maintenance: false,
   tabbedLobby: true,
   // Same gate the ConfigPanel's own "categoría activa" counter reflects —
