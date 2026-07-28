@@ -9,6 +9,7 @@ import {
   ITEMS_PER_RELOAD,
   type ItemKind,
   type LastItemEvent,
+  type LogLine,
   type PublicGameState,
   type RecamaraRoundView,
   type ShellKind,
@@ -54,6 +55,36 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   const [frozenState, setFrozenState] = useState<PublicGameState | null>(null);
   const settledStateRef = useRef<PublicGameState | null>(null);
   const lastFireSeqRef = useRef(0);
+  // The log is server-broadcast the instant a shot/item resolves — same
+  // moment pendingFire/lastItemEvent arrive, well before this client's own
+  // aim/fire/banner animation finishes playing. Left unguarded, the log's
+  // new line (e.g. "Ana se dispara... Cartucho real — daño.") spoiled the
+  // outcome mid-animation, undermining the entire freeze-state suspense
+  // above. Frozen the same way: snapshot the log as it looked right before
+  // this event, keep showing only that while animating, then reveal the
+  // real (already-current) log once the corresponding banner is dismissed
+  // (continueAfterFire/continueAfterItem below).
+  //
+  // Storing the *array* (not just its length) matters: the server caps the
+  // log at 8 lines (shifting the oldest one out), so length alone stops
+  // distinguishing "before" from "after" the instant it's been at the cap
+  // for a while — a length-based version of this passed everywhere in round
+  // 1 (log still short) and only broke once the log actually filled up.
+  //
+  // prevLogRef always holds the log as of the *previous* render, kept up to
+  // date by its own dependency-less effect further down — never mutated by
+  // the fire/item effects themselves. That sidesteps a real race an even
+  // earlier attempt here had: fire and item effects both react to the same
+  // incoming round update (their log line arrives in the same broadcast as
+  // pendingFire/lastItemEvent), and whichever effect happens to be declared
+  // first would otherwise advance a shared "settled" ref before the other
+  // gets to freeze against it — silently turning its freeze into a no-op
+  // depending on hook declaration order and (in dev) StrictMode's
+  // double-invoke. Reading a value that's only ever written by one place,
+  // once per render, after every other effect has already read it, has no
+  // such ordering hazard.
+  const [frozenLog, setFrozenLog] = useState<LogLine[] | null>(null);
+  const prevLogRef = useRef<LogLine[]>([]);
   // Read inside the fire-processing effect below instead of putting
   // fireStage in that effect's own deps — that effect sets fireStage
   // itself partway through (aiming -> firing -> result), and depending on
@@ -164,6 +195,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
       const targetEngineId = round.seatOrder.indexOf(pf.targetId);
 
       setFrozenState(settledStateRef.current);
+      setFrozenLog(prevLogRef.current);
       setFireStage("aiming");
       setGunAngle(seatAngle(preShotOrder, targetEngineId));
 
@@ -198,6 +230,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     if (round.lastItemEvent.seq === lastItemSeqRef.current) return;
     lastItemSeqRef.current = round.lastItemEvent.seq;
     const event = round.lastItemEvent;
+    setFrozenLog(prevLogRef.current);
     setActivatingItem(event.item);
     const t = setTimeout(() => {
       setActivatingItem(null);
@@ -205,6 +238,14 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     }, ITEM_ACTIVATE_MS);
     return () => clearTimeout(t);
   }, [round?.lastItemEvent?.seq]);
+
+  // Always runs last (declared after every effect that might freeze against
+  // it this same commit) and has no dependency array, so it captures this
+  // render's log for whichever *next* render needs "the log as of just
+  // before that one's new event" — see prevLogRef's comment above.
+  useEffect(() => {
+    prevLogRef.current = round?.log ?? [];
+  });
 
   // The final shot's own aim/fire/result banner must fully play out and get
   // dismissed (fireStage back to idle) before the winner overlay is allowed
@@ -241,9 +282,13 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     settledStateRef.current = round.state;
     setFireStage("idle");
     setFrozenState(null);
+    setFrozenLog(null);
   };
 
-  const continueAfterItem = () => setItemBanner(null);
+  const continueAfterItem = () => {
+    setItemBanner(null);
+    setFrozenLog(null);
+  };
 
   // The winner overlay must never fight the final shot's own aim/fire/
   // result banner for the screen — round.winnerRoomId is already true the
@@ -263,6 +308,9 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // finishes and the player taps through.
   const busy = fireStage !== "idle";
   const effectiveState: PublicGameState = busy && frozenState ? frozenState : round.state;
+  // Same idea as effectiveState, but for the log — see frozenLog's
+  // comment near its declaration.
+  const effectiveLog = frozenLog ?? round.log;
   const myEngineId = round.seatOrder.indexOf(myPlayerId);
   const myPlayer = effectiveState.players.find(p => p.id === myEngineId);
 
@@ -292,7 +340,10 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         <RoundAnnounce
           roundNumber={round.roundNumber}
           previousRoundNumber={endedRoundNumber ?? undefined}
-          onDone={() => setRevealStage("chests")}
+          // Round 1 plays with no items (see createInitialState) — nothing
+          // for any chest to reveal yet, so skip straight to the chamber
+          // instead of cycling through empty chests.
+          onDone={() => setRevealStage(round.roundNumber === 1 ? "chamber" : "chests")}
         />
       );
 
@@ -328,6 +379,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         bulletIcons={bulletIcons}
         introEndsAt={introEndsAt}
         introMs={ROUND_INTRO_MS}
+        showLegend={round.roundNumber === 1}
         controls={
           <button
             className="act primary"
@@ -431,7 +483,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         </div>
 
         <div className="log">
-          {round.log.map((l, i) => (
+          {effectiveLog.map((l, i) => (
             <div key={i} className={`line${l.cls ? ` ${l.cls}` : ""}`} dangerouslySetInnerHTML={{ __html: l.text }} />
           ))}
         </div>

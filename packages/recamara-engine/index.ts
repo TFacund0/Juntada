@@ -94,13 +94,15 @@ export function buildShells(): Shell[] {
 }
 
 export function createInitialState(names: string[]): GameState {
+  // Round 1 plays with no items at all — just the shotgun itself, so a
+  // fresh table learns the core loop before items start complicating it.
+  // The first reload (start of round 2) is what hands out the first
+  // ITEMS_PER_RELOAD items, same as every reload after it.
   const players: Player[] = names.map((name, i) => ({
     id: i,
     name: name.trim() || `Jugador ${i + 1}`,
     lives: STARTING_LIVES,
-    items: Array(ITEMS_PER_RELOAD)
-      .fill(null)
-      .map(() => randomItem()),
+    items: [],
   }));
   return {
     players,
