@@ -66,14 +66,53 @@ const meP1 = { playerId: "p1", roomCode: "TEST1" };
 const myPlayerP1: PublicPlayer = { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false };
 
 describe("Recámara RoundView — reveal", () => {
-  test("the announcement moves on by itself, then my own chest, then the chamber card with liveCount+blankCount bullet icons", async () => {
+  test("round 1 has no items to reveal — skips straight from the announcement to the chamber card, with the bullet legend", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const send = vi.fn();
-    const { rerender } = render(
-      <RoundView room={makeRoom()} me={meP1} myPlayer={myPlayerP1} myRole={null} wordReveal={null} isHost={true} send={send} />,
+    const noItemsState = { ...makeRound().state, players: makeRound().state.players.map(p => ({ ...p, items: [] })) };
+    render(
+      <RoundView
+        room={makeRoom({ state: noItemsState })}
+        me={meP1}
+        myPlayer={myPlayerP1}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={send}
+      />,
     );
 
     expect(screen.getByText("1", { selector: ".round-intro-number" })).toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(2000);
+
+    // No chest beat at all — nothing to reveal in round 1.
+    expect(document.querySelector(".chest-stage")).not.toBeInTheDocument();
+    expect(document.querySelector(".chamber-focus")).toBeInTheDocument();
+    expect(document.querySelectorAll(".bullet-row span")).toHaveLength(4);
+    expect(screen.getByText("🔴 real · 🟡 falsa")).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Listo, a disparar" }));
+    expect(send).toHaveBeenCalledWith({ type: "ready_for_duel" });
+    vi.useRealTimers();
+  });
+
+  test("round 2+: the announcement moves on by itself, then my own chest, then the chamber card with liveCount+blankCount bullet icons, no legend", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const send = vi.fn();
+    const { rerender } = render(
+      <RoundView
+        room={makeRoom({ roundNumber: 2 })}
+        me={meP1}
+        myPlayer={myPlayerP1}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    expect(screen.getByText("2", { selector: ".round-intro-number" })).toBeInTheDocument();
     expect(document.querySelector(".chamber-focus")).not.toBeInTheDocument();
     await vi.advanceTimersByTimeAsync(2000);
 
@@ -88,10 +127,12 @@ describe("Recámara RoundView — reveal", () => {
     await user.click(nextBtn);
 
     // The chamber card: gun + one 🔴/🟡 icon per shell (liveCount + blankCount),
-    // never the numeric "2 reales" text.
+    // never the numeric "2 reales" text, and no legend — round 1 already
+    // showed it.
     expect(document.querySelector(".chamber-focus")).toBeInTheDocument();
     expect(document.querySelectorAll(".bullet-row span")).toHaveLength(4);
     expect(screen.queryByText(/reales/)).not.toBeInTheDocument();
+    expect(screen.queryByText("🔴 real · 🟡 falsa")).not.toBeInTheDocument();
     expect(screen.getByText("Tiempo para mirar")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Listo, a disparar" }));
@@ -100,7 +141,7 @@ describe("Recámara RoundView — reveal", () => {
     // Re-rendering with readyForDuel reflecting just me shows the waiting screen.
     rerender(
       <RoundView
-        room={makeRoom({ readyForDuel: ["p1"] })}
+        room={makeRoom({ roundNumber: 2, readyForDuel: ["p1"] })}
         me={meP1}
         myPlayer={myPlayerP1}
         myRole={null}
@@ -118,7 +159,7 @@ describe("Recámara RoundView — reveal", () => {
     const send = vi.fn();
     render(
       <RoundView
-        room={makeRoom({ readyForDuel: [] })}
+        room={makeRoom({ roundNumber: 2, readyForDuel: [] })}
         me={meP1}
         myPlayer={myPlayerP1}
         myRole={null}

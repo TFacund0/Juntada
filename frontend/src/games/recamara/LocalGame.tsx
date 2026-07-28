@@ -376,7 +376,10 @@ export function LocalGame() {
         <RoundAnnounce
           roundNumber={roundNumber}
           previousRoundNumber={endedRoundNumber ?? undefined}
-          onDone={() => setRevealStage("chests")}
+          // Round 1 plays with no items (see createInitialState) — nothing
+          // for any chest to reveal yet, so skip straight to the chamber
+          // instead of cycling through empty chests.
+          onDone={() => setRevealStage(roundNumber === 1 ? "chamber" : "chests")}
         />
       );
 
@@ -423,6 +426,7 @@ export function LocalGame() {
         bulletIcons={bulletIcons}
         introEndsAt={introEndsAt}
         introMs={ROUND_INTRO_MS}
+        showLegend={roundNumber === 1}
         controls={
           <button className="act primary" onClick={() => enterDuel(state)}>
             Empezar a disparar

@@ -13,6 +13,7 @@ export function ChamberCard({
   introMs,
   controls,
   overlay,
+  showLegend = false,
 }: {
   shellCount: number;
   bulletIcons: string[];
@@ -20,6 +21,9 @@ export function ChamberCard({
   introMs: number;
   controls: ReactNode;
   overlay?: ReactNode;
+  // Only round 1 spells out what 🔴/🟡 mean — from round 2 on, the table
+  // already knows.
+  showLegend?: boolean;
 }) {
   return (
     <div className="recamara">
@@ -35,6 +39,7 @@ export function ChamberCard({
               <span key={i}>{icon}</span>
             ))}
           </div>
+          {showLegend && <p className="bullet-legend mono">🔴 real · 🟡 falsa</p>}
           <p className="shell-count mono">{shellCount} cartuchos en la recámara — el orden es secreto</p>
         </div>
         {introEndsAt > 0 && <Timer timerEnd={introEndsAt} total={introMs / 1000} label="Tiempo para mirar" />}

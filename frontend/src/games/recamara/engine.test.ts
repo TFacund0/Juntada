@@ -21,11 +21,11 @@ describe("recamara engine", () => {
     }
   });
 
-  test("createInitialState gives every player full lives and starting items", () => {
+  test("createInitialState gives every player full lives and no items — round 1 plays with none", () => {
     const state = createInitialState(["Ana", "Beto", "Caro"]);
     expect(state.players).toHaveLength(3);
     expect(state.players.every(p => p.lives === STARTING_LIVES)).toBe(true);
-    expect(state.players.every(p => p.items.length === ITEMS_PER_RELOAD)).toBe(true);
+    expect(state.players.every(p => p.items.length === 0)).toBe(true);
     expect(state.turnPos).toBe(0);
     expect(state.direction).toBe(1);
   });

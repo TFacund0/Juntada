@@ -43,6 +43,24 @@ async function clickThroughReveal(user: ReturnType<typeof userEvent.setup>, opts
   throw new Error("clickThroughReveal: didn't reach the duel within 20 steps");
 }
 
+// Round 1 always plays with zero items (see createInitialState) — any test
+// that needs a real item in hand has to first survive into round 2, which
+// only happens once a reload empties the chamber. Fires self-shots (always
+// a legal target) under fake timers until that reload's reveal appears,
+// then clicks through it like clickThroughReveal does.
+async function playIntoRound2(user: ReturnType<typeof userEvent.setup>) {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
+  await clickThroughReveal(user, { fakeTimers: true });
+  for (let i = 0; i < 8 && !document.querySelector(".round-intro"); i++) {
+    await user.click(screen.getByRole("button", { name: "Dispararte a vos mismo" }));
+    await vi.advanceTimersByTimeAsync(2000);
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+  }
+  await clickThroughReveal(user, { fakeTimers: true });
+  vi.useRealTimers();
+}
+
 describe("Recámara LocalGame", () => {
   test("renders the setup screen with two default players", () => {
     render(<LocalGame />);
@@ -85,7 +103,7 @@ describe("Recámara LocalGame", () => {
     vi.useRealTimers();
   }, 20000);
 
-  test("the reveal screen cycles one chest per player before the chamber card, popping one item per tap", async () => {
+  test("round 1 has no items to reveal — skips straight from the announcement to the chamber card", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
     await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
@@ -94,6 +112,43 @@ describe("Recámara LocalGame", () => {
     // itself shortly.
     expect(screen.getByText("1", { selector: ".round-intro-number" })).toBeInTheDocument();
     await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // No chest beat at all in round 1 (nothing to reveal) — straight to the
+    // chamber card, with the 🔴/🟡 legend shown since this is everyone's
+    // first look at it.
+    expect(document.querySelector(".chest-stage")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".bullet-row span").length).toBeGreaterThan(0);
+    expect(screen.getByText("Tiempo para mirar")).toBeInTheDocument();
+    expect(screen.getByText("🔴 real · 🟡 falsa")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Empezar a disparar" }));
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    expect(screen.getByText(/Turno de/)).toBeInTheDocument();
+  }, 15000);
+
+  test("once the chamber reloads (round 2+), the reveal screen cycles one chest per player before the chamber card, popping one item per tap, without the legend", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup();
+    render(<LocalGame />);
+    await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
+    await clickThroughReveal(user, { fakeTimers: true }); // round 1: no items, straight to the duel
+
+    // Fire self-shots (always a legal target) until a reload actually
+    // happens — random shell order, so this just needs enough shots to
+    // guarantee it eventually empties an at-most-8-shell chamber.
+    for (let i = 0; i < 8 && !document.querySelector(".round-intro"); i++) {
+      await user.click(screen.getByRole("button", { name: "Dispararte a vos mismo" }));
+      await vi.advanceTimersByTimeAsync(2000);
+      await user.click(screen.getByRole("button", { name: "Continuar" }));
+    }
+    expect(document.querySelector(".round-intro")).toBeInTheDocument();
+    // The reload's announcement first closes out round 1 ("Ronda 1
+    // Terminada"), then crossfades into "Ronda 2" — longer, multi-stage,
+    // than round 1's own single-stage announce — so keep waiting until it
+    // actually moves on, rather than a single fixed-length wait.
+    while (document.querySelector(".round-intro")) {
+      await vi.advanceTimersByTimeAsync(2000);
+    }
 
     // Beat 2: items — your own chest, nothing about the gun yet.
     expect(screen.getByText("Jugador 1", { selector: ".chest-title b" })).toBeInTheDocument();
@@ -116,57 +171,67 @@ describe("Recámara LocalGame", () => {
     // player 2's own chest, freshly closed again.
     await user.click(nextBtn);
     expect(screen.getByText("Turno de Jugador 2")).toBeInTheDocument();
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await vi.advanceTimersByTimeAsync(1000);
     expect(screen.getByText("Jugador 2", { selector: ".chest-title b" })).toBeInTheDocument();
     expect(document.querySelectorAll(".chest-collected-item")).toHaveLength(0);
 
-    // Finishing the last player's chest moves to beat 2: the chamber card
-    // (gun + shuffled bullet icons + a visible countdown), only then "on to
-    // the duel.
+    // Finishing the last player's chest moves to beat 3: the chamber card
+    // (gun + shuffled bullet icons + a visible countdown) — no legend this
+    // time, the table already saw it in round 1 — only then on to the duel.
     await user.click(document.querySelector(".chest-big")!);
     await user.click(document.querySelector(".chest-big")!);
     const lastBtn = screen.getByRole("button", { name: "Ver la recámara" });
     await user.click(lastBtn);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await vi.advanceTimersByTimeAsync(1000);
 
     expect(document.querySelectorAll(".bullet-row span").length).toBeGreaterThan(0);
     expect(screen.getByText("Tiempo para mirar")).toBeInTheDocument();
+    expect(screen.queryByText("🔴 real · 🟡 falsa")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Empezar a disparar" }));
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await vi.advanceTimersByTimeAsync(1000);
     expect(screen.getByText(/Turno de/)).toBeInTheDocument();
-  }, 15000);
+    vi.useRealTimers();
+  }, 20000);
 
   test("tapping a player opens a read-only items sheet, and your own item opens the use modal", async () => {
+    // Round 1 has no items to test with (see createInitialState) — play
+    // into round 2's reload first, which is what actually hands out items.
     const user = userEvent.setup();
     render(<LocalGame />);
-    await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
-    await clickThroughReveal(user);
+    await playIntoRound2(user);
+
+    const currentName = screen.getByText(/Turno de/).querySelector("strong")!.textContent!;
+    const otherName = screen
+      .getAllByText(/^Jugador \d$/, { selector: ".token-name" })
+      .map(el => el.textContent)
+      .find(n => n !== currentName)!;
 
     // Opening the *other* player's token is read-only: no clickable items.
-    await user.click(screen.getByText("Jugador 2", { selector: ".token-name" }));
-    expect(screen.getByText("Jugador 2", { selector: "b" })).toBeInTheDocument();
+    await user.click(screen.getByText(otherName, { selector: ".token-name" }));
+    expect(screen.getByText(otherName, { selector: ".rec-sheet-head b" })).toBeInTheDocument();
     const rivalItemButtons = screen.getAllByRole("button").filter(b => b.className.includes("rec-sheet-item"));
     expect(rivalItemButtons.every(b => (b as HTMLButtonElement).disabled)).toBe(true);
     await user.click(screen.getByTitle("Cerrar"));
 
     // Your own token during your turn: items are clickable and open the modal.
-    await user.click(screen.getByText("Jugador 1", { selector: ".token-name" }));
+    await user.click(screen.getByText(currentName, { selector: ".token-name" }));
     const myItemButtons = screen.getAllByRole("button").filter(b => b.className.includes("rec-sheet-item"));
     await user.click(myItemButtons[0]);
     expect(document.querySelector(".rec-modal")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
-  }, 15000);
+  }, 20000);
 
   test("the current player's items are always visible below the fire options", async () => {
+    // Round 1 has no items to test with (see createInitialState) — play
+    // into round 2's reload first, which is what actually hands out items.
     const user = userEvent.setup();
     render(<LocalGame />);
-    await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
-    await clickThroughReveal(user);
+    await playIntoRound2(user);
 
     const itemButtons = document.querySelectorAll(".your-items .item-btn");
     expect(itemButtons.length).toBe(2);
     await user.click(itemButtons[0] as HTMLButtonElement);
     expect(document.querySelector(".rec-modal")).toBeInTheDocument();
-  }, 15000);
+  }, 20000);
 });
