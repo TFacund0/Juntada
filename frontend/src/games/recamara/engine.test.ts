@@ -185,11 +185,15 @@ describe("recamara engine", () => {
       { kind: "live", spent: false, revealed: false },
     ];
     state.idx = 1;
-    for (let i = 0; i < 20; i++) {
+    // Array.from(...).forEach instead of a for-loop — a plain `for` calling
+    // useItem trips eslint's react-hooks/rules-of-hooks (it's only named
+    // like a hook, it isn't one, but the lint rule can't tell the
+    // difference from a bare loop).
+    Array.from({ length: 20 }).forEach(() => {
       const result = useItem(state, "📞");
       expect(result.phoneHint?.positionFromNow).toBeGreaterThanOrEqual(1);
       expect(result.state.shells[0].revealed).toBe(true); // already revealed, untouched
-    }
+    });
   });
 
   test("describeItemResult redacts the teléfono hint when revealPhoneHint is false", () => {
