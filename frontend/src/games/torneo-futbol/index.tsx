@@ -7,6 +7,7 @@ import type { GameDef } from "../gameTypes";
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
 const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
+const LobbyInfo = lazy(() => import("./LobbyInfo").then(m => ({ default: m.LobbyInfo })));
 
 // Bracket/fixture organizer for fútbol sessions between friends: sorteo de
 // equipos (ruleta aleatoria o manual) + eliminación directa con goles
@@ -18,7 +19,7 @@ export const torneoFutbolGame: GameDef = {
   icon: "🏆",
   description: "Armá un torneo de fútbol entre amigos: sorteo de equipos, eliminación directa y estadísticas de goles.",
   minPlayers: 2,
-  category: "grupo",
+  category: "equipos",
   maintenance: false,
   tabbedLobby: true,
   // Mirrors startRound's own gates (engine.ts) so the lobby shows why
@@ -43,4 +44,5 @@ export const torneoFutbolGame: GameDef = {
   LocalGame,
   ConfigPanel,
   RoundView,
+  LobbyInfo,
 };

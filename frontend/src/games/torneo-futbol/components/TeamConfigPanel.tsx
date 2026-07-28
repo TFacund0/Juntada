@@ -207,19 +207,123 @@ export function TeamConfigPanel<Id extends string | number>({
 
       {tab === "assign" && (
         <>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 13, color: "#9089c0", margin: "0 0 10px" }}>
-              Asigná un equipo a cada jugador: con la ruleta o elegilo vos manualmente.
-            </p>
-            <Btn variant="success" onClick={runRouletteAll} disabled={!!spinningId || teams.length < players.length}>
-              🎰 Girar la ruleta para todos
-            </Btn>
-            {teams.length < players.length && (
-              <p style={{ fontSize: 12, color: "#F09595", marginTop: 10 }}>
-                Necesitás al menos {players.length} equipos para poder sortear — agregá {players.length - teams.length} más en la pestaña
-                "Equipos".
+          <div style={S.card}>
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <p style={{ fontSize: 13, color: "#9089c0", margin: "0 0 10px" }}>
+                Asigná un equipo a cada jugador: con la ruleta o elegilo vos manualmente.
               </p>
-            )}
+              <Btn variant="success" onClick={runRouletteAll} disabled={!!spinningId || teams.length < players.length}>
+                🎰 Girar la ruleta para todos
+              </Btn>
+              {teams.length < players.length && (
+                <p style={{ fontSize: 12, color: "#F09595", marginTop: 10 }}>
+                  Necesitás al menos {players.length} equipos para poder sortear — agregá {players.length - teams.length} más en la pestaña
+                  "Equipos".
+                </p>
+              )}
+            </div>
+
+            {players.map((p, i) => {
+              const team = assignments[p.id];
+              const isSpinning = spinningId === p.id;
+              const noTeamsLeft = teams.filter(t => !usedTeams.has(t)).length === 0;
+              return (
+                <div
+                  key={p.id}
+                  style={{
+                    paddingTop: i === 0 ? 0 : 14,
+                    marginTop: i === 0 ? 0 : 14,
+                    borderTop: i === 0 ? undefined : "1px solid rgba(127,119,221,0.12)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: team && !isSpinning ? 0 : 12 }}>
+                    <Avatar name={p.name} size={32} />
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 15,
+                        flex: 1,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {p.name}
+                    </span>
+                    {isSpinning ? (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#EF9F27" }}>Girando...</span>
+                    ) : team ? (
+                      <span
+                        style={{ ...S.pill(true), cursor: "pointer", maxWidth: "55%", flexShrink: 0 }}
+                        onClick={() => clearAssignment(p.id)}
+                      >
+                        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🏳️ {team}</span>{" "}
+                        <span style={{ marginLeft: 4, opacity: 0.6, flexShrink: 0 }}>×</span>
+                      </span>
+                    ) : (
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                        <button
+                          onClick={() => spinForPlayer(p.id)}
+                          disabled={!!spinningId || noTeamsLeft}
+                          title={noTeamsLeft ? "No quedan equipos disponibles" : undefined}
+                          style={{ ...S.btn("success", !!spinningId || noTeamsLeft), width: "auto", padding: "8px 12px", fontSize: 13 }}
+                        >
+                          🎰
+                        </button>
+                        <Btn
+                          variant="ghost"
+                          onClick={() => setManualPick(manualPick === p.id ? null : p.id)}
+                          disabled={!!spinningId || noTeamsLeft}
+                          style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
+                        >
+                          Elegir equipo
+                        </Btn>
+                      </div>
+                    )}
+                  </div>
+
+                  {!team && !isSpinning && noTeamsLeft && (
+                    <p style={{ fontSize: 12, color: "#F09595", margin: "8px 0 0" }}>
+                      No quedan equipos disponibles — agregá más en la pestaña "Equipos".
+                    </p>
+                  )}
+
+                  {isSpinning && (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "10px 8px",
+                        borderRadius: 10,
+                        background: "rgba(239,159,39,0.1)",
+                        border: "1px solid rgba(239,159,39,0.35)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <span style={{ fontSize: 15, fontWeight: 800, color: "#EF9F27" }}>🏳️ {spinLabel}</span>
+                    </div>
+                  )}
+
+                  {!team && !isSpinning && manualPick === p.id && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                      {teams
+                        .filter(t => !usedTeams.has(t))
+                        .map(t => (
+                          <button
+                            key={t}
+                            onClick={() => assignManually(p.id, t)}
+                            style={{ ...S.btn("ghost"), width: "auto", padding: "8px 14px", fontSize: 13, borderRadius: 8 }}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div style={S.card}>
@@ -255,101 +359,6 @@ export function TeamConfigPanel<Id extends string | number>({
               })}
             </div>
           </div>
-
-          {players.map(p => {
-            const team = assignments[p.id];
-            const isSpinning = spinningId === p.id;
-            const noTeamsLeft = teams.filter(t => !usedTeams.has(t)).length === 0;
-            return (
-              <div key={p.id} style={S.card}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: team && !isSpinning ? 0 : 12 }}>
-                  <Avatar name={p.name} size={32} />
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 15,
-                      flex: 1,
-                      minWidth: 0,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {p.name}
-                  </span>
-                  {isSpinning ? (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#EF9F27" }}>Girando...</span>
-                  ) : team ? (
-                    <span
-                      style={{ ...S.pill(true), cursor: "pointer", maxWidth: "55%", flexShrink: 0 }}
-                      onClick={() => clearAssignment(p.id)}
-                    >
-                      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🏳️ {team}</span>{" "}
-                      <span style={{ marginLeft: 4, opacity: 0.6, flexShrink: 0 }}>×</span>
-                    </span>
-                  ) : (
-                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                      <button
-                        onClick={() => spinForPlayer(p.id)}
-                        disabled={!!spinningId || noTeamsLeft}
-                        title={noTeamsLeft ? "No quedan equipos disponibles" : undefined}
-                        style={{ ...S.btn("success", !!spinningId || noTeamsLeft), width: "auto", padding: "8px 12px", fontSize: 13 }}
-                      >
-                        🎰
-                      </button>
-                      <Btn
-                        variant="ghost"
-                        onClick={() => setManualPick(manualPick === p.id ? null : p.id)}
-                        disabled={!!spinningId || noTeamsLeft}
-                        style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
-                      >
-                        Elegir equipo
-                      </Btn>
-                    </div>
-                  )}
-                </div>
-
-                {!team && !isSpinning && noTeamsLeft && (
-                  <p style={{ fontSize: 12, color: "#F09595", margin: "8px 0 0" }}>
-                    No quedan equipos disponibles — agregá más en la pestaña "Equipos".
-                  </p>
-                )}
-
-                {isSpinning && (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "10px 8px",
-                      borderRadius: 10,
-                      background: "rgba(239,159,39,0.1)",
-                      border: "1px solid rgba(239,159,39,0.35)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <span style={{ fontSize: 15, fontWeight: 800, color: "#EF9F27" }}>🏳️ {spinLabel}</span>
-                  </div>
-                )}
-
-                {!team && !isSpinning && manualPick === p.id && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-                    {teams
-                      .filter(t => !usedTeams.has(t))
-                      .map(t => (
-                        <button
-                          key={t}
-                          onClick={() => assignManually(p.id, t)}
-                          style={{ ...S.btn("ghost"), width: "auto", padding: "8px 14px", fontSize: 13, borderRadius: 8 }}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </>
       )}
 
