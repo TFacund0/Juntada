@@ -6,7 +6,7 @@ import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { Avatar } from "../../components/Avatar";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
-import { TeamConfigPanel } from "./team-config/TeamConfigPanel";
+import { TeamConfigPanel } from "./components/TeamConfigPanel";
 import { buildBracket, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 import { ErrorBanner } from "../../components/ErrorBanner";
@@ -274,29 +274,6 @@ export function LocalGame() {
 
           {trackGoals && (
             <div style={S.card}>
-              <span style={S.label}>Estadísticas del torneo</span>
-              {topScorer && topScorer.goalsFor > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <span style={{ fontSize: 20 }}>⚽</span>
-                  <span style={{ fontSize: 13 }}>
-                    Máximo goleador: <strong style={{ color: "#5DCAA5" }}>{topScorer.player.name}</strong> ({topScorer.goalsFor} goles)
-                  </span>
-                </div>
-              )}
-              {leakiest && leakiest.goalsAgainst > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>🥅</span>
-                  <span style={{ fontSize: 13 }}>
-                    Valla más goleada: <strong style={{ color: "#F09595" }}>{leakiest.player.name}</strong> ({leakiest.goalsAgainst}{" "}
-                    recibidos)
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {trackGoals && (
-            <div style={S.card}>
               <span style={S.label}>Tabla de jugadores</span>
               <div
                 style={{
@@ -344,6 +321,29 @@ export function LocalGame() {
                   </span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {trackGoals && (
+            <div style={S.card}>
+              <span style={S.label}>Estadísticas del torneo</span>
+              {topScorer && topScorer.goalsFor > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 20 }}>⚽</span>
+                  <span style={{ fontSize: 13 }}>
+                    Máximo goleador: <strong style={{ color: "#5DCAA5" }}>{topScorer.player.name}</strong> ({topScorer.goalsFor} goles)
+                  </span>
+                </div>
+              )}
+              {leakiest && leakiest.goalsAgainst > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>🥅</span>
+                  <span style={{ fontSize: 13 }}>
+                    Valla más goleada: <strong style={{ color: "#F09595" }}>{leakiest.player.name}</strong> ({leakiest.goalsAgainst}{" "}
+                    recibidos)
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

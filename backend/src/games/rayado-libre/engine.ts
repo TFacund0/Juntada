@@ -37,7 +37,7 @@ const { scoreForGuess, isCorrectGuess, TURN_SECONDS, DRAWER_POINTS_PER_GUESS, bu
     computeWordHint: (word: string, hintOrder: readonly number[], elapsedSeconds: number) => string;
     popLastDrawUnit: (strokes: readonly DrawAction[]) => DrawAction[];
   };
-const { shuffle } = require("../../utils/shuffle");
+const { shuffle } = require("@juntada/core-utils");
 
 const MIN_PLAYERS = 3;
 const CHOOSE_SECONDS = 15;
@@ -45,6 +45,28 @@ const CHOOSE_SECONDS = 15;
 // drawing never gets close to this; it only guards against one very long
 // turn (or a misbehaving client) growing the broadcast payload unbounded.
 const MAX_STROKES = 3000;
+// A real single mouse-move/touch-move stroke never gets close to this many
+// points; it only guards against a malformed/malicious payload.points (huge
+// array, or non-numeric entries) getting stored and rebroadcast verbatim to
+// every other player's canvas — unlike every other draw_* field, this one
+// wasn't shape-checked before.
+const MAX_POINTS_PER_STROKE = 5000;
+
+// Every other payload field here goes through String()/Number(), which
+// coerce anything into a usable (if wrong) value — an array can't be
+// coerced the same way, so a malformed payload.points needs its own check
+// instead of just trusting the client's `as [number, number][]` cast.
+function parseStrokePoints(raw: unknown): [number, number][] | null {
+  if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_POINTS_PER_STROKE) return null;
+  const points: [number, number][] = [];
+  for (const p of raw) {
+    if (!Array.isArray(p) || p.length !== 2) return null;
+    const [x, y] = p;
+    if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+    points.push([x, y]);
+  }
+  return points;
+}
 // Kept generous enough that the reveal-phase recap ("cómo veníamos
 // escribiendo") still shows a real conversation instead of just the last 5
 // messages of the whole turn — the live "drawing" chat view is what trims
@@ -373,7 +395,8 @@ function handleAction(
 
     case "draw_stroke": {
       if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
-      const points = payload.points as [number, number][];
+      const points = parseStrokePoints(payload.points);
+      if (!points) return { handled: false };
       pushDrawAction(room, {
         type: "stroke",
         points,
@@ -386,7 +409,10 @@ function handleAction(
 
     case "draw_fill": {
       if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
-      pushDrawAction(room, { type: "fill", x: Number(payload.x), y: Number(payload.y), color: String(payload.color) });
+      const x = Number(payload.x);
+      const y = Number(payload.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return { handled: false };
+      pushDrawAction(room, { type: "fill", x, y, color: String(payload.color) });
       return { handled: true };
     }
 

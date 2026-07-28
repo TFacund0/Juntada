@@ -36,7 +36,7 @@ const { CATEGORIES } = require("@juntada/impostor-data") as { CATEGORIES: Record
 function wordHint(catKey: string, word: string): string | null {
   return CATEGORIES[catKey]?.hints?.[word] ?? null;
 }
-const { shuffle } = require("../../utils/shuffle");
+const { shuffle } = require("@juntada/core-utils");
 const { timers } = require("../../state/roomStore") as { timers: Map<string, NodeJS.Timeout> };
 
 interface ImpostorConfig {

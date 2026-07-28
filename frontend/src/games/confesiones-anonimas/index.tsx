@@ -10,7 +10,7 @@ export const confesionesAnonimasGame: GameDef = {
   icon: "🤫",
   description: "Cada jugador escribe una confesión anónima y el grupo intenta adivinar de quién es cada una.",
   minPlayers: 3,
-  category: "grupo",
+  category: "fiesta",
   comingSoon: true,
   rules: [
     "Cada jugador escribe una confesión o secreto de forma anónima.",

@@ -7,7 +7,7 @@
 // shared.ts. No game rules live in any of these — those go through the
 // engine registered for the room's gameType.
 
-import type { Room, Group, ClientMessage } from "@juntada/shared-types";
+import type { Room, Group, ClientMessage, ClientMessageType } from "@juntada/shared-types";
 import type { ClientInfo } from "../state/roomStore";
 import { logger } from "../logger";
 
@@ -21,7 +21,7 @@ const { rooms, groups, clients, activeSockets } = require("../state/roomStore") 
 };
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
-const { sendTo, broadcastState, broadcastGroupState, getRoomPublicState, broadcastRoundReveal } = require("./messaging");
+const { sendTo, broadcastState, broadcastGroupState, broadcastRoundReveal } = require("./messaging");
 const { syncPhaseTimer, scheduleOfflineReaction } = require("./shared");
 const roomHandlers = require("./roomHandlers");
 const groupHandlers = require("./groupHandlers");
@@ -107,10 +107,14 @@ function handleDisconnect(ws: WS): void {
   clients.delete(ws);
 }
 
-type Handler = (ws: WS, msg: any, info: ClientInfo) => void;
+type Handler = (ws: WS, msg: ClientMessage, info: ClientInfo) => void;
 
-// Message type -> handler(ws, msg, info)
-const HANDLERS: Record<string, Handler> = {
+// Message type -> handler(ws, msg, info). Keyed by ClientMessageType (the
+// same SCHEMAS-derived union validateMessage checks every incoming message
+// against, see @juntada/shared-types) instead of a bare string, so a typo'd
+// key or a message type missing its handler is a build error here instead
+// of a silent no-op the first time a real client sends it.
+const HANDLERS: Record<ClientMessageType, Handler> = {
   create_room: (ws, msg) => roomHandlers.createRoom(ws, msg),
   join_room: (ws, msg) => roomHandlers.joinRoom(ws, msg),
   check_room_code: (ws, msg) => roomHandlers.checkRoomCode(ws, msg),
@@ -162,10 +166,16 @@ const HANDLERS: Record<string, Handler> = {
   ask_question: roomHandlers.gameAction("ask_question"),
   answer_question: roomHandlers.gameAction("answer_question"),
   concede: roomHandlers.gameAction("concede"),
+  fire: roomHandlers.gameAction("fire"),
+  use_item: roomHandlers.gameAction("use_item"),
+  ready_for_duel: roomHandlers.gameAction("ready_for_duel"),
   back_to_lobby: roomHandlers.backToLobby,
   kick_player: roomHandlers.kickPlayer,
   kick_member: groupHandlers.kickMember,
-  transfer_host: transferHost,
+  // validateMessage (see server.ts) already narrowed `msg` to this exact
+  // shape by the time a handler runs — the cast just tells TS what the
+  // dispatch table itself can't express per-key.
+  transfer_host: (ws, msg, info) => transferHost(ws, msg as Extract<ClientMessage, { type: "transfer_host" }>, info),
   ping: (ws: WS) => ping(ws),
 };
 

@@ -7,14 +7,16 @@ import { GameDetailDialog } from "./GameDetailDialog";
 
 const CATEGORY_LABEL: Record<GameCategory, string> = {
   destacados: "Destacados",
-  grupo: "Para competir",
   rapidos: "Juegos rápidos",
+  palabras: "Palabras e ingenio",
+  fiesta: "Para la previa",
   equipos: "Por equipos",
+  tematicos: "Con su propia temática",
   otros: "Más juegos",
 };
 
 // Fixed order for category sections when there's no active search.
-const CATEGORY_ORDER: GameCategory[] = ["destacados", "grupo", "rapidos", "equipos", "otros"];
+const CATEGORY_ORDER: GameCategory[] = ["destacados", "rapidos", "palabras", "fiesta", "equipos", "tematicos", "otros"];
 
 type AvailabilityFilter = "available" | "soon";
 

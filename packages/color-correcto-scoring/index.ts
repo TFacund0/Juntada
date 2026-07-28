@@ -28,6 +28,12 @@ export function hexToRgb(hex: string): [number, number, number] {
 
 export const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
+// How long the target color stays visible before it's hidden and guessing
+// starts — shared by the backend engine (drives showEndsAt) and both
+// frontend modes (drives their own Timer/setTimeout), so all three can never
+// silently drift to different durations.
+export const SHOW_SECONDS = 5;
+
 // Keeps targets away from near-black/near-white, which are trivial to guess.
 export function randomTargetColor(): string {
   const h = Math.floor(Math.random() * 360);
@@ -78,4 +84,31 @@ export function scoreGuess(target: string, guess: string): number {
   const closeness = 1 - distance / MAX_DISTANCE;
   const score = 10 * Math.pow(Math.max(0, closeness), SCORE_EXPONENT);
   return Math.round(score * 100) / 100;
+}
+
+// ─── Online wire types ───────────────────────────────────────────────────
+// The exact shape backend/src/games/color-correcto/engine.ts's
+// getPublicRoundView/getPrivateView/getRevealMessage return, and what
+// frontend/.../color-correcto/RoundView.tsx reads room.round/myRole/
+// wordReveal as — one shared definition instead of two hand-mirrored copies
+// that could silently drift apart on a field rename.
+export interface ColorCorrectoRoundView {
+  target?: string | null;
+  showEndsAt?: number | null;
+  guessEndsAt?: number | null;
+  submittedCount?: number;
+  guessersOnline?: number;
+  guesses?: Record<string, string> | null;
+  scores?: Record<string, number> | null;
+  playMode?: "endless" | "rounds";
+  roundLimit?: number;
+  roundsPlayed?: number;
+}
+
+export interface ColorCorrectoPrivateRole {
+  myGuess: string | null;
+}
+
+export interface ColorCorrectoReveal {
+  target: string;
 }

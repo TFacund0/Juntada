@@ -8,12 +8,14 @@ import { AddPlayerForm } from "../../components/AddPlayerForm";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { TurnCircle } from "../../components/TurnCircle";
+import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { useFlashError } from "../../hooks/useFlashError";
 import { nextPlayerName } from "../../utils/playerNames";
-import { shuffle } from "../../utils/shuffle";
-import { normalizeWord } from "@juntada/tutifruti-words";
-import { WordsEditor } from "./WordsEditor";
-import { Standings, computeMatchRanks, type StandingEntry } from "./Standings";
+import { shuffle } from "@juntada/core-utils";
+import { isCorrectGuess, MAX_WRONG_GUESSES, computeMatchRanks, type QuienSoyResult } from "@juntada/quien-soy-data";
+import { WordsEditor } from "./components/WordsEditor";
+import { Standings, buildStandingEntries } from "./components/Standings";
+import { OthersWordsList } from "./components/OthersWordsList";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ¿QUIÉN SOY? — un solo dispositivo, pasándoselo por turnos. El grupo anota
@@ -24,8 +26,6 @@ import { Standings, computeMatchRanks, type StandingEntry } from "./Standings";
 // que otro empata en el puesto.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const MAX_WRONG_GUESSES = 3;
-
 interface LocalPlayer {
   id: string;
   name: string;
@@ -35,12 +35,6 @@ interface QAEntry {
   turnPlayerId: string;
   question: string;
   answer: "si" | "no";
-}
-
-interface PlayerResult {
-  playerId: string;
-  outcome: "solved" | "eliminated" | "conceded";
-  lap: number;
 }
 
 type Phase = "setup" | "turnHandoff" | "turnAction" | "answerHandoff" | "answerInput" | "final";
@@ -59,11 +53,17 @@ export function LocalGame() {
   const [score, setScore] = useState<Record<string, number>>({});
 
   const [turnQueue, setTurnQueue] = useState<string[]>([]);
+  // Stable snapshot from when the round started — turnQueue itself rotates
+  // and shrinks as players finish, which is right for deciding whose turn it
+  // is but wrong for display: the circle should keep every avatar in its
+  // original slot and just move the highlight, same as the online engine's
+  // turnOrder (see backend/src/games/quien-soy/engine.ts).
+  const [turnOrder, setTurnOrder] = useState<string[]>([]);
   const [lapNumber, setLapNumber] = useState(1);
   const [turnsThisLap, setTurnsThisLap] = useState(0);
   const [lapSize, setLapSize] = useState(0);
   const [wrongGuesses, setWrongGuesses] = useState<Record<string, number>>({});
-  const [results, setResults] = useState<PlayerResult[]>([]);
+  const [results, setResults] = useState<QuienSoyResult[]>([]);
   const [qaLog, setQaLog] = useState<QAEntry[]>([]);
   const [actionMode, setActionMode] = useState<"idle" | "asking" | "guessing">("idle");
   const [questionText, setQuestionText] = useState("");
@@ -90,6 +90,7 @@ export function LocalGame() {
     setResults([]);
     const queue = shuffle(players.map(p => p.id));
     setTurnQueue(queue);
+    setTurnOrder(queue);
     setLapNumber(1);
     setTurnsThisLap(0);
     setLapSize(queue.length);
@@ -98,7 +99,7 @@ export function LocalGame() {
     setPhase("turnHandoff");
   };
 
-  const finalizeResults = (finalResults: PlayerResult[]) => {
+  const finalizeResults = (finalResults: QuienSoyResult[]) => {
     const ranks = computeMatchRanks(finalResults, players.length);
     setScore(s => {
       const next = { ...s };
@@ -109,7 +110,7 @@ export function LocalGame() {
     });
   };
 
-  const finishTurn = (stillActive: boolean, updatedResults?: PlayerResult[]) => {
+  const finishTurn = (stillActive: boolean, updatedResults?: QuienSoyResult[]) => {
     // Persist any newly-recorded result (a solve/eliminate/concede) right
     // away, not just once the queue empties — otherwise a concede/elimination
     // that isn't the very last one to happen gets silently dropped the next
@@ -149,7 +150,7 @@ export function LocalGame() {
 
   const submitGuess = () => {
     const playerId = turnQueue[0];
-    const correct = normalizeWord(guessText) === normalizeWord(words[playerId]);
+    const correct = isCorrectGuess(guessText, words[playerId]);
     setGuessText("");
     setActionMode("idle");
     if (correct) {
@@ -223,7 +224,7 @@ export function LocalGame() {
           <StartButton disabled={players.length < 2 || !allWordsFilled} onClick={startGame}>
             Empezar a jugar
           </StartButton>
-          {players.length < 2 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo 2 jugadores</p>}
+          <MinPlayersHint count={players.length} min={2} />
           {players.length >= 2 && !allWordsFilled && (
             <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Faltan palabras — completalas en "Configuración"</p>
           )}
@@ -247,22 +248,24 @@ export function LocalGame() {
 
   if (phase === "turnAction") {
     const playerId = turnQueue[0];
+    const outcomeByPlayer = Object.fromEntries(results.map(r => [r.playerId, r.outcome]));
     return (
       <div>
         <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Ronda {lapNumber}</p>
 
-        <TurnCircle turnOrder={turnQueue} turnIndex={0} players={players} meId={playerId} />
+        <div style={S.card}>
+          <TurnCircle
+            turnOrder={turnOrder}
+            turnIndex={Math.max(0, turnOrder.indexOf(playerId))}
+            players={players}
+            meId={playerId}
+            outcomes={outcomeByPlayer}
+          />
+        </div>
 
         <div style={S.card}>
           <span style={S.label}>Palabras del resto</span>
-          {players
-            .filter(p => p.id !== playerId)
-            .map(p => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 14 }}>
-                <span style={{ color: "#b8b0d4" }}>{p.name}</span>
-                <span style={{ fontWeight: 700 }}>{words[p.id]}</span>
-              </div>
-            ))}
+          <OthersWordsList entries={players.filter(p => p.id !== playerId).map(p => ({ id: p.id, name: p.name, word: words[p.id] }))} />
         </div>
 
         {wrongGuesses[playerId] > 0 && (
@@ -374,21 +377,7 @@ export function LocalGame() {
   }
 
   // ── FINAL ──
-  const entries: StandingEntry[] = players
-    .map(p => {
-      const result = results.find(r => r.playerId === p.id);
-      const ranks = computeMatchRanks(results, players.length);
-      const rankInfo = ranks[p.id];
-      return {
-        id: p.id,
-        name: p.name,
-        outcome: (result?.outcome ?? "playing") as StandingEntry["outcome"],
-        rank: rankInfo?.rank ?? null,
-        word: words[p.id] ?? null,
-        points: rankInfo?.points ?? 0,
-      };
-    })
-    .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+  const entries = buildStandingEntries(players, results, words, score);
 
   return (
     <div>

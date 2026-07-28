@@ -6,12 +6,13 @@ import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
-import { randomTargetColor, hslToHex, scoreGuess } from "@juntada/color-correcto-scoring";
-import { ColorPicker, type Hsl } from "./ColorPicker";
-import { ColorCompareRow } from "./ColorCompareRow";
-import { PlayersConfig } from "./PlayersConfig";
-import { GuessTimerConfig } from "./GuessTimerConfig";
-import { Leaderboard } from "./Leaderboard";
+import { randomTargetColor, scoreGuess, SHOW_SECONDS } from "@juntada/color-correcto-scoring";
+import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./components/ColorPicker";
+import { ColorCompareRow } from "./components/ColorCompareRow";
+import { PlayersConfig } from "./components/PlayersConfig";
+import { GuessTimerConfig } from "./components/GuessTimerConfig";
+import { Leaderboard } from "./components/Leaderboard";
+import { TargetSwatch } from "./components/TargetSwatch";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENCUENTRA EL COLOR CORRECTO — un solo dispositivo, pasándoselo por turnos.
@@ -21,9 +22,8 @@ import { Leaderboard } from "./Leaderboard";
 // juntos — así nadie ve el intento del anterior antes de jugar el propio.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SHOW_DURATION_MS = 5000;
+const SHOW_DURATION_MS = SHOW_SECONDS * 1000;
 const ROUND_OPTIONS = [3, 5, 7];
-const NEUTRAL_GUESS: Hsl = { h: 0, s: 0, l: 50 };
 
 type Phase = "setup" | "handoff" | "show" | "guess" | "roundResult" | "final";
 
@@ -37,7 +37,7 @@ export function LocalGame() {
   const [roundNumber, setRoundNumber] = useState(1);
   const [playerIndex, setPlayerIndex] = useState(0);
   const [target, setTarget] = useState("#808080");
-  const [guess, setGuess] = useState(NEUTRAL_GUESS);
+  const [guess, setGuess] = useState(NEUTRAL_HSL);
   const [roundGuesses, setRoundGuesses] = useState<string[]>([]);
   const [totals, setTotals] = useState<number[][]>([]);
   const [showEndsAt, setShowEndsAt] = useState(0);
@@ -79,7 +79,7 @@ export function LocalGame() {
     setRoundNumber(r);
     setPlayerIndex(0);
     setTarget(randomTargetColor());
-    setGuess(NEUTRAL_GUESS);
+    setGuess(NEUTRAL_HSL);
     setRoundGuesses([]);
     setShowEndsAt(Date.now() + SHOW_DURATION_MS);
     setPhase("handoff");
@@ -98,12 +98,12 @@ export function LocalGame() {
   const confirmGuess = () => {
     setRoundGuesses(g => {
       const next = [...g];
-      next[playerIndex] = hslToHex(guess.h, guess.s, guess.l);
+      next[playerIndex] = hexFromHsl(guess);
       return next;
     });
     if (playerIndex + 1 < names.length) {
       setPlayerIndex(playerIndex + 1);
-      setGuess(NEUTRAL_GUESS);
+      setGuess(NEUTRAL_HSL);
       setPhase("handoff");
     } else {
       setRevealNonce(n => n + 1);
@@ -176,17 +176,7 @@ export function LocalGame() {
       </div>
     );
 
-  if (phase === "show")
-    return (
-      <div>
-        {showEndsAt > 0 && <Timer timerEnd={showEndsAt} total={SHOW_DURATION_MS / 1000} label="Se oculta en" />}
-        <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Memorizá este color…</p>
-        <div
-          data-testid="target-swatch"
-          style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 20, background: target, border: "1px solid rgba(255,255,255,0.1)" }}
-        />
-      </div>
-    );
+  if (phase === "show") return <TargetSwatch target={target} timerEnd={showEndsAt > 0 ? showEndsAt : null} />;
 
   if (phase === "guess")
     return (

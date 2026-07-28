@@ -9,7 +9,7 @@ export const verdadORetoGame: GameDef = {
   icon: "🎲",
   description: "El clásico de siempre: en cada turno elegís entre responder una verdad incómoda o cumplir un reto.",
   minPlayers: 2,
-  category: "grupo",
+  category: "fiesta",
   comingSoon: true,
   rules: [
     "Por turnos, se elige a un jugador (o se sortea).",

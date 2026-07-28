@@ -275,11 +275,27 @@ export const SCHEMAS = {
   }),
   answer_question: z.object({
     type: z.literal("answer_question"),
-    answer: z.enum(["si", "no"]),
+    answer: z.enum(["si", "no", "skip"]),
     comment: z.string().trim().max(200).optional(),
   }),
   concede: z.object({
     type: z.literal("concede"),
+  }),
+  // Recámara — see backend/src/games/recamara/engine.ts. targetId/victim
+  // ids are the room's own player ids (uuid), already translated from the
+  // shared engine's small numeric ids by the time they cross the wire.
+  fire: z.object({
+    type: z.literal("fire"),
+    targetId: uuid,
+  }),
+  use_item: z.object({
+    type: z.literal("use_item"),
+    item: z.enum(["🔍", "🚬", "🪚", "🔄", "🧤", "📞", "🔒"]),
+    targetId: uuid.optional(),
+    stolenItem: z.enum(["🔍", "🚬", "🪚", "🔄", "🧤", "📞", "🔒"]).optional(),
+  }),
+  ready_for_duel: z.object({
+    type: z.literal("ready_for_duel"),
   }),
 } as const;
 

@@ -11,7 +11,7 @@ export const bombaGame: GameDef = {
   description:
     "Un temporizador oculto puede explotar en cualquier momento. Los jugadores se van pasando la bomba por turnos, y quien la tenga cuando explota pierde.",
   minPlayers: 3,
-  category: "grupo",
+  category: "fiesta",
   comingSoon: true,
   rules: [
     "Se activa un temporizador oculto que va a explotar en un momento aleatorio dentro de un rango.",

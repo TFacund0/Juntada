@@ -1,0 +1,1234 @@
+/* Recámara — tema propio (porteado del mockup), aislado bajo .recamara para
+   no pisar el theme inline compartido (theme/styles.ts) del resto de la app. */
+.recamara {
+  --rec-bg: #171310;
+  --rec-bg-raised: #211b16;
+  --rec-felt: #232b1f;
+  --rec-felt-line: #3a4531;
+  --rec-ink: #ece4d6;
+  --rec-ink-dim: #9a9082;
+  --rec-ink-faint: #6b6459;
+  --rec-live: #b3261e;
+  --rec-live-glow: #ff4d3d;
+  --rec-blank: #c99a4b;
+  --rec-blank-dim: #8a6f3e;
+  --rec-hair: #3a322a;
+  --rec-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  color: var(--rec-ink);
+}
+
+@media (prefers-color-scheme: light) {
+  .recamara {
+    --rec-bg: #efe9dc;
+    --rec-bg-raised: #e2dac8;
+    --rec-felt: #dbe3d1;
+    --rec-felt-line: #b7c4a9;
+    --rec-ink: #221d16;
+    --rec-ink-dim: #5b5344;
+    --rec-ink-faint: #8a8170;
+    --rec-live: #a3221b;
+    --rec-live-glow: #c9392f;
+    --rec-blank: #9c7530;
+    --rec-blank-dim: #7a5c26;
+    --rec-hair: #cabfa9;
+  }
+}
+
+.recamara * {
+  box-sizing: border-box;
+}
+
+.recamara .display {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", "Franklin Gothic Bold", sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.recamara .mono {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.recamara .setup-card {
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+.recamara .setup-card h2 {
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rec-ink-faint);
+}
+
+.recamara .name-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.recamara .name-row input {
+  flex: 1;
+  background: var(--rec-bg);
+  border: 1px solid var(--rec-hair);
+  border-radius: 4px;
+  color: var(--rec-ink);
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+}
+
+.recamara .name-row input:focus {
+  outline: none;
+  border-color: var(--rec-live);
+}
+
+.recamara .icon-btn {
+  background: transparent;
+  border: 1px solid var(--rec-hair);
+  border-radius: 4px;
+  color: var(--rec-ink-dim);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.recamara .icon-btn:hover {
+  border-color: var(--rec-live);
+  color: var(--rec-live-glow);
+}
+
+.recamara .icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.recamara .table {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, var(--rec-felt), color-mix(in srgb, var(--rec-felt) 80%, black));
+  border: 1px solid var(--rec-felt-line);
+  border-radius: 6px;
+  padding: clamp(14px, 3vw, 30px);
+  box-shadow:
+    var(--rec-shadow),
+    inset 0 0 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.recamara .table::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 26px);
+  pointer-events: none;
+}
+
+.recamara .turn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.recamara .turn-banner .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rec-live);
+  box-shadow: 0 0 10px var(--rec-live-glow);
+  animation: rec-pulse 1.6s ease-in-out infinite;
+}
+
+.recamara .turn-banner .txt {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .turn-banner strong {
+  color: var(--rec-ink);
+}
+
+.recamara .direction-tag {
+  position: absolute;
+  right: 0;
+  font-size: 0.9rem;
+}
+
+@keyframes rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+/* Arena: shotgun fixed at the center, players seated around it in a circle
+   (see LocalGame's seatStyle) — replaces the old side-by-side row so the
+   layout scales cleanly from 2 to 4 players. */
+.recamara .arena {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 18px;
+}
+
+.recamara .gun-aim {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Matches AIM_MS in LocalGame.tsx — slow and deliberate on purpose, for
+     suspense, so the swing onto the target is something you actually watch
+     happen instead of a snap-cut. */
+  transition: transform 1.3s cubic-bezier(0.33, 1, 0.4, 1);
+}
+
+.recamara .arena.busy .token {
+  pointer-events: none;
+}
+
+/* The one shell casing that's ever shown — the last one fired. Colored by
+   that single shot's real/blank result; no count, no history, no order.
+   Its left/top/rotate come from inline style (LocalGame's shellSpot/
+   shellPhase) — a new spot every shot, always close to the gun but never
+   exactly on it — and the transition below is what makes it visibly fly
+   out from the gun to that spot instead of just appearing there. */
+.recamara .last-shell {
+  position: absolute;
+  width: 13px;
+  height: 22px;
+  border-radius: 3px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+  transition:
+    left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.recamara .last-shell.live {
+  background: var(--rec-live);
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.5),
+    0 0 10px -2px var(--rec-live-glow);
+}
+
+.recamara .last-shell.blank {
+  background: var(--rec-blank);
+}
+
+.recamara .token {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 92px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--rec-felt-line);
+  border-radius: 8px;
+  padding: 8px 6px 7px;
+  font-family: inherit;
+  color: var(--rec-ink);
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s,
+    transform 0.15s;
+}
+
+.recamara .token:hover {
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.recamara .token.active {
+  border-color: var(--rec-live);
+  box-shadow:
+    0 0 0 1px var(--rec-live) inset,
+    0 0 20px -6px var(--rec-live-glow);
+}
+
+.recamara .token.dead {
+  opacity: 0.4;
+}
+
+.recamara .token-name {
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.recamara .token.active .token-name {
+  color: var(--rec-live-glow);
+}
+
+.recamara .token-lives {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.recamara .life-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--rec-live);
+  background: radial-gradient(circle at 35% 30%, var(--rec-live-glow), var(--rec-live) 70%);
+  transition:
+    opacity 0.3s,
+    filter 0.3s;
+}
+
+.recamara .life-dot.spent {
+  background: none;
+  border-color: var(--rec-hair);
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.recamara .token-cuffed {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.recamara .token-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--rec-blank);
+  color: #241c0c;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Beat 1 of "reveal" — the round-announcement card shown before the chests,
+   and beat 3 — the chamber card (gun + bullet icons) shown after them (see
+   LocalGame's revealStage). Same card chrome, different content. */
+.recamara .round-intro,
+.recamara .round-chamber {
+  text-align: center;
+  padding: 40px 20px;
+  animation: rec-round-intro-in 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Crossfade between "Ronda N terminada" and "Ronda N+1" inside the same
+   round-intro card — see RoundAnnounce.tsx's stage/visible state. Opacity
+   only, no layout shift, so the swap never reads as a hard cut. */
+.recamara .round-intro-fade {
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.recamara .round-intro-fade.visible {
+  opacity: 1;
+}
+
+.recamara .round-intro-eyebrow {
+  color: var(--rec-ink-faint);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.recamara .round-intro-number {
+  font-size: clamp(3rem, 16vw, 4.5rem);
+  color: var(--rec-live-glow);
+  margin: 4px 0 10px;
+  line-height: 1;
+}
+
+.recamara .round-intro-sub {
+  color: var(--rec-ink-dim);
+  font-size: 0.88rem;
+  max-width: 32ch;
+  margin: 0 auto;
+}
+
+/* Frames the gun + bullet icons + shell count together on the round-intro
+   card — a visual box drawing focus onto exactly the thing this beat is
+   about, separate from the round number/timer around it. */
+.recamara .chamber-focus {
+  margin: 14px auto 10px;
+  padding: 16px 14px 12px;
+  max-width: 300px;
+  border: 1px solid var(--rec-felt-line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
+}
+
+/* One 🔴/🟡 per shell in the chamber, shuffled — the real/falso split
+   shown as icons instead of a number, and deliberately not grouped by
+   color (see shuffledBulletIcons in arena.ts). */
+.recamara .bullet-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  max-width: 280px;
+  margin: 4px auto 10px;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+@keyframes rec-round-intro-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Shared "flash and gone" card used for two different handoffs during
+   reveal: player-to-player between chests, and the last beat into the
+   duel — same brief pulse-and-fade, just different text. */
+.recamara .rec-flash-card {
+  text-align: center;
+  animation: rec-flash-card 0.8s ease-in-out;
+}
+
+.recamara .rec-flash-card .display {
+  font-size: clamp(1.7rem, 9vw, 3rem);
+  color: var(--rec-live-glow);
+}
+
+@keyframes rec-flash-card {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
+/* Reveal screen: chamber counts + one closed chest per player, tapped open
+   to show what they were just dealt (see ChestReveal). */
+.recamara .reveal-count {
+  text-align: center;
+  font-size: 0.85rem;
+  margin: 0 0 4px;
+}
+
+.recamara .live-count {
+  color: var(--rec-live-glow);
+}
+
+.recamara .blank-count {
+  color: var(--rec-blank);
+}
+
+/* Reveal phase: one big chest, center stage, cycling through players one
+   at a time (see ChestReveal + LocalGame's revealIdx/revealedCount) —
+   tap-to-pop-one-item-out, Clash Royale style, instead of dumping the
+   whole handful on screen at once. */
+.recamara .chest-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.recamara .chest-title {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Small uppercase label used above a headline (e.g. "Fin del duelo") —
+   shared instead of repeating the same inline style object at each call
+   site in LocalGame.tsx/RoundView.tsx. */
+.recamara .eyebrow {
+  color: var(--rec-ink-faint);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.recamara .reveal-progress {
+  text-align: center;
+  color: var(--rec-ink-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  margin: 0 0 2px;
+}
+
+.recamara .chest-big {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, var(--rec-bg-raised), var(--rec-bg));
+  border: 2px solid var(--rec-blank-dim);
+  cursor: pointer;
+}
+
+.recamara .chest-big.empty {
+  cursor: default;
+  opacity: 0.5;
+  border-color: var(--rec-hair);
+}
+
+.recamara .chest-big-box {
+  font-size: 46px;
+  position: relative;
+  z-index: 1;
+}
+
+.recamara .chest-big.shake {
+  animation: rec-chest-shake 1.6s ease-in-out infinite;
+}
+
+.recamara .chest-big.shake:active {
+  animation: rec-chest-pop 0.3s ease;
+}
+
+@keyframes rec-chest-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  85% {
+    transform: rotate(0deg);
+  }
+  88% {
+    transform: rotate(-6deg);
+  }
+  91% {
+    transform: rotate(5deg);
+  }
+  94% {
+    transform: rotate(-4deg);
+  }
+  97% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes rec-chest-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.88);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.recamara .chest-glow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--rec-blank) 0%, transparent 70%);
+  opacity: 0.35;
+  animation: rec-chest-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes rec-chest-glow {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.08);
+  }
+}
+
+.recamara .chest-anticipation {
+  color: var(--rec-ink-faint);
+  font-size: 0.82rem;
+  font-style: italic;
+  margin: 0;
+  min-height: 1.4em;
+}
+
+.recamara .chest-progress {
+  color: var(--rec-ink-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+/* The card that bursts in each time a new item pops out of the chest. */
+.recamara .chest-reveal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 1.4em;
+  animation: rec-reveal-card-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.recamara .chest-reveal-icon {
+  font-size: 30px;
+}
+
+.recamara .chest-reveal-label {
+  font-size: 0.78rem;
+  color: var(--rec-ink);
+  text-align: center;
+  max-width: 240px;
+}
+
+@keyframes rec-reveal-card-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(10px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.recamara .chest-collected {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.recamara .chest-collected-item {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  font-size: 16px;
+}
+
+/* Overlays shared by PlayerItemsSheet and ItemUseModal. */
+.recamara .rec-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: rec-fade-in 0.2s ease-out;
+}
+
+.recamara .rec-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  border-radius: 12px 12px 0 0;
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.recamara .rec-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.recamara .rec-sheet-empty {
+  color: var(--rec-ink-faint);
+  font-size: 0.85rem;
+}
+
+.recamara .rec-sheet-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recamara .rec-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--rec-bg);
+  border: 1px solid var(--rec-hair);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  color: var(--rec-ink);
+  text-align: left;
+  cursor: default;
+}
+
+.recamara .rec-sheet-item.usable {
+  cursor: pointer;
+}
+
+.recamara .rec-sheet-item.usable:hover {
+  border-color: var(--rec-live);
+}
+
+.recamara .rec-sheet-item .icon {
+  font-size: 18px;
+}
+
+.recamara .rec-sheet-item .label {
+  font-size: 0.8rem;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .rec-modal {
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  animation: rec-fade-in 0.2s ease-out;
+}
+
+.recamara .rec-overlay:has(.rec-modal) {
+  align-items: center;
+}
+
+.recamara .rec-modal-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.recamara .rec-modal-icon.activating {
+  margin-bottom: 0;
+  animation: rec-item-activate 0.55s ease-in-out;
+}
+
+@keyframes rec-item-activate {
+  0% {
+    transform: scale(0.7) rotate(0deg);
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(1.35) rotate(-8deg);
+    filter: brightness(1.6);
+  }
+  70% {
+    transform: scale(1.1) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+.recamara .rec-modal-desc {
+  font-size: 0.92rem;
+  color: var(--rec-ink);
+  margin: 0 0 16px;
+  line-height: 1.4;
+}
+
+.recamara .rec-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.recamara .rec-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.recamara .rec-modal-list-item {
+  background: var(--rec-bg);
+  border: 1px solid var(--rec-hair);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  color: var(--rec-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.recamara .rec-modal-list-item:hover {
+  border-color: var(--rec-live);
+}
+
+/* The centered "what just happened" alert shown after a shot resolves or an
+   item gets used (see OutcomeBanner) — stays up until the player taps
+   "Continuar", which is what actually slows the pacing down on purpose. */
+.recamara .rec-banner {
+  border-width: 2px;
+}
+
+.recamara .rec-banner.danger {
+  border-color: var(--rec-live);
+  box-shadow: 0 0 30px -8px var(--rec-live-glow);
+}
+
+.recamara .rec-banner.safe {
+  border-color: var(--rec-blank);
+  box-shadow: 0 0 30px -8px var(--rec-blank);
+}
+
+.recamara .rec-banner-text {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.recamara .rec-banner-text b {
+  color: var(--rec-live-glow);
+}
+
+/* The real/falso verdict line under the neutral "who shot whom" line —
+   colored to match the shot itself (see .rec-banner.danger/.safe borders). */
+.recamara .rec-banner-subtext {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 18px;
+}
+
+.recamara .rec-banner-subtext.danger {
+  color: var(--rec-live-glow);
+}
+
+.recamara .rec-banner-subtext.safe {
+  color: var(--rec-blank);
+}
+
+.recamara .center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.recamara .shotgun {
+  width: 118px;
+  height: 34px;
+  position: relative;
+  transform-origin: 20% 50%;
+}
+
+.recamara .shotgun .barrel {
+  position: absolute;
+  left: 34px;
+  top: 13px;
+  width: 78px;
+  height: 8px;
+  background: linear-gradient(180deg, #5c5348, #2b271f);
+  border-radius: 2px 6px 6px 2px;
+  box-shadow:
+    inset 0 -2px 2px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.recamara .shotgun.sawed .barrel {
+  width: 46px;
+}
+
+.recamara .shotgun .stock {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 42px;
+  height: 22px;
+  background: linear-gradient(180deg, #6b4a30, #402c1c);
+  border-radius: 4px 2px 2px 6px;
+}
+
+.recamara .shotgun .stock::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  background: #1b1712;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15);
+}
+
+.recamara .shotgun.recoil {
+  /* Matches SHOT_MS in LocalGame.tsx. */
+  animation: rec-recoil 0.55s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes rec-recoil {
+  0% {
+    transform: translateX(0) rotate(0);
+  }
+  18% {
+    transform: translateX(-14px) rotate(-4deg);
+    filter: brightness(1.5);
+  }
+  45% {
+    transform: translateX(4px) rotate(1deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+}
+
+.recamara .muzzle {
+  position: absolute;
+  left: 112px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8dd, var(--rec-live-glow) 45%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.recamara .shotgun.sawed .muzzle {
+  left: 80px;
+}
+
+.recamara .muzzle.flash {
+  animation: rec-flash 0.22s ease-out;
+}
+
+@keyframes rec-flash {
+  0% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 0.9;
+    transform: scale(1.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.recamara .bullet-legend {
+  font-size: 0.68rem;
+  color: var(--rec-ink-dim);
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin: 2px 0 6px;
+}
+
+.recamara .shell-count {
+  font-size: 0.68rem;
+  color: var(--rec-ink-faint);
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.recamara .log {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--rec-hair);
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recamara .log .line {
+  font-size: 0.8rem;
+  color: var(--rec-ink-dim);
+  animation: rec-fade-in 0.3s ease-out;
+}
+
+.recamara .log .line b {
+  color: var(--rec-ink);
+  font-weight: normal;
+}
+
+.recamara .log .line.danger b {
+  color: var(--rec-live-glow);
+}
+
+.recamara .log .line.safe b {
+  color: var(--rec-blank);
+}
+
+@keyframes rec-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.recamara .controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+/* The current player's own items, always visible right under the fire
+   options — no need to tap their own token to find them. Tapping a token
+   (yours or a rival's) still opens the read-only/interactive sheet too. */
+.recamara .your-items {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.recamara .your-items-label {
+  display: block;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rec-ink-faint);
+  margin-bottom: 8px;
+}
+
+.recamara .your-items-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.recamara .item-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  font-size: 19px;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+
+.recamara .item-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--rec-live);
+}
+
+.recamara .item-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Themed tooltip replacing the native title="" bubble — dark card, red
+   accent border, same serif/display voice as the rest of the game. */
+.recamara .item-btn[data-tooltip]:hover::after,
+.recamara .item-btn[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 240px;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-live);
+  color: var(--rec-ink);
+  font-family: Georgia, serif;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: var(--rec-shadow);
+  z-index: 60;
+  pointer-events: none;
+  animation: rec-tooltip-in 0.15s ease-out;
+}
+
+.recamara .item-btn[data-tooltip]:hover::before,
+.recamara .item-btn[data-tooltip]:focus-visible::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--rec-live);
+  z-index: 60;
+  pointer-events: none;
+}
+
+@keyframes rec-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.recamara button.act {
+  font-family: Georgia, serif;
+  font-size: 0.86rem;
+  background: var(--rec-bg-raised);
+  color: var(--rec-ink);
+  border: 1px solid var(--rec-hair);
+  border-radius: 3px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.1s,
+    background 0.15s;
+}
+
+.recamara button.act:hover:not(:disabled) {
+  border-color: var(--rec-live);
+}
+
+.recamara button.act:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.recamara button.act:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.recamara button.act.primary {
+  background: var(--rec-live);
+  border-color: var(--rec-live);
+  color: #fff2ee;
+}
+
+.recamara button.act.primary:hover:not(:disabled) {
+  background: var(--rec-live-glow);
+  border-color: var(--rec-live-glow);
+}
+
+.recamara .rec-overlay.winner-overlay {
+  /* .rec-overlay defaults to align-items: flex-end (the bottom-sheet look
+     shared with PlayerItemsSheet/ItemUseModal) — the winner card needs to
+     sit centered on screen instead, same as .rec-modal above. */
+  align-items: center;
+  animation: rec-fade-in 0.6s ease-out;
+}
+
+.recamara .final-card {
+  text-align: center;
+  padding: 24px;
+}
+
+.recamara .final-card.winner-in {
+  animation: rec-winner-in 0.6s ease-out both;
+}
+
+@keyframes rec-winner-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.recamara .final-card .winner {
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  margin: 6px 0 4px;
+}
+
+.recamara .final-card .winner span {
+  color: var(--rec-live);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recamara .shotgun.recoil,
+  .recamara .muzzle.flash,
+  .recamara .turn-banner .dot,
+  .recamara .log .line,
+  .recamara .rec-modal-icon.activating,
+  .recamara .chest-big.shake,
+  .recamara .chest-big.shake:active,
+  .recamara .chest-glow,
+  .recamara .chest-reveal-card,
+  .recamara .round-intro,
+  .recamara .round-chamber,
+  .recamara .rec-flash-card,
+  .recamara .item-btn[data-tooltip]:hover::after,
+  .recamara .item-btn[data-tooltip]:focus-visible::after {
+    animation: none !important;
+  }
+  .recamara .gun-aim,
+  .recamara .last-shell {
+    transition: none !important;
+  }
+}

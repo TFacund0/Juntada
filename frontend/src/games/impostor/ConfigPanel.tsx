@@ -2,20 +2,9 @@ import { useEffect, useState } from "react";
 import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors } from "@juntada/impostor-match-rules";
-import { Avatar } from "../../components/Avatar";
 import { TabRow } from "../../components/TabRow";
+import { TurnOrderEditor } from "../../components/TurnOrderEditor";
 import type { ConfigPanelProps } from "../gameTypes";
-
-// The host's configured order, filtered to players still in the room, with
-// anyone missing from it (new joins, or nobody's touched it yet) appended in
-// arrival order — mirrors the engine's own effectiveTurnOrder so the list
-// shown here always matches what a round would actually use.
-function effectiveOrder(players: { id: string }[], turnOrder: string[] | undefined): string[] {
-  const ids = players.map(p => p.id);
-  const stored = (turnOrder || []).filter(id => ids.includes(id));
-  const missing = ids.filter(id => !stored.includes(id));
-  return [...stored, ...missing];
-}
 
 // Host-only rules editor shown in the multiplayer lobby. Only re-renders when
 // this game is active in the room (see games/registry.js contract). Each
@@ -27,8 +16,6 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const config = room.config as any;
   const activeCount = Object.values(config.enabledCategories || {}).filter(Boolean).length;
   const maxImp = maxImpostors(room.players.length);
-  const order = effectiveOrder(room.players, config.turnOrder);
-  const orderedPlayers = order.map(id => room.players.find(p => p.id === id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
   const usedWords = room.usedWords as Record<string, string[]>;
   const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
   const activeCats = Object.keys(config.enabledCategories || {}).filter(k => config.enabledCategories[k]);
@@ -42,14 +29,6 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
     if (config.numImpostors > cap) updateConfig({ numImpostors: cap });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.players.length]);
-
-  const moveTurn = (index: number, dir: number) => {
-    const target = index + dir;
-    if (target < 0 || target >= order.length) return;
-    const next = [...order];
-    [next[index], next[target]] = [next[target], next[index]];
-    updateConfig({ turnOrder: next });
-  };
 
   return (
     <div>
@@ -310,51 +289,13 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
       )}
 
       {tab === "order" && (
-        <div style={S.card}>
-          <span style={S.label}>Orden de turno para dar la palabra</span>
-          <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
-            Así van a ir pasando su palabra en la ronda. Los que se sumen después entran al final.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {orderedPlayers.map((p, i) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
-                <Avatar name={p.name} size={28} />
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
-                <button
-                  onClick={() => moveTurn(i, -1)}
-                  disabled={i === 0}
-                  style={{
-                    ...S.btn("ghost"),
-                    width: 44,
-                    height: 44,
-                    padding: 0,
-                    borderRadius: 10,
-                    fontSize: 18,
-                    opacity: i === 0 ? 0.35 : 1,
-                  }}
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => moveTurn(i, 1)}
-                  disabled={i === orderedPlayers.length - 1}
-                  style={{
-                    ...S.btn("ghost"),
-                    width: 44,
-                    height: 44,
-                    padding: 0,
-                    borderRadius: 10,
-                    fontSize: 18,
-                    opacity: i === orderedPlayers.length - 1 ? 0.35 : 1,
-                  }}
-                >
-                  ↓
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TurnOrderEditor
+          players={room.players}
+          turnOrder={config.turnOrder}
+          onChange={turnOrder => updateConfig({ turnOrder })}
+          label="Orden de turno para dar la palabra"
+          helpText="Así van a ir pasando su palabra en la ronda. Los que se sumen después entran al final."
+        />
       )}
     </div>
   );

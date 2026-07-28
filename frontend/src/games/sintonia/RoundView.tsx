@@ -3,7 +3,7 @@ import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { Avatar } from "../../components/Avatar";
-import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
+import { Dial, MARKER_COLORS, markerLabels } from "./components/Dial";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { Collapsible } from "../../components/Collapsible";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
@@ -85,30 +85,50 @@ function PsychicStatus({ name, status }: { name: string; status: string }) {
   );
 }
 
-function Scoreboard({ players, score }: { players: PublicPlayer[]; score: Record<string, number> | undefined }) {
+function Scoreboard({
+  players,
+  score,
+  roundPoints,
+}: {
+  players: PublicPlayer[];
+  score: Record<string, number> | undefined;
+  // Endless mode has no separate "final results" screen to show a
+  // once-ever scoreboard on, so this same scoreboard doubles as this
+  // round's own points too — the delta shows just left of the running
+  // total, no label, so it doesn't read as two competing numbers.
+  roundPoints?: Record<string, number>;
+}) {
   const ranked = players.map(p => ({ ...p, points: score?.[p.id] || 0 })).sort((a, b) => b.points - a.points);
   return (
     <Collapsible title="Tabla de puntuación">
-      {ranked.map((p, i) => (
-        <div
-          key={p.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "6px 0",
-            borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
-          }}
-        >
-          <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
-          <Avatar name={p.name} size={28} />
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
-            {p.name}
-            {!p.online ? " (desconectado)" : ""}
-          </span>
-          <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 28, textAlign: "right" }}>{p.points}</span>
-        </div>
-      ))}
+      {ranked.map((p, i) => {
+        const delta = roundPoints?.[p.id] ?? 0;
+        return (
+          <div
+            key={p.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "6px 0",
+              borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
+            }}
+          >
+            <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+            <Avatar name={p.name} size={28} />
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
+              {p.name}
+              {!p.online ? " (desconectado)" : ""}
+            </span>
+            {roundPoints && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: delta > 0 ? "#5DCAA5" : "#6b6490", minWidth: 24, textAlign: "right" }}>
+                +{delta}
+              </span>
+            )}
+            <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 28, textAlign: "right" }}>{p.points}</span>
+          </div>
+        );
+      })}
     </Collapsible>
   );
 }
@@ -126,7 +146,7 @@ function RoundBadge({ round }: { round: SintoniaRoundState | null }) {
 
 // Covers this game's in-progress phases (clue/guess/result) inside a
 // multiplayer room. Props per the registry contract in games/registry.js.
-export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, isHost, send }: RoundViewProps) {
+export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send }: RoundViewProps) {
   const [clueText, setClueText] = useState("");
   const [clueSubmitted, setClueSubmitted] = useState(false);
   const [guessValue, setGuessValue] = useState(50);
@@ -554,57 +574,97 @@ export function RoundView({ room, me, myPlayer: _myPlayer, myRole, wordReveal, i
               </div>
             )}
           </div>
-          <Collapsible title="Puntos de la ronda">
-            {room.players.map(p => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-                <span style={{ color: "#b8b0d4" }}>
-                  {p.name}
-                  {p.id === round.psychicId ? " (psíquico)" : ""}
-                </span>
-                <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
-              </div>
-            ))}
-          </Collapsible>
-          <Scoreboard players={room.players} score={room.config.score as Record<string, number>} />
           {(() => {
             const score = room.config.score as Record<string, number>;
             const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
-            if (!gameOver) return null;
+            // Endless mode never reaches a "final results" screen — the
+            // scoreboard doubles as this round's own points via
+            // roundPoints, so there's no separate "Puntos de la ronda"
+            // block to keep in sync with it (see Scoreboard below).
+            if (round.playMode === "endless") return <Scoreboard players={room.players} score={score} roundPoints={points} />;
+
+            // Rounds mode, still mid-match — no scoreboard yet (see gameOver
+            // below for why it's saved for last), just this round's own tally.
+            if (!gameOver)
+              return (
+                <Collapsible title="Puntos de la ronda">
+                  {room.players.map(p => (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
+                      <span style={{ color: "#b8b0d4" }}>
+                        {p.name}
+                        {p.id === round.psychicId ? " (psíquico)" : ""}
+                      </span>
+                      <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
+                    </div>
+                  ))}
+                </Collapsible>
+              );
+
+            // Rounds mode, last round just finished — the scoreboard (and
+            // the winner) stay hidden behind everyone's own tap on "Ver
+            // resultados finales" instead of popping up right on top of
+            // this same round's result the instant it resolves; myPlayer's
+            // `ready` is repurposed for this exact vote (see the backend's
+            // player_ready case — nothing else in this game touches it).
+            const onlinePlayers = room.players.filter(p => p.online);
+            const allReady = onlinePlayers.length > 0 && onlinePlayers.every(p => p.ready);
+            if (!allReady)
+              return (
+                <div style={{ ...S.card, textAlign: "center" }}>
+                  {myPlayer?.ready ? (
+                    <p style={{ color: "#5DCAA5" }}>Listo — esperando a los demás para ver los resultados finales</p>
+                  ) : (
+                    <Btn variant="success" onClick={() => send({ type: "player_ready" })}>
+                      Ver resultados finales
+                    </Btn>
+                  )}
+                </div>
+              );
+
             const topScore = Math.max(...room.players.map(p => score?.[p.id] || 0));
             const winners = room.players.filter(p => (score?.[p.id] || 0) === topScore);
             const isTie = winners.length > 1;
             return (
-              <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-                <span style={S.label}>Partida terminada</span>
-                <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
-                  🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
-                </p>
-                <p style={S.muted}>
-                  {round.roundsPlayed} rondas jugadas · {topScore} puntos
-                </p>
-              </div>
+              <>
+                <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+                  <span style={S.label}>Partida terminada</span>
+                  <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+                    🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
+                  </p>
+                  <p style={S.muted}>
+                    {round.roundsPlayed} rondas jugadas · {topScore} puntos
+                  </p>
+                </div>
+                <Scoreboard players={room.players} score={score} />
+              </>
             );
           })()}
-          {isHost &&
-            (round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity) ? (
-              <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
-            ) : (
-              <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
-            ))}
+          {(() => {
+            const gameOver = round.playMode === "rounds" && (round.roundsPlayed ?? 0) >= (round.roundLimit ?? Infinity);
+            // The vote gate above already covers "waiting for everyone" — the
+            // rematch/next-match controls only make sense once whatever it's
+            // gating (final results, in this case) is actually visible.
+            const onlinePlayers = room.players.filter(p => p.online);
+            const readyForControls = !gameOver || onlinePlayers.every(p => p.ready);
+            return (
+              readyForControls &&
+              (isHost ? (
+                gameOver ? (
+                  <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
+                ) : (
+                  <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
+                )
+              ) : (
+                <div style={{ ...S.card, textAlign: "center" }}>
+                  <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
+                </div>
+              ))
+            );
+          })()}
           {/* Group instances use the shell's persistent "Volver al grupo" link instead.
-            Available to any player, not just the host. */}
-          <LeaveToLobbyButton
-            groupCode={room.groupCode}
-            send={send}
-            confirm={{
-              message: "Se interrumpe la partida para todos y se pierde la tabla de puntuación.",
-            }}
-          />
-          {!isHost && (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
-            </div>
-          )}
+            Available to any player, not just the host — always here, even
+            mid-vote on the final results, so nobody's stuck waiting to leave. */}
+          <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
         </div>
       </PhaseTransition>
     );

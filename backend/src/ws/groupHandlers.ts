@@ -196,7 +196,7 @@ function kickMember(ws: WS, msg: Extract<ClientMessage, { type: "kick_member" }>
   if (!group || group.hostId !== info.playerId || msg.targetId === info.playerId) return;
   if (!group.members.some(m => m.id === msg.targetId)) return;
 
-  for (const [ws2, i2] of clients) {
+  for (const i2 of clients.values()) {
     if (i2.groupCode === group.code && i2.roomCode && i2.playerId === msg.targetId) {
       leavePlayerFromInstance(i2.roomCode, msg.targetId, group);
       break;
@@ -235,7 +235,7 @@ function scheduleGroupMemberKick(groupCode: string, playerId: string): void {
 // Mirrors roomHandlers.ts's PLAYER_OFFLINE_TIMEOUT_MS — kept as a separate
 // constant so this file has no dependency on that one, but intentionally the
 // same value (see roomHandlers.ts for the full rationale).
-const PLAYER_OFFLINE_TIMEOUT_MS = 5 * 60 * 1000;
+const PLAYER_OFFLINE_TIMEOUT_MS = 10 * 60 * 1000;
 
 module.exports = {
   createGroup,

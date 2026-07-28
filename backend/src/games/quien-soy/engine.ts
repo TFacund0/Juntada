@@ -29,17 +29,30 @@
 // arbitrary, it shouldn't decide who "really" solved it first.
 //
 // Phases: suggest -> vote -> assign -> playing -> result (categories mode
-// skips straight from lobby to playing, no suggest/vote/assign — words are
-// just dealt). start_round always begins a fresh single match; score
+// skips straight from lobby to assign — no suggest/vote, words are just
+// dealt — but still passes through the same brief "assign" beat before
+// playing, so everyone gets a moment to see the room's words). start_round
+// always begins a fresh single match; score
 // persists across matches until "new_game" resets it, same as Ta-Te-Ti's
 // local scoreboard brought online.
 
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
-import { CATEGORIES } from "@juntada/quien-soy-data";
-import { normalizeWord } from "@juntada/tutifruti-words";
+import {
+  CATEGORIES,
+  computeMatchRanks,
+  isCorrectGuess,
+  MAX_WRONG_GUESSES,
+  type GuessLogEntry,
+  type QAEntry,
+  type QAResponse,
+  type QuienSoyPrivateRole,
+  type QuienSoyResult,
+  type QuienSoyReveal,
+  type QuienSoyRoundView,
+} from "@juntada/quien-soy-data";
 
-const { shuffle } = require("../../utils/shuffle") as { shuffle: <T>(arr: readonly T[]) => T[] };
+const { shuffle } = require("@juntada/core-utils") as { shuffle: <T>(arr: readonly T[]) => T[] };
 
 interface QuienSoyConfig {
   wordSource: "categories" | "suggested";
@@ -57,32 +70,10 @@ interface Suggestion {
   text: string;
 }
 
-interface QAResponse {
-  answer: "si" | "no" | "skip";
-  comment: string | null;
-}
-
-interface QAEntry {
-  turnPlayerId: string;
-  question: string;
-  responses: Record<string, QAResponse>;
-}
-
-interface GuessLogEntry {
-  playerId: string;
-  correct: boolean;
-}
-
-interface PlayerResult {
-  playerId: string;
-  outcome: "solved" | "eliminated" | "conceded";
-  lap: number;
-}
-
 interface QuienSoyRound {
   words: Record<string, string>;
   wrongGuesses: Record<string, number>;
-  results: PlayerResult[];
+  results: QuienSoyResult[];
 
   // "suggested" mode only
   suggestions: Record<string, Suggestion[]> | null;
@@ -116,7 +107,6 @@ function round(room: Room): QuienSoyRound {
 }
 
 const MIN_PLAYERS = 2;
-const MAX_WRONG_GUESSES = 3;
 
 function createConfig(): QuienSoyConfig {
   return {
@@ -217,7 +207,12 @@ function startRound(room: Room): { success?: true; error?: string } {
       currentVoteTarget: null,
       votes: null,
     } satisfies QuienSoyRound;
-    beginPlaying(room);
+    // Same brief "assign" beat as suggested mode (see confirmWordsReady) —
+    // every word is already decided at this point, so this is purely to give
+    // everyone a moment to see the room's words before questions start,
+    // instead of jumping straight into "playing" with them tucked away in a
+    // collapsed accordion.
+    room.phase = "assign";
     return { success: true };
   }
 
@@ -276,7 +271,12 @@ function startVotingOn(room: Room, targetId: string): void {
 // hard requirement is collective, not per-submitter: every target ends up
 // with at least one suggestion once all players have submitted — see
 // finalizeSuggestions' fallback for whoever nobody wrote anything for.
-function submitSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
+// Always rerolled: this always flips the submitter's own private
+// mySuggestionSubmitted flag (see getPrivateView), and once everyone's in,
+// finalizeSuggestions also reassigns r.words/starts voting for everyone —
+// without resending private info here, players would only see any of that
+// on their own next action (or a manual refresh).
+function submitSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: true } {
   if (!room.round || room.phase !== "suggest") return { handled: false };
   const r = round(room);
   if (r.submittedBy!.includes(playerId)) return { handled: false };
@@ -290,7 +290,7 @@ function submitSuggestion(room: Room, playerId: string, payload: Record<string, 
   r.submittedBy!.push(playerId);
 
   if (r.submittedBy!.length >= room.players.length) finalizeSuggestions(room);
-  return { handled: true };
+  return { handled: true, rerolled: true };
 }
 
 function tallySuggestionVotes(room: Room): void {
@@ -323,7 +323,12 @@ function confirmWordsReady(room: Room, playerId: string): { handled: boolean } {
   return { handled: true };
 }
 
-function voteSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
+// Always rerolled: this always flips the voter's own private myVote, and
+// once everyone eligible has voted, tallySuggestionVotes also moves
+// currentVoteTarget on to the next target (or into "assign") for everyone —
+// each of which needs a fresh voteSuggestions/wordsVisibleToMe push, not
+// just whatever the next actor happens to trigger themselves.
+function voteSuggestion(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: true } {
   if (!room.round || room.phase !== "vote") return { handled: false };
   const r = round(room);
   if (playerId === r.currentVoteTarget) return { handled: false }; // can't vote on your own word
@@ -336,7 +341,7 @@ function voteSuggestion(room: Room, playerId: string, payload: Record<string, un
 
   const eligibleVoters = room.players.filter(p => p.id !== r.currentVoteTarget);
   if (eligibleVoters.every(p => r.votes![p.id] != null)) tallySuggestionVotes(room);
-  return { handled: true };
+  return { handled: true, rerolled: true };
 }
 
 // Moves the current turn holder off the front of the queue — rotated to the
@@ -361,20 +366,14 @@ function finishTurn(room: Room, stillActive: boolean): void {
   }
 }
 
-// Points favor earlier laps; ties (same lap) share the same rank instead of
-// one edging out the other just because their turn happened to come first.
+// Applies the shared computeMatchRanks (also used client-side purely for
+// display — see packages/quien-soy-data) to the persistent score, the one
+// place that ranking algorithm's output actually matters beyond a screen.
 function finalizeResults(room: Room): void {
   const r = round(room);
-  const solved = [...r.results].filter(res => res.outcome === "solved").sort((a, b) => a.lap - b.lap);
-  let rank = 0;
-  let lastLap: number | null = null;
-  solved.forEach((res, i) => {
-    if (res.lap !== lastLap) {
-      rank = i + 1;
-      lastLap = res.lap;
-    }
-    const points = Math.max(0, room.players.length - rank + 1);
-    cfg(room).score[res.playerId] = (cfg(room).score[res.playerId] || 0) + points;
+  const ranks = computeMatchRanks(r.results, room.players.length);
+  Object.entries(ranks).forEach(([playerId, { points }]) => {
+    cfg(room).score[playerId] = (cfg(room).score[playerId] || 0) + points;
   });
 }
 
@@ -409,7 +408,9 @@ function answerQuestion(room: Room, playerId: string, payload: Record<string, un
   if (r.pendingQuestion.responses[playerId]) return { handled: false };
   const answer = payload?.answer === "si" || payload?.answer === "no" || payload?.answer === "skip" ? payload.answer : null;
   if (!answer) return { handled: false };
-  const comment = answer === "skip" ? null : String(payload?.comment || "").trim() || null;
+  // A comment is allowed even alongside "paso" — someone might not want to
+  // commit to sí/no but still have something worth telling the asker.
+  const comment = String(payload?.comment || "").trim() || null;
 
   r.pendingQuestion.responses[playerId] = { answer, comment };
 
@@ -421,20 +422,25 @@ function answerQuestion(room: Room, playerId: string, payload: Record<string, un
   return { handled: true };
 }
 
-function submitGuess(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean } {
+// Always rerolled: a guess always changes the guesser's own private state —
+// myWrongGuesses on a miss, or myWord/myOutcome once solved/eliminated —
+// none of which is part of the public round view, so without resending
+// private info here the guesser wouldn't see their own updated attempt count
+// or revealed word until their next action or a manual refresh.
+function submitGuess(room: Room, playerId: string, payload: Record<string, unknown>): { handled: boolean; rerolled?: true } {
   if (!room.round || room.phase !== "playing") return { handled: false };
   const r = round(room);
   if (r.turnQueue[0] !== playerId || r.pendingQuestion) return { handled: false };
   const text = String(payload?.text || "").trim();
   if (!text) return { handled: false };
 
-  const correct = normalizeWord(text) === normalizeWord(r.words[playerId]);
-  r.guessLog.push({ playerId, correct });
+  const correct = isCorrectGuess(text, r.words[playerId]);
+  r.guessLog.push({ playerId, text, correct });
 
   if (correct) {
     r.results.push({ playerId, outcome: "solved", lap: r.lapNumber });
     finishTurn(room, false);
-    return { handled: true };
+    return { handled: true, rerolled: true };
   }
 
   r.wrongGuesses[playerId] = (r.wrongGuesses[playerId] || 0) + 1;
@@ -444,21 +450,57 @@ function submitGuess(room: Room, playerId: string, payload: Record<string, unkno
   } else {
     finishTurn(room, true);
   }
-  return { handled: true };
+  return { handled: true, rerolled: true };
 }
 
-function concede(room: Room, playerId: string): { handled: boolean } {
+// Always rerolled: conceding immediately reveals the player's own word via
+// getPrivateView's myOutcome/myWord — without resending private info, the
+// conceding player wouldn't see what their word was until something else
+// happened to refresh it.
+function concede(room: Room, playerId: string): { handled: boolean; rerolled?: true } {
   if (!room.round || room.phase !== "playing") return { handled: false };
   const r = round(room);
   if (r.turnQueue[0] !== playerId) return { handled: false };
   r.results.push({ playerId, outcome: "conceded", lap: r.lapNumber });
   finishTurn(room, false);
-  return { handled: true };
+  return { handled: true, rerolled: true };
 }
 
+// Kicking (or auto-kicking an offline) player calls this right away — see
+// roomHandlers.ts's kickPlayer/schedulePlayerKick — same as any disconnect
+// that resolves a pending question. Before this, "suggest"/"vote" were
+// missing entirely: getting kicked mid-suggest (or mid-vote) never
+// re-checked whether the remaining players had already collectively
+// satisfied that phase, so the room could get stuck waiting forever on a
+// count that included someone no longer in it.
 function maybeAdvance(room: Room): void {
-  if (!room?.round || room.phase !== "playing") return;
+  if (!room?.round) return;
   const r = round(room);
+
+  if (room.phase === "suggest") {
+    if ((r.submittedBy?.length ?? 0) >= room.players.length) finalizeSuggestions(room);
+    return;
+  }
+
+  if (room.phase === "vote") {
+    if (!r.currentVoteTarget) return;
+    // The word being voted on belonged to a player who's since left — there's
+    // nothing left to decide here, move straight on to the next target (or
+    // "assign" if that was the last one).
+    if (!room.players.some(p => p.id === r.currentVoteTarget)) {
+      if (r.voteOrder!.length === 0) {
+        room.phase = "assign";
+        return;
+      }
+      startVotingOn(room, r.voteOrder!.shift()!);
+      return;
+    }
+    const eligibleVoters = room.players.filter(p => p.id !== r.currentVoteTarget);
+    if (eligibleVoters.length > 0 && eligibleVoters.every(p => r.votes![p.id] != null)) tallySuggestionVotes(room);
+    return;
+  }
+
+  if (room.phase !== "playing") return;
   // A player who left the room entirely mid-game shouldn't keep holding up
   // the rotation — drop them from the queue (their turn just never happens).
   const before = r.turnQueue.length;
@@ -525,7 +567,7 @@ function handleAction(
   }
 }
 
-function getPublicRoundView(room: Room): Record<string, unknown> | null {
+function getPublicRoundView(room: Room): QuienSoyRoundView | null {
   const c = cfg(room);
   if (!room.round) return { wordSource: c.wordSource };
   const r = round(room);
@@ -579,12 +621,12 @@ function getPrivateView(room: Room, playerId: string): Record<string, unknown> |
     voteSuggestions,
     myVote: r.votes?.[playerId] ?? null,
     myWord: myOutcome ? r.words[playerId] : null,
-  };
+  } satisfies QuienSoyPrivateRole;
 }
 
 function getRevealMessage(room: Room): ({ type: string } & Record<string, unknown>) | null {
   if (!room.round) return null;
-  return { type: "word_reveal", words: round(room).words };
+  return { type: "word_reveal", words: round(room).words } satisfies { type: string } & QuienSoyReveal;
 }
 
 const engine: GameEngine = {

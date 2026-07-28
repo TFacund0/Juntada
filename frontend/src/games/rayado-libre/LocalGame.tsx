@@ -6,11 +6,11 @@ import { Avatar } from "../../components/Avatar";
 import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
 import { ErrorBanner } from "../../components/ErrorBanner";
-import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
+import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { useFlashError } from "../../hooks/useFlashError";
-import { shuffle } from "../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/playerNames";
 import { CATEGORIES, activeWordPool, pickThreeWords as pickThreeWordsFromPool } from "@juntada/rayado-libre-data";
 import {
@@ -21,10 +21,10 @@ import {
   computeWordHint,
   popLastDrawUnit,
 } from "@juntada/rayado-libre-scoring";
-import { Canvas, type DrawAction, type Tool } from "./Canvas";
-import { Toolbar } from "./Toolbar";
+import { Canvas, type DrawAction, type Tool } from "./components/Canvas";
+import { Toolbar } from "./components/Toolbar";
 import { PhaseTransition } from "../../components/PhaseTransition";
-import { Scoreboard } from "./Scoreboard";
+import { Scoreboard } from "./components/Scoreboard";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RAYADO LIBRE — modo local: pantalla compartida + juez manual. Un solo
@@ -78,7 +78,6 @@ export function LocalGame() {
   const [timerEnd, setTimerEnd] = useState<number | null>(null);
   const [correctGuessers, setCorrectGuessers] = useState<number[]>([]);
   const [lastTurnPoints, setLastTurnPoints] = useState<Record<number, number>>({});
-  const [readyForNextTurn, setReadyForNextTurn] = useState<number[]>([]);
   const [strokes, setStrokes] = useState<DrawAction[]>([]);
   const [tool, setTool] = useState<Tool>({ mode: "draw", color: "#1a1a1a", size: 10 });
   const [drawingStartedAt, setDrawingStartedAt] = useState<number | null>(null);
@@ -128,7 +127,6 @@ export function LocalGame() {
     setCorrectGuessers([]);
     setTimerEnd(null);
     setLastTurnPoints({});
-    setReadyForNextTurn([]);
     setPhase("wordReveal");
   };
 
@@ -154,7 +152,6 @@ export function LocalGame() {
   };
 
   const finishTurn = () => {
-    setReadyForNextTurn([]);
     setPhase("reveal");
   };
 
@@ -167,18 +164,6 @@ export function LocalGame() {
     }
     startTurn(remaining[0]);
   };
-
-  // Every player has to tap "listo" before the next turn starts — mirrors
-  // the online mode's reveal-phase confirmation, just tapped in turn on the
-  // one shared device instead of each player's own socket.
-  const toggleReadyForNextTurn = (playerId: number) => {
-    setReadyForNextTurn(prev => (prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]));
-  };
-
-  useEffect(() => {
-    if (phase === "reveal" && players.length > 0 && readyForNextTurn.length === players.length) goToNextTurn();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyForNextTurn, phase]);
 
   // Auto-ends the turn once the (possibly jumped-down) timer runs out —
   // mirrors the online engine's forceReadyAndAdvance.
@@ -216,6 +201,7 @@ export function LocalGame() {
     setPhase("setup");
     setTurnQueue([]);
     setDrawerId(null);
+    setScores({});
   };
 
   const drawer = players.find(p => p.id === drawerId);
@@ -355,9 +341,7 @@ export function LocalGame() {
             <StartButton disabled={players.length < MIN_PLAYERS || activeCatKeys.length === 0} onClick={startGame}>
               Empezar a jugar
             </StartButton>
-            {players.length < MIN_PLAYERS && (
-              <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
-            )}
+            <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
             {activeCatKeys.length === 0 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Elegí al menos una categoría</p>}
           </StickyActionBar>
         </div>
@@ -373,7 +357,7 @@ export function LocalGame() {
             <p style={{ fontSize: 13, color: "#9089c0" }}>
               Turno {turnNumber}/{totalTurns}
             </p>
-            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "6px 0" }}>Le toca dibujar a {drawer?.name}</p>
+            <p style={{ fontSize: 16, fontWeight: 800, color: "#AFA9EC", margin: "6px 0" }}>Le toca dibujar a {drawer?.name}</p>
             <p style={{ fontSize: 13, color: "#9089c0" }}>Pasale el dispositivo — el resto no tiene que ver la pantalla todavía</p>
           </div>
 
@@ -454,10 +438,6 @@ export function LocalGame() {
                 })}
             </div>
           </div>
-
-          <Btn variant="ghost" onClick={finishTurn}>
-            Nadie más adivinó, terminar turno
-          </Btn>
         </div>
       </PhaseTransition>
     );
@@ -483,35 +463,7 @@ export function LocalGame() {
             title={isLastTurn ? "Tabla final" : "Tabla de puntos"}
           />
 
-          <div style={S.card}>
-            <span style={S.label}>Todos listos para seguir</span>
-            <p style={{ ...S.muted, margin: "0 0 10px" }}>Que cada uno toque su nombre — arranca el próximo turno cuando estén todos.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {players.map(p => {
-                const ready = readyForNextTurn.includes(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => toggleReadyForNextTurn(p.id)}
-                    style={{
-                      ...S.btn(ready ? "success" : "ghost"),
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "12px 14px",
-                    }}
-                  >
-                    <Avatar name={p.name} size={28} />
-                    <span style={{ flex: 1, textAlign: "left", fontWeight: 700 }}>{p.name}</span>
-                    <span style={{ fontSize: 13 }}>{ready ? "Listo ✓" : "Tocar cuando esté listo"}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p style={{ ...S.muted, marginTop: 10, textAlign: "center" }}>
-              {readyForNextTurn.length}/{players.length} listos
-            </p>
-          </div>
+          <StartButton onClick={goToNextTurn}>{isLastTurn ? "Ver la tabla final" : "Siguiente turno"}</StartButton>
         </div>
       </PhaseTransition>
     );
@@ -523,15 +475,10 @@ export function LocalGame() {
     <PhaseTransition phaseKey="result">
       <p style={{ textAlign: "center", fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "8px 0 16px" }}>Fin del juego</p>
       <Scoreboard entries={players.map(p => ({ id: p.id, name: p.name, score: scores[p.id] || 0 }))} title="Tabla final" />
-      <StartButton onClick={startGame}>Jugar de nuevo</StartButton>
-      <ConfirmBackButton
-        title="¿Volver a nombres?"
-        message="Se pierde el marcador de esta partida."
-        confirmLabel="Volver"
-        onConfirm={backToSetup}
-      >
-        Volver a nombres
-      </ConfirmBackButton>
+      {/* Sends everyone back to the players/config screen instead of
+          restarting instantly — lets the group adjust players or settings
+          before the next match, same as the online mode's "Nueva partida". */}
+      <StartButton onClick={backToSetup}>Jugar de nuevo</StartButton>
     </PhaseTransition>
   );
 }

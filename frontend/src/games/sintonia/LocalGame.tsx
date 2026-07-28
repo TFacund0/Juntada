@@ -8,16 +8,17 @@ import { Toggle } from "../../components/Toggle";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
+import { MinPlayersHint } from "../../components/MinPlayersHint";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
-import { shuffle } from "../../utils/shuffle";
+import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/playerNames";
 import { SPECTRUMS } from "@juntada/sintonia-data";
 import { scoreFor } from "@juntada/sintonia-scoring";
-import { Dial, MARKER_COLORS, markerLabels } from "./Dial";
+import { Dial, MARKER_COLORS, markerLabels } from "./components/Dial";
 import { Collapsible } from "../../components/Collapsible";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
-import { PlayModeConfig } from "./PlayModeConfig";
+import { PlayModeConfig } from "./components/PlayModeConfig";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SINTONÍA (estilo Wavelength) — un solo dispositivo, se pasa de mano en mano.
@@ -71,7 +72,19 @@ function nextSuggestedPsychicId(players: LocalPlayer[], lastPsychicId: number | 
   return players[idx === -1 ? 0 : (idx + 1) % players.length].id;
 }
 
-function Scoreboard({ players, history }: { players: LocalPlayer[]; history: HistoryEntry[] }) {
+function Scoreboard({
+  players,
+  history,
+  roundPoints,
+}: {
+  players: LocalPlayer[];
+  history: HistoryEntry[];
+  // Endless mode has no separate "final results" screen to show a
+  // once-ever scoreboard on, so this same scoreboard doubles as this
+  // round's own points too — the delta shows just left of the running
+  // total, no label, so it doesn't read as two competing numbers.
+  roundPoints?: Record<number, number>;
+}) {
   const ranked = players
     .map(p => ({
       ...p,
@@ -81,24 +94,32 @@ function Scoreboard({ players, history }: { players: LocalPlayer[]; history: His
     .sort((a, b) => b.points - a.points);
   return (
     <Collapsible title="Tabla de puntuación">
-      {ranked.map((p, i) => (
-        <div
-          key={p.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "6px 0",
-            borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
-          }}
-        >
-          <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
-          <Avatar name={p.name} size={28} />
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
-          <span style={{ ...S.muted, fontSize: 12 }}>psíquico x{p.timesPsychic}</span>
-          <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 28, textAlign: "right" }}>{p.points}</span>
-        </div>
-      ))}
+      {ranked.map((p, i) => {
+        const delta = roundPoints?.[p.id] ?? 0;
+        return (
+          <div
+            key={p.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "6px 0",
+              borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
+            }}
+          >
+            <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+            <Avatar name={p.name} size={28} />
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+            <span style={{ ...S.muted, fontSize: 12 }}>psíquico x{p.timesPsychic}</span>
+            {roundPoints && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: delta > 0 ? "#5DCAA5" : "#6b6490", minWidth: 24, textAlign: "right" }}>
+                +{delta}
+              </span>
+            )}
+            <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 28, textAlign: "right" }}>{p.points}</span>
+          </div>
+        );
+      })}
     </Collapsible>
   );
 }
@@ -354,9 +375,7 @@ export function LocalGame() {
           <StartButton onClick={startGame} disabled={players.length < MIN_PLAYERS}>
             Iniciar partida
           </StartButton>
-          {players.length < MIN_PLAYERS && (
-            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {MIN_PLAYERS} jugadores</p>
-          )}
+          <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
         </StickyActionBar>
       </div>
     );
@@ -645,35 +664,42 @@ export function LocalGame() {
             </div>
           )}
         </div>
-        <Collapsible title="Puntos de la ronda">
-          {players.map(p => (
-            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-              <span style={{ color: "#b8b0d4" }}>
-                {p.name}
-                {p.id === round.psychicId ? " (psíquico)" : ""}
-              </span>
-              <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
-            </div>
-          ))}
-        </Collapsible>
-        <Scoreboard players={players} history={history} />
         {(() => {
-          const gameOver = config.playMode === "rounds" && history.length >= config.roundLimit;
-          if (!gameOver) return null;
+          if (config.playMode === "endless") return <Scoreboard players={players} history={history} roundPoints={points} />;
+
+          const gameOver = history.length >= config.roundLimit;
+          if (!gameOver)
+            return (
+              <Collapsible title="Puntos de la ronda">
+                {players.map(p => (
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
+                    <span style={{ color: "#b8b0d4" }}>
+                      {p.name}
+                      {p.id === round.psychicId ? " (psíquico)" : ""}
+                    </span>
+                    <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
+                  </div>
+                ))}
+              </Collapsible>
+            );
+
           const winnerScore = (p: LocalPlayer) => history.reduce((sum, h) => sum + (h.pointsByPlayer[p.id] || 0), 0);
           const topScore = Math.max(...players.map(winnerScore));
           const winners = players.filter(p => winnerScore(p) === topScore);
           const isTie = winners.length > 1;
           return (
-            <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-              <span style={S.label}>Partida terminada</span>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
-                🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
-              </p>
-              <p style={S.muted}>
-                {history.length} rondas jugadas · {topScore} puntos
-              </p>
-            </div>
+            <>
+              <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+                <span style={S.label}>Partida terminada</span>
+                <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+                  🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
+                </p>
+                <p style={S.muted}>
+                  {history.length} rondas jugadas · {topScore} puntos
+                </p>
+              </div>
+              <Scoreboard players={players} history={history} />
+            </>
           );
         })()}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>

@@ -4,7 +4,7 @@ import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
 import { ConfirmBackButton } from "../../components/ConfirmBackButton";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Board } from "./Board";
+import { Board } from "./components/Board";
 import { checkWinner } from "@juntada/tateti-board";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -117,7 +117,10 @@ export function LocalGame() {
 
       {winner !== null && (
         <div style={{ ...S.cardHighlight, textAlign: "center", marginTop: 16 }}>
-          <p style={S.bigReveal}>{winner === "draw" ? "Empate" : `Ganó ${names[winner]}`}</p>
+          {/* "Empate" is short and fixed — keep the usual big size. "Ganó
+              <name>" can run long (no length limit on a player's name), so
+              it shrinks a step instead of looming as large as "Empate" does. */}
+          <p style={{ ...S.bigReveal, fontSize: winner === "draw" ? 28 : 20 }}>{winner === "draw" ? "Empate" : `Ganó ${names[winner]}`}</p>
           <div style={{ marginTop: 8 }}>
             <StartButton onClick={newRound}>Jugar de nuevo</StartButton>
           </div>

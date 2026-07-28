@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      workbox-window:
+        specifier: ^7.4.1
+        version: 7.4.1
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -53,6 +57,9 @@ importers:
       '@juntada/color-correcto-scoring':
         specifier: workspace:*
         version: link:../packages/color-correcto-scoring
+      '@juntada/core-utils':
+        specifier: workspace:*
+        version: link:../packages/core-utils
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
@@ -71,6 +78,9 @@ importers:
       '@juntada/rayado-libre-scoring':
         specifier: workspace:*
         version: link:../packages/rayado-libre-scoring
+      '@juntada/recamara-engine':
+        specifier: workspace:*
+        version: link:../packages/recamara-engine
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
@@ -141,6 +151,9 @@ importers:
       '@juntada/color-correcto-scoring':
         specifier: workspace:*
         version: link:../packages/color-correcto-scoring
+      '@juntada/core-utils':
+        specifier: workspace:*
+        version: link:../packages/core-utils
       '@juntada/impostor-data':
         specifier: workspace:*
         version: link:../packages/impostor-data
@@ -159,6 +172,9 @@ importers:
       '@juntada/rayado-libre-scoring':
         specifier: workspace:*
         version: link:../packages/rayado-libre-scoring
+      '@juntada/recamara-engine':
+        specifier: workspace:*
+        version: link:../packages/recamara-engine
       '@juntada/shared-types':
         specifier: workspace:*
         version: link:../packages/shared-types
@@ -192,6 +208,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      workbox-window:
+        specifier: ^7.4.1
+        version: 7.4.1
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
@@ -232,17 +251,25 @@ importers:
 
   packages/color-correcto-scoring: {}
 
+  packages/core-utils: {}
+
   packages/impostor-data: {}
 
   packages/impostor-match-rules: {}
 
   packages/limon-limon-deck: {}
 
-  packages/quien-soy-data: {}
+  packages/quien-soy-data:
+    dependencies:
+      '@juntada/tutifruti-words':
+        specifier: workspace:*
+        version: link:../tutifruti-words
 
   packages/rayado-libre-data: {}
 
   packages/rayado-libre-scoring: {}
+
+  packages/recamara-engine: {}
 
   packages/shared-types:
     dependencies:

@@ -57,7 +57,7 @@ describe("¿Quién Soy? LocalGame", () => {
 
     for (let i = 0; i < 3; i++) {
       await beginTurn(user);
-      await user.click(screen.getByText("🏳️"));
+      await user.click(screen.getByRole("button", { name: "🏳️" }));
       await user.click(screen.getByRole("button", { name: "Rendirme" }));
     }
 
@@ -115,11 +115,11 @@ describe("¿Quién Soy? LocalGame", () => {
     await wrongGuess();
 
     await beginTurn(user);
-    await user.click(screen.getByText("🏳️"));
+    await user.click(screen.getByRole("button", { name: "🏳️" }));
     await user.click(screen.getByRole("button", { name: "Rendirme" }));
 
     await beginTurn(user);
-    await user.click(screen.getByText("🏳️"));
+    await user.click(screen.getByRole("button", { name: "🏳️" }));
     await user.click(screen.getByRole("button", { name: "Rendirme" }));
 
     await beginTurn(user);

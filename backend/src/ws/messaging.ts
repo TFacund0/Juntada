@@ -71,7 +71,10 @@ function getRoomPublicState(room: Room): RoomPublicState {
       name: p.name,
       ready: p.ready,
       online: p.online,
-      hasVoted: !!(room.round as any)?.votes?.[p.id],
+      // room.round is `unknown` (each engine owns its own shape) — narrowed
+      // just enough to read the one field some engines (e.g. impostor) keep
+      // a live vote tally in, instead of an unbounded `as any`.
+      hasVoted: !!(room.round as { votes?: Record<string, unknown> } | null)?.votes?.[p.id],
     })),
     maxPlayers: engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM,
     config: room.config,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/Btn";
 import { StartButton } from "../../components/StartButton";
@@ -7,54 +7,83 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
 import { PhaseTransition } from "../../components/PhaseTransition";
 import { TurnCircle } from "../../components/TurnCircle";
-import { Standings, computeMatchRanks, type StandingEntry } from "./Standings";
+import { Standings, buildStandingEntries } from "./components/Standings";
+import { OthersWordsList } from "./components/OthersWordsList";
+import {
+  MAX_WRONG_GUESSES,
+  type QAEntry,
+  type QuienSoyPrivateRole,
+  type QuienSoyReveal,
+  type QuienSoyRoundView,
+} from "@juntada/quien-soy-data";
 import type { RoundViewProps } from "../gameTypes";
 
-interface QAResponse {
-  answer: "si" | "no" | "skip";
-  comment: string | null;
-}
-
-interface QAEntry {
-  turnPlayerId: string;
-  question: string;
-  responses: Record<string, QAResponse>;
-}
-
-interface QuienSoyRoundState {
-  wordSource?: "categories" | "suggested";
-  submittedCount?: number | null;
-  currentVoteTarget?: string | null;
-  voteSubmittedCount?: number | null;
-  voteEligibleCount?: number | null;
-  currentTurnPlayerId?: string | null;
-  turnOrder?: string[];
-  lapNumber?: number;
-  pendingQuestion?: { by: string; text: string; responses: Record<string, QAResponse> } | null;
-  qaLog?: QAEntry[];
-  guessLog?: { playerId: string; correct: boolean }[];
-  wrongGuesses?: Record<string, number>;
-  results?: { playerId: string; outcome: "solved" | "eliminated" | "conceded"; lap: number }[];
-  words?: Record<string, string> | null;
-}
-
-interface QuienSoyPrivateRole {
-  wordsVisibleToMe: Record<string, string>;
-  myWrongGuesses: number;
-  mySuggestionSubmitted: boolean;
-  voteSuggestions: string[] | null;
-  myVote: number | null;
-  myWord: string | null;
-}
-
-interface QuienSoyReveal {
-  words: Record<string, string>;
-}
-
-const MAX_WRONG_GUESSES = 3;
+const MAX_RESOLVED_QA_CARDS = 3;
 
 function nameOf(room: RoundViewProps["room"], id: string | null | undefined): string {
   return room.players.find(p => p.id === id)?.name ?? "…";
+}
+
+function QAResponses({ room, qa }: { room: RoundViewProps["room"]; qa: QAEntry }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {Object.entries(qa.responses).map(([playerId, resp]) =>
+        resp.answer === "skip" ? (
+          <p key={playerId} style={{ margin: 0, color: "#9089c0" }}>
+            {nameOf(room, playerId)} prefirió no responder{resp.comment ? ` — "${resp.comment}"` : ""}
+          </p>
+        ) : (
+          <p key={playerId} style={{ margin: 0, color: resp.answer === "si" ? "#5DCAA5" : "#F09595" }}>
+            {nameOf(room, playerId)} respondió: {resp.answer === "si" ? "Sí" : "No"}
+            {resp.comment ? ` — "${resp.comment}"` : ""}
+          </p>
+        ),
+      )}
+    </div>
+  );
+}
+
+// A brief, centered, self-dismissing flash for the guesser's own attempt at
+// *their own* word — separate from Toast (which drops in from the top for
+// connection/room-wide notices) since this needs to grab attention right in
+// the middle of the screen for the guesser specifically, the same beat
+// rayado-libre's own points toast gives a correct guess. Same shape/timing
+// for a hit as for a miss — only the icon/color/copy change — so neither
+// outcome reads as an afterthought next to the other.
+function GuessFlash({ correct }: { correct: boolean }) {
+  const color = correct ? "#5DCAA5" : "#F09595";
+  return (
+    <>
+      <style>{`
+        @keyframes guess-flash-pop {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+          15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+          25% { transform: translate(-50%, -50%) scale(1); }
+          80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+        }
+      `}</style>
+      <div
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          zIndex: 2000,
+          pointerEvents: "none",
+          background: `color-mix(in srgb, ${color} 15%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${color} 50%, transparent)`,
+          borderRadius: 16,
+          padding: "22px 32px",
+          textAlign: "center",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          animation: "guess-flash-pop 1.4s ease-out forwards",
+        }}
+      >
+        <p style={{ fontSize: 32, margin: 0 }}>{correct ? "🎉" : "❌"}</p>
+        <p style={{ fontSize: 18, fontWeight: 800, color, margin: "6px 0 0" }}>{correct ? "¡Acertaste!" : "Intento fallido"}</p>
+      </div>
+    </>
+  );
 }
 
 // Covers every in-progress phase (suggest/vote/playing/result) inside a
@@ -68,11 +97,77 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
   const [confirmingConcede, setConfirmingConcede] = useState(false);
   const [notes, setNotes] = useState("");
   const [openQuestions, setOpenQuestions] = useState<Set<number>>(new Set());
+  const [resolvedQACards, setResolvedQACards] = useState<{ id: number; qa: QAEntry }[]>([]);
+  const lastQaLogLength = useRef<number | null>(null);
+  // null = hidden; true/false = showing the hit/miss flash for that outcome
+  // (see GuessFlash above) — one flag for both since they're the same shape,
+  // just a different color/icon/copy.
+  const [guessFlash, setGuessFlash] = useState<boolean | null>(null);
+  const lastMyWrongGuesses = useRef<number | null>(null);
+  const [lastGuessAttempt, setLastGuessAttempt] = useState<{ playerId: string; text: string; correct: boolean } | null>(null);
+  const lastGuessLogLength = useRef<number | null>(null);
 
-  const round = room.round as QuienSoyRoundState | null;
+  const round = room.round as QuienSoyRoundView | null;
   const role = myRole as QuienSoyPrivateRole | null;
   const reveal = wordReveal as QuienSoyReveal | null;
   const myId = me?.playerId;
+
+  // A miss bumps myWrongGuesses (private, resent on every guess now that
+  // submitGuess always marks itself rerolled — see engine.ts) — diff it the
+  // same way rayado-libre diffs guessId, so this only fires once per actual
+  // wrong guess instead of replaying on every unrelated private_role refresh.
+  useEffect(() => {
+    const count = role?.myWrongGuesses ?? 0;
+    if (lastMyWrongGuesses.current != null && count > lastMyWrongGuesses.current) {
+      setGuessFlash(false);
+      const t = setTimeout(() => setGuessFlash(null), 1400);
+      lastMyWrongGuesses.current = count;
+      return () => clearTimeout(t);
+    }
+    lastMyWrongGuesses.current = count;
+  }, [role?.myWrongGuesses]);
+
+  // Surfaces every question's full set of answers to everyone (not just the
+  // asker's own "Mis preguntas" collapsible) right as it resolves — qaLog is
+  // public round data, so every client sees the same new entry land at the
+  // same time. Cards stack (newest on top) instead of auto-dismissing, so
+  // each player closes them with the × whenever they're done reading; only
+  // the oldest gets dropped once a new one pushes the stack past the limit.
+  useEffect(() => {
+    const log = round?.qaLog ?? [];
+    if (lastQaLogLength.current != null && log.length > lastQaLogLength.current) {
+      const latest = log[log.length - 1];
+      setResolvedQACards(prev => [{ id: log.length - 1, qa: latest }, ...prev].slice(0, MAX_RESOLVED_QA_CARDS));
+      lastQaLogLength.current = log.length;
+      return;
+    }
+    lastQaLogLength.current = log.length;
+  }, [round?.qaLog]);
+
+  // Same idea for guesses — guessLog is public too, so everyone (not just
+  // the guesser) sees what was attempted and whether it landed, right as it
+  // happens, instead of only the guesser's own private outcome. A correct
+  // guess of *my own* word additionally gets the same GuessFlash treatment
+  // as a miss (see that component's comment) — the miss case learns of its
+  // own outcome via the private myWrongGuesses counter above since a public
+  // guessLog entry alone can't distinguish "the guesser" from "everyone
+  // else", but a hit needs no such privacy: it's already this guessLog
+  // entry's own playerId.
+  useEffect(() => {
+    const log = round?.guessLog ?? [];
+    if (lastGuessLogLength.current != null && log.length > lastGuessLogLength.current) {
+      const latest = log[log.length - 1];
+      setLastGuessAttempt(latest);
+      const timeouts = [setTimeout(() => setLastGuessAttempt(null), 5000)];
+      if (latest.correct && latest.playerId === myId) {
+        setGuessFlash(true);
+        timeouts.push(setTimeout(() => setGuessFlash(null), 1400));
+      }
+      lastGuessLogLength.current = log.length;
+      return () => timeouts.forEach(clearTimeout);
+    }
+    lastGuessLogLength.current = log.length;
+  }, [round?.guessLog, myId]);
 
   if (!round) return null;
 
@@ -132,7 +227,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     return (
       <PhaseTransition phaseKey="vote">
         <div>
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Votando la palabra de {nameOf(room, round.currentVoteTarget)}</p>
+          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 10 }}>
+            <p style={{ ...S.muted, margin: 0 }}>Votando la palabra de</p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0 0" }}>{nameOf(room, round.currentVoteTarget)}</p>
+          </div>
           {isMyWord ? (
             <div style={{ ...S.card, textAlign: "center" }}>
               <p style={{ color: "#9089c0" }}>Es tu palabra — no podés ver las opciones ni votar.</p>
@@ -168,14 +266,9 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
         <div>
           <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>¡Ya se decidieron todas las palabras!</p>
           <Collapsible title="Palabras de los demás" defaultOpen>
-            {room.players
-              .filter(p => p.id !== myId)
-              .map(p => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 14 }}>
-                  <span style={{ color: "#b8b0d4" }}>{p.name}</span>
-                  <span style={{ fontWeight: 700 }}>{role?.wordsVisibleToMe[p.id] ?? "—"}</span>
-                </div>
-              ))}
+            <OthersWordsList
+              entries={room.players.filter(p => p.id !== myId).map(p => ({ id: p.id, name: p.name, word: role?.wordsVisibleToMe[p.id] }))}
+            />
           </Collapsible>
           {isHost ? (
             <StartButton onClick={() => send({ type: "confirm_words_ready" })}>Empezar a preguntar</StartButton>
@@ -222,14 +315,61 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
       setActionMode("idle");
     };
     const answer = (value: "si" | "no" | "skip") => {
-      send({ type: "answer_question", answer: value, comment: value === "skip" ? undefined : answerComment.trim() || undefined });
+      send({ type: "answer_question", answer: value, comment: answerComment.trim() || undefined });
       setAnswerComment("");
     };
 
     return (
       <PhaseTransition phaseKey="playing">
         <div>
+          {guessFlash != null && <GuessFlash correct={guessFlash} />}
           <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Ronda {round.lapNumber}</p>
+
+          {lastGuessAttempt && (
+            <div
+              style={{
+                ...S.cardHighlight,
+                textAlign: "center",
+                background: lastGuessAttempt.correct ? "rgba(93,202,165,0.12)" : "rgba(240,149,149,0.1)",
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 14 }}>
+                <strong style={{ color: "#AFA9EC" }}>{nameOf(room, lastGuessAttempt.playerId)}</strong> intentó: "{lastGuessAttempt.text}"
+              </p>
+              <p style={{ margin: "6px 0 0", fontWeight: 700, color: lastGuessAttempt.correct ? "#5DCAA5" : "#F09595" }}>
+                {lastGuessAttempt.correct ? "¡Acertó! 🎉" : "No era"}
+              </p>
+            </div>
+          )}
+
+          {resolvedQACards.map(({ id, qa }) => (
+            <div key={id} style={{ ...S.cardHighlight, background: "rgba(127,119,221,0.1)", position: "relative" }}>
+              <button
+                onClick={() => setResolvedQACards(prev => prev.filter(c => c.id !== id))}
+                aria-label="Cerrar"
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  background: "none",
+                  border: "none",
+                  color: "#9089c0",
+                  fontSize: 16,
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  padding: 4,
+                }}
+              >
+                ✕
+              </button>
+              <span style={{ ...S.label, paddingRight: 20, display: "block" }}>
+                Pregunta de {nameOf(room, qa.turnPlayerId)}: "{qa.question}"
+              </span>
+              <div style={{ marginTop: 6 }}>
+                <QAResponses room={room} qa={qa} />
+              </div>
+            </div>
+          ))}
 
           {myOutcome && (
             <div
@@ -257,14 +397,9 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           )}
 
           <Collapsible title="Palabras de los demás">
-            {room.players
-              .filter(p => p.id !== myId)
-              .map(p => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 14 }}>
-                  <span style={{ color: "#b8b0d4" }}>{p.name}</span>
-                  <span style={{ fontWeight: 700 }}>{role?.wordsVisibleToMe[p.id] ?? "—"}</span>
-                </div>
-              ))}
+            <OthersWordsList
+              entries={room.players.filter(p => p.id !== myId).map(p => ({ id: p.id, name: p.name, word: role?.wordsVisibleToMe[p.id] }))}
+            />
           </Collapsible>
 
           {(round.turnOrder?.length ?? 0) > 0 && (
@@ -432,19 +567,8 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                     </span>
                   </button>
                   {isOpen && (
-                    <div style={{ margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 4 }}>
-                      {Object.entries(qa.responses).map(([playerId, resp]) =>
-                        resp.answer === "skip" ? (
-                          <p key={playerId} style={{ margin: 0, color: "#9089c0" }}>
-                            {nameOf(room, playerId)} prefirió no responder
-                          </p>
-                        ) : (
-                          <p key={playerId} style={{ margin: 0, color: resp.answer === "si" ? "#5DCAA5" : "#F09595" }}>
-                            {nameOf(room, playerId)} respondió: {resp.answer === "si" ? "Sí" : "No"}
-                            {resp.comment ? ` — "${resp.comment}"` : ""}
-                          </p>
-                        ),
-                      )}
+                    <div style={{ margin: "6px 0 0" }}>
+                      <QAResponses room={room} qa={qa} />
                     </div>
                   )}
                 </div>
@@ -481,21 +605,8 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
 
   if (room.phase === "result") {
     const words = reveal?.words ?? round.words ?? {};
-    const ranks = computeMatchRanks(round.results ?? [], room.players.length);
-    const entries: StandingEntry[] = room.players
-      .map(p => {
-        const result = round.results?.find(r => r.playerId === p.id);
-        const rankInfo = ranks[p.id];
-        return {
-          id: p.id,
-          name: p.name,
-          outcome: (result?.outcome ?? "playing") as StandingEntry["outcome"],
-          rank: rankInfo?.rank ?? null,
-          word: words[p.id] ?? null,
-          points: rankInfo?.points ?? 0,
-        };
-      })
-      .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+    const totalScores = room.config.score as Record<string, number>;
+    const entries = buildStandingEntries(room.players, round.results ?? [], words, totalScores);
 
     return (
       <PhaseTransition phaseKey="result">
@@ -508,7 +619,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
               <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
             </div>
           )}
-          <LeaveToLobbyButton groupCode={room.groupCode} send={send} confirm={{ message: "Se interrumpe la partida para todos." }} />
+          <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
         </div>
       </PhaseTransition>
     );

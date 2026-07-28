@@ -55,6 +55,8 @@ import { spamTapGame } from "./spam-tap";
 import { ultimoEnTocarGame } from "./ultimo-en-tocar";
 import { bombaGame } from "./bomba";
 import { tiempoExactoGame } from "./tiempo-exacto";
+import { recamaraGame } from "./recamara";
+import { rielSalvajeGame } from "./riel-salvaje";
 
 export const GAMES: Record<string, GameDef> = {
   [impostorGame.id]: impostorGame,
@@ -83,6 +85,8 @@ export const GAMES: Record<string, GameDef> = {
   [ultimoEnTocarGame.id]: ultimoEnTocarGame,
   [bombaGame.id]: bombaGame,
   [tiempoExactoGame.id]: tiempoExactoGame,
+  [recamaraGame.id]: recamaraGame,
+  [rielSalvajeGame.id]: rielSalvajeGame,
 };
 
 export const GAME_LIST = Object.values(GAMES);

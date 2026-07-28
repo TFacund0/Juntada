@@ -11,7 +11,7 @@ const { WebSocketServer } = require("ws");
 const { clients } = require("../state/roomStore");
 const { HANDLERS, handleDisconnect } = require("./handlers");
 const { validateMessage } = require("./validation");
-const { sendTo, sendError } = require("./messaging");
+const { sendError } = require("./messaging");
 const { isAllowed } = require("./rateLimiter");
 const { captureException } = require("../sentry");
 
@@ -30,12 +30,17 @@ function clientIp(req: IncomingMessage): string {
 // Cheap-to-abuse message types get a per-IP rate limit: creating rooms/groups
 // exhausts server memory, and hammering join_room/join_group is a room/group
 // code brute force.
+// Several friends on the same wifi/NAT share one public IP, and each of them
+// reconnecting a few times (flaky wifi, backgrounding a phone, a cold-started
+// server timing out a first attempt) burns through this budget fast — these
+// were tight enough to plausibly lock out a whole group trying to join or
+// get back into the same room, not just an actual brute-force attempt.
 const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
-  create_room: { limit: 5, windowMs: 60_000 },
-  join_room: { limit: 20, windowMs: 60_000 },
-  check_room_code: { limit: 30, windowMs: 60_000 },
-  create_group: { limit: 5, windowMs: 60_000 },
-  join_group: { limit: 20, windowMs: 60_000 },
+  create_room: { limit: 10, windowMs: 60_000 },
+  join_room: { limit: 60, windowMs: 60_000 },
+  check_room_code: { limit: 60, windowMs: 60_000 },
+  create_group: { limit: 10, windowMs: 60_000 },
+  join_group: { limit: 60, windowMs: 60_000 },
   // Rayado Libre's canvas stream: the frontend batches pointer movement into
   // one message per short animation-frame window, which still easily clears
   // the blanket per-connection budget below over a 99s drawing turn — these
@@ -74,8 +79,12 @@ function isAllowedOrigin(req: IncomingMessage): boolean {
 // Caps concurrent open sockets per IP so one client can't cheaply exhaust
 // server memory/file descriptors by opening connections without ever
 // sending create_room (which is what the per-message rate limits above
-// guard against instead).
-const MAX_CONNECTIONS_PER_IP = 20;
+// guard against instead). Raised from 20: a household/group of friends
+// sharing one public IP, each with a few tabs/devices and the odd stray
+// reconnect (a not-yet-terminated stale socket lingers up to
+// HEARTBEAT_INTERVAL_MS after going quiet), adds up fast against a cap this
+// tight — this is meant to catch genuine abuse, not a normal group game night.
+const MAX_CONNECTIONS_PER_IP = 60;
 const connectionsPerIp = new Map<string, number>();
 
 // A closed TCP connection fires "close" and lets handleDisconnect run, but a
