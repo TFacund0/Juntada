@@ -220,6 +220,35 @@ export default function App() {
   // "Unirse" actually lands, not just from picking "Multijugador online" —
   // this is null the whole time you're still on that create/join screen.
   const [inRoom, setInRoom] = useState(false);
+  // Whether a themed game's reskin is actually on screen right now — used
+  // below to decide what "Paso 1.5"/"Paso 3" render, and here to drive the
+  // body/theme-color sync effect. Computed above the "!playerName" early
+  // return further down since Hooks (the effect right after it) can never
+  // be called conditionally.
+  const inGameView = game
+    ? game.localOnly
+      ? !game.comingSoon && !isUnderMaintenance(game)
+      : mode === "local" || (mode === "multi" && inRoom)
+    : false;
+  const activeTheme = inGameView && game?.gameTheme ? GAME_THEMES[game.gameTheme] : null;
+  // S.app's background only paints the app's own root div — on mobile,
+  // overscroll/rubber-banding (pull past the top/bottom of the page) shows
+  // whatever's actually behind that div: <body>'s own background (set once,
+  // statically, in index.html) and the browser chrome's theme-color meta
+  // tag. Neither followed a themed game's background before, so pulling
+  // down mid-Recámara flashed the app's default dark-purple instead of its
+  // own near-black. Kept in sync here instead of in index.html since the
+  // theme is only known at runtime, and reset on unmount so leaving the
+  // themed game doesn't leave the tint behind for the next screen.
+  useEffect(() => {
+    const bg = (activeTheme?.app.background as string | undefined) ?? "#0f0c1d";
+    document.body.style.background = bg;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
+    return () => {
+      document.body.style.background = "#0f0c1d";
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#0f0c1d");
+    };
+  }, [activeTheme]);
   // Lets goBack decide whether delegating to returnToGroupRef (see below)
   // would actually interrupt a round in progress — the same question
   // ReturnToGroupButton asks for its own in-screen control, via the same
@@ -364,16 +393,6 @@ export default function App() {
       </div>
     );
 
-  // Reskin is "live" whenever this game's actual LocalGame/RoundView is what
-  // the user sees, not just the game picker or the local/online mode choice
-  // — matches the same condition used below to decide what to render for
-  // "Paso 1.5"/"Paso 3".
-  const inGameView = game
-    ? game.localOnly
-      ? !game.comingSoon && !isUnderMaintenance(game)
-      : mode === "local" || (mode === "multi" && inRoom)
-    : false;
-  const activeTheme = inGameView && game?.gameTheme ? GAME_THEMES[game.gameTheme] : null;
   const accentColor = activeTheme?.accent ?? "#7F77DD";
   const mutedColor = activeTheme?.muted ?? "#6b6490";
   const themedTitleStyle: CSSProperties = activeTheme
