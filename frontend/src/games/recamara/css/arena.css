@@ -1,0 +1,182 @@
+/* Arena: shotgun fixed at the center, players seated around it in a circle
+   (see LocalGame's seatStyle) — replaces the old side-by-side row so the
+   layout scales cleanly from 2 to 4 players. */
+.recamara .arena {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 18px;
+}
+
+.recamara .gun-aim {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Matches AIM_MS in timing.ts — slow and deliberate on purpose, for
+     suspense, so the swing onto the target is something you actually watch
+     happen instead of a snap-cut. */
+  transition: transform 1.365s cubic-bezier(0.33, 1, 0.4, 1);
+}
+
+.recamara .arena.busy .token {
+  pointer-events: none;
+}
+
+/* A slowly spinning dashed ring (behind the tokens) plus a few chevrons
+   riding it — see DirectionRing.tsx. Sits just inside the arena's edge, at
+   roughly the same radius as the seated tokens, so it visibly threads
+   through the table rather than floating separately from it. */
+.recamara .direction-ring {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  border: 1.5px dashed var(--rec-hair);
+  animation: rec-ring-spin 14s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.recamara .direction-ring.ccw {
+  animation-direction: reverse;
+}
+
+.recamara .direction-chevron {
+  position: absolute;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--rec-live);
+  text-shadow: 0 0 6px var(--rec-live-glow);
+}
+
+@keyframes rec-ring-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The one shell casing that's ever shown — the last one fired. Colored by
+   that single shot's real/blank result; no count, no history, no order.
+   Its left/top/rotate come from inline style (LocalGame's shellSpot/
+   shellPhase) — a new spot every shot, always close to the gun but never
+   exactly on it — and the transition below is what makes it visibly fly
+   out from the gun to that spot instead of just appearing there. */
+.recamara .last-shell {
+  position: absolute;
+  width: 13px;
+  height: 22px;
+  border-radius: 3px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+  transition:
+    left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.recamara .last-shell.live {
+  background: var(--rec-live);
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.5),
+    0 0 10px -2px var(--rec-live-glow);
+}
+
+.recamara .last-shell.blank {
+  background: var(--rec-blank);
+}
+
+.recamara .token {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 92px;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid var(--rec-felt-line);
+  border-radius: 8px;
+  padding: 8px 6px 7px;
+  font-family: inherit;
+  color: var(--rec-ink);
+  cursor: pointer;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s,
+    transform 0.15s;
+}
+
+.recamara .token:hover {
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.recamara .token.active {
+  border-color: var(--rec-live);
+  box-shadow:
+    0 0 0 1px var(--rec-live) inset,
+    0 0 20px -6px var(--rec-live-glow);
+}
+
+.recamara .token.dead {
+  opacity: 0.4;
+}
+
+.recamara .token-name {
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.recamara .token.active .token-name {
+  color: var(--rec-live-glow);
+}
+
+.recamara .token-lives {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.recamara .life-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--rec-live);
+  background: radial-gradient(circle at 35% 30%, var(--rec-live-glow), var(--rec-live) 70%);
+  transition:
+    opacity 0.3s,
+    filter 0.3s;
+}
+
+.recamara .life-dot.spent {
+  background: none;
+  border-color: var(--rec-hair);
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.recamara .token-cuffed {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.recamara .token-items {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.recamara .token-item {
+  font-size: 0.7rem;
+  line-height: 1;
+}

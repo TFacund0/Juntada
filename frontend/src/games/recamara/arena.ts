@@ -29,6 +29,23 @@ export function frontAngle(order: number[], playerId: number): number {
   return seatAngle(order, playerId) + 180;
 }
 
+// gunAngle is stored as a plain, ever-growing/shrinking degree number (not
+// wrapped to 0-360) precisely so the CSS `rotate()` transition on .gun-aim
+// can animate it directly — but every new target from seatAngle/frontAngle
+// comes back in a fixed -90..270 range, and jumping from e.g. -80deg to
+// 260deg would spin the *long* way round (340deg) instead of the 20deg it
+// actually needs. This nudges the target by whole 360deg turns until it's
+// within half a turn of wherever the gun currently is, so the CSS
+// transition always takes the shortest visible path — the same target
+// angle, mod 360, just picked to be near `current` instead of always in
+// seatAngle's raw range.
+export function shortestGunAngle(current: number, target: number): number {
+  let next = target;
+  while (next - current > 180) next -= 360;
+  while (next - current < -180) next += 360;
+  return next;
+}
+
 // A shuffled row of 🔴/🟡 standing in for the chamber's real/falso split on
 // the round-intro card — never grouped ("all the reds first"), since even
 // though the count itself is public info the *order* still shouldn't read

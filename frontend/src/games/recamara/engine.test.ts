@@ -21,6 +21,20 @@ describe("recamara engine", () => {
     }
   });
 
+  test("buildShells never leaves a chamber all-live or all-blank, and never lets a 7-8 shell chamber skew past a 6-2 split", () => {
+    for (let i = 0; i < 200; i++) {
+      const shells = buildShells();
+      const live = shells.filter(s => s.kind === "live").length;
+      const blank = shells.length - live;
+      expect(live).toBeGreaterThanOrEqual(1);
+      expect(blank).toBeGreaterThanOrEqual(1);
+      if (shells.length >= 7) {
+        expect(live).toBeGreaterThanOrEqual(2);
+        expect(blank).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
   test("createInitialState gives every player full lives and no items — round 1 plays with none", () => {
     const state = createInitialState(["Ana", "Beto", "Caro"]);
     expect(state.players).toHaveLength(3);

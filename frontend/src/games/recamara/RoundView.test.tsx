@@ -17,8 +17,8 @@ function makeRound(overrides: Record<string, unknown> = {}) {
     seatOrder: ["p1", "p2"],
     state: {
       players: [
-        { id: 0, name: "Jugador 1", lives: 5, items: ["🔍", "🚬"] },
-        { id: 1, name: "Jugador 2", lives: 5, items: ["🪚", "🔄"] },
+        { id: 0, name: "Jugador 1", lives: 5, items: ["🔍", "🚬"], lastGrantedItems: ["🔍", "🚬"] },
+        { id: 1, name: "Jugador 2", lives: 5, items: ["🪚", "🔄"], lastGrantedItems: ["🪚", "🔄"] },
       ],
       order: [0, 1],
       direction: 1,

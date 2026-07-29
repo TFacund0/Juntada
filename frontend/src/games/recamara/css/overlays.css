@@ -1,0 +1,213 @@
+/* Overlays shared by PlayerItemsSheet and ItemUseModal. */
+.recamara .rec-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: rec-fade-in 0.2s ease-out;
+}
+
+/* FlashOverlay's own variant — fully opaque and centered, so whatever
+   screen it's covering (e.g. RoundView's "esperando a los demás" list)
+   never bleeds through behind the flashed text. */
+.recamara .rec-overlay-solid {
+  background: var(--rec-bg);
+  align-items: center;
+}
+
+.recamara .rec-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  border-radius: 12px 12px 0 0;
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.recamara .rec-sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.recamara .rec-sheet-empty {
+  color: var(--rec-ink-faint);
+  font-size: 0.85rem;
+}
+
+.recamara .rec-sheet-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recamara .rec-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--rec-bg);
+  border: 1px solid var(--rec-hair);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  color: var(--rec-ink);
+  text-align: left;
+  cursor: default;
+}
+
+.recamara .rec-sheet-item.usable {
+  cursor: pointer;
+}
+
+.recamara .rec-sheet-item.usable:hover {
+  border-color: var(--rec-live);
+}
+
+.recamara .rec-sheet-item .icon {
+  font-size: 18px;
+}
+
+.recamara .rec-sheet-item .label {
+  font-size: 0.8rem;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .rec-modal {
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  animation: rec-fade-in 0.2s ease-out;
+}
+
+.recamara .rec-overlay:has(.rec-modal) {
+  align-items: center;
+}
+
+.recamara .rec-modal-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.recamara .rec-modal-icon.activating {
+  margin-bottom: 0;
+  animation: rec-item-activate 0.55s ease-in-out;
+}
+
+@keyframes rec-item-activate {
+  0% {
+    transform: scale(0.7) rotate(0deg);
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(1.35) rotate(-8deg);
+    filter: brightness(1.6);
+  }
+  70% {
+    transform: scale(1.1) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+.recamara .rec-modal-desc {
+  font-size: 0.92rem;
+  color: var(--rec-ink);
+  margin: 0 0 16px;
+  line-height: 1.4;
+}
+
+.recamara .rec-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.recamara .rec-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.recamara .rec-modal-list-item {
+  background: var(--rec-bg);
+  border: 1px solid var(--rec-hair);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  color: var(--rec-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.recamara .rec-modal-list-item:hover {
+  border-color: var(--rec-live);
+}
+
+/* The centered "what just happened" alert shown after a shot resolves or an
+   item gets used (see OutcomeBanner) — stays up until the player taps
+   "Continuar", which is what actually slows the pacing down on purpose. */
+.recamara .rec-banner {
+  border-width: 2px;
+}
+
+.recamara .rec-banner.danger {
+  border-color: var(--rec-live);
+  box-shadow: 0 0 30px -8px var(--rec-live-glow);
+}
+
+.recamara .rec-banner.safe {
+  border-color: var(--rec-blank);
+  box-shadow: 0 0 30px -8px var(--rec-blank);
+}
+
+.recamara .rec-banner-text {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.recamara .rec-banner-text b {
+  color: var(--rec-live-glow);
+}
+
+/* The real/falso verdict line under the neutral "who shot whom" line —
+   colored to match the shot itself (see .rec-banner.danger/.safe borders). */
+.recamara .rec-banner-subtext {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 18px;
+}
+
+.recamara .rec-banner-subtext.danger {
+  color: var(--rec-live-glow);
+}
+
+.recamara .rec-banner-subtext.safe {
+  color: var(--rec-blank);
+}
+
+.recamara .center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}

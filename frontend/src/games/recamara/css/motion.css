@@ -1,0 +1,22 @@
+@media (prefers-reduced-motion: reduce) {
+  .recamara .shotgun.recoil,
+  .recamara .muzzle.flash,
+  .recamara .turn-banner .dot,
+  .recamara .log .line,
+  .recamara .rec-modal-icon.activating,
+  .recamara .chest-big.shake,
+  .recamara .chest-big.shake:active,
+  .recamara .chest-glow,
+  .recamara .chest-reveal-card,
+  .recamara .round-intro,
+  .recamara .round-chamber,
+  .recamara .rec-flash-card,
+  .recamara .item-btn[data-tooltip]:hover::after,
+  .recamara .item-btn[data-tooltip]:focus-visible::after {
+    animation: none !important;
+  }
+  .recamara .gun-aim,
+  .recamara .last-shell {
+    transition: none !important;
+  }
+}

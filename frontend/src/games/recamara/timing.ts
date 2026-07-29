@@ -6,7 +6,7 @@
 // long the recoil/flash itself lasts — slow and deliberate on purpose, so
 // there's real suspense in watching the gun turn and go off before the
 // result banner appears (which then waits for a tap, not a timer).
-export const AIM_MS = 1300;
+export const AIM_MS = 1365; // 5% slower than the gun's original 1300ms swing
 export const SHOT_MS = 550;
 // How long an item's activation animation (icon pulse) plays before its
 // result banner shows up.
@@ -15,6 +15,9 @@ export const ITEM_ACTIVATE_MS = 550;
 // moving on by itself — long enough for everyone at the table to actually
 // read it, not just flash by.
 export const ROUND_INTRO_MS = 5000;
+// The themed "A disparar" flash (see FlashOverlay/useDuelEntryFlash) that
+// bridges the reveal's last beat into the actual duel.
+export const DUEL_TRANSITION_MS = 800;
 // The plain "Ronda N" announcement (no items, no gun yet) — short on
 // purpose, just long enough to register before moving on to items.
 export const ROUND_ANNOUNCE_MS = 1800;
