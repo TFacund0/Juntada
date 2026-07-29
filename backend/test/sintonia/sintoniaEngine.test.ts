@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const engine = require("../src/games/sintonia/engine");
+const engine = require("../../src/games/sintonia/engine");
 
 interface TestPlayer {
   id: string;

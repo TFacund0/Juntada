@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const engine = require("../src/games/color-correcto/engine");
+const engine = require("../../src/games/color-correcto/engine");
 
 interface TestPlayer {
   id: string;

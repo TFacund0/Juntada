@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const engine = require("../src/games/impostor/engine");
+const engine = require("../../src/games/impostor/engine");
 const { CATEGORIES } = require("@juntada/impostor-data") as { CATEGORIES: Record<string, unknown> };
 
 // The engine now defaults every category to disabled (the host has to

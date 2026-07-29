@@ -1,18 +1,18 @@
 import type { ReactNode, RefObject } from "react";
 import { Suspense } from "react";
-import { S } from "../../theme/styles";
-import { Avatar } from "../../components/Avatar";
-import { CodeDisplay } from "../../components/CodeDisplay";
-import { QRDialog } from "../../components/QRDialog";
-import { SetupTabs } from "../../components/SetupTabs";
-import { Toast } from "../../components/Toast";
-import { ErrorBanner } from "../../components/ErrorBanner";
-import { StickyActionBar } from "../../components/StickyActionBar";
-import { StartButton } from "../../components/StartButton";
-import { ReturnToGroupButton } from "../../components/ReturnToGroupButton";
-import type { GameDef } from "../../games/gameTypes";
+import { S } from "../../../theme/styles";
+import { Avatar } from "../../../components/Avatar";
+import { CodeDisplay } from "../../../components/CodeDisplay";
+import { QRDialog } from "../../../components/QRDialog";
+import { SetupTabs } from "../../../components/SetupTabs";
+import { Toast } from "../../../components/Toast";
+import { ErrorBanner } from "../../../components/ErrorBanner";
+import { StickyActionBar } from "../../../components/StickyActionBar";
+import { StartButton } from "../../../components/StartButton";
+import { ReturnToGroupButton } from "../../../components/ReturnToGroupButton";
+import type { GameDef } from "../../../games/gameTypes";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
-import { buildRoomJoinUrl } from "./joinLink";
+import { buildRoomJoinUrl } from "../utils/joinLink";
 
 // A standalone room's or group instance's lobby: room code (standalone
 // only), player list with host-only per-player actions, the active game's

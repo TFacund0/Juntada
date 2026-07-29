@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MockWebSocket } from "../../test/mockWebSocket";
-import { clearMultiplayerSession } from "./useMultiplayerSocket";
-import { MultiplayerGame } from "./MultiplayerGame";
+import { MockWebSocket } from "../../../test/mockWebSocket";
+import { clearMultiplayerSession } from "../hooks/useMultiplayerSocket";
+import { MultiplayerGame } from "../MultiplayerGame";
 
 // The shell every online game routes through (connect/menu/lobby/in-round,
 // plus the whole group flow) — previously untested despite being the

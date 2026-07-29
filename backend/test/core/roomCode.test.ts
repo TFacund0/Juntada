@@ -1,7 +1,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { rooms } = require("../src/state/roomStore");
-const { generateUniqueRoomCode } = require("../src/rooms/roomCode");
+const { rooms } = require("../../src/state/roomStore");
+const { generateUniqueRoomCode } = require("../../src/rooms/roomCode");
 
 const VALID_CHARS = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/;
 

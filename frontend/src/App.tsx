@@ -13,9 +13,9 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { RETURN_TO_GROUP_CONFIRM, roomHasProgress } from "./components/ReturnToGroupButton";
 import { DevNoticeDialog } from "./components/DevNoticeDialog";
 import { NamePillEditor } from "./components/NamePillEditor";
-import { clearMultiplayerSession } from "./features/multiplayer/useMultiplayerSocket";
-import { consumeJoinLink } from "./features/multiplayer/joinLink";
-import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/playerName";
+import { clearMultiplayerSession } from "./features/multiplayer/hooks/useMultiplayerSocket";
+import { consumeJoinLink } from "./features/multiplayer/utils/joinLink";
+import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/utils/playerName";
 import logo from "./assets/brand/logo.webp";
 
 // ═══════════════════════════════════════════════════════════════════════════════

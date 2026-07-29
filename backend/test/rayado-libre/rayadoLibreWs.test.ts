@@ -10,7 +10,7 @@
 const { test, before, after, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const WebSocket = require("ws");
-const { createApp } = require("../src/app");
+const { createApp } = require("../../src/app");
 const { CATEGORIES } = require("@juntada/rayado-libre-data");
 
 type WSClient = import("ws").WebSocket;
@@ -36,7 +36,7 @@ after(async () => {
 });
 
 beforeEach(() => {
-  const { rooms, groups, clients } = require("../src/state/roomStore");
+  const { rooms, groups, clients } = require("../../src/state/roomStore");
   rooms.clear();
   groups.clear();
   clients.clear();

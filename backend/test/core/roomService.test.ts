@@ -1,7 +1,7 @@
 const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
-const { rooms, clients } = require("../src/state/roomStore");
-const roomService = require("../src/rooms/roomService");
+const { rooms, clients } = require("../../src/state/roomStore");
+const roomService = require("../../src/rooms/roomService");
 
 // `ws` is only ever used as a Map key by roomService, so a plain object
 // stands in fine for a real socket in these tests.

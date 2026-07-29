@@ -1,15 +1,15 @@
 import type { ReactNode, RefObject } from "react";
-import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { Avatar } from "../../components/Avatar";
-import { CodeDisplay } from "../../components/CodeDisplay";
-import { QRDialog } from "../../components/QRDialog";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { ErrorBanner } from "../../components/ErrorBanner";
-import { getGame } from "../../games/registry";
-import type { GameDef } from "../../games/gameTypes";
+import { S } from "../../../theme/styles";
+import { Btn } from "../../../components/Btn";
+import { Avatar } from "../../../components/Avatar";
+import { CodeDisplay } from "../../../components/CodeDisplay";
+import { QRDialog } from "../../../components/QRDialog";
+import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import { ErrorBanner } from "../../../components/ErrorBanner";
+import { getGame } from "../../../games/registry";
+import type { GameDef } from "../../../games/gameTypes";
 import type { GroupPublicState } from "@juntada/shared-types";
-import { buildGroupJoinUrl } from "./joinLink";
+import { buildGroupJoinUrl } from "../utils/joinLink";
 
 // Attached to a group with no active instance: the group's own code/roster,
 // the list of open instances anyone can join, and the "create a new

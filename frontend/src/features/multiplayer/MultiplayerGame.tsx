@@ -3,12 +3,12 @@ import { Btn } from "../../components/Btn";
 import { getGame, GAME_LIST } from "../../games/registry";
 import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
-import { useMultiplayerSocket } from "./useMultiplayerSocket";
-import { extractScannedCode } from "./joinLink";
-import { MenuScreen } from "./MenuScreen";
-import { GroupScreen } from "./GroupScreen";
-import { LobbyScreen } from "./LobbyScreen";
-import { RoundScreen } from "./RoundScreen";
+import { useMultiplayerSocket } from "./hooks/useMultiplayerSocket";
+import { extractScannedCode } from "./utils/joinLink";
+import { MenuScreen } from "./screens/MenuScreen";
+import { GroupScreen } from "./screens/GroupScreen";
+import { LobbyScreen } from "./screens/LobbyScreen";
+import { RoundScreen } from "./screens/RoundScreen";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:

@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { ErrorBanner } from "../../components/ErrorBanner";
-import { NamePillEditor } from "../../components/NamePillEditor";
-import { QRScannerDialog } from "../../components/QRScannerDialog";
-import { getGame } from "../../games/registry";
-import type { GameDef } from "../../games/gameTypes";
-import type { RoomPreview } from "./useMultiplayerSocket";
+import { S } from "../../../theme/styles";
+import { Btn } from "../../../components/Btn";
+import { ErrorBanner } from "../../../components/ErrorBanner";
+import { NamePillEditor } from "../../../components/NamePillEditor";
+import { QRScannerDialog } from "../../../components/QRScannerDialog";
+import { getGame } from "../../../games/registry";
+import type { GameDef } from "../../../games/gameTypes";
+import type { RoomPreview } from "../hooks/useMultiplayerSocket";
 
 // The pre-connection screen: name editor, create/join toggle, and (for
 // "join") the code field with its live room preview. Covers connectionPhase
