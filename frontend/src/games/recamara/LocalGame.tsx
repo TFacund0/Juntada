@@ -49,6 +49,15 @@ type Phase = "setup" | "reveal" | "duel" | "final";
 
 interface DisplayLogLine extends LogLine {
   id: number;
+  // 📞/🔍 only: what a shared-screen table sees before this line gets
+  // redacted — see addItemLog below. Local pass-and-play has no server to
+  // keep the real hint private (unlike online's revealPhoneHint/
+  // revealLupaHint, see @juntada/recamara-engine), so the log itself has
+  // to do the hiding once the device moves on to someone else: the line
+  // reveals the real hint only while it's still privateToPlayerId's turn,
+  // falling back to redactedText for everyone after.
+  privateToPlayerId?: number;
+  redactedText?: string;
 }
 
 // describeFireResult/describeItemResult (shared engine) take a name
@@ -110,9 +119,31 @@ export function LocalGame() {
   const [activatingItem, setActivatingItem] = useState<ItemKind | null>(null);
   const [pendingItemResult, setPendingItemResult] = useState<ItemResult | null>(null);
 
-  const addLog = (line: LogLine) => {
+  const addLog = (line: LogLine & { privateToPlayerId?: number; redactedText?: string }) => {
     logId.current += 1;
     setLog(l => [...l.slice(-5), { ...line, id: logId.current }]);
+  };
+
+  // 📞/🔍 reveal something only the player who used the item should
+  // know — online keeps that private via the server (see
+  // @juntada/recamara-engine's revealPhoneHint/revealLupaHint), but local
+  // pass-and-play has no server, just a shared log everyone at the table
+  // can read. Logging the real hint text is fine *while it's still that
+  // player's turn* (the device is still in their hands), but it must stop
+  // being readable the moment the turn moves on to someone else — so this
+  // logs both the real line and a redacted fallback, and the log's render
+  // picks between them based on whose turn it currently is.
+  const addItemLog = (result: ItemResult, players: Player[]) => {
+    const line = describeItemResult(result, nameOf(players));
+    if (result.item !== "📞" && result.item !== "🔍") {
+      addLog(line);
+      return;
+    }
+    const redacted = describeItemResult(result, nameOf(players), {
+      revealPhoneHint: result.item === "📞" ? false : undefined,
+      revealLupaHint: result.item === "🔍" ? false : undefined,
+    });
+    addLog({ ...line, privateToPlayerId: result.playerId, redactedText: redacted.text });
   };
 
   const phase: Phase = !gameState ? "setup" : winner ? "final" : subPhase;
@@ -287,7 +318,7 @@ export function LocalGame() {
 
   const continueAfterItem = () => {
     if (!gameState || !pendingItemResult) return;
-    addLog(describeItemResult(pendingItemResult, nameOf(gameState.players)));
+    addItemLog(pendingItemResult, gameState.players);
     setGameState(pendingItemResult.state);
     setPendingItemResult(null);
   };
@@ -480,9 +511,12 @@ export function LocalGame() {
             {logVisible ? "Ocultar registro ▾" : "Mostrar registro ▸"}
           </button>
           {logVisible &&
-            log.map((l, i) => (
-              <div key={`${l.id}-${i}`} className={`line${l.cls ? ` ${l.cls}` : ""}`} dangerouslySetInnerHTML={{ __html: l.text }} />
-            ))}
+            log.map((l, i) => {
+              // Redact 📞/🔍's real hint the moment the turn moves on from
+              // whoever used it — see addItemLog above.
+              const text = l.privateToPlayerId != null && l.privateToPlayerId !== current.id ? (l.redactedText ?? l.text) : l.text;
+              return <div key={`${l.id}-${i}`} className={`line${l.cls ? ` ${l.cls}` : ""}`} dangerouslySetInnerHTML={{ __html: text }} />;
+            })}
         </div>
 
         <div className="controls">
