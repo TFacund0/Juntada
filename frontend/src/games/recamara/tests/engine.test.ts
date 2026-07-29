@@ -21,14 +21,14 @@ describe("recamara engine", () => {
     }
   });
 
-  test("buildShells never leaves a chamber all-live or all-blank, and never lets a 7-8 shell chamber skew past a 6-2 split", () => {
+  test("buildShells never leaves a chamber all-live or all-blank, and never lets a 6-8 shell chamber skew past a minority of 2", () => {
     for (let i = 0; i < 200; i++) {
       const shells = buildShells();
       const live = shells.filter(s => s.kind === "live").length;
       const blank = shells.length - live;
       expect(live).toBeGreaterThanOrEqual(1);
       expect(blank).toBeGreaterThanOrEqual(1);
-      if (shells.length >= 7) {
+      if (shells.length >= 6) {
         expect(live).toBeGreaterThanOrEqual(2);
         expect(blank).toBeGreaterThanOrEqual(2);
       }

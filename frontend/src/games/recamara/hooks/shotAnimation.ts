@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ShellKind } from "@juntada/recamara-engine";
-import { randomShellSpot, shortestGunAngle } from "./arena";
-import { AIM_MS, SHOT_MS } from "./timing";
+import { randomShellSpot, shortestGunAngle } from "../utils/arena";
+import { AIM_MS, SHOT_MS } from "../utils/timing";
 
 export type FireStage = "idle" | "aiming" | "firing" | "result";
 

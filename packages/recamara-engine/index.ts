@@ -85,11 +85,12 @@ const BLANK_ORDER_BIAS = 0.15;
 // recamara/index.tsx's `rules`). Both kinds are guaranteed to show up at
 // least once (never an all-live or all-blank chamber), and lopsided splits
 // are still very much allowed (that swinginess is the point) — the only
-// extra guardrail is on the bigger chambers (7-8 shells), where the
+// extra guardrail is on the bigger chambers (6-8 shells), where the
 // minority kind is guaranteed at least 2 rather than 1, so a full chamber
-// can't land on the most extreme 7-1 split, just a slightly less extreme one.
+// can't land on the most extreme split (e.g. 7-1 or 5-1), just a slightly
+// less extreme one.
 const MIN_MINORITY_FOR_LARGE_CHAMBER = 2;
-const LARGE_CHAMBER_THRESHOLD = 7;
+const LARGE_CHAMBER_THRESHOLD = 6;
 
 export function buildShells(): Shell[] {
   const total = 3 + Math.floor(Math.random() * 6); // 3..8

@@ -1,5 +1,5 @@
-import "./recamara.css";
-import type { ConfigPanelProps } from "../gameTypes";
+import "../recamara.css";
+import type { ConfigPanelProps } from "../../gameTypes";
 
 // Recámara has no adjustable rules — same fixed duel as local mode (5 vidas,
 // 3 a 8 cartuchos, 2 ítems por recarga). Nothing for the host to tweak

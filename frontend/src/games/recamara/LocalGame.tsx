@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./recamara.css";
 import {
   createInitialState,
@@ -27,11 +27,11 @@ import { ChamberCard } from "./components/ChamberCard";
 import { FlashOverlay } from "./components/FlashOverlay";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { DirectionRing } from "./components/DirectionRing";
-import { frontAngle, seatAngle, seatStyle, shortestGunAngle, shuffledBulletIcons } from "./arena";
-import { ITEM_ACTIVATE_MS, ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./timing";
-import { useLogVisible } from "./logVisibility";
-import { useShotAnimation } from "./shotAnimation";
-import { useChamberCountdown } from "./chamberCountdown";
+import { frontAngle, seatAngle, seatStyle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
+import { ITEM_ACTIVATE_MS, ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
+import { useLogVisible } from "./hooks/logVisibility";
+import { useShotAnimation } from "./hooks/shotAnimation";
+import { useChamberCountdown } from "./hooks/chamberCountdown";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RECÁMARA — un solo dispositivo, pasándoselo por turnos.
@@ -45,7 +45,10 @@ import { useChamberCountdown } from "./chamberCountdown";
 // "reveal" plays once at game start and again every time the chamber
 // reloads mid-game — see fire()'s result.reloaded — before "duel" lets you
 // actually shoot again.
-type Phase = "setup" | "reveal" | "duel" | "final";
+// No separate "final" phase — the winner shows as an overlay on top of the
+// duel screen (same as online, see showWinner below), not a hard cut to a
+// different screen.
+type Phase = "setup" | "reveal" | "duel";
 
 interface DisplayLogLine extends LogLine {
   id: number;
@@ -72,6 +75,14 @@ export function LocalGame() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [subPhase, setSubPhase] = useState<"reveal" | "duel">("reveal");
   const [winner, setWinner] = useState<Player | null>(null);
+  // The winner overlay must never fight the final shot's own aim/fire/
+  // result banner for the screen (see RoundView's identical gate) — winner
+  // is already set the instant that shot resolves, well before its
+  // animation finishes playing, so this waits for shotAnim to settle back
+  // to idle (the player already tapped through the result banner) and adds
+  // a short delay so the overlay fades in instead of popping the moment
+  // that banner closes.
+  const [showWinner, setShowWinner] = useState(false);
   // "reveal" itself has four beats, each its own screen, in order: a plain
   // "Ronda N" announcement, the chest-cycling ("chests") players open one
   // at a time, the "chamber" card (gun + real/falso shell count, held up
@@ -105,6 +116,16 @@ export function LocalGame() {
   // beat — this component only decides *when* to trigger a shot and what
   // happens once its result banner is dismissed.
   const shotAnim = useShotAnimation();
+
+  useEffect(() => {
+    if (!winner || shotAnim.busy) {
+      setShowWinner(false);
+      return;
+    }
+    const t = setTimeout(() => setShowWinner(true), 900);
+    return () => clearTimeout(t);
+  }, [winner, shotAnim.busy]);
+
   const [pendingFire, setPendingFire] = useState<{ result: FireResult; playersBefore: Player[] } | null>(null);
   const [log, setLog] = useState<DisplayLogLine[]>([]);
   const logId = useRef(0);
@@ -146,7 +167,7 @@ export function LocalGame() {
     addLog({ ...line, privateToPlayerId: result.playerId, redactedText: redacted.text });
   };
 
-  const phase: Phase = !gameState ? "setup" : winner ? "final" : subPhase;
+  const phase: Phase = !gameState ? "setup" : subPhase;
   const busy = shotAnim.busy || activatingItem !== null || pendingItemResult !== null;
 
   // Computed unconditionally (hooks can't live inside the phase branches
@@ -350,24 +371,6 @@ export function LocalGame() {
         <div className="controls">
           <button className="act primary" onClick={startGame}>
             Cargar la recámara
-          </button>
-        </div>
-      </div>
-    );
-
-  // ─── final ───
-  if (phase === "final")
-    return (
-      <div className="recamara">
-        <div className="table final-card">
-          <p className="mono eyebrow">Fin del duelo</p>
-          <p className="display winner">
-            Gana <span>{winner ? winner.name : "nadie"}</span>
-          </p>
-        </div>
-        <div className="controls">
-          <button className="act primary" onClick={playAgain}>
-            Jugar de nuevo
           </button>
         </div>
       </div>
@@ -585,6 +588,22 @@ export function LocalGame() {
           onCuff={useItemCuff}
           onCuffNoTarget={useItemCuffNoTarget}
         />
+      )}
+
+      {showWinner && winner && (
+        <div className="rec-overlay winner-overlay">
+          <div className="table final-card winner-in" style={{ maxWidth: 420 }}>
+            <p className="mono eyebrow">Fin del duelo</p>
+            <p className="display winner">
+              Gana <span>{winner.name}</span>
+            </p>
+            <div className="controls">
+              <button className="act primary" onClick={playAgain}>
+                Jugar de nuevo
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

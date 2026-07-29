@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 // Reveal now has four beats, each its own screen, in order: a plain "Ronda
 // N" announcement (no button, moves on by itself after ~1.8s), one chest at
@@ -96,6 +96,10 @@ describe("Recámara LocalGame", () => {
       expect(document.querySelector(".rec-banner-text")?.textContent).toMatch(/dispara/);
       expect(document.querySelector(".rec-banner-subtext")?.textContent).toMatch(/Cartucho (real|falso)/);
       await user.click(screen.getByRole("button", { name: "Continuar" }));
+      // The winner overlay (if this was the fatal shot) fades in after a
+      // short delay instead of popping immediately — see showWinner in
+      // LocalGame.tsx.
+      await vi.advanceTimersByTimeAsync(1200);
     }
 
     expect(screen.getByText(/Fin del duelo/)).toBeInTheDocument();

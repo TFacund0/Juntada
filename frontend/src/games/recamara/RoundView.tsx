@@ -23,12 +23,12 @@ import { ChamberCard } from "./components/ChamberCard";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { DirectionRing } from "./components/DirectionRing";
 import { FlashOverlay } from "./components/FlashOverlay";
-import { frontAngle, seatAngle, seatStyle, shortestGunAngle, shuffledBulletIcons } from "./arena";
-import { ITEM_ACTIVATE_MS, ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./timing";
-import { useLogVisible } from "./logVisibility";
-import { useDuelEntryFlash } from "./duelTransition";
-import { useShotAnimation } from "./shotAnimation";
-import { useChamberCountdown } from "./chamberCountdown";
+import { frontAngle, seatAngle, seatStyle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
+import { ITEM_ACTIVATE_MS, ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
+import { useLogVisible } from "./hooks/logVisibility";
+import { useDuelEntryFlash } from "./hooks/duelTransition";
+import { useShotAnimation } from "./hooks/shotAnimation";
+import { useChamberCountdown } from "./hooks/chamberCountdown";
 import type { RoundViewProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════

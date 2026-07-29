@@ -17,17 +17,52 @@ Que cada juego quede organizado así:
 - **Componentes de UI** en `components/` — uno por pieza visual reusable
   (tokens de jugador, modales, overlays, tarjetas de ronda, etc.), no todo
   amontonado dentro del componente de pantalla completa.
-- **Hooks compartidos** para cualquier lógica de animación/temporización
-  que se repita entre el modo local y el online (por ejemplo: la
-  secuencia de apuntar/disparar/recoil, un countdown que auto-avanza).
-  Si detectás el mismo `useState`/`useEffect` copiado en dos archivos,
-  ahí hay un hook esperando salir.
+- **Hooks compartidos** en `hooks/` — cualquier lógica de animación/
+  temporización que se repita entre el modo local y el online (por
+  ejemplo: la secuencia de apuntar/disparar/recoil, un countdown que
+  auto-avanza). Si detectás el mismo `useState`/`useEffect` copiado en
+  dos archivos, ahí hay un hook esperando salir.
+- **Helpers puros** en `utils/` — geometría, temporización, formateo:
+  cualquier cosa sin React (sin `useState`/`useEffect`, sin JSX). La
+  diferencia con `hooks/` es exactamente esa: si no usa nada de React, va
+  en `utils/`; si es un hook, va en `hooks/`.
+- **Tests en `tests/`**, uno por archivo que testean (`LocalGame.test.tsx`
+  para `LocalGame.tsx`, `engine.test.ts` para el motor, etc.), con imports
+  relativos apuntando afuera de esa carpeta (`../LocalGame`, no
+  `./LocalGame`). Aplicar esto parejo a todos los juegos de una — tener
+  algunos con tests co-ubicados y otros en `tests/` es peor que cualquiera
+  de las dos opciones por separado.
 - **CSS dividido por área** en vez de un solo archivo gigante — un archivo
   por sección visual (tablero/arena, overlays, botones, animaciones,
   etc.), importados desde un `archivo.css` índice.
-- **Tipos y helpers puros** (geometría, temporización, formateo) en sus
-  propios archivos chicos (`arena.ts`, `timing.ts`, etc.), no mezclados
-  dentro del componente de React.
+- **`ConfigPanel.tsx` (u otro panel de configuración de sala) va en
+  `components/`** — es una pieza de UI como cualquier otra (tokens de
+  jugador, modales, etc.), no un punto de entrada. Ya se movió así en
+  Recámara; sigue suelto en la raíz en los otros 11 juegos por costumbre,
+  no por necesidad — al reorganizar cada uno, moverlo también.
+- **Nada suelto en la raíz de la carpeta del juego salvo lo que realmente
+  tiene que estar ahí**: el punto de entrada (`index.tsx`, el que
+  `registry.ts` importa como `./<juego>`) y las pantallas principales de
+  cada modo (`LocalGame.tsx`, `RoundView.tsx`) — todo lo demás
+  (componentes, hooks, helpers, tests, estilos) va en su carpeta
+  correspondiente. Si al terminar la reorganización quedan `.ts`/`.tsx`
+  sueltos que no sean uno de esos tres, revisar si en realidad son un
+  componente, un hook o un helper que se olvidó de mover.
+
+Estructura de carpetas de referencia (la que quedó en Recámara):
+
+```
+<juego>/
+├── index.tsx           # punto de entrada, lo importa registry.ts
+├── LocalGame.tsx        # pantalla completa del modo local
+├── RoundView.tsx        # pantalla completa del modo online
+├── <juego>.css          # índice de @import hacia css/
+├── components/           # piezas de UI reusables, incluye ConfigPanel.tsx
+├── hooks/                # useX compartidos entre local y online
+├── utils/                # helpers puros, sin React
+├── css/                  # CSS dividido por sección
+└── tests/                # un test por archivo que testea, imports con ../
+```
 
 ## Principios
 
