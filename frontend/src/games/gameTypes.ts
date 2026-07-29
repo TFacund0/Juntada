@@ -20,6 +20,13 @@ export interface RoundViewProps {
   wordReveal: Record<string, unknown> | null;
   isHost: boolean;
   send: (msg: Record<string, unknown>) => void;
+  // Only set for games with `landscapeRound: true` (App.tsx hides its own
+  // shared header — icon/title/"Volver"/"Menú principal" — while their
+  // round is in progress, see App.tsx's `fullBleedRound`) — lets that
+  // game's own RoundView offer an equivalent "salir al menú principal"
+  // control itself. Undefined for every other game, which still reaches it
+  // via the shared header.
+  onExitToMainMenu?: () => void;
 }
 
 export interface LobbyInfoProps {
@@ -75,4 +82,14 @@ export interface GameDef {
   // transition when this flips on/off so the palette swap never happens as
   // a hard cut. Absent for every game that shares the default look.
   gameTheme?: string;
+  // Opts the actual round (not the lobby/menu around it) out of the shared
+  // app's centered ~480px-wide portrait column (S.wrap in App.tsx) — for a
+  // game whose board genuinely needs the full viewport width in landscape
+  // (Riel Salvaje: the train needs to show several wagons at once, see
+  // DESIGN.md sección 8). Only takes effect once a round is actually in
+  // progress (App.tsx also hides its own header there, since the game's own
+  // RoundView/LocalGame owns the whole screen at that point) — the lobby,
+  // character/mode selection, and game picker stay in the normal portrait
+  // column like every other game.
+  landscapeRound?: boolean;
 }

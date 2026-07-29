@@ -108,6 +108,15 @@ interface MultiplayerGameProps {
   // for as long as the real create/join round-trip takes instead of a fixed
   // timer that doesn't know the network's actual latency.
   onTransitionSettled?: () => void;
+  // Imperative "leave everything and go back to the game picker/home
+  // screen" — App.tsx's own `goHome` (full session reset: clears gameId/
+  // mode/groupFlow/groupAttached and the multiplayer session). Only games
+  // that opt out of the shared header while a round is in progress (see
+  // GameDef.landscapeRound) need this threaded down into their own
+  // RoundView, since that header's "Menú principal" button is hidden for
+  // them — every other game still reaches goHome via that shared header,
+  // so this stays optional and unused for them.
+  onExitToMainMenu?: () => void;
 }
 
 function playableGames(): GameDef[] {
@@ -129,6 +138,7 @@ export function MultiplayerGame({
   onExposeReturnToGroup,
   runTransition = action => action(),
   onTransitionSettled,
+  onExitToMainMenu,
 }: MultiplayerGameProps) {
   const {
     connectionPhase,
@@ -623,7 +633,7 @@ export function MultiplayerGame({
     return (
       <RoundScreen
         activeGame={activeGame}
-        roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send }}
+        roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, onExitToMainMenu }}
         statusToast={statusToast}
         onStatusToastExpire={() => setStatusToast(null)}
         reconnectBanner={reconnectBanner}

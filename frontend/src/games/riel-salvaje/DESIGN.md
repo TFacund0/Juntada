@@ -438,6 +438,25 @@ sección 4). Resuelto también:
   online funcione completo primero. Se reevalúa más adelante si tiene
   sentido un modo pass-and-play (la fase de Planificación oculta es más
   compleja de resolver en un solo dispositivo compartido).
+- **Todos arrancan en el interior de "su" vagón** (el n-ésimo detrás de la
+  Locomotora), ninguno en la Locomotora ni en un techo — la posición inicial
+  no venía detallada en este documento y quedó como decisión propia.
+- **Habilidades opcionales de las reglas implementadas como automáticas
+  (decisión consciente):** Sombra "puede" jugar boca abajo en su primer
+  turno y Carterismo deja "tomar" gratis una bolsa — en ambos casos el motor
+  (`backend/src/games/riel-salvaje/rules.ts`) lo hace automático en vez de
+  ofrecer una elección real, porque casi nunca hay razón para no usarlas y
+  una elección real pediría UI/interacción nueva para un caso de bajo
+  impacto. Si en algún momento se quiere la elección real, hay que agregar
+  un parámetro a `playPlanningCard` (Sombra) y una sub-fase de confirmación
+  al evento (Carterismo).
+- **Entre 2 y 5 bolsas/joyas por vagón de carga** (no la Locomotora),
+  decisión confirmada con el usuario. El pool de 18 bolsas + 6 joyas sigue
+  existiendo entero (variedad de valores), pero **no hace falta usarlo
+  completo cada partida** — con pocos jugadores (menos vagones) sobran
+  fichas sin colocar esa partida, y no pasa nada. Implementado en
+  `distributeCargo` (`backend/src/games/riel-salvaje/rules.ts`,
+  `MIN_ITEMS_PER_WAGON`/`MAX_ITEMS_PER_WAGON`).
 
 Lo que sigue sin decidirse:
 

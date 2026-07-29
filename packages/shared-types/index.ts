@@ -297,6 +297,30 @@ export const SCHEMAS = {
   ready_for_duel: z.object({
     type: z.literal("ready_for_duel"),
   }),
+  // Riel Salvaje — see backend/src/games/riel-salvaje/engine.ts. `play_card`
+  // apila 1 carta de la mano en la fase Planificación; `draw_three` es la
+  // alternativa de robar 3 en vez de jugar; `resolve_card` es lo que el
+  // dueño de la carta en curso manda durante la fase Acción para elegir los
+  // detalles de su efecto (a quién dispara/golpea, para qué lado se mueve,
+  // qué ficha suelta la víctima).
+  play_card: z.object({
+    type: z.literal("play_card"),
+    cardId: z.string().max(60),
+  }),
+  draw_three: z.object({
+    type: z.literal("draw_three"),
+  }),
+  resolve_card: z.object({
+    type: z.literal("resolve_card"),
+    direction: z.union([z.literal(1), z.literal(-1)]).optional(),
+    // "mover" en el techo puede ser de varios vagones de una (DESIGN.md
+    // 4.1) — acotado al tamaño máximo razonable de un tren (6 jugadores + 1
+    // Locomotora = 7 vagones, nunca hace falta pedir más que eso).
+    distance: z.number().int().min(1).max(7).optional(),
+    targetId: uuid.optional(),
+    itemId: z.string().max(60).optional(),
+    pushDirection: z.union([z.literal(1), z.literal(-1)]).optional(),
+  }),
 } as const;
 
 export type ClientMessageType = keyof typeof SCHEMAS;

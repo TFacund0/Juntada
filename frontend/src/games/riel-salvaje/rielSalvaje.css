@@ -1,0 +1,1267 @@
+/* Riel Salvaje — estilos calcados del artifact "Riel Salvaje — Set completo
+   de pantallas (horizontal)" (ver PLAN.md Fase 4). Nombres de clase y reglas
+   tomados casi literales de ahí, prefijados `.rs-` y con selectores propios
+   (no `:root`) para no pisar nada del resto de la app — el resto del reskin
+   de color/tipografía ya lo maneja theme/gameThemes.ts vía --jt-* (ver
+   App.tsx), esto es solo la estructura de tablero que ese sistema genérico
+   no cubre. Del artifact original se dejaron afuera las clases que eran
+   puro chrome de la página de showcase (marco de teléfono, tabla de
+   contenidos, captions) — acá el juego ya corre en un dispositivo real, no
+   hace falta simularlo. */
+
+.rs-root {
+  --rs-bg: #171310;
+  --rs-panel: #211b16;
+  --rs-panel-2: #2a2118;
+  --rs-border: rgba(201, 151, 79, 0.28);
+  --rs-danger: #b3261e;
+  --rs-danger-bright: #ff4d3d;
+  --rs-brass: #c9974f;
+  --rs-brass-bright: #e3bb7d;
+  --rs-pine: #4a6e56;
+  --rs-pine-bright: #8fc7a0;
+  --rs-text: #ece4d6;
+  --rs-muted: #9a9082;
+  --rs-paper: #e8d9b5;
+  --rs-ink: #201a12;
+  --rs-gold: #ffd27a;
+
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--rs-bg);
+  color: var(--rs-text);
+  font-family: "Syne", sans-serif;
+  position: relative;
+}
+.rs-root * {
+  box-sizing: border-box;
+}
+.rs-display {
+  font-family: "Roboto Slab", Georgia, serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.rs-mono {
+  font-family: "Courier New", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ================= HUD ================= */
+.rs-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 6px;
+  flex: 0 0 auto;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.rs-hud-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rs-round-tag {
+  font-family: "Courier New", monospace;
+  font-size: 0.68rem;
+  color: var(--rs-brass);
+  letter-spacing: 0.08em;
+}
+.rs-hud-stats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rs-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-family: "Courier New", monospace;
+  font-size: 0.68rem;
+  color: var(--rs-brass);
+  white-space: nowrap;
+}
+.rs-stat-chip.rs-money {
+  color: var(--rs-gold);
+  border-color: rgba(255, 210, 122, 0.35);
+  background: rgba(255, 210, 122, 0.08);
+}
+.rs-stat-chip.rs-danger {
+  color: var(--rs-danger-bright);
+  border-color: rgba(255, 77, 61, 0.4);
+  background: rgba(255, 77, 61, 0.1);
+}
+.rs-help-btn {
+  background: none;
+  border: 1px solid var(--rs-border);
+  color: var(--rs-muted);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* ---- Pistolero leaderboard strip ---- */
+.rs-pistolero-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 6px;
+  flex: 0 0 auto;
+  overflow-x: auto;
+}
+.rs-pistolero-lbl {
+  font-family: "Courier New", monospace;
+  font-size: 0.62rem;
+  color: var(--rs-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.rs-pistolero-row {
+  display: flex;
+  gap: 6px;
+}
+.rs-pistolero-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 14px;
+  padding: 3px 8px;
+  flex: 0 0 auto;
+}
+.rs-pistolero-chip.rs-leader {
+  border-color: var(--rs-gold);
+  background: rgba(255, 210, 122, 0.1);
+}
+.rs-who-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--rs-ink);
+  flex: 0 0 auto;
+}
+.rs-bullets {
+  display: flex;
+  gap: 1.5px;
+}
+.rs-bullet {
+  width: 5px;
+  height: 9px;
+  border-radius: 2px 2px 1px 1px;
+  background: rgba(201, 151, 79, 0.18);
+  border: 1px solid var(--rs-border);
+}
+.rs-bullet.rs-fired {
+  background: var(--rs-danger-bright);
+  border-color: var(--rs-danger-bright);
+}
+
+/* ================= tren ================= */
+.rs-train-strip-h {
+  overflow-x: auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 4px 14px;
+  flex: 0 0 auto;
+}
+.rs-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.rs-roof-shape {
+  width: 80px;
+  min-height: 22px;
+  border: 1px dashed var(--rs-border);
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  background: rgba(201, 151, 79, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  position: relative;
+  z-index: 2;
+  padding: 2px;
+  flex-wrap: wrap;
+}
+.rs-roof-shape.rs-marshal {
+  border-style: solid;
+  border-color: var(--rs-pine);
+  background: rgba(74, 110, 86, 0.16);
+}
+.rs-unit.rs-active .rs-roof-shape {
+  border-color: var(--rs-danger-bright);
+}
+.rs-marshal-ico {
+  font-size: 0.7rem;
+}
+.rs-case {
+  font-size: 0.5rem;
+  color: var(--rs-gold);
+  font-family: "Courier New", monospace;
+}
+.rs-empty-lbl {
+  font-size: 0.4rem;
+  color: var(--rs-muted);
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.rs-car-body {
+  width: 80px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 4px 4px 9px 9px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 50px;
+}
+.rs-unit.rs-active .rs-car-body {
+  border-color: var(--rs-danger-bright);
+  box-shadow: 0 0 0 1px var(--rs-danger-bright);
+}
+.rs-unit.rs-locomotive .rs-car-body {
+  background: linear-gradient(180deg, rgba(74, 110, 86, 0.14), var(--rs-panel));
+  border-color: rgba(74, 110, 86, 0.4);
+}
+.rs-wname {
+  font-size: 0.58rem;
+  color: var(--rs-paper);
+  text-transform: uppercase;
+  font-weight: 700;
+  font-family: "Roboto Slab", Georgia, serif;
+  text-align: center;
+}
+.rs-loot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+}
+.rs-loot-chip {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  background: var(--rs-panel-2);
+  border: 1px solid var(--rs-border);
+  border-radius: 5px;
+  padding: 1px 4px;
+  font-family: "Courier New", monospace;
+  font-size: 0.5rem;
+  color: var(--rs-brass);
+}
+.rs-loot-chip.rs-hidden {
+  color: var(--rs-muted);
+}
+.rs-loot-chip.rs-known {
+  color: var(--rs-gold);
+}
+.rs-occ-row {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.rs-occ-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rs-ink);
+}
+
+/* ================= panel lateral (mano / acción) ================= */
+.rs-play-body {
+  flex: 1 1 auto;
+  display: flex;
+  overflow: hidden;
+  /* sin padding horizontal propio — .rs-train-strip-h ya trae el suyo */
+  padding: 0 0 10px;
+  gap: 10px;
+  min-height: 0;
+}
+.rs-side-panel {
+  width: 150px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 14px;
+}
+.rs-side-title {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rs-muted);
+  font-family: "Courier New", monospace;
+}
+.rs-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--rs-paper);
+  color: var(--rs-ink);
+  border: 2px solid var(--rs-ink);
+  border-radius: 7px;
+  padding: 7px 9px;
+  font-family: "Roboto Slab", Georgia, serif;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+.rs-mini-card.rs-selected {
+  outline: 2px solid var(--rs-brass);
+  outline-offset: 1px;
+}
+.rs-mini-card.rs-ghost {
+  background: transparent;
+  color: var(--rs-muted);
+  border-style: dashed;
+  border-color: var(--rs-border);
+  font-family: "Syne", sans-serif;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  justify-content: center;
+}
+.rs-mini-card .rs-icon {
+  font-size: 0.95rem;
+}
+.rs-mini-card .rs-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  flex: 1;
+}
+.rs-mini-card .rs-n {
+  font-family: "Courier New", monospace;
+  font-size: 0.56rem;
+  color: var(--rs-danger);
+}
+.rs-confirm-btn {
+  margin-top: 2px;
+  background: linear-gradient(180deg, var(--rs-danger-bright), var(--rs-danger));
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  width: 100%;
+  cursor: pointer;
+}
+.rs-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.rs-ghost-btn {
+  background: var(--rs-panel-2);
+  color: var(--rs-paper);
+  border: 1px solid var(--rs-border);
+  padding: 8px;
+  border-radius: 8px;
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 0.66rem;
+  width: 100%;
+  cursor: pointer;
+}
+.rs-ghost-btn.rs-on {
+  outline: 2px solid var(--rs-brass);
+  outline-offset: 1px;
+}
+
+/* ================= perfil (propio / rival) ================= */
+.rs-profile-body {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 14px;
+  padding: 6px 14px 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+.rs-profile-left {
+  width: 190px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rs-profile-portrait {
+  width: 100%;
+  height: 84px;
+  border-radius: 12px;
+  border: 2px solid var(--rs-ink);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+}
+.rs-profile-name {
+  font-family: "Roboto Slab", Georgia, serif;
+  text-transform: uppercase;
+  font-size: 1.05rem;
+  color: var(--rs-paper);
+  margin: 0;
+}
+.rs-profile-pos {
+  font-size: 0.66rem;
+  color: var(--rs-muted);
+  margin-top: 2px;
+  font-family: "Courier New", monospace;
+}
+.rs-profile-badges {
+  display: flex;
+  gap: 5px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.rs-badge {
+  font-size: 0.58rem;
+  font-family: "Courier New", monospace;
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid var(--rs-border);
+  color: var(--rs-muted);
+}
+.rs-badge.rs-bullets {
+  color: #ff8f83;
+  border-color: rgba(255, 143, 131, 0.4);
+  background: rgba(255, 143, 131, 0.08);
+}
+.rs-ability-box {
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+.rs-ability-box .rs-lbl {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rs-brass);
+  margin-bottom: 4px;
+  font-family: "Courier New", monospace;
+}
+.rs-ability-box p {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--rs-text);
+  line-height: 1.45;
+  font-family: Georgia, serif;
+  font-style: italic;
+}
+.rs-profile-right {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+.rs-inv-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.rs-inv-total .rs-lbl {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: var(--rs-muted);
+  letter-spacing: 0.08em;
+  font-family: "Courier New", monospace;
+}
+.rs-inv-total .rs-v {
+  font-family: "Courier New", monospace;
+  color: var(--rs-brass);
+  font-size: 1.1rem;
+}
+.rs-inv-total .rs-v.rs-unknown {
+  color: var(--rs-muted);
+  font-size: 0.85rem;
+}
+.rs-inv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rs-inv-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 9px;
+  padding: 7px 10px;
+}
+.rs-inv-row .rs-ico {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--rs-panel-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex: 0 0 auto;
+}
+.rs-inv-row .rs-meta {
+  flex: 1;
+}
+.rs-inv-row .rs-meta b {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--rs-paper);
+  font-family: "Roboto Slab", Georgia, serif;
+}
+.rs-inv-row .rs-val {
+  font-family: "Courier New", monospace;
+  font-size: 0.74rem;
+  color: var(--rs-brass);
+}
+.rs-inv-row .rs-val.rs-unknown {
+  color: var(--rs-muted);
+}
+.rs-steal-btn {
+  font-size: 0.56rem;
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(180deg, var(--rs-danger-bright), var(--rs-danger));
+  border: none;
+  padding: 5px 9px;
+  border-radius: 7px;
+  text-transform: uppercase;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.rs-player-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 6px 14px 0;
+  overflow-x: auto;
+  flex: 0 0 auto;
+}
+.rs-player-tab {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 20px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  font-size: 0.62rem;
+  color: var(--rs-muted);
+  cursor: pointer;
+}
+.rs-player-tab.rs-on {
+  border-color: var(--rs-brass);
+  color: var(--rs-paper);
+  background: rgba(201, 151, 79, 0.1);
+}
+
+/* ================= carta de ronda / turnos ================= */
+.rs-roundcard-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 6px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+.rs-roundcard-lbl {
+  font-family: "Courier New", monospace;
+  font-size: 0.64rem;
+  color: var(--rs-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.rs-turn-slots {
+  display: flex;
+  gap: 5px;
+}
+.rs-turn-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.rs-turn-slot .rs-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--rs-border);
+  background: var(--rs-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--rs-muted);
+}
+.rs-turn-slot.rs-done .rs-box {
+  background: rgba(201, 151, 79, 0.12);
+  color: var(--rs-paper);
+  border-color: var(--rs-brass);
+}
+.rs-turn-slot.rs-now .rs-box {
+  border-color: var(--rs-danger-bright);
+  box-shadow: 0 0 0 1px var(--rs-danger-bright);
+  color: var(--rs-paper);
+}
+.rs-turn-slot .rs-tl {
+  font-size: 0.44rem;
+  color: var(--rs-muted);
+  text-transform: uppercase;
+  font-family: "Courier New", monospace;
+}
+
+/* ---- fase Planificación ---- */
+.rs-plan-body {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 12px;
+  padding: 4px 14px 10px;
+  overflow: hidden;
+  min-height: 0;
+}
+.rs-plan-others {
+  width: 108px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.rs-stack-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 9px;
+  padding: 5px 7px;
+}
+.rs-stack-mini {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.rs-stack-mini .rs-c {
+  width: 15px;
+  height: 19px;
+  border-radius: 3px;
+  background: var(--rs-paper);
+  border: 1.5px solid var(--rs-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.56rem;
+}
+.rs-stack-mini .rs-c.rs-hidden {
+  background: var(--rs-panel-2);
+  border-color: var(--rs-border);
+  color: var(--rs-muted);
+  font-size: 0.46rem;
+}
+.rs-plan-center {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+}
+.rs-plan-own-stack {
+  display: flex;
+  gap: 5px;
+  align-items: flex-end;
+  min-height: 56px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.rs-plan-own-stack .rs-c {
+  width: 36px;
+  height: 48px;
+  border-radius: 6px;
+  background: var(--rs-paper);
+  color: var(--rs-ink);
+  border: 2px solid var(--rs-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  gap: 2px;
+}
+.rs-plan-own-stack .rs-c .rs-t {
+  font-size: 0.38rem;
+  text-transform: uppercase;
+  font-family: "Roboto Slab", Georgia, serif;
+}
+.rs-plan-own-stack .rs-c.rs-pending {
+  background: var(--rs-panel-2);
+  border-color: var(--rs-border);
+  color: var(--rs-muted);
+  font-size: 0.62rem;
+}
+.rs-plan-prompt {
+  font-family: "Courier New", monospace;
+  font-size: 0.64rem;
+  color: var(--rs-brass);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+.rs-plan-hand {
+  width: 160px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+/* ---- fase Acción ---- */
+.rs-action-body {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 12px;
+  padding: 6px 14px 10px;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+.rs-reveal-stage {
+  width: 230px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  overflow-y: auto;
+}
+.rs-reveal-card {
+  width: 84px;
+  height: 110px;
+  border-radius: 9px;
+  background: var(--rs-paper);
+  color: var(--rs-ink);
+  border: 2px solid var(--rs-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
+  transform: rotate(-2deg);
+  flex: 0 0 auto;
+}
+.rs-reveal-card .rs-ic {
+  font-size: 1.8rem;
+}
+.rs-reveal-card .rs-lb {
+  font-family: "Roboto Slab", Georgia, serif;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+}
+.rs-reveal-who {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  color: var(--rs-paper);
+}
+.rs-reveal-count {
+  font-family: "Courier New", monospace;
+  font-size: 0.62rem;
+  color: var(--rs-muted);
+  text-align: center;
+}
+.rs-reveal-feed {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-top: 2px;
+  min-width: 0;
+}
+.rs-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 8px;
+  padding: 6px 9px;
+  opacity: 0.55;
+}
+.rs-feed-row.rs-now {
+  opacity: 1;
+  border-color: var(--rs-danger-bright);
+  background: rgba(179, 38, 30, 0.08);
+}
+.rs-feed-row span {
+  font-size: 0.66rem;
+  color: var(--rs-text);
+}
+.rs-feed-row .rs-n {
+  font-family: "Courier New", monospace;
+  font-size: 0.56rem;
+  color: var(--rs-muted);
+  margin-left: auto;
+}
+.rs-pending-event {
+  margin: 0 14px 10px;
+  background: rgba(179, 38, 30, 0.16);
+  border: 1px solid rgba(179, 38, 30, 0.4);
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-family: "Courier New", monospace;
+  font-size: 0.6rem;
+  color: #ffb3a8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* ---- evento de fin de ronda (interstitial) ---- */
+.rs-event-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: radial-gradient(circle at 50% 30%, rgba(179, 38, 30, 0.2), transparent 60%), var(--rs-bg);
+  text-align: center;
+  padding: 0 30px;
+}
+.rs-event-eyebrow {
+  font-family: "Courier New", monospace;
+  font-size: 0.66rem;
+  color: var(--rs-danger-bright);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.rs-event-title {
+  font-family: "Roboto Slab", Georgia, serif;
+  font-size: 1.4rem;
+  color: var(--rs-paper);
+  text-transform: uppercase;
+  margin: 0;
+}
+.rs-event-desc {
+  font-size: 0.74rem;
+  color: var(--rs-muted);
+  max-width: 46ch;
+  line-height: 1.5;
+  margin: 0;
+}
+.rs-event-continue {
+  margin-top: 8px;
+  background: linear-gradient(180deg, var(--rs-danger-bright), var(--rs-danger));
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+/* ---- overlay genérico (perfil, reglas, roster) ---- */
+.rs-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  background: var(--rs-bg);
+  display: flex;
+  flex-direction: column;
+}
+.rs-overlay-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  flex: 0 0 auto;
+}
+.rs-overlay-close {
+  background: none;
+  border: 1px solid var(--rs-border);
+  color: var(--rs-muted);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+/* ---- fin de partida ---- */
+.rs-final-hero {
+  text-align: center;
+  padding: 26px 16px;
+  background: radial-gradient(circle at 50% 20%, rgba(179, 38, 30, 0.16), transparent 60%);
+  flex: 0 0 auto;
+}
+.rs-final-body {
+  padding: 0 14px 14px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+.rs-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 9px;
+  padding: 8px 11px;
+}
+
+/* ---- responsive: centra y agranda en pantallas anchas (desktop),
+   se queda como está en celular (tanto portrait-convertido-a-landscape como
+   tablet) ---- */
+.rs-content {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+@media (min-width: 900px) {
+  .rs-unit,
+  .rs-roof-shape,
+  .rs-car-body {
+    width: 104px;
+  }
+  .rs-round-tag,
+  .rs-roundcard-lbl,
+  .rs-pistolero-lbl {
+    font-size: 0.78rem;
+  }
+  .rs-stat-chip {
+    font-size: 0.76rem;
+    padding: 5px 12px;
+  }
+  .rs-side-panel,
+  .rs-plan-hand {
+    width: 190px;
+  }
+  .rs-plan-others {
+    width: 130px;
+  }
+  .rs-reveal-stage {
+    width: 260px;
+  }
+}
+
+/* ---- tuerquita de ajustes (settings) ---- */
+.rs-icon-btn {
+  background: none;
+  border: 1px solid var(--rs-border);
+  color: var(--rs-muted);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.rs-settings-menu {
+  position: absolute;
+  top: 44px;
+  right: 14px;
+  z-index: 18;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+.rs-settings-menu button {
+  background: none;
+  border: none;
+  color: var(--rs-text);
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 7px;
+  font-family: "Syne", sans-serif;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.rs-settings-menu button:hover {
+  background: var(--rs-panel-2);
+}
+.rs-settings-menu button.rs-danger-item {
+  color: var(--rs-danger-bright);
+}
+.rs-settings-menu .rs-settings-confirm-msg {
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  color: var(--rs-muted);
+  line-height: 1.4;
+}
+
+/* ---- Mi botín (situación propia, siempre visible) ---- */
+.rs-mybooty-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 6px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
+
+/* ---- turno actual resaltado en la tira de jugadores ---- */
+.rs-pistolero-chip.rs-current-turn {
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* ---- bloque de carta de ronda, ahora tocable (abre el modal de info) ---- */
+.rs-roundcard-btn {
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  margin: 0 14px 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  text-align: center;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.rs-roundcard-btn:hover {
+  border-color: var(--rs-brass);
+}
+
+/* ---- modal centrado (info de la carta de ronda, etc.) ---- */
+.rs-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 17;
+  /* Bien opaco — dos modales pueden quedar apilados (ej. el de info de la
+     carta de ronda arriba del de Planificación) y un fondo más
+     transparente dejaba ver el texto de abajo, pareciendo repetido. */
+  background: rgba(10, 8, 6, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.rs-modal-card {
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 80%;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+/* ---- pila central de cartas (Planificación y Acción comparten esta
+   misma vista) — una sola pila creciendo en el centro, sin desglose por
+   rival: es parte de la estrategia acordarse quién tiró qué. ---- */
+.rs-stage {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 14px;
+  overflow: hidden;
+  min-height: 0;
+}
+.rs-stage-pile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 78px;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.rs-pile-card {
+  width: 44px;
+  height: 60px;
+  border-radius: 7px;
+  background: var(--rs-paper);
+  color: var(--rs-ink);
+  border: 2px solid var(--rs-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s;
+}
+.rs-pile-card.rs-pile-hidden {
+  background: var(--rs-panel-2);
+  color: var(--rs-muted);
+  border-color: var(--rs-border);
+}
+.rs-pile-card.rs-pile-current {
+  border-color: var(--rs-danger-bright);
+  transform: translateY(-6px) scale(1.1);
+  z-index: 2;
+}
+.rs-stage-roster {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.rs-roster-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--rs-panel);
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.rs-roster-chip.rs-current-turn {
+  border-width: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.rs-roster-chip .rs-roster-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  color: var(--rs-paper);
+  font-family: "Syne", sans-serif;
+}
+.rs-roster-chip .rs-mini-badges {
+  display: flex;
+  gap: 6px;
+  font-family: "Courier New", monospace;
+  font-size: 0.58rem;
+  color: var(--rs-muted);
+}
+.rs-stage-turn-label {
+  font-family: "Courier New", monospace;
+  font-size: 0.66rem;
+  color: var(--rs-brass);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+.rs-action-below {
+  flex: 0 0 auto;
+  padding: 0 14px 12px;
+}
+
+/* ---- mano dentro del modal de Planificación: forma de carta real, una al
+   lado de la otra, con scroll horizontal si no entran ---- */
+.rs-hand-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/old Edge */
+}
+.rs-hand-row::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/mobile webkit */
+}
+.rs-hand-card {
+  flex: 0 0 auto;
+  width: 58px;
+  height: 78px;
+  border-radius: 8px;
+  background: var(--rs-paper);
+  color: var(--rs-ink);
+  border: 2px solid var(--rs-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.rs-hand-card:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.rs-hand-card .rs-hand-card-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  font-family: "Roboto Slab", Georgia, serif;
+  text-align: center;
+  line-height: 1.1;
+  padding: 0 3px;
+}
+.rs-hand-card.rs-ghost {
+  background: var(--rs-panel-2);
+  color: var(--rs-muted);
+  border-style: dashed;
+  border-color: var(--rs-border);
+}
+
+/* ---- cartel de girar el teléfono ---- */
+.rs-rotate-prompt {
+  position: fixed;
+  inset: 0;
+  background: var(--rs-bg, #171310);
+  color: var(--rs-text, #ece4d6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 24px;
+  z-index: 30;
+}

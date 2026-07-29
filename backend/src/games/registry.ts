@@ -41,6 +41,7 @@ const rayadoLibreEngine: GameEngine = require("./rayado-libre/engine");
 const colorCorrectoEngine: GameEngine = require("./color-correcto/engine");
 const quienSoyEngine: GameEngine = require("./quien-soy/engine");
 const recamaraEngine: GameEngine = require("./recamara/engine");
+const rielSalvajeEngine: GameEngine = require("./riel-salvaje/engine");
 
 const GAMES: Record<string, GameEngine> = {
   [impostorEngine.id]: impostorEngine,
@@ -54,6 +55,7 @@ const GAMES: Record<string, GameEngine> = {
   [colorCorrectoEngine.id]: colorCorrectoEngine,
   [quienSoyEngine.id]: quienSoyEngine,
   [recamaraEngine.id]: recamaraEngine,
+  [rielSalvajeEngine.id]: rielSalvajeEngine,
 };
 
 function getEngine(gameType: string | null | undefined): GameEngine | undefined {

@@ -316,6 +316,13 @@ export default function App() {
   // right now, for games with one — used to decide whether leaving needs
   // the fade-to-black curtain or can just happen instantly.
   const themeIsLive = Boolean(game?.gameTheme) && (mode === "local" || (mode === "multi" && inRoom));
+  // See GameDef.landscapeRound — only once a round is actually in progress
+  // (not the lobby/mode-picker before it), so the game's own RoundView/
+  // LocalGame can use the full viewport width instead of the shared app's
+  // centered portrait column.
+  const fullBleedRound =
+    Boolean(game?.landscapeRound) &&
+    (mode === "local" || (mode === "multi" && inRoom && (roomPhase === "playing" || roomPhase === "result")));
 
   const confirmGoBack = () => {
     withCurtain(() => {
@@ -459,8 +466,14 @@ export default function App() {
           {activeTheme.backdropEmoji}
         </div>
       )}
-      <div style={{ ...S.wrap, position: "relative", zIndex: 1 }}>
-        <div style={S.header}>
+      <div
+        style={
+          fullBleedRound
+            ? { position: "relative", zIndex: 1, width: "100%", height: "100%" }
+            : { ...S.wrap, position: "relative", zIndex: 1 }
+        }
+      >
+        <div style={fullBleedRound ? { display: "none" } : S.header}>
           {(gameId || mode) && (
             <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 8 }}>
               <button
@@ -653,6 +666,10 @@ export default function App() {
             // it as `themedOverride` instead of relying on this closure.
             runTransition={(action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme))}
             onTransitionSettled={settleAsyncCurtain}
+            // Opens the same confirm dialog the (now-hidden, see
+            // fullBleedRound) header's own "Menú principal" button would —
+            // not `goHome` directly, so leaving mid-round still warns first.
+            onExitToMainMenu={() => setShowExitConfirm(true)}
           />
         )}
       </div>

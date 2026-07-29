@@ -51,4 +51,22 @@ export const GAME_THEMES: Record<string, GameTheme> = {
     muted: "#9a9082",
     backdropEmoji: "💀",
   },
+  // Riel Salvaje — Western/atraco de tren, referencia visual: el artifact
+  // publicado "Riel Salvaje — Set completo de pantallas (horizontal)".
+  // Brass/dorado como acento principal (no el rojo de recamara, para no
+  // repetir la misma identidad entre los dos juegos con temática de Far
+  // West) — el rojo del mockup queda reservado para peligro/disparo dentro
+  // de las pantallas propias del juego, no para el chrome compartido.
+  "riel-salvaje": {
+    app: {
+      background: "#171310",
+      color: "#ece4d6",
+      fontFamily: "'Roboto Slab', Georgia, serif",
+    },
+    accent: "#c9974f",
+    accentStrong: "#e3bb7d",
+    surface: "#211b16",
+    muted: "#9a9082",
+    backdropEmoji: "🚂",
+  },
 };
