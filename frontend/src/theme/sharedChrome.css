@@ -1,13 +1,14 @@
-/* Shared cross-game chrome tokens — CodeDisplay, QRDialog, Btn's "success"/
-   "ghost" variants (see theme/styles.ts's S.btn), and anything else common
-   to every game read these CSS vars instead of hardcoding a color. A themed
-   game (see gameTheme on GameDef, theme/gameThemes.ts) overrides just a
-   handful of base vars via inline style on App.tsx's root — everything
-   else here derives from those automatically (color-mix), so adding a new
-   themed game never means hunting down more hardcoded colors across these
-   shared components one at a time.
-   Defaults below are this app's normal look — what every non-themed game
-   already gets, unchanged. */
+/* Tokens de "chrome" compartidos entre juegos — CodeDisplay, QRDialog, las
+   variantes "success"/"ghost" de Btn (ver S.btn en theme/styles.ts), y
+   cualquier otra cosa común a todo juego leen estas variables CSS en vez de
+   hardcodear un color. Un juego con tema propio (ver gameTheme en GameDef,
+   theme/gameThemes.ts) sobreescribe solo un puñado de variables base vía
+   estilo inline en la raíz de App.tsx — todo lo demás acá deriva de esas
+   automáticamente (color-mix), así que agregar un juego con tema propio
+   nunca implica salir a cazar más colores hardcodeados en estos componentes
+   compartidos uno por uno.
+   Los valores por defecto de abajo son el look normal de esta app — lo que
+   ya recibe, sin cambios, todo juego sin tema propio. */
 :root {
   --jt-accent: #7f77dd;
   --jt-accent-strong: #afa9ec;
@@ -18,25 +19,28 @@
   --jt-accent-border: color-mix(in srgb, var(--jt-accent) 30%, transparent);
   --jt-accent-border-soft: color-mix(in srgb, var(--jt-accent) 40%, transparent);
 
-  /* The primary "start/confirm" call-to-action gradient (StartButton, e.g.
-     "Iniciar ronda") — its own base color, independent of --jt-accent,
-     since that CTA is green by default across every game regardless of
-     that game's own accent. A theme that wants its CTA to match its accent
-     instead (recamara does) overrides these three explicitly. */
+  /* El gradiente principal del call-to-action "empezar/confirmar"
+     (StartButton, ej. "Iniciar ronda") — tiene su propio color base,
+     independiente de --jt-accent, ya que ese CTA es verde por defecto en
+     todo juego sin importar el acento propio de ese juego. Un tema que
+     quiera que su CTA combine con su acento en vez de eso (recamara lo
+     hace) sobreescribe estas tres variables explícitamente. */
   --jt-cta-from: #1d9e75;
   --jt-cta-to: #0f6e56;
   --jt-cta-shadow: rgba(29, 158, 117, 0.3);
 
-  /* The app's own plain background — StickyActionBar's fade-to-bg gradient
-     reads this instead of hardcoding #0f0c1d, so the strip behind a pinned
-     "Iniciar ronda"-style button actually fades into a themed background
-     instead of always fading into the untheemed one. */
+  /* El fondo plano propio de la app — el gradiente de fade-to-bg de
+     StickyActionBar lee esto en vez de hardcodear #0f0c1d, así la franja
+     detrás de un botón fijo estilo "Iniciar ronda" realmente se funde con
+     un fondo con tema propio en vez de fundirse siempre con el fondo sin
+     tema. */
   --jt-bg: #0f0c1d;
 
-  /* theme/styles.ts's S.card/S.label/S.muted — the generic card/label/
-     muted-text look used everywhere (lobby player list, setup screens,
-     etc). Defaults here are those components' exact current colors, so
-     wiring them in is a no-op until a theme overrides them. */
+  /* El look genérico de card/label/texto-muted de S.card/S.label/S.muted en
+     theme/styles.ts (usado en todos lados: lista de jugadores del lobby,
+     pantallas de setup, etc). Los valores por defecto acá son exactamente
+     los colores actuales de esos componentes, así que conectarlos es un
+     no-op hasta que un tema los sobreescriba. */
   --jt-card-bg: rgba(255, 255, 255, 0.04);
   --jt-card-border: rgba(127, 119, 221, 0.18);
   --jt-row-border: rgba(127, 119, 221, 0.08);

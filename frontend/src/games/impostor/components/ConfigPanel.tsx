@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { S } from "../../theme/styles";
-import { CATEGORIES } from "@juntada/impostor-data";
+import { S } from "../../../theme/styles";
 import { maxImpostors } from "@juntada/impostor-match-rules";
-import { TurnOrderEditor } from "../../components/TurnOrderEditor";
-import { ConfigSection } from "./components/ConfigSection";
-import { ConfigTabs } from "./components/ConfigTabs";
-import { Toggle } from "../../components/Toggle";
-import type { ConfigPanelProps } from "../gameTypes";
+import { TurnOrderEditor } from "../../../components/TurnOrderEditor";
+import { ConfigSection } from "./ConfigSection";
+import { ConfigTabs } from "./ConfigTabs";
+import { CategoriesTab } from "./CategoriesTab";
+import { RevealOnEliminationControl } from "./RevealOnEliminationControl";
+import { ShowCategoryControl } from "./ShowCategoryControl";
+import type { ConfigPanelProps } from "../../gameTypes";
 
 // Host-only rules editor shown in the multiplayer lobby. Only re-renders when
 // this game is active in the room (see games/registry.js contract). Every
@@ -16,12 +17,8 @@ import type { ConfigPanelProps } from "../gameTypes";
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const [tab, setTab] = useState<"cats" | "rules" | "order">("cats");
   const config = room.config as any;
-  const activeCount = Object.values(config.enabledCategories || {}).filter(Boolean).length;
   const maxImp = maxImpostors(room.players.length);
   const usedWords = room.usedWords as Record<string, string[]>;
-  const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
-  const activeCats = Object.keys(config.enabledCategories || {}).filter(k => config.enabledCategories[k]);
-  const allCategoriesExhausted = activeCats.length > 0 && activeCats.every(k => wordsLeftIn(k) <= 0);
 
   // Mirrors LocalGame's own clamp effect (see LocalGame.tsx) — without it,
   // a host who picks e.g. 2 impostors and then loses players keeps seeing
@@ -67,26 +64,10 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </ConfigSection>
 
           <ConfigSection>
-            <span style={S.label}>¿Se revela el rol al eliminar a alguien?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              <button
-                onClick={() => updateConfig({ revealOnElimination: true })}
-                style={{ ...S.btn(config.revealOnElimination ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                Sí, se revela
-              </button>
-              <button
-                onClick={() => updateConfig({ revealOnElimination: false })}
-                style={{ ...S.btn(!config.revealOnElimination ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                No, queda en duda
-              </button>
-            </div>
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
-              {config.revealOnElimination
-                ? "Al eliminar a alguien se muestra si era el impostor o no."
-                : "Al eliminar a alguien no se revela su rol — sigan jugando con la duda."}
-            </p>
+            <RevealOnEliminationControl
+              value={!!config.revealOnElimination}
+              onChange={revealOnElimination => updateConfig({ revealOnElimination })}
+            />
           </ConfigSection>
 
           <ConfigSection>
@@ -113,16 +94,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </ConfigSection>
 
           <ConfigSection>
-            <Toggle
-              label="Mostrar la categoría junto a la palabra"
-              value={!!config.showCategory}
-              onChange={showCategory => updateConfig({ showCategory })}
-            />
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
-              {config.showCategory
-                ? "Todos ven de qué categoría es la palabra al revelar su carta — inocentes e impostor por igual."
-                : "Nadie ve la categoría, solo la palabra (o la pista, si el impostor tiene una activada)."}
-            </p>
+            <ShowCategoryControl value={!!config.showCategory} onChange={showCategory => updateConfig({ showCategory })} />
           </ConfigSection>
 
           <ConfigSection>
@@ -189,7 +161,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
               >
                 <div style={S.knob(!!config.discussionUnlimited)} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "#6b6490" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "var(--jt-muted-text)" }}>
                 Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
               </span>
             </label>
@@ -198,115 +170,11 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
       )}
 
       {tab === "cats" && (
-        <div style={S.card}>
-          <span style={S.label}>Categorías</span>
-          <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
-            Elegí de qué van a ser las palabras. Tocá una categoría para activarla.
-          </p>
-          <style>{`
-            .impostor-cats-bulk-btn {
-              transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out;
-            }
-            .impostor-cats-bulk-btn:hover {
-              transform: translateY(-1px);
-              filter: brightness(1.25);
-            }
-            .impostor-cats-bulk-btn:active {
-              transform: scale(0.96);
-            }
-          `}</style>
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-            <button
-              className="impostor-cats-bulk-btn"
-              onClick={() =>
-                updateConfig({
-                  enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
-                })
-              }
-              style={{
-                flex: 1,
-                background: "rgba(127,119,221,0.12)",
-                border: "1px solid rgba(127,119,221,0.4)",
-                borderRadius: 8,
-                color: "#AFA9EC",
-                cursor: "pointer",
-                padding: "8px 12px",
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: "inherit",
-              }}
-            >
-              ✓ Seleccionar todas
-            </button>
-            <button
-              className="impostor-cats-bulk-btn"
-              onClick={() =>
-                updateConfig({
-                  enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
-                })
-              }
-              style={{
-                flex: 1,
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.14)",
-                borderRadius: 8,
-                color: "#9089c0",
-                cursor: "pointer",
-                padding: "8px 12px",
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: "inherit",
-              }}
-            >
-              ✕ Quitar todas
-            </button>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
-              const active = !!config.enabledCategories?.[k];
-              const remaining = wordsLeftIn(k);
-              const exhausted = remaining <= 0;
-              return (
-                <button
-                  key={k}
-                  onClick={() => updateConfig({ enabledCategories: { ...config.enabledCategories, [k]: !active } })}
-                  title={exhausted ? "Ya se usaron todas las palabras de esta categoría en esta partida" : undefined}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    padding: "10px 16px",
-                    borderRadius: 999,
-                    border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                    background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-                    color: active ? "#fff" : "#9089c0",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
-                    transition: "all 0.15s",
-                    opacity: exhausted ? 0.55 : 1,
-                  }}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.label}</span>
-                  <span style={{ fontSize: 11, opacity: 0.75 }}>{exhausted ? "· sin palabras" : `· ${remaining}`}</span>
-                </button>
-              );
-            })}
-          </div>
-          <p style={{ ...S.muted, marginTop: 14 }}>
-            {activeCount === 0
-              ? "No elegiste ninguna categoría todavía."
-              : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}
-          </p>
-          {allCategoriesExhausted && (
-            <p style={{ fontSize: 12, color: "#F09595", marginTop: 4 }}>
-              Ya se usaron todas las palabras de las categorías activas — activá otra para poder seguir jugando.
-            </p>
-          )}
-        </div>
+        <CategoriesTab
+          enabledCategories={config.enabledCategories || {}}
+          usedWords={usedWords}
+          onChange={enabledCategories => updateConfig({ enabledCategories })}
+        />
       )}
 
       {tab === "order" && (

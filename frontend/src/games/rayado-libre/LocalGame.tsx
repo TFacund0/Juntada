@@ -1,30 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { StartButton } from "../../components/StartButton";
-import { Avatar } from "../../components/Avatar";
-import { Timer } from "../../components/Timer";
 import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
-import { ErrorBanner } from "../../components/ErrorBanner";
-import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
-import { StickyActionBar } from "../../components/StickyActionBar";
-import { MinPlayersHint } from "../../components/MinPlayersHint";
+import type { SetupTab } from "../../components/SetupTabs";
 import { useFlashError } from "../../hooks/useFlashError";
 import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/playerNames";
 import { CATEGORIES, activeWordPool, pickThreeWords as pickThreeWordsFromPool } from "@juntada/rayado-libre-data";
-import {
-  scoreForGuess,
-  DRAWER_POINTS_PER_GUESS,
-  TURN_SECONDS,
-  buildHintOrder,
-  computeWordHint,
-  popLastDrawUnit,
-} from "@juntada/rayado-libre-scoring";
-import { Canvas, type DrawAction, type Tool } from "./components/Canvas";
-import { Toolbar } from "./components/Toolbar";
-import { PhaseTransition } from "../../components/PhaseTransition";
-import { Scoreboard } from "./components/Scoreboard";
+import { scoreForGuess, DRAWER_POINTS_PER_GUESS, TURN_SECONDS, buildHintOrder, computeWordHint } from "@juntada/rayado-libre-scoring";
+import { type DrawAction, type Tool } from "./components/Canvas";
+import type { LocalPlayer, LocalGamePhase } from "./types/localGame";
+import { SetupScreen } from "./components/SetupScreen";
+import { WordRevealScreen } from "./components/WordRevealScreen";
+import { LocalDrawingScreen } from "./components/LocalDrawingScreen";
+import { LocalRevealScreen } from "./components/LocalRevealScreen";
+import { LocalResultScreen } from "./components/LocalResultScreen";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RAYADO LIBRE — modo local: pantalla compartida + juez manual. Un solo
@@ -32,16 +20,13 @@ import { Scoreboard } from "./components/Scoreboard";
 // Quien dibuja lo hace directo en pantalla; el resto grita la respuesta en
 // voz alta y quien maneja el dispositivo toca el nombre de quien acertó — el
 // puntaje se calcula solo, con la misma fórmula que el modo online.
+//
+// Este archivo solo maneja estado/reglas de turno; la presentación de cada
+// fase vive en su propio componente bajo components/ (SetupScreen,
+// WordRevealScreen, LocalDrawingScreen, LocalRevealScreen,
+// LocalResultScreen) — mismo criterio que el modo online (ver RoundView.tsx
+// y components/*PhaseScreen.tsx).
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface LocalPlayer {
-  id: number;
-  name: string;
-}
-
-type Phase = "setup" | "wordReveal" | "drawing" | "reveal" | "result";
-
-const MIN_PLAYERS = 3;
 
 // Same pool/pick algorithm the backend engine uses (see
 // @juntada/rayado-libre-data) — this just adapts it to LocalGame's plain
@@ -54,7 +39,7 @@ function pickThreeWords(activeCatKeys: string[], usedWordsRef: { current: string
 }
 
 export function LocalGame() {
-  const [phase, setPhase] = useState<Phase>("setup");
+  const [phase, setPhase] = useState<LocalGamePhase>("setup");
   const [players, setPlayers] = useState<LocalPlayer[]>([
     { id: 1, name: "Jugador 1" },
     { id: 2, name: "Jugador 2" },
@@ -212,273 +197,83 @@ export function LocalGame() {
   // repeated rounds), so a stable 0/1 key is enough to trigger it exactly once.
   const revealCount = useRevealCountdown(phase === "result" ? 1 : 0);
 
-  // ── SETUP ──
-  if (phase === "setup")
+  if (phase === "setup") {
     return (
-      <PhaseTransition phaseKey="setup">
-        <div style={{ paddingBottom: 88 }}>
-          <SetupTabs tab={setupTab} onChange={setSetupTab} />
-
-          {setupTab === "players" && (
-            <div style={S.card}>
-              <span style={S.label}>Jugadores ({players.length})</span>
-              {players.map(p => (
-                <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                  <Avatar name={p.name} size={32} />
-                  <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-                  <button
-                    onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                    style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <input
-                  style={{ ...S.input, flex: 1 }}
-                  placeholder="Nombre"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") addPlayer();
-                  }}
-                />
-                <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
-                  Agregar
-                </Btn>
-              </div>
-              <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
-            </div>
-          )}
-
-          {setupTab === "config" && (
-            <>
-              <div style={S.card}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={S.label}>Categorías</span>
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <button
-                      onClick={() => setEnabledCategories(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}))}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#7F77DD",
-                        cursor: "pointer",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Todas
-                    </button>
-                    <button
-                      onClick={() => setEnabledCategories(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}))}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#7F77DD",
-                        cursor: "pointer",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Ninguna
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
-                  {Object.entries(CATEGORIES).map(([k, cat]) => {
-                    const active = !!enabledCategories[k];
-                    return (
-                      <button
-                        key={k}
-                        onClick={() => setEnabledCategories(prev => ({ ...prev, [k]: !active }))}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 7,
-                          padding: "10px 16px",
-                          borderRadius: 999,
-                          border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                          background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-                          color: active ? "#fff" : "#9089c0",
-                          fontWeight: 700,
-                          fontSize: 13,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        <span>{cat.icon}</span>
-                        <span>{cat.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={S.card}>
-                <span style={S.label}>
-                  Vueltas: cada jugador dibuja {totalRounds} {totalRounds === 1 ? "vez" : "veces"}
-                </span>
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setTotalRounds(n)}
-                      style={{ ...S.btn(totalRounds === n ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          <StickyActionBar>
-            <StartButton disabled={players.length < MIN_PLAYERS || activeCatKeys.length === 0} onClick={startGame}>
-              Empezar a jugar
-            </StartButton>
-            <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
-            {activeCatKeys.length === 0 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Elegí al menos una categoría</p>}
-          </StickyActionBar>
-        </div>
-      </PhaseTransition>
+      <SetupScreen
+        players={players}
+        renamePlayer={renamePlayer}
+        removePlayer={id => setPlayers(prev => prev.filter(x => x.id !== id))}
+        newName={newName}
+        setNewName={setNewName}
+        addPlayer={addPlayer}
+        nameError={nameError}
+        nameErrorKey={nameErrorKey}
+        setupTab={setupTab}
+        setSetupTab={setSetupTab}
+        enabledCategories={enabledCategories}
+        setEnabledCategories={setEnabledCategories}
+        totalRounds={totalRounds}
+        setTotalRounds={setTotalRounds}
+        activeCatKeys={activeCatKeys}
+        startGame={startGame}
+      />
     );
+  }
 
-  // ── ELEGIR PALABRA (el dispositivo recién pasó de mano) ──
-  if (phase === "wordReveal")
+  if (phase === "wordReveal") {
     return (
-      <PhaseTransition phaseKey="wordReveal">
-        <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 13, color: "#9089c0" }}>
-              Turno {turnNumber}/{totalTurns}
-            </p>
-            <p style={{ fontSize: 16, fontWeight: 800, color: "#AFA9EC", margin: "6px 0" }}>Le toca dibujar a {drawer?.name}</p>
-            <p style={{ fontSize: 13, color: "#9089c0" }}>Pasale el dispositivo — el resto no tiene que ver la pantalla todavía</p>
-          </div>
-
-          {!choicesRevealed ? (
-            <Btn variant="primary" onClick={() => setChoicesRevealed(true)}>
-              Ya tengo el dispositivo — ver mis palabras
-            </Btn>
-          ) : (
-            <div style={S.card}>
-              <span style={S.label}>Elegí qué vas a dibujar</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-                {wordChoices.map(w => (
-                  <Btn key={w} variant="success" onClick={() => chooseWord(w)}>
-                    {w}
-                  </Btn>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </PhaseTransition>
+      <WordRevealScreen
+        turnNumber={turnNumber}
+        totalTurns={totalTurns}
+        drawer={drawer}
+        choicesRevealed={choicesRevealed}
+        revealChoices={() => setChoicesRevealed(true)}
+        wordChoices={wordChoices}
+        chooseWord={chooseWord}
+      />
     );
+  }
 
-  // ── DIBUJANDO ──
-  if (phase === "drawing")
+  if (phase === "drawing") {
+    const wordHint = word && drawingStartedAt ? computeWordHint(word, hintOrderRef.current, (Date.now() - drawingStartedAt) / 1000) : null;
     return (
-      <PhaseTransition phaseKey="drawing">
-        <div>
-          <p style={{ textAlign: "center", fontSize: 13, color: "#9089c0", marginBottom: 4 }}>
-            Turno {turnNumber}/{totalTurns} — dibuja {drawer?.name}
-          </p>
-          {timerEnd && <Timer timerEnd={timerEnd} total={TURN_SECONDS} label="Tiempo para dibujar" />}
-
-          {word && drawingStartedAt && (
-            <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-              <p style={{ fontSize: 20, fontWeight: 800, letterSpacing: "0.35em", margin: 0, fontFamily: "monospace" }}>
-                {computeWordHint(word, hintOrderRef.current, (Date.now() - drawingStartedAt) / 1000)}
-              </p>
-            </div>
-          )}
-
-          <Canvas
-            strokes={strokes}
-            interactive
-            tool={tool}
-            onStrokeChunk={(points, color, size, strokeId) => setStrokes(s => [...s, { type: "stroke", points, color, size, strokeId }])}
-            onFillAt={(x, y, color) => setStrokes(s => [...s, { type: "fill", x, y, color }])}
-          />
-          <Toolbar tool={tool} onChange={setTool} onClear={() => setStrokes([])} onUndo={() => setStrokes(s => popLastDrawUnit(s))} />
-
-          <div style={{ ...S.card, marginTop: 16 }}>
-            <span style={S.label}>¿Quién acertó?</span>
-            <p style={{ ...S.muted, margin: "0 0 10px" }}>Tocá el nombre de quien haya adivinado en voz alta.</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {players
-                .filter(p => p.id !== drawerId)
-                .map(p => {
-                  const already = correctGuessers.includes(p.id);
-                  return (
-                    <button
-                      key={p.id}
-                      disabled={already}
-                      onClick={() => markCorrect(p.id)}
-                      style={{
-                        ...S.btn(already ? "ghost" : "success"),
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "12px 14px",
-                        opacity: already ? 0.6 : 1,
-                      }}
-                    >
-                      <Avatar name={p.name} size={28} />
-                      <span style={{ flex: 1, textAlign: "left", fontWeight: 700 }}>{p.name}</span>
-                      {already && <span style={{ fontSize: 13 }}>+{lastTurnPoints[p.id]} pts ✓</span>}
-                    </button>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-      </PhaseTransition>
+      <LocalDrawingScreen
+        turnNumber={turnNumber}
+        totalTurns={totalTurns}
+        drawer={drawer}
+        timerEnd={timerEnd}
+        wordHint={wordHint}
+        strokes={strokes}
+        setStrokes={setStrokes}
+        tool={tool}
+        setTool={setTool}
+        players={players}
+        drawerId={drawerId}
+        correctGuessers={correctGuessers}
+        lastTurnPoints={lastTurnPoints}
+        markCorrect={markCorrect}
+      />
     );
+  }
 
-  // ── REVEAL ──
   if (phase === "reveal") {
     const roundPoints: Record<number, number> = { ...lastTurnPoints };
     if (drawerId != null && Object.keys(lastTurnPoints).length > 0) {
       roundPoints[drawerId] = Object.keys(lastTurnPoints).length * DRAWER_POINTS_PER_GUESS;
     }
-    const isLastTurn = turnNumber === totalTurns;
-
     return (
-      <PhaseTransition phaseKey="reveal">
-        <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 13, color: "#9089c0" }}>La palabra era</p>
-            <p style={S.bigReveal}>{word}</p>
-          </div>
-
-          <Scoreboard
-            entries={players.map(p => ({ id: p.id, name: p.name, score: scores[p.id] || 0, roundPoints: roundPoints[p.id] }))}
-            title={isLastTurn ? "Tabla final" : "Tabla de puntos"}
-          />
-
-          <StartButton onClick={goToNextTurn}>{isLastTurn ? "Ver la tabla final" : "Siguiente turno"}</StartButton>
-        </div>
-      </PhaseTransition>
+      <LocalRevealScreen
+        word={word}
+        players={players}
+        scores={scores}
+        roundPoints={roundPoints}
+        isLastTurn={turnNumber === totalTurns}
+        goToNextTurn={goToNextTurn}
+      />
     );
   }
 
   // ── RESULT ──
   if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando la tabla final..." />;
-  return (
-    <PhaseTransition phaseKey="result">
-      <p style={{ textAlign: "center", fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "8px 0 16px" }}>Fin del juego</p>
-      <Scoreboard entries={players.map(p => ({ id: p.id, name: p.name, score: scores[p.id] || 0 }))} title="Tabla final" />
-      {/* Sends everyone back to the players/config screen instead of
-          restarting instantly — lets the group adjust players or settings
-          before the next match, same as the online mode's "Nueva partida". */}
-      <StartButton onClick={backToSetup}>Jugar de nuevo</StartButton>
-    </PhaseTransition>
-  );
+  return <LocalResultScreen players={players} scores={scores} backToSetup={backToSetup} />;
 }

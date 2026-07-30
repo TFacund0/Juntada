@@ -18,8 +18,12 @@ const { groups, clients, activeSockets } = require("../state/roomStore") as {
   activeSockets: Map<string, WebSocket>;
 };
 const { generateUniqueRoomCode } = require("./roomCode") as { generateUniqueRoomCode: () => string };
+const { ONLINE_CLEANUP_DELAY_MS } = require("./constants") as { ONLINE_CLEANUP_DELAY_MS: number };
+const { isNameTaken, pickHostReplacement } = require("./rosterUtils") as {
+  isNameTaken: (roster: { id: string; name: string; online: boolean }[], name: string) => boolean;
+  pickHostReplacement: (roster: { id: string; name: string; online: boolean }[], leavingId: string) => { id: string } | undefined;
+};
 
-const ONLINE_CLEANUP_DELAY_MS = 5 * 60 * 1000;
 const MAX_MEMBERS_PER_GROUP = 16;
 const MAX_TOTAL_GROUPS = 500;
 
@@ -47,13 +51,6 @@ function createGroup(ws: WebSocket, { playerName, groupName }: { playerName?: st
   return { group, playerId };
 }
 
-// Only an online member's name actually blocks a reuse — see roomService.ts's
-// isNameTaken for the full rationale (an offline entry is either about to be
-// reaped or the very player trying to get back in under their own name).
-function isNameTaken(group: Group, name: string): boolean {
-  return group.members.some(m => m.online && m.name.toLowerCase() === name.toLowerCase());
-}
-
 function joinGroup(
   ws: WebSocket,
   { code, playerName, groupName }: { code?: string; playerName?: string; groupName?: string },
@@ -70,7 +67,7 @@ function joinGroup(
   if (group.members.length >= MAX_MEMBERS_PER_GROUP) return { error: "El grupo está lleno" };
 
   const name = playerName || "Jugador";
-  if (isNameTaken(group, name)) return { error: "Ese nombre ya está en uso en este grupo" };
+  if (isNameTaken(group.members, name)) return { error: "Ese nombre ya está en uso en este grupo" };
 
   const playerId: string = uuidv4();
   group.members.push({ id: playerId, name, online: true });
@@ -100,7 +97,7 @@ function rejoinGroup(ws: WebSocket, { groupCode, playerId }: { groupCode: string
 function leaveGroup(group: Group, playerId: string): void {
   group.members = group.members.filter(m => m.id !== playerId);
   if (group.hostId === playerId) {
-    const candidate = group.members.find(m => m.online) || group.members[0];
+    const candidate = pickHostReplacement(group.members, playerId) ?? group.members[0];
     if (candidate) group.hostId = candidate.id;
   }
 }

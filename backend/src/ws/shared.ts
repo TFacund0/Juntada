@@ -78,6 +78,17 @@ function broadcastToRoom(room: Room, message: (ws2: WS, info: ClientInfo) => voi
 // to them still being mid-turn.
 const OFFLINE_REACTION_DELAY_MS = 60 * 1000;
 
+// How long a single disconnected player is allowed to sit offline (while
+// others in the room/group stay connected) before being auto-removed, so
+// one dropped connection doesn't keep holding up the game or cluttering the
+// group's roster indefinitely. Whole-room/whole-group cleanup (see
+// scheduleRoomCleanup/scheduleGroupCleanup) already handles the case where
+// everyone is offline, so this only ever fires while someone else is still
+// around to keep playing without the disconnected player in the way. Shared
+// by roomHandlers.ts's schedulePlayerKick and groupHandlers.ts's
+// scheduleGroupMemberKick.
+const PLAYER_OFFLINE_TIMEOUT_MS = 10 * 60 * 1000;
+
 function scheduleOfflineReaction(roomCode: string, playerId: string): void {
   setTimeout(() => {
     const room = rooms.get(roomCode);
@@ -158,4 +169,12 @@ function releaseStaleIdentity(info: ClientInfo | undefined): void {
   }
 }
 
-module.exports = { stopTimer, syncPhaseTimer, broadcastToRoom, cleanupRoomIfEmpty, releaseStaleIdentity, scheduleOfflineReaction };
+module.exports = {
+  stopTimer,
+  syncPhaseTimer,
+  broadcastToRoom,
+  cleanupRoomIfEmpty,
+  releaseStaleIdentity,
+  scheduleOfflineReaction,
+  PLAYER_OFFLINE_TIMEOUT_MS,
+};

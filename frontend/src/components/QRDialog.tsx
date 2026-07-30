@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Btn } from "./Btn";
+import { DialogFrame } from "./DialogFrame";
 import { QRCode } from "./QRCode";
 
 interface QRDialogProps {
@@ -9,23 +10,25 @@ interface QRDialogProps {
   onClose: () => void;
 }
 
-// TS's lib.dom types navigator.share as always-defined, which defeats
-// feature-detection narrowing — check via an explicit cast instead.
+// Los tipos de lib.dom de TS declaran navigator.share como siempre definido,
+// lo que impide el narrowing por feature-detection — se chequea con un cast
+// explícito en su lugar.
 const canShare = typeof (navigator as { share?: unknown }).share === "function";
 
+/** Muestra un código de sala/grupo como QR, con un botón de compartir/copiar link. */
 export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
   const [copied, setCopied] = useState(false);
 
-  // Mobile browsers get the native share sheet (WhatsApp, SMS, etc.) when
-  // available; everywhere else falls back to copying the link to the
-  // clipboard, with a brief "Copiado" confirmation since there's no OS-level
-  // feedback for that.
+  // Los navegadores mobile reciben la hoja nativa de compartir (WhatsApp,
+  // SMS, etc.) cuando está disponible; en todo el resto cae a copiar el
+  // link al portapapeles, con una confirmación breve de "Copiado" ya que no
+  // hay feedback a nivel de sistema operativo para eso.
   const shareLink = async () => {
     if (canShare) {
       try {
         await navigator.share({ title, url: value });
       } catch {
-        /* user cancelled the share sheet — nothing to do */
+        /* el usuario canceló la hoja de compartir — no hay nada que hacer */
       }
       return;
     }
@@ -34,49 +37,28 @@ export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard unavailable — the QR/code above still work */
+      /* portapapeles no disponible — el QR/código de arriba igual funcionan */
     }
   };
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,12,29,0.75)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-        zIndex: 1000,
-      }}
+    <DialogFrame
+      onClose={onClose}
+      maxWidth={340}
+      textAlign="center"
+      cardStyle={{ background: "var(--jt-surface)", border: "1px solid var(--jt-accent-border)" }}
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: "var(--jt-surface)",
-          border: "1px solid var(--jt-accent-border)",
-          borderRadius: 16,
-          padding: "24px 20px",
-          maxWidth: 340,
-          width: "100%",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>{title}</p>
-        {subtitle && <p style={{ color: "var(--jt-muted)", fontSize: 13, margin: "0 0 18px", lineHeight: 1.4 }}>{subtitle}</p>}
-        <div style={{ display: "flex", justifyContent: "center", padding: 12, background: "#f2f0fb", borderRadius: 14, marginBottom: 18 }}>
-          <QRCode value={value} />
-        </div>
-        <Btn variant="ghost" onClick={shareLink} style={{ marginBottom: 10 }}>
-          {copied ? "Copiado" : canShare ? "Compartir enlace" : "Copiar enlace"}
-        </Btn>
-        <Btn variant="ghost" onClick={onClose}>
-          Cerrar
-        </Btn>
+      <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>{title}</p>
+      {subtitle && <p style={{ color: "var(--jt-muted)", fontSize: 13, margin: "0 0 18px", lineHeight: 1.4 }}>{subtitle}</p>}
+      <div style={{ display: "flex", justifyContent: "center", padding: 12, background: "#f2f0fb", borderRadius: 14, marginBottom: 18 }}>
+        <QRCode value={value} />
       </div>
-    </div>
+      <Btn variant="ghost" onClick={shareLink} style={{ marginBottom: 10 }}>
+        {copied ? "Copiado" : canShare ? "Compartir enlace" : "Copiar enlace"}
+      </Btn>
+      <Btn variant="ghost" onClick={onClose}>
+        Cerrar
+      </Btn>
+    </DialogFrame>
   );
 }

@@ -1,10 +1,16 @@
 import { useCallback, useRef, useState } from "react";
 
-// Shared behavior for a transient validation/error message: setting it to a
-// non-empty string bumps `errorKey` (so ErrorBanner's flash animation
-// replays even on an identical repeated message, e.g. retrying the same
-// duplicate name twice in a row) and auto-clears it after `duration` ms;
-// setting it to "" clears immediately.
+/**
+ * Comportamiento compartido para un mensaje transitorio de error/validación:
+ * setearlo con un string no vacío incrementa `errorKey` (para que la
+ * animación de destello de `ErrorBanner` se repita incluso ante un mensaje
+ * idéntico repetido, ej. reintentar el mismo nombre duplicado dos veces
+ * seguidas) y se auto-limpia después de `duration` ms; setearlo con `""` lo
+ * limpia al instante.
+ *
+ * @param duration milisegundos antes de auto-limpiarse (por defecto 4000).
+ * @returns tupla `[error, errorKey, setError]`.
+ */
 export function useFlashError(duration = 4000) {
   const [error, setErrorState] = useState("");
   const [errorKey, setErrorKey] = useState(0);

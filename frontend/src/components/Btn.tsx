@@ -9,6 +9,12 @@ interface BtnProps {
   style?: CSSProperties;
 }
 
+/**
+ * Único componente de botón por el que pasa cada variante visual de la app
+ * (`primary`/`success`/`danger`/`ghost`, ver `S.btn` en `theme/styles.ts`).
+ * Cambiar el look de una variante se hace ahí, una sola vez, en vez de en
+ * cada lugar donde se usa un botón.
+ */
 export function Btn({ children, onClick, variant = "primary", disabled, style = {} }: BtnProps) {
   return (
     <button disabled={disabled} onClick={disabled ? undefined : onClick} style={{ ...S.btn(variant, disabled), ...style }}>

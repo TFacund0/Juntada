@@ -2,7 +2,7 @@ import { describe, test, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CATEGORIES } from "@juntada/impostor-data";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 // Categories start off by default (the host has to actively pick some) — a
 // round can't start with none active, so every test that needs to actually

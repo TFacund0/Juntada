@@ -10,10 +10,7 @@ const { rooms, clients } = require("../../src/state/roomStore");
 const roomService = require("../../src/rooms/roomService");
 const { scheduleOfflineReaction } = require("../../src/ws/shared");
 const rayadoEngine = require("../../src/games/rayado-libre/engine");
-
-function fakeSocket() {
-  return {};
-}
+const { fakeSocket } = require("../testUtils");
 
 beforeEach(() => {
   rooms.clear();

@@ -2,11 +2,14 @@ import { useState } from "react";
 import { BackButton } from "./BackButton";
 import { ConfirmDialog } from "./ConfirmDialog";
 
-// A BackButton that asks for confirmation before firing — for any
-// destructive-ish "leave/end/reset" action (back to lobby, end a local
-// match, ...) shown at the bottom of a result screen. Same ghost styling as
-// a plain BackButton everywhere, local or online, so games don't each
-// reinvent their own confirm-dialog-plus-boolean-state wiring.
+/**
+ * Un `BackButton` que pide confirmación antes de dispararse — para
+ * cualquier acción medio destructiva de "salir/terminar/reiniciar" (volver
+ * al lobby, terminar una partida local, ...) mostrada al pie de una
+ * pantalla de resultado. Mismo estilo ghost que un `BackButton` plano en
+ * todos lados, local u online, así los juegos no reinventan cada uno su
+ * propio manejo de diálogo-de-confirmación-más-estado-booleano.
+ */
 export function ConfirmBackButton({
   children,
   title,

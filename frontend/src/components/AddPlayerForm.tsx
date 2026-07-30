@@ -2,11 +2,14 @@ import { S } from "../theme/styles";
 import { Btn } from "./Btn";
 import { ErrorBanner } from "./ErrorBanner";
 
-// Shared "sumar jugador" form — same card, same layout, across every local
-// mode that lets you build a roster (limon-limon's circle/reveal setup,
-// color-correcto's pass-and-play setup, ...). Name dedupe/validation stays
-// with the caller (it needs the live players list), this just renders the
-// input + confirm + error.
+/**
+ * Formulario compartido de "sumar jugador" — misma card, mismo layout, en
+ * todo modo local que arma su propia lista de jugadores (el setup de
+ * círculo/revelado de limón-limón, el setup pasa-y-juega de
+ * color-correcto, ...). La deduplicación/validación de nombres queda del
+ * lado de quien lo usa (necesita la lista de jugadores en vivo), esto solo
+ * renderiza el input + confirmar + error.
+ */
 export function AddPlayerForm({
   name,
   onNameChange,

@@ -2,12 +2,7 @@ const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const { groups, clients } = require("../../src/state/roomStore");
 const groupService = require("../../src/rooms/groupService");
-
-// `ws` is only ever used as a Map key by groupService, so a plain object
-// stands in fine for a real socket in these tests.
-function fakeSocket() {
-  return {};
-}
+const { fakeSocket } = require("../testUtils");
 
 beforeEach(() => {
   groups.clear();

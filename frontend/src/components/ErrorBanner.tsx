@@ -1,9 +1,12 @@
-// A self-clearing error banner. The caller's error state (see
-// useMultiplayerSocket) already times itself out after a few seconds; this
-// component's job is just to make a *repeated* failure visible even when the
-// message text is identical to what's already on screen — `flashKey` is
-// bumped on every (re-)raise, and keying the element off it forces a remount
-// so the flash animation replays instead of silently doing nothing.
+/**
+ * Un banner de error que se auto-limpia. El estado de error de quien lo usa
+ * (ver `useMultiplayerSocket`) ya se auto-cronometra después de unos
+ * segundos; el trabajo de este componente es solo hacer visible un fallo
+ * *repetido* aunque el texto del mensaje sea idéntico al que ya está en
+ * pantalla — `flashKey` se incrementa en cada (re-)disparo, y usarlo como
+ * `key` del elemento fuerza un remount para que la animación de destello se
+ * repita en vez de no hacer nada en silencio.
+ */
 export function ErrorBanner({ message, flashKey, variant = "block" }: { message: string; flashKey: number; variant?: "block" | "inline" }) {
   if (!message) return null;
 

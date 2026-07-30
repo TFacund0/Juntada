@@ -30,7 +30,7 @@ const {
   broadcastGroupState,
   broadcastRoundReveal,
 } = require("./messaging");
-const { stopTimer, syncPhaseTimer, broadcastToRoom, releaseStaleIdentity } = require("./shared");
+const { stopTimer, syncPhaseTimer, broadcastToRoom, releaseStaleIdentity, PLAYER_OFFLINE_TIMEOUT_MS } = require("./shared");
 
 function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>): void {
   const prevInfo = clients.get(ws);
@@ -227,15 +227,6 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
     if (group) broadcastGroupState(group);
   }
 }
-
-// How long a single disconnected player is allowed to sit offline (while
-// others in the room/group stay connected) before being auto-removed, so
-// one dropped connection doesn't keep holding up the game or cluttering the
-// group's roster indefinitely. Whole-room/whole-group cleanup (see
-// scheduleRoomCleanup/scheduleGroupCleanup) already handles the case where
-// everyone is offline, so this only ever fires while someone else is still
-// around to keep playing without the disconnected player in the way.
-const PLAYER_OFFLINE_TIMEOUT_MS = 10 * 60 * 1000;
 
 // A game can override how long its own disconnected players get before
 // getting auto-kicked (see GameEngine's offlineKickTimeoutMs — e.g. Impostor

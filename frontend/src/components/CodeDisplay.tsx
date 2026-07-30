@@ -4,6 +4,7 @@ interface CodeDisplayProps {
   code: string;
 }
 
+/** Visualización grande del código de sala/grupo — tocarlo lo copia al portapapeles. */
 export function CodeDisplay({ code }: CodeDisplayProps) {
   const [copied, setCopied] = useState(false);
   const copy = () => {

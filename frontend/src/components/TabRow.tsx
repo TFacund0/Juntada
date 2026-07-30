@@ -1,10 +1,12 @@
 import type { CSSProperties } from "react";
 import { S } from "../theme/styles";
 
-// Small segmented tab switcher — same look/behavior everywhere it's used
-// (online lobby's Jugadores/Configuración, online ConfigPanel's
-// Categorías/Reglas/Orden, local mode's mirror of both) so a change here
-// doesn't need to be repeated in each spot.
+/**
+ * Switcher de tabs segmentado y chico — mismo look/comportamiento en todo
+ * lugar donde se usa (Jugadores/Configuración del lobby online, Categorías/
+ * Reglas/Orden del `ConfigPanel` online, el espejo de ambos en modo local)
+ * así un cambio acá no hay que repetirlo en cada lugar.
+ */
 export interface TabDef<T extends string> {
   key: T;
   label: string;

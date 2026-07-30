@@ -17,7 +17,7 @@ const overlayAnimations = `
   .impostor-reveal-continue:hover {
     transform: scale(1.02);
     filter: brightness(1.1);
-    box-shadow: 0 6px 24px rgba(127,119,221,0.5);
+    box-shadow: 0 6px 24px rgba(224,32,43,0.5);
   }
   .impostor-reveal-continue:active {
     transform: scale(0.96);
@@ -48,7 +48,7 @@ function RevealModal({ borderColor, onContinue, children }: { borderColor: strin
         style={{
           width: "100%",
           maxWidth: 380,
-          background: "#171329",
+          background: "var(--jt-surface, #171329)",
           border: `1px solid ${borderColor}`,
           borderRadius: 16,
           padding: "28px 20px",
@@ -75,9 +75,9 @@ function RevealModal({ borderColor, onContinue, children }: { borderColor: strin
             cursor: "pointer",
             border: "none",
             fontFamily: "inherit",
-            background: "linear-gradient(135deg,#7F77DD,#534AB7)",
+            background: "linear-gradient(135deg,#E0202B,#7A1A20)",
             color: "#fff",
-            boxShadow: "0 4px 20px rgba(127,119,221,0.35)",
+            boxShadow: "0 4px 20px rgba(224,32,43,0.35)",
           }}
         >
           Continuar
@@ -100,11 +100,11 @@ export function EliminationRevealOverlay({
 }) {
   const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
   return (
-    <RevealModal borderColor={`${wasImpostor == null ? "rgba(127,119,221,0.35)" : roleColor}66`} onContinue={onContinue}>
+    <RevealModal borderColor={`${wasImpostor == null ? "rgba(224,32,43,0.35)" : roleColor}66`} onContinue={onContinue}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         <Avatar name={name} size={52} />
         <p style={{ fontWeight: 800, fontSize: 19, margin: "12px 0 2px" }}>{name}</p>
-        <p style={{ color: "#9089c0", fontSize: 13, margin: "0 0 12px" }}>quedó eliminado/a</p>
+        <p style={{ color: "var(--jt-muted-text)", fontSize: 13, margin: "0 0 12px" }}>quedó eliminado/a</p>
       </div>
       {wasImpostor != null && (
         <span
@@ -180,14 +180,14 @@ export function MatchOutcomeOverlay({
       </span>
       {impostorNames.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 11, color: "#9089c0", margin: "0 0 4px" }}>
+          <p style={{ fontSize: 11, color: "var(--jt-muted-text)", margin: "0 0 4px" }}>
             {impostorNames.length === 1 ? "El impostor era" : "Los impostores eran"}
           </p>
           <p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{impostorNames.join(", ")}</p>
         </div>
       )}
-      <p style={{ fontSize: 11, color: "#9089c0", margin: "0 0 4px" }}>La palabra era</p>
-      <p style={{ fontSize: 16, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>{word}</p>
+      <p style={{ fontSize: 11, color: "var(--jt-muted-text)", margin: "0 0 4px" }}>La palabra era</p>
+      <p style={{ fontSize: 16, fontWeight: 800, color: "#F2F0EA", margin: 0 }}>{word}</p>
     </RevealModal>
   );
 }

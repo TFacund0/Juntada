@@ -29,6 +29,30 @@ import { RoundScreen } from "./screens/RoundScreen";
 // renders of one connectionPhase slice each, so a change to what's ON
 // screen for a given phase touches one of those files, while a change to
 // session/reconnect/toast behavior (shared across every phase) stays here.
+//
+// MAPA DEL ARCHIVO (en orden de aparición):
+//   1. MultiplayerGameProps          — contrato con el padre (App.tsx).
+//   2. useMultiplayerSocket()        — la conexión (estado + handlers que
+//                                      vienen del hook, ver hooks/).
+//   3. Estado propio de este shell   — roomName/joinCode/submitting/dialogs/
+//                                      toasts/menús (todo lo que NO vive en
+//                                      el socket).
+//   4. joinInstance() + sus efectos  — unirse a una instancia de grupo, con
+//                                      reintento si el socket no estaba
+//                                      abierto en el momento del tap.
+//   5. Efectos de toast              — "fulano se reconectó", "volvieron al
+//                                      lobby", etc — se detectan comparando
+//                                      el room/group anterior contra el nuevo.
+//   6. Auto-join / auto-create       — al abrir desde un link/QR o con un
+//                                      intent ya elegido (initialJoinCode/
+//                                      initialGroupIntent).
+//   7. createRoom/joinRoom/etc       — los handlers que arman y mandan cada
+//                                      mensaje al servidor.
+//   8. reconnectBanner               — el banner de "reconectando.../
+//                                      reconectado" (usado en las 4 pantallas).
+//   9. return final                 — un solo switch grande por
+//                                      connectionPhase, uno de MenuScreen/
+//                                      GroupScreen/LobbyScreen/RoundScreen.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface MultiplayerGameProps {
@@ -640,5 +664,5 @@ export function MultiplayerGame({
     );
   }
 
-  return <div style={{ textAlign: "center", padding: 40, color: "#6b6490" }}>Conectando...</div>;
+  return <div style={{ textAlign: "center", padding: 40, color: "var(--jt-muted-text)" }}>Conectando...</div>;
 }

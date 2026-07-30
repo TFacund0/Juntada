@@ -29,13 +29,10 @@ interface Category {
   hints: Record<string, string>;
 }
 
-const { CATEGORIES } = require("@juntada/impostor-data") as { CATEGORIES: Record<string, Category> };
-// Fallback for the rare case a word predates the hints map (shouldn't happen
-// once every CATEGORIES entry has one, but keeps hintsEnabled from ever
-// crashing on a lookup miss).
-function wordHint(catKey: string, word: string): string | null {
-  return CATEGORIES[catKey]?.hints?.[word] ?? null;
-}
+const { CATEGORIES, wordHint } = require("@juntada/impostor-data") as {
+  CATEGORIES: Record<string, Category>;
+  wordHint: (catKey: string, word: string) => string | null;
+};
 const { shuffle } = require("@juntada/core-utils");
 const { timers } = require("../../state/roomStore") as { timers: Map<string, NodeJS.Timeout> };
 

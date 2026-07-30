@@ -1,14 +1,18 @@
 import { ConfirmBackButton } from "./ConfirmBackButton";
 
-// Every online RoundView needs this same "back_to_lobby" exit, hidden inside
-// a group (the shell's persistent "Volver al grupo" link covers that case
-// instead) — available to any player, not just the host. Always confirms:
-// this is only ever rendered mid-round or on the result screen, never from
-// the lobby itself, so there's always a match in progress to interrupt for
-// everyone. `message` only needs overriding when a game's wording genuinely
-// differs from the shared default (e.g. no persistent score to lose, or a
-// strictly-2-player match) — most games can just take the default instead
-// of hand-writing the same sentence again.
+/**
+ * Todo `RoundView` online necesita esta misma salida de "back_to_lobby",
+ * oculta dentro de un grupo (el link persistente "Volver al grupo" del
+ * shell cubre ese caso en su lugar) — disponible para cualquier jugador,
+ * no solo el host. Siempre pide confirmación: esto solo se renderiza a
+ * mitad de ronda o en la pantalla de resultado, nunca desde el lobby en
+ * sí, así que siempre hay una partida en curso que se interrumpe para
+ * todos. `message` solo hace falta sobreescribirlo cuando la redacción de
+ * un juego realmente difiere del texto compartido por defecto (ej. sin
+ * puntaje persistente que perder, o una partida estrictamente de 2
+ * jugadores) — la mayoría de los juegos puede simplemente usar el default
+ * en vez de reescribir la misma oración a mano.
+ */
 const DEFAULT_MESSAGE = "Se interrumpe la partida para todos y se pierde el progreso.";
 
 export function LeaveToLobbyButton({

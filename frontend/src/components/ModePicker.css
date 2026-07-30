@@ -1,0 +1,42 @@
+/* Micro-animación de las filas de "¿Cómo querés jugar?" — se levantan
+   levemente y su borde se acentúa al pasar el mouse/tocar, en vez de
+   quedarse estáticas hasta el click. */
+
+.jt-mode-row {
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.jt-mode-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.45));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.08));
+}
+
+.jt-mode-row:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.jt-mode-row-chevron {
+  transition: transform 0.15s ease;
+}
+
+.jt-mode-row:hover .jt-mode-row-chevron {
+  transform: translateX(3px);
+}
+
+/* Fila mostrada pero todavía no disponible (ej. "Unirme a una partida
+   online", en desarrollo) — se ve, pero no reacciona ni parece clickeable. */
+.jt-mode-row-disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.jt-mode-row-disabled:hover {
+  transform: none;
+  border-color: var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+}
+
+.jt-mode-row-disabled:active {
+  transform: none;
+}

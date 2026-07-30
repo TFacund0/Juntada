@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { ClientMessage, RoomPublicState, GroupPublicState, ErrorCode } from "@juntada/shared-types";
+import { useFlashError } from "../../../hooks/useFlashError";
 
 // In dev, Vite (5173) and the backend (3001) run as separate servers, so the
 // socket has to point at the backend explicitly. In production a single
@@ -106,6 +107,30 @@ type InboundMessage =
 // — the caller (MultiplayerGame) uses it to tell App.tsx to leave the whole
 // group flow, since "menu" alone doesn't distinguish that from the very
 // first screen before ever joining anything.
+//
+// MAPA DEL ARCHIVO (en orden de aparición dentro de la función):
+//   1. useState/useRef iniciales      — connectionPhase, me/room, group,
+//                                       roomPreview, banderas de reconexión.
+//   2. flashError/clearError          — el mensaje de error temporal (usa
+//                                       hooks/useFlashError.ts compartido).
+//   3. onReconnected()                — qué hacer cuando un mensaje del
+//                                       servidor confirma que la conexión
+//                                       funciona de nuevo.
+//   4. connect()                      — abre el WebSocket y define
+//                                       ws.onopen/onmessage/onclose/onerror.
+//                                       Es la función más larga: todo el
+//                                       dispatch de mensajes entrantes
+//                                       (joined/state/group_joined/error/...)
+//                                       vive en su onmessage.
+//   5. retryConnection()              — reintento manual tras agotar los
+//                                       intentos automáticos.
+//   6. Efectos de ciclo de vida       — auto-rejoin al montar, reconectar al
+//                                       volver de background (visibilitychange/
+//                                       pageshow), limpieza al desmontar.
+//   7. send()/leave()                 — mandar un mensaje ya conectado, y
+//                                       salir olvidando la sesión guardada.
+//   8. return                         — todo el estado + funciones que
+//                                       MultiplayerGame.tsx consume.
 export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?: () => void; entryKind?: "room" | "group" } = {}) {
   // menu|create|join, then mirrors room.phase directly ("lobby" and whatever
   // in-game phases the active game defines — this hook doesn't know or care
@@ -130,27 +155,10 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // preview of what a typed code points to, shown before the player commits
   // to actually joining (see MenuScreen's join-room form).
   const [roomPreview, setRoomPreview] = useState<RoomPreview | null>(null);
-  const [error, setError] = useState("");
-  // Bumped every time an error is (re-)raised, even if the message text is
-  // identical to what's already showing — lets the UI key off this to replay
-  // its "flash" animation so a repeated failure is never silently invisible.
-  const [errorKey, setErrorKey] = useState(0);
-  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // How long an error banner stays up before auto-clearing itself.
-  const ERROR_DURATION = 5000;
-  const flashError = useCallback((message: string) => {
-    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
-    setError(message);
-    setErrorKey(k => k + 1);
-    errorTimeoutRef.current = setTimeout(() => setError(""), ERROR_DURATION);
-  }, []);
-  const clearError = useCallback(() => {
-    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
-    setError("");
-  }, []);
-  // Single setter exposed to callers: an empty string clears (e.g. on
-  // successful retry), anything else flashes/auto-clears like a real error.
-  const setErrorExternal = useCallback((message: string) => (message ? flashError(message) : clearError()), [flashError, clearError]);
+  const [error, errorKey, setErrorExternal] = useFlashError(5000);
+  const flashError = setErrorExternal;
+  const clearError = useCallback(() => setErrorExternal(""), [setErrorExternal]);
   // True while a dropped socket is being retried in the background (flaky
   // connection, tab was suspended, etc.) — lets the UI show a "reconectando"
   // banner instead of silently retrying with no feedback.
@@ -390,7 +398,6 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       wsRef.current?.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
-      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
     },
     [],
   );
@@ -411,7 +418,6 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     wsRef.current?.close();
     if (reconnectRef.current) clearTimeout(reconnectRef.current);
     if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
-    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
     setMe(null);
     setRoom(null);
     setMyRole(null);
