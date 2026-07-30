@@ -4,6 +4,45 @@ import type { GameCategory, GameDef } from "../games/gameTypes";
 import { isUnderMaintenance } from "../games/maintenance";
 import { S } from "../theme/styles";
 import { GameDetailDialog } from "./GameDetailDialog";
+import "./GamePicker.css";
+
+// SVGs en línea (Feather-style, trazo) en vez de emoji/glifos de texto —
+// mismo criterio que AppHeader/ModePicker/MenuScreen.
+function SearchIcon() {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0, transition: "transform 0.15s ease", transform: open ? "rotate(180deg)" : "none" }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
 
 const CATEGORY_LABEL: Record<GameCategory, string> = {
   destacados: "Destacados",
@@ -81,14 +120,16 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
 
   return (
     <div>
-      <div style={S.searchBar}>
-        <span style={{ opacity: 0.6 }}>🔍</span>
+      <div className="jt-search-bar" style={S.searchBar}>
+        <span style={{ color: "var(--jt-muted-text, #a49dc9)", display: "flex" }}>
+          <SearchIcon />
+        </span>
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar juego..." style={S.searchInput} />
       </div>
 
       <div style={{ display: "flex", gap: 8, margin: "10px 0 16px" }}>
         {(Object.keys(AVAILABILITY_LABEL) as AvailabilityFilter[]).map(key => (
-          <button key={key} onClick={() => setAvailFilter(key)} style={availChipStyle(availFilter === key)}>
+          <button key={key} className="jt-avail-chip" onClick={() => setAvailFilter(key)} style={availChipStyle(availFilter === key)}>
             {AVAILABILITY_LABEL[key]}
           </button>
         ))}
@@ -147,8 +188,8 @@ function CategorySection({ title, count, open, onToggle, children }: CategorySec
         <span style={S.sectionLabel}>
           {title} <span style={{ opacity: 0.6 }}>· {count}</span>
         </span>
-        <span style={{ color: "#7F77DD", fontSize: 12, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
-          ▼
+        <span style={{ color: "var(--jt-label, #7F77DD)", display: "flex" }}>
+          <ChevronDownIcon open={open} />
         </span>
       </button>
       {open && children}
@@ -161,13 +202,14 @@ function availChipStyle(active: boolean): CSSProperties {
     flex: 1,
     padding: "8px 10px",
     borderRadius: 10,
-    border: active ? "1px solid #7F77DD" : "1px solid rgba(127,119,221,0.25)",
-    background: active ? "rgba(127,119,221,0.2)" : "transparent",
-    color: active ? "#e8e4f0" : "#a49dc9",
+    border: active ? "1px solid var(--jt-accent, #7F77DD)" : "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
+    background: active ? "var(--jt-accent-soft, rgba(127,119,221,0.15))" : "transparent",
+    color: active ? "#e8e4f0" : "var(--jt-muted-text, #a49dc9)",
     fontSize: 12,
     fontWeight: 700,
     cursor: "pointer",
     fontFamily: "inherit",
+    transition: "transform 0.15s ease, background 0.15s ease, border-color 0.15s ease",
   };
 }
 

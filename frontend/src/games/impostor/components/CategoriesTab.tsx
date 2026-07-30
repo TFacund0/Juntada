@@ -16,6 +16,14 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
   const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
   const allCategoriesExhausted = activeKeys.length > 0 && activeKeys.every(k => wordsLeftIn(k) <= 0);
 
+  const totalCategories = Object.keys(CATEGORIES).length;
+  // Cada botón masivo solo se resalta de rojo cuando el estado actual
+  // coincide exactamente con lo que ese botón produciría — si después se
+  // prende/apaga una categoría suelta y ya no queda "todo prendido" ni "todo
+  // apagado", ninguno de los dos queda marcado como si acabara de tocarse.
+  const allSelected = activeKeys.length === totalCategories;
+  const allDeselected = activeKeys.length === 0;
+
   return (
     <div style={S.card}>
       <span style={S.label}>Categorías</span>
@@ -24,7 +32,7 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
       </p>
       <style>{`
         .impostor-cats-bulk-btn {
-          transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out;
+          transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out, background 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
         }
         .impostor-cats-bulk-btn:hover {
           transform: translateY(-1px);
@@ -33,17 +41,25 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
         .impostor-cats-bulk-btn:active {
           transform: scale(0.96);
         }
+        .impostor-cats-bulk-btn-active {
+          animation: impostor-cats-bulk-pop 0.3s ease-out;
+        }
+        @keyframes impostor-cats-bulk-pop {
+          0% { transform: scale(0.94); }
+          60% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
       `}</style>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <button
-          className="impostor-cats-bulk-btn"
+          className={`impostor-cats-bulk-btn${allSelected ? " impostor-cats-bulk-btn-active" : ""}`}
           onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}))}
           style={{
             flex: 1,
-            background: "rgba(224,32,43,0.12)",
-            border: "1px solid rgba(224,32,43,0.4)",
+            background: allSelected ? "rgba(224,32,43,0.12)" : "rgba(255,255,255,0.04)",
+            border: allSelected ? "1px solid rgba(224,32,43,0.4)" : "1px solid rgba(255,255,255,0.14)",
             borderRadius: 8,
-            color: "#FF6B6B",
+            color: allSelected ? "#FF6B6B" : "var(--jt-muted-text)",
             cursor: "pointer",
             padding: "8px 12px",
             fontSize: 12,
@@ -54,14 +70,14 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
           ✓ Seleccionar todas
         </button>
         <button
-          className="impostor-cats-bulk-btn"
+          className={`impostor-cats-bulk-btn${allDeselected ? " impostor-cats-bulk-btn-active" : ""}`}
           onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}))}
           style={{
             flex: 1,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.14)",
+            background: allDeselected ? "rgba(224,32,43,0.12)" : "rgba(255,255,255,0.04)",
+            border: allDeselected ? "1px solid rgba(224,32,43,0.4)" : "1px solid rgba(255,255,255,0.14)",
             borderRadius: 8,
-            color: "var(--jt-muted-text)",
+            color: allDeselected ? "#FF6B6B" : "var(--jt-muted-text)",
             cursor: "pointer",
             padding: "8px 12px",
             fontSize: 12,

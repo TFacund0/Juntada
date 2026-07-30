@@ -83,7 +83,7 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
         <h2
           style={{
             ...S.title,
-            fontSize: 28,
+            fontSize: 22,
             textTransform: "uppercase",
             letterSpacing: "-0.01em",
             transform: "scaleY(1.12)",
@@ -92,7 +92,7 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
         >
           ¿Cómo querés jugar?
         </h2>
-        <p style={{ color: "var(--jt-muted-text, #6b6490)", fontSize: 14, lineHeight: 1.5, margin: "14px 0 0" }}>
+        <p style={{ color: "var(--jt-muted-text, #6b6490)", fontSize: 13, lineHeight: 1.5, margin: "12px 0 0" }}>
           Online para jugar cada uno desde su celular, o local con un solo dispositivo entre todos.
         </p>
       </div>

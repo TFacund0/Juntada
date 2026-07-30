@@ -161,7 +161,7 @@ export function MenuScreen({
   editingName: boolean;
   onEditingChange: (editing: boolean) => void;
   onSaveName: (name: string) => void;
-  onSetPhase: (phase: "create" | "join") => void;
+  onSetPhase: (phase: "create" | "join" | "menu") => void;
   inGroup: boolean;
   roomName: string;
   onRoomNameChange: (name: string) => void;
@@ -195,7 +195,7 @@ export function MenuScreen({
         title={inGroup ? "Crear grupo" : "Crear partida"}
         subtitle="Generamos un código para compartir con tu grupo"
         active={connectionPhase === "create"}
-        onSelect={() => onSetPhase("create")}
+        onSelect={() => onSetPhase(connectionPhase === "create" ? "menu" : "create")}
       >
         {inGroup && (
           <div style={{ marginBottom: 16 }}>
@@ -218,7 +218,7 @@ export function MenuScreen({
         title="Unirse"
         subtitle={inGroup ? "Entrá a un grupo con su código" : "Entrá a una sala con su código"}
         active={connectionPhase === "join"}
-        onSelect={() => onSetPhase("join")}
+        onSelect={() => onSetPhase(connectionPhase === "join" ? "menu" : "join")}
       >
         <span style={S.label}>{inGroup ? "Código del grupo" : "Código de sala"}</span>
         <input

@@ -157,7 +157,7 @@ export function AppHeader({
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <img src={logo} alt="" style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0 }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
-            <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: "-0.02em", color: accentColor }}>Juntada</span>
+            <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: "-0.045em", color: accentColor }}>Juntada</span>
             <span
               style={{
                 fontSize: 12,
