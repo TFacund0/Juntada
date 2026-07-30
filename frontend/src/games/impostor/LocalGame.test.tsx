@@ -42,8 +42,13 @@ async function revealAllPlayers(user: ReturnType<typeof userEvent.setup>): Promi
 // Every voter (except the impostor themselves, who can't vote for their own
 // name) votes for `targetName` — guarantees that player gets eliminated
 // with no possibility of a tie among 4 voters, so the match's outcome is
-// deterministic for tests that need one.
-async function voteAllPlayers(user: ReturnType<typeof userEvent.setup>, targetName: string) {
+// deterministic for tests that need one. By default also dismisses the two
+// sequential reveal overlays that pop up once the vote resolves (who got
+// eliminated, then — only if the match ended — who won/the word), landing
+// on the underlying result screen (votes breakdown, "Nueva
+// partida"/"Siguiente ronda") — pass dismissOverlay: false for a test that
+// wants to inspect an overlay's own content first.
+async function voteAllPlayers(user: ReturnType<typeof userEvent.setup>, targetName: string, dismissOverlay = true) {
   for (let i = 0; i < 4; i++) {
     const suspectButtons = screen.getAllByRole("button", { name: /^Jugador \d$/ });
     const target = suspectButtons.find(b => b.textContent === targetName) ?? suspectButtons[0];
@@ -52,6 +57,11 @@ async function voteAllPlayers(user: ReturnType<typeof userEvent.setup>, targetNa
     const enabled = confirmButtons.find(b => !b.hasAttribute("disabled"));
     expect(enabled).toBeDefined();
     await user.click(enabled!);
+  }
+  if (dismissOverlay) {
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    const outcomeContinue = screen.queryByRole("button", { name: "Continuar" });
+    if (outcomeContinue) await user.click(outcomeContinue);
   }
 }
 
@@ -142,10 +152,17 @@ describe("Impostor LocalGame", () => {
     // Every voter targets the impostor (revealed above), so with a single
     // impostor among 4 players this always ends the match — innocents win
     // the moment the last impostor is caught (see engine.ts's tallyVotes).
-    await voteAllPlayers(user, impostorName);
+    await voteAllPlayers(user, impostorName, false);
 
-    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
+    // Two sequential overlays before the underlying result screen becomes
+    // reachable: who got eliminated/their role, then who won + the word.
+    expect(screen.getByText("quedó eliminado/a")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
+    expect(screen.getByText("GANARON LOS INOCENTES")).toBeInTheDocument();
     expect(screen.getByText("La palabra era")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
     expect(screen.getByRole("button", { name: "Nueva partida" })).toBeInTheDocument();
   }, 15000);
 
@@ -187,7 +204,7 @@ describe("Impostor LocalGame", () => {
     expect(screen.getByText("quedó eliminado/a")).toBeInTheDocument(); // the tie got resolved into an actual elimination
   }, 15000);
 
-  test("starting a new round from the result screen resets reveal/vote state", async () => {
+  test("'Nueva partida' from the result screen goes back to the players tab in setup", async () => {
     const user = userEvent.setup();
     render(<LocalGame />);
     await enableFirstCategory(user);
@@ -198,6 +215,10 @@ describe("Impostor LocalGame", () => {
     await voteAllPlayers(user, impostorName);
 
     await user.click(screen.getByRole("button", { name: "Nueva partida" }));
+    expect(screen.getByText("Jugadores (4)")).toBeInTheDocument();
+
+    // Starting from there resets reveal/vote state for the next match.
+    await user.click(screen.getByRole("button", { name: "Iniciar ronda" }));
     expect(screen.getByText("Jugador 1 de 4")).toBeInTheDocument();
   }, 15000);
 });

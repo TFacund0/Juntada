@@ -277,6 +277,10 @@ export function MultiplayerGame({
     if (prev && prev.code === room.code) {
       if (prev.phase !== "lobby" && room.phase === "lobby") {
         setStatusToast("Volvieron al lobby");
+        // Mirrors LocalGame's own "Nueva partida" flow: land back on the
+        // player roster first, not wherever the config tab happened to be
+        // left before the match started.
+        setLobbyTab("players");
       } else if (room.groupCode !== null) {
         const currentIds = new Set(room.players.map(p => p.id));
         const leftPlayerName = Object.entries(prev.players).find(([id]) => !currentIds.has(id))?.[1];

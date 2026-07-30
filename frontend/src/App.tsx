@@ -493,7 +493,9 @@ export default function App() {
               </button>
             </div>
           )}
-          {game?.icon ? (
+          {game?.logo ? (
+            <img src={game.logo} alt={game.label} style={{ width: 64, height: 64, borderRadius: 16, objectFit: "cover" }} />
+          ) : game?.icon ? (
             <div style={{ fontSize: 48 }}>{game.icon}</div>
           ) : (
             <img src={logo} alt="Juntada" style={{ width: 64, height: 64, borderRadius: 16 }} />

@@ -1,5 +1,7 @@
 import { lazy } from "react";
 import type { GameDef } from "../gameTypes";
+import logo from "./Logo Impostor.png";
+import backgroundImage from "./Fondo impostor.png";
 
 // Dynamic import() creates its own chunk even though this metadata object is
 // imported eagerly by the registry — this keeps every game's actual code out
@@ -12,6 +14,8 @@ export const impostorGame: GameDef = {
   id: "impostor",
   label: "El Impostor",
   icon: "🕵️",
+  logo,
+  backgroundImage,
   description: "Todos reciben la misma palabra menos el impostor. Encontralo antes de que se salga con la suya.",
   minPlayers: 3,
   category: "destacados",

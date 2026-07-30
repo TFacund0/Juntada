@@ -183,8 +183,8 @@ function GameGrid({ games, onSelect }: { games: GameDef[]; onSelect: (game: Game
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
       {games.map(g => (
         <div key={g.id} style={{ ...S.catalogCard, opacity: g.comingSoon || isUnderMaintenance(g) ? 0.55 : 1 }} onClick={() => onSelect(g)}>
-          <div style={S.catalogThumb}>
-            {g.icon}
+          <div style={{ ...S.catalogThumb, overflow: "hidden" }}>
+            {g.logo ? <img src={g.logo} alt={g.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : g.icon}
             {isUnderMaintenance(g) ? (
               <span style={{ ...S.soonBadge, color: "#EF9F27" }}>En mantenimiento</span>
             ) : (

@@ -240,7 +240,7 @@ describe("Impostor RoundView — discussion phase", () => {
       />,
     );
 
-    expect(screen.getByText("Momento de pensar")).toBeInTheDocument();
+    expect(screen.getByText("Estado de jugadores")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Listo para votar" }));
     expect(send).toHaveBeenCalledWith({ type: "player_ready" });
   });
@@ -315,18 +315,25 @@ describe("Impostor RoundView — result phase", () => {
     );
 
     // The countdown blocks the reveal for a few seconds by design.
-    expect(screen.queryByText("Ganaron los inocentes")).not.toBeInTheDocument();
+    expect(screen.queryByText("quedó eliminado/a")).not.toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
-
-    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
-    expect(screen.getByText("Gato")).toBeInTheDocument();
 
     // Switch back to real timers before driving further interaction —
     // userEvent's own internal delays don't play well with fake ones.
     vi.useRealTimers();
     const user = userEvent.setup();
+
+    // Two sequential overlays before the vote breakdown/next-match button:
+    // who got eliminated/their role, then who won + the word.
+    expect(screen.getByText("quedó eliminado/a")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
+    expect(screen.getByText("GANARON LOS INOCENTES")).toBeInTheDocument();
+    expect(screen.getByText("Gato")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
     await user.click(screen.getByRole("button", { name: "Nueva partida" }));
     expect(send).toHaveBeenCalledWith({ type: "new_game" });
   });
@@ -371,6 +378,9 @@ describe("Impostor RoundView — result phase", () => {
 
     vi.useRealTimers();
     const user = userEvent.setup();
+    // Match isn't over — just the one elimination overlay, no outcome step.
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
     await user.click(screen.getByRole("button", { name: "Siguiente ronda" }));
     expect(send).toHaveBeenCalledWith({ type: "continue_round" });
   });
@@ -400,7 +410,12 @@ describe("Impostor RoundView — result phase", () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
 
-    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
+    vi.useRealTimers();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(screen.getByText("GANARON LOS INOCENTES")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+
     expect(screen.getByText("Esperando que el anfitrión inicie otra partida")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Nueva partida" })).not.toBeInTheDocument();
   });

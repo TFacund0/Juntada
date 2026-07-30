@@ -45,7 +45,15 @@ export function GameDetailDialog({ game, onStart, onClose }: GameDetailDialogPro
           ✕
         </button>
 
-        <div style={{ ...S.catalogThumb, aspectRatio: "16 / 10", fontSize: 56, borderRadius: 0 }}>{game.icon}</div>
+        <div style={{ ...S.catalogThumb, aspectRatio: "16 / 10", fontSize: 56, borderRadius: 0, overflow: "hidden" }}>
+          {game.backgroundImage ? (
+            <img src={game.backgroundImage} alt={game.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : game.logo ? (
+            <img src={game.logo} alt={game.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            game.icon
+          )}
+        </div>
 
         <div style={{ padding: "20px" }}>
           <p style={{ fontWeight: 800, fontSize: 22, margin: "0 0 10px", letterSpacing: "-0.01em" }}>{game.label}</p>

@@ -6,13 +6,14 @@ import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/playerNames";
 import { Btn } from "../../components/Btn";
 import { Avatar } from "../../components/Avatar";
-import { TabRow } from "../../components/TabRow";
 import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
 import { StickyActionBar } from "../../components/StickyActionBar";
 import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
 import { MinPlayersHint } from "../../components/MinPlayersHint";
-import { EliminatedPlayerCard } from "./components/EliminatedPlayerCard";
+import { ConfigSection } from "./components/ConfigSection";
+import { ConfigTabs } from "./components/ConfigTabs";
+import { EliminationRevealOverlay, MatchOutcomeOverlay } from "./components/EliminationRevealOverlay";
+import { Toggle } from "../../components/Toggle";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
 
@@ -42,6 +43,9 @@ interface Round {
   eliminated?: number;
   wasImpostor?: boolean;
   tally?: Record<number, number>;
+  // voterId -> suspectId, so the result screen can show who voted for whom,
+  // not just the totals.
+  votesByVoter?: Record<number, number>;
   matchOver: boolean;
   winner: "innocents" | "impostors" | null;
   // Set when the top vote count is tied — same idea as the online engine's
@@ -61,6 +65,7 @@ interface Config {
   discussionTime: number;
   discussionUnlimited: boolean;
   revealOnElimination: boolean;
+  showCategory: boolean;
   enabledCategories: Record<string, boolean>;
 }
 
@@ -101,11 +106,17 @@ export function LocalGame() {
     discussionTime: 30,
     discussionUnlimited: false,
     revealOnElimination: true,
+    showCategory: false,
     // Off by default — you have to actively pick which categories are in
     // play rather than opt out of a preselected set.
     enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {} as Record<string, boolean>),
   });
   const [round, setRound] = useState<Round | null>(null);
+  // Gates the result screen behind two sequential overlays: first who got
+  // eliminated and their role, then (only once the match itself is over)
+  // who won/the word — the group taps "Continuar" through each at their own
+  // pace, same idea as Recámara's OutcomeBanner.
+  const [revealStep, setRevealStep] = useState<"elimination" | "outcome" | "done">("elimination");
   const [revealIdx, setRevealIdx] = useState(0);
   // A pass-and-play device shows the same screen to whoever's holding it —
   // without an explicit "it's my turn now" tap between reveals, the previous
@@ -249,38 +260,6 @@ export function LocalGame() {
     beginReveal();
   };
 
-  // Local's answer to online's skip_word — "no conozco esta palabra, pedir
-  // otra" was previously online-only even though a pass-and-play table hits
-  // the exact same problem. No vote threshold needed here (unlike online,
-  // there's no separate device per player to poll) — same category, same
-  // impostors, just a fresh word. Falls back to a whole new match if the
-  // category's genuinely out of unused words, same as online's rerollWord.
-  const requestNewWord = () => {
-    if (!round) return;
-    const cat = CATEGORIES[round.categoryKey];
-    const used = usedWords[round.categoryKey] || [];
-    const available = cat.words.filter((w: string) => !used.includes(w) && w !== round.word);
-    if (!available.length) {
-      // Falling back to startRound only makes sense if some active category
-      // still has words left for it to draw from — otherwise it'd silently
-      // no-op (drawWord's own error would just overwrite this one) and leave
-      // the player thinking a new match started when nothing actually
-      // changed. Checked with the same allCategoriesExhausted this file
-      // already uses to gate "Iniciar ronda"/"Nueva partida".
-      if (allCategoriesExhausted) {
-        setWordError(`Ya no quedan palabras sin usar en ninguna categoría activa — seguí con la palabra actual`);
-        return;
-      }
-      setWordError(`Sin más palabras en ${cat.label} — arrancó una partida nueva`);
-      startRound();
-      return;
-    }
-    const word = available[Math.floor(Math.random() * available.length)];
-    setUsedWords(prev => ({ ...prev, [round.categoryKey]: [...(prev[round.categoryKey] || []), word] }));
-    setRound(r => (r ? { ...r, word } : r));
-    setWordVisible(false);
-  };
-
   // Starts another round of clue-giving within the same match: a fresh turn
   // among whoever's still alive, but the *same* word/category as before —
   // it's still the same investigation, not a new one, so the word only
@@ -378,8 +357,18 @@ export function LocalGame() {
       // — see @juntada/impostor-match-rules for the actual win condition.
       const winner = matchWinner(round!.impostors, matchEliminated, players.length);
 
-      const resolved: Round = { ...round!, eliminated, wasImpostor, tally, matchEliminated, matchOver: winner !== null, winner };
+      const resolved: Round = {
+        ...round!,
+        eliminated,
+        wasImpostor,
+        tally,
+        votesByVoter: next,
+        matchEliminated,
+        matchOver: winner !== null,
+        winner,
+      };
       setRound(resolved);
+      setRevealStep("elimination");
       setPhase("result");
     }
   };
@@ -390,19 +379,7 @@ export function LocalGame() {
       <div style={{ paddingBottom: 88 }}>
         <SetupTabs tab={tab} onChange={setTab} />
 
-        {tab === "config" && (
-          <TabRow
-            tabs={[
-              { key: "cats", label: "Categorías" },
-              { key: "rules", label: "Reglas" },
-              { key: "order", label: "Orden" },
-            ]}
-            active={configTab}
-            onChange={setConfigTab}
-            style={{ marginBottom: 14 }}
-            buttonPadding="8px"
-          />
-        )}
+        {tab === "config" && <ConfigTabs active={configTab} onChange={setConfigTab} />}
 
         {tab === "players" && (
           <>
@@ -440,8 +417,8 @@ export function LocalGame() {
         )}
 
         {tab === "config" && configTab === "rules" && (
-          <>
-            <div style={S.card}>
+          <div style={S.card}>
+            <ConfigSection divider={false}>
               <span style={S.label}>Impostores</span>
               <div style={{ display: "flex", gap: 8 }}>
                 {[1, 2, 3].map(n => {
@@ -470,8 +447,8 @@ export function LocalGame() {
                   {maxImpostors(players.length) === 1 ? "impostor" : "impostores"}.
                 </p>
               )}
-            </div>
-            <div style={S.card}>
+            </ConfigSection>
+            <ConfigSection>
               <span style={S.label}>¿El impostor recibe una pista?</span>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <button
@@ -492,8 +469,8 @@ export function LocalGame() {
                   ? "El impostor ve una pista sutil sobre la palabra, para poder disimular."
                   : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
               </p>
-            </div>
-            <div style={S.card}>
+            </ConfigSection>
+            <ConfigSection>
               <span style={S.label}>¿Se revela el rol al eliminar a alguien?</span>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <button
@@ -514,8 +491,20 @@ export function LocalGame() {
                   ? "Al eliminar a alguien se muestra si era el impostor o no."
                   : "Al eliminar a alguien no se revela su rol — sigan jugando con la duda."}
               </p>
-            </div>
-            <div style={S.card}>
+            </ConfigSection>
+            <ConfigSection>
+              <Toggle
+                label="Mostrar la categoría junto a la palabra"
+                value={config.showCategory}
+                onChange={showCategory => setConfig(c => ({ ...c, showCategory }))}
+              />
+              <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                {config.showCategory
+                  ? "Todos ven de qué categoría es la palabra al revelar su carta — inocentes e impostor por igual."
+                  : "Nadie ve la categoría, solo la palabra (o la pista, si el impostor tiene una activada)."}
+              </p>
+            </ConfigSection>
+            <ConfigSection>
               <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                 <button
@@ -546,8 +535,8 @@ export function LocalGame() {
                 No hay límite de tiempo por turno: como se van pasando el dispositivo de mano en mano, cada uno avanza cuando ya dijo su
                 palabra.
               </p>
-            </div>
-            <div style={S.card}>
+            </ConfigSection>
+            <ConfigSection>
               <span style={S.label}>
                 Tiempo de discusión:{" "}
                 {config.discussionUnlimited
@@ -577,58 +566,76 @@ export function LocalGame() {
                   Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
                 </span>
               </label>
-            </div>
-          </>
+            </ConfigSection>
+          </div>
         )}
 
         {tab === "config" && configTab === "cats" && (
           <div style={S.card}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={S.label}>Categorías</span>
-              <div style={{ display: "flex", gap: 10 }}>
-                <button
-                  onClick={() =>
-                    setConfig(c => ({
-                      ...c,
-                      enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
-                    }))
-                  }
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#7F77DD",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Todas
-                </button>
-                <button
-                  onClick={() =>
-                    setConfig(c => ({
-                      ...c,
-                      enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
-                    }))
-                  }
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#7F77DD",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Ninguna
-                </button>
-              </div>
-            </div>
-            <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+            <span style={S.label}>Categorías</span>
+            <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
               Elegí de qué van a ser las palabras. Tocá una categoría para activarla.
             </p>
+            <style>{`
+              .impostor-cats-bulk-btn {
+                transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out;
+              }
+              .impostor-cats-bulk-btn:hover {
+                transform: translateY(-1px);
+                filter: brightness(1.25);
+              }
+              .impostor-cats-bulk-btn:active {
+                transform: scale(0.96);
+              }
+            `}</style>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <button
+                className="impostor-cats-bulk-btn"
+                onClick={() =>
+                  setConfig(c => ({
+                    ...c,
+                    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
+                  }))
+                }
+                style={{
+                  flex: 1,
+                  background: "rgba(127,119,221,0.12)",
+                  border: "1px solid rgba(127,119,221,0.4)",
+                  borderRadius: 8,
+                  color: "#AFA9EC",
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                }}
+              >
+                ✓ Seleccionar todas
+              </button>
+              <button
+                className="impostor-cats-bulk-btn"
+                onClick={() =>
+                  setConfig(c => ({
+                    ...c,
+                    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
+                  }))
+                }
+                style={{
+                  flex: 1,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  borderRadius: 8,
+                  color: "#9089c0",
+                  cursor: "pointer",
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                }}
+              >
+                ✕ Quitar todas
+              </button>
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {Object.entries(CATEGORIES).map(([k, cat]) => {
                 const active = !!config.enabledCategories[k];
@@ -806,23 +813,41 @@ export function LocalGame() {
         >
           {!wordVisible ? (
             <p style={{ color: "#6b6490", fontSize: 15 }}>Tocá para revelar tu palabra</p>
-          ) : isImpostor ? (
-            <>
-              <p style={{ fontSize: 22, fontWeight: 800, color: "#F09595", margin: "0 0 8px" }}>Sos el impostor</p>
-              {config.hintsEnabled && wordHint(round.categoryKey, round.word) && (
-                <p style={{ fontSize: 13, color: "#9089c0" }}>{wordHint(round.categoryKey, round.word)}</p>
-              )}
-              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
-            </>
           ) : (
             <>
-              <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 6 }}>Tu palabra</p>
-              <p style={S.bigReveal}>{round.word}</p>
+              {config.showCategory && (
+                <p
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "#7F77DD",
+                    margin: "0 0 8px",
+                  }}
+                >
+                  {round.categoryLabel}
+                </p>
+              )}
+              {isImpostor ? (
+                <>
+                  <p style={{ fontSize: 22, fontWeight: 800, color: "#F09595", margin: "0 0 8px" }}>Sos el impostor</p>
+                  {config.hintsEnabled && wordHint(round.categoryKey, round.word) && (
+                    <p style={{ fontSize: 13, color: "#9089c0" }}>{wordHint(round.categoryKey, round.word)}</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 6 }}>Tu palabra</p>
+                  <p style={S.bigReveal}>{round.word}</p>
+                </>
+              )}
               <p style={{ fontSize: 12, color: "#5a5280", marginTop: 8 }}>Tocá para ocultar</p>
             </>
           )}
         </div>
-        {config.writtenClues && wordVisible && (
+        {config.writtenClues && <CluesReview clues={clues} players={players} />}
+        {config.writtenClues && (
           <div style={S.card}>
             <span style={S.label}>Tu pista</span>
             <input
@@ -832,11 +857,6 @@ export function LocalGame() {
               onChange={e => setClueInput(e.target.value)}
             />
           </div>
-        )}
-        {wordVisible && (
-          <Btn variant="ghost" onClick={requestNewWord} style={{ marginBottom: 10 }}>
-            No conozco esta palabra, pedir otra
-          </Btn>
         )}
         <Btn onClick={advance} disabled={needsClue}>
           {isLast ? "Todos listos, empezar" : "Siguiente jugador"}
@@ -861,11 +881,7 @@ export function LocalGame() {
             50% { transform: scale(1.03); }
           }
         `}</style>
-        {config.discussionUnlimited ? (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ ...S.muted, margin: 0 }}>Sin límite de tiempo — avancen cuando estén listos</p>
-          </div>
-        ) : (
+        {!config.discussionUnlimited && (
           <div style={{ ...S.card, animation: urgent ? "discussion-urgent-pulse 0.5s ease-in-out infinite" : undefined }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo restante</span>
@@ -964,7 +980,6 @@ export function LocalGame() {
   // ── RESULT ──
   if (phase === "result" && round) {
     const eliminated = players.find(p => p.id === round.eliminated);
-    const impostorPlayers = players.filter(p => round.impostors.includes(p.id));
     const voters = players.filter(p => round.voters.includes(p.id));
     const matchOver = round.matchOver;
     const winner = round.winner;
@@ -973,63 +988,37 @@ export function LocalGame() {
     // there's nothing left to protect, so the outcome always shows.
     const reveal = config.revealOnElimination || matchOver;
     const wasImpostor = reveal ? round.wasImpostor : undefined;
-    const winnerColor = winner === "innocents" ? "#5DCAA5" : "#F09595";
+    const impostorPlayers = players.filter(p => round.impostors.includes(p.id));
+
+    if (revealStep === "elimination") {
+      return (
+        <EliminationRevealOverlay
+          name={eliminated?.name ?? ""}
+          wasImpostor={wasImpostor}
+          onContinue={() => setRevealStep(matchOver ? "outcome" : "done")}
+        />
+      );
+    }
+
+    if (revealStep === "outcome" && matchOver) {
+      return (
+        <MatchOutcomeOverlay
+          winner={winner}
+          impostorNames={impostorPlayers.map(p => p.name)}
+          word={round.word}
+          onContinue={() => setRevealStep("done")}
+        />
+      );
+    }
 
     return (
       <div>
-        {matchOver && (
-          <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: winnerColor, marginTop: 8 }}>
-              {winner === "innocents" ? "Ganaron los inocentes" : "Ganaron los impostores"}
-            </p>
-          </div>
-        )}
-
-        {eliminated && <EliminatedPlayerCard name={eliminated.name} wasImpostor={wasImpostor} />}
-
-        {matchOver && (
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 12, color: "#9089c0" }}>La palabra era</p>
-            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>{round.word}</p>
-          </div>
-        )}
-
-        {matchOver && (
-          <div style={S.card}>
-            <span style={S.label}>{impostorPlayers.length === 1 ? "El impostor era" : "Los impostores eran"}</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "8px 0 0" }}>
-              {impostorPlayers.map(p => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Avatar name={p.name} size={28} />
-                  <span style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</span>
-                </div>
-              ))}
-            </div>
-            {impostorPlayers.length > 1 && (
-              <>
-                <p style={{ ...S.muted, margin: "14px 0 6px" }}>Atrapados durante la partida</p>
-                {impostorPlayers.filter(p => round.matchEliminated.includes(p.id)).length > 0 ? (
-                  impostorPlayers
-                    .filter(p => round.matchEliminated.includes(p.id))
-                    .map(p => (
-                      <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                        <Avatar name={p.name} size={24} />
-                        <span style={{ fontSize: 13 }}>{p.name}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p style={{ ...S.muted, margin: 0 }}>Ninguno.</p>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
         <div style={S.card}>
           <span style={S.label}>Votos</span>
           {voters.map(p => {
             const count = (round.tally || {})[p.id] || 0;
             const total = Math.max(1, voters.length - 1);
+            const voterNames = voters.filter(v => (round.votesByVoter || {})[v.id] === p.id).map(v => v.name);
             return (
               <div key={p.id} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -1047,6 +1036,7 @@ export function LocalGame() {
                     }}
                   />
                 </div>
+                {voterNames.length > 0 && <p style={{ ...S.muted, marginTop: 4, fontSize: 12 }}>Votado por: {voterNames.join(", ")}</p>}
               </div>
             );
           })}
@@ -1054,21 +1044,18 @@ export function LocalGame() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {matchOver ? (
-            <>
-              <StartButton onClick={startRound} disabled={allCategoriesExhausted}>
-                Nueva partida
-              </StartButton>
-              {allCategoriesExhausted && (
-                <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center" }}>
-                  Ya no quedan palabras sin usar en las categorías activas — activá otra en "Configuración" antes de seguir
-                </p>
-              )}
-            </>
+            <StartButton
+              onClick={() => {
+                setTab("players");
+                setPhase("setup");
+              }}
+            >
+              Nueva partida
+            </StartButton>
           ) : (
             <StartButton onClick={continueMatch}>Siguiente ronda</StartButton>
           )}
           <ErrorBanner message={wordError} flashKey={wordErrorKey} variant="inline" />
-          <BackButton onClick={() => setPhase("setup")}>Configuración</BackButton>
         </div>
       </div>
     );

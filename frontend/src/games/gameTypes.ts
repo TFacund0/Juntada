@@ -34,6 +34,12 @@ export interface GameDef {
   id: string;
   label: string;
   icon?: string;
+  // Optional image logo shown instead of the emoji `icon` wherever a game's
+  // identity is displayed prominently (App.tsx's header, GameDetailDialog).
+  logo?: string;
+  // Optional background art for GameDetailDialog — the preview stop shown
+  // after tapping a game card, before "Jugar" is actually pressed.
+  backgroundImage?: string;
   description: string;
   minPlayers?: number;
   category?: GameCategory;

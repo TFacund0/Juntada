@@ -175,7 +175,7 @@ test("writtenClues requires a non-empty clue for the turn to advance", () => {
 });
 
 test("spoken mode (writtenClues off) advances the turn on an empty confirmation", () => {
-  const room = makeRoom(); // writtenClues: false by default
+  const room = makeRoom({ config: { ...engine.createConfig(), enabledCategories: allCategoriesEnabled(), writtenClues: false } });
   engine.startRound(room);
   const current = room.round.turnOrder[0];
 
@@ -217,7 +217,7 @@ test("an offline player's turn is skipped automatically", () => {
   const offlineId = room.round.turnOrder[1];
   room.players.find((p: TestPlayer) => p.id === offlineId)!.online = false;
 
-  engine.handleAction(room, room.round.turnOrder[0], "submit_clue", { clue: "" });
+  engine.handleAction(room, room.round.turnOrder[0], "submit_clue", { clue: "pista" });
   assert.equal(room.round.turnIndex, 2, "turn 1 (offline) was skipped");
 });
 

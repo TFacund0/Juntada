@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { S } from "../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors } from "@juntada/impostor-match-rules";
-import { TabRow } from "../../components/TabRow";
 import { TurnOrderEditor } from "../../components/TurnOrderEditor";
+import { ConfigSection } from "./components/ConfigSection";
+import { ConfigTabs } from "./components/ConfigTabs";
+import { Toggle } from "../../components/Toggle";
 import type { ConfigPanelProps } from "../gameTypes";
 
 // Host-only rules editor shown in the multiplayer lobby. Only re-renders when
-// this game is active in the room (see games/registry.js contract). Each
-// question gets its own card — cramming them all into one made the whole
-// panel read as a single wall of text and buttons.
+// this game is active in the room (see games/registry.js contract). Every
+// rule question lives inside one shared card, separated by ConfigSection
+// dividers (shared with LocalGame's own "Reglas" tab).
 
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const [tab, setTab] = useState<"cats" | "rules" | "order">("cats");
@@ -32,23 +34,11 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
   return (
     <div>
-      <div style={S.card}>
-        <span style={S.label}>Configuración</span>
-        <TabRow
-          tabs={[
-            { key: "cats", label: "Categorías" },
-            { key: "rules", label: "Reglas" },
-            { key: "order", label: "Orden" },
-          ]}
-          active={tab}
-          onChange={setTab}
-          buttonPadding="8px"
-        />
-      </div>
+      <ConfigTabs active={tab} onChange={setTab} />
 
       {tab === "rules" && (
-        <>
-          <div style={S.card}>
+        <div style={S.card}>
+          <ConfigSection divider={false}>
             <span style={S.label}>Impostores</span>
             <div style={{ display: "flex", gap: 8 }}>
               {[1, 2, 3].map(n => (
@@ -74,9 +64,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 que ser menos que los inocentes.
               </p>
             )}
-          </div>
+          </ConfigSection>
 
-          <div style={S.card}>
+          <ConfigSection>
             <span style={S.label}>¿Se revela el rol al eliminar a alguien?</span>
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <button
@@ -97,9 +87,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 ? "Al eliminar a alguien se muestra si era el impostor o no."
                 : "Al eliminar a alguien no se revela su rol — sigan jugando con la duda."}
             </p>
-          </div>
+          </ConfigSection>
 
-          <div style={S.card}>
+          <ConfigSection>
             <span style={S.label}>¿El impostor recibe una pista?</span>
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <button
@@ -120,9 +110,22 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 ? "El impostor ve una pista relacionada con la palabra secreta, para poder disimular."
                 : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
             </p>
-          </div>
+          </ConfigSection>
 
-          <div style={S.card}>
+          <ConfigSection>
+            <Toggle
+              label="Mostrar la categoría junto a la palabra"
+              value={!!config.showCategory}
+              onChange={showCategory => updateConfig({ showCategory })}
+            />
+            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+              {config.showCategory
+                ? "Todos ven de qué categoría es la palabra al revelar su carta — inocentes e impostor por igual."
+                : "Nadie ve la categoría, solo la palabra (o la pista, si el impostor tiene una activada)."}
+            </p>
+          </ConfigSection>
+
+          <ConfigSection>
             <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <button
@@ -143,9 +146,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 ? "Cada uno escribe su palabra en el dispositivo por turnos, y queda visible para todos apenas la envía."
                 : "Cada uno dice su palabra en voz alta, por turnos, y solo confirma en el dispositivo cuando ya la dijo."}
             </p>
-          </div>
+          </ConfigSection>
 
-          <div style={S.card}>
+          <ConfigSection>
             <span style={S.label}>Tiempo por turno: {config.clueTime === 0 ? "Sin límite" : `${config.clueTime}s`}</span>
             <p style={{ ...S.muted, margin: "4px 0 0", lineHeight: 1.4 }}>Cuánto tiene cada jugador para dar su palabra cuando le toca.</p>
             <input
@@ -157,9 +160,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
               onChange={e => updateConfig({ clueTime: +e.target.value })}
               style={{ width: "100%", marginTop: 8 }}
             />
-          </div>
+          </ConfigSection>
 
-          <div style={S.card}>
+          <ConfigSection>
             <span style={S.label}>
               Tiempo de discusión:{" "}
               {config.discussionUnlimited
@@ -190,56 +193,74 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
               </span>
             </label>
-          </div>
-        </>
+          </ConfigSection>
+        </div>
       )}
 
       {tab === "cats" && (
         <div style={S.card}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={S.label}>Categorías</span>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() =>
-                  updateConfig({
-                    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
-                  })
-                }
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#7F77DD",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
-                }}
-              >
-                Todas
-              </button>
-              <button
-                onClick={() =>
-                  updateConfig({
-                    enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
-                  })
-                }
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#7F77DD",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: "inherit",
-                }}
-              >
-                Ninguna
-              </button>
-            </div>
-          </div>
-          <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+          <span style={S.label}>Categorías</span>
+          <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
             Elegí de qué van a ser las palabras. Tocá una categoría para activarla.
           </p>
+          <style>{`
+            .impostor-cats-bulk-btn {
+              transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out;
+            }
+            .impostor-cats-bulk-btn:hover {
+              transform: translateY(-1px);
+              filter: brightness(1.25);
+            }
+            .impostor-cats-bulk-btn:active {
+              transform: scale(0.96);
+            }
+          `}</style>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            <button
+              className="impostor-cats-bulk-btn"
+              onClick={() =>
+                updateConfig({
+                  enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}),
+                })
+              }
+              style={{
+                flex: 1,
+                background: "rgba(127,119,221,0.12)",
+                border: "1px solid rgba(127,119,221,0.4)",
+                borderRadius: 8,
+                color: "#AFA9EC",
+                cursor: "pointer",
+                padding: "8px 12px",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "inherit",
+              }}
+            >
+              ✓ Seleccionar todas
+            </button>
+            <button
+              className="impostor-cats-bulk-btn"
+              onClick={() =>
+                updateConfig({
+                  enabledCategories: Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}),
+                })
+              }
+              style={{
+                flex: 1,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                borderRadius: 8,
+                color: "#9089c0",
+                cursor: "pointer",
+                padding: "8px 12px",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "inherit",
+              }}
+            >
+              ✕ Quitar todas
+            </button>
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {Object.entries(CATEGORIES).map(([k, cat]: [string, any]) => {
               const active = !!config.enabledCategories?.[k];

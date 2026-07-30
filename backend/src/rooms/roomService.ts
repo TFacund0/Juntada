@@ -141,6 +141,7 @@ function rejoinRoom(ws: WebSocket, { roomCode, playerId }: { roomCode: string; p
   const player = room.players.find(p => p.id === playerId);
   if (!player) return { error: "Ya no formás parte de esta sala" };
   player.online = true;
+  player.offlineSince = undefined;
   clients.set(ws, { groupCode: room.groupCode, roomCode: room.code, playerId });
   activeSockets.set(playerId, ws);
   return { room, playerId };
@@ -208,7 +209,10 @@ function removePlayer(room: Room, playerId: string): void {
 // signal) before treating it as something worth reacting to.
 function markOffline(room: Room, playerId: string): void {
   const p = room.players.find(p => p.id === playerId);
-  if (p) p.online = false;
+  if (p) {
+    p.online = false;
+    p.offlineSince = Date.now();
+  }
   // Deliberately does NOT hand off the host here, even if they're the one
   // going offline — same reasoning as skipping maybeAdvance above: a brief
   // disconnect (network blip, backgrounded tab) shouldn't cost them
