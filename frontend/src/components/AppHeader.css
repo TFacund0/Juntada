@@ -34,7 +34,9 @@
 }
 
 .jt-dropdown-menu-item {
-  transition: background 0.12s ease, transform 0.12s ease;
+  transition:
+    background 0.12s ease,
+    transform 0.12s ease;
 }
 
 .jt-dropdown-menu-item:hover {

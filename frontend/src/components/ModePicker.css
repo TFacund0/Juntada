@@ -3,7 +3,10 @@
    quedarse estáticas hasta el click. */
 
 .jt-mode-row {
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .jt-mode-row:hover {

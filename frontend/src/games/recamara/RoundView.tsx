@@ -251,7 +251,6 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     }
     const t = setTimeout(() => setShowWinner(true), 900);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round?.winnerRoomId, shotAnim.fireStage]);
 
   // Shuffled once per round via useMemo so it doesn't reshuffle on every
