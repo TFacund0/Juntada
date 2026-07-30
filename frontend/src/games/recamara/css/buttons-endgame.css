@@ -1,0 +1,75 @@
+.recamara button.act {
+  font-family: Georgia, serif;
+  font-size: 0.86rem;
+  background: var(--rec-bg-raised);
+  color: var(--rec-ink);
+  border: 1px solid var(--rec-hair);
+  border-radius: 3px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.1s,
+    background 0.15s;
+}
+
+.recamara button.act:hover:not(:disabled) {
+  border-color: var(--rec-live);
+}
+
+.recamara button.act:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.recamara button.act:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.recamara button.act.primary {
+  background: var(--rec-live);
+  border-color: var(--rec-live);
+  color: #fff2ee;
+}
+
+.recamara button.act.primary:hover:not(:disabled) {
+  background: var(--rec-live-glow);
+  border-color: var(--rec-live-glow);
+}
+
+.recamara .rec-overlay.winner-overlay {
+  /* .rec-overlay defaults to align-items: flex-end (the bottom-sheet look
+     shared with PlayerItemsSheet/ItemUseModal) — the winner card needs to
+     sit centered on screen instead, same as .rec-modal above. */
+  align-items: center;
+  animation: rec-fade-in 0.6s ease-out;
+}
+
+.recamara .final-card {
+  text-align: center;
+  padding: 24px;
+}
+
+.recamara .final-card.winner-in {
+  animation: rec-winner-in 0.6s ease-out both;
+}
+
+@keyframes rec-winner-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.recamara .final-card .winner {
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  margin: 6px 0 4px;
+}
+
+.recamara .final-card .winner span {
+  color: var(--rec-live);
+}

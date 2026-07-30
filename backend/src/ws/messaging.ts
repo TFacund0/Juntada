@@ -71,6 +71,7 @@ function getRoomPublicState(room: Room): RoomPublicState {
       name: p.name,
       ready: p.ready,
       online: p.online,
+      offlineSince: p.offlineSince,
       // room.round is `unknown` (each engine owns its own shape) — narrowed
       // just enough to read the one field some engines (e.g. impostor) keep
       // a live vote tally in, instead of an unbounded `as any`.

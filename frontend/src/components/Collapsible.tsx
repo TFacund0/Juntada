@@ -8,9 +8,11 @@ interface CollapsibleProps {
   children: ReactNode;
 }
 
-// A S.card that starts collapsed to its title bar — used for secondary info
-// (round points, scoreboards) that would otherwise clutter the screen once
-// there are several players.
+/**
+ * Una `S.card` que arranca colapsada mostrando solo su título — usada para
+ * información secundaria (puntos de la ronda, tablas de posiciones) que de
+ * otro modo saturaría la pantalla una vez que hay varios jugadores.
+ */
 export function Collapsible({ title, defaultOpen = false, children }: CollapsibleProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -31,7 +33,9 @@ export function Collapsible({ title, defaultOpen = false, children }: Collapsibl
         }}
       >
         <span style={{ ...S.label, marginBottom: 0 }}>{title}</span>
-        <span style={{ color: "#7F77DD", fontSize: 12, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}>
+        <span
+          style={{ color: "var(--jt-accent)", fontSize: 12, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}
+        >
           ▼
         </span>
       </button>

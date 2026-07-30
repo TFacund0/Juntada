@@ -4,8 +4,11 @@ interface ComingSoonProps {
   label?: string;
 }
 
-// Shared placeholder for any game that's registered (so it shows in the
-// picker) but not implemented yet. See games/registry.js.
+/**
+ * Placeholder compartido para cualquier juego que ya está registrado (así
+ * aparece en el picker) pero todavía no está implementado. Ver
+ * `games/registry.ts`.
+ */
 export function ComingSoon({ label = "Este juego" }: ComingSoonProps) {
   return (
     <div style={{ ...S.cardHighlight, textAlign: "center" }}>

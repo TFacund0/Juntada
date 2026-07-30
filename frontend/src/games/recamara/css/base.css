@@ -1,0 +1,182 @@
+/* Recámara — tema propio (porteado del mockup), aislado bajo .recamara para
+   no pisar el theme inline compartido (theme/styles.ts) del resto de la app. */
+.recamara {
+  --rec-bg: #171310;
+  --rec-bg-raised: #211b16;
+  --rec-felt: #232b1f;
+  --rec-felt-line: #3a4531;
+  --rec-ink: #ece4d6;
+  --rec-ink-dim: #9a9082;
+  --rec-ink-faint: #6b6459;
+  --rec-live: #b3261e;
+  --rec-live-glow: #ff4d3d;
+  --rec-blank: #c99a4b;
+  --rec-blank-dim: #8a6f3e;
+  --rec-hair: #3a322a;
+  --rec-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  color: var(--rec-ink);
+}
+
+@media (prefers-color-scheme: light) {
+  .recamara {
+    --rec-bg: #efe9dc;
+    --rec-bg-raised: #e2dac8;
+    --rec-felt: #dbe3d1;
+    --rec-felt-line: #b7c4a9;
+    --rec-ink: #221d16;
+    --rec-ink-dim: #5b5344;
+    --rec-ink-faint: #8a8170;
+    --rec-live: #a3221b;
+    --rec-live-glow: #c9392f;
+    --rec-blank: #9c7530;
+    --rec-blank-dim: #7a5c26;
+    --rec-hair: #cabfa9;
+  }
+}
+
+.recamara * {
+  box-sizing: border-box;
+}
+
+.recamara .display {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", "Franklin Gothic Bold", sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.recamara .mono {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.recamara .setup-card {
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+.recamara .setup-card h2 {
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rec-ink-faint);
+}
+
+.recamara .name-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.recamara .name-row input {
+  flex: 1;
+  background: var(--rec-bg);
+  border: 1px solid var(--rec-hair);
+  border-radius: 4px;
+  color: var(--rec-ink);
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+}
+
+.recamara .name-row input:focus {
+  outline: none;
+  border-color: var(--rec-live);
+}
+
+.recamara .icon-btn {
+  background: transparent;
+  border: 1px solid var(--rec-hair);
+  border-radius: 4px;
+  color: var(--rec-ink-dim);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.recamara .icon-btn:hover {
+  border-color: var(--rec-live);
+  color: var(--rec-live-glow);
+}
+
+.recamara .icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.recamara .table {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, var(--rec-felt), color-mix(in srgb, var(--rec-felt) 80%, black));
+  border: 1px solid var(--rec-felt-line);
+  border-radius: 6px;
+  padding: clamp(14px, 3vw, 30px);
+  box-shadow:
+    var(--rec-shadow),
+    inset 0 0 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.recamara .table::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 26px);
+  pointer-events: none;
+}
+
+.recamara .turn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.recamara .turn-banner .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rec-live);
+  box-shadow: 0 0 10px var(--rec-live-glow);
+  animation: rec-pulse 1.6s ease-in-out infinite;
+}
+
+.recamara .turn-banner .txt {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .turn-banner strong {
+  color: var(--rec-ink);
+}
+
+.recamara .direction-tag {
+  position: absolute;
+  right: 0;
+  font-size: 0.9rem;
+}
+
+@keyframes rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}

@@ -312,6 +312,11 @@ export interface Player {
   name: string;
   ready: boolean;
   online: boolean;
+  // Timestamp (Date.now()) of when this player went offline — lets a game's
+  // RoundView show a live "kicked in Xs" countdown alongside its own
+  // per-game auto-kick timeout (see GameEngine.offlineKickTimeoutMs). Unset
+  // while online.
+  offlineSince?: number;
 }
 
 export interface PublicPlayer extends Player {

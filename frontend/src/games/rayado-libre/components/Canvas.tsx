@@ -1,16 +1,18 @@
 import { useEffect, useRef } from "react";
 import type { StrokeAction, FillAction, ClearAction, DrawAction } from "@juntada/rayado-libre-scoring";
 
-// ─── Drawing board ───────────────────────────────────────────────────────────
-// A "tonto"/presentation component shared by LocalGame (shared-screen mode)
-// and RoundView (online mode): it owns pixel-level canvas rendering and
-// pointer capture, but knows nothing about turns, timers, or scoring — the
-// parent decides what's interactive and what a finished stroke/fill means.
-//
-// Every client (drawer and viewers alike) renders the exact same fixed
-// internal resolution, scaled to fit via CSS — so points are stored in that
-// one shared coordinate space and never need per-device normalization.
+/**
+ * Ancho interno fijo del tablero, en píxeles del espacio de coordenadas
+ * compartido (no de pantalla).
+ *
+ * Todos los clientes (quien dibuja y quienes observan) renderizan esta misma
+ * resolución interna y la escalan por CSS a su propio tamaño — así los puntos
+ * de un trazo se guardan y transmiten en un único sistema de coordenadas y no
+ * requieren normalización por dispositivo.
+ */
 export const CANVAS_WIDTH = 800;
+
+/** Alto interno fijo del tablero, en píxeles del espacio de coordenadas compartido. Ver {@link CANVAS_WIDTH}. */
 export const CANVAS_HEIGHT = 600;
 
 // Re-exported from the shared package (not redeclared here) so both this
@@ -21,29 +23,53 @@ export type { StrokeAction, FillAction, ClearAction, DrawAction };
 export type Tool = { mode: "draw" | "erase" | "fill"; color: string; size: number };
 
 interface CanvasProps {
+  /** Historial completo de acciones de dibujo de la ronda, en orden. Se repinta (total o incrementalmente) cada vez que cambia. */
   strokes: DrawAction[];
+  /** Si `false`, el tablero solo muestra el historial recibido y no captura eventos de puntero (rol de espectador). */
   interactive: boolean;
+  /** Herramienta activa (color, grosor, modo). Requerido para poder dibujar o rellenar; sin `tool` los handlers de puntero no hacen nada. */
   tool?: Tool;
-  // Fired repeatedly while a stroke is being drawn (roughly every 120ms) with
-  // just the new points since the last flush, plus one final call on pointer
-  // up — never the whole stroke at once, so the network payload per message
-  // stays small and drawing streams to viewers as it happens rather than
-  // arriving in one lump when the drawer lifts their finger. `strokeId` is
-  // the same number for every chunk of one continuous gesture (see
-  // popLastDrawUnit), so "undo" can remove a whole stroke, not just its
-  // last fragment.
+  /**
+   * Se dispara repetidamente mientras se dibuja un trazo (cada
+   * {@link FLUSH_INTERVAL_MS} aprox.), con solo los puntos nuevos desde el
+   * último envío, más una llamada final al soltar el puntero — nunca el
+   * trazo completo de una — para que cada mensaje de red sea liviano y el
+   * dibujo se transmita a quienes observan a medida que ocurre, en vez de
+   * llegar todo junto cuando quien dibuja levanta el dedo.
+   *
+   * @param points Puntos nuevos acumulados desde el último flush, en coordenadas del tablero.
+   * @param color Color efectivo del trazo (ya resuelto si `tool.mode === "erase"`).
+   * @param size Grosor de línea.
+   * @param strokeId Identificador del gesto: igual para todos los chunks de un mismo trazo continuo, para que "deshacer" pueda quitar el trazo entero y no solo su último fragmento.
+   */
   onStrokeChunk?: (points: [number, number][], color: string, size: number, strokeId: number) => void;
+  /**
+   * Se dispara al tocar el tablero con la herramienta de relleno activa.
+   *
+   * @param x Coordenada X (espacio del tablero) donde se tocó.
+   * @param y Coordenada Y (espacio del tablero) donde se tocó.
+   * @param color Color de relleno seleccionado.
+   */
   onFillAt?: (x: number, y: number, color: string) => void;
 }
 
 const ERASE_COLOR = "#ffffff";
-const FLUSH_INTERVAL_MS = 120;
+const FLUSH_INTERVAL_MS = 60;
 
-// Returns null if the canvas element is momentarily laid out at zero size
-// (e.g. mid phase-transition, or a layout pass that hasn't settled yet) —
-// dividing by a zero width/height would otherwise produce NaN points that
-// the server's schema silently rejects, dropping the stroke with no
-// feedback to the drawer.
+/**
+ * Convierte coordenadas de puntero en pantalla (`clientX`/`clientY`) al
+ * espacio de coordenadas interno y fijo del tablero ({@link CANVAS_WIDTH} x
+ * {@link CANVAS_HEIGHT}).
+ *
+ * @param canvas Elemento canvas sobre el que se está dibujando.
+ * @param clientX Coordenada X del evento de puntero, relativa al viewport.
+ * @param clientY Coordenada Y del evento de puntero, relativa al viewport.
+ * @returns El punto `[x, y]` en coordenadas del tablero, o `null` si el
+ * canvas está momentáneamente medido a tamaño cero (por ejemplo, en medio de
+ * una transición de fase o antes de que el layout se estabilice) — dividir
+ * por un ancho/alto cero produciría puntos `NaN` que el schema del servidor
+ * rechazaría en silencio, descartando el trazo sin avisarle a quien dibuja.
+ */
 function toCanvasCoords(canvas: HTMLCanvasElement, clientX: number, clientY: number): [number, number] | null {
   const rect = canvas.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return null;
@@ -52,6 +78,13 @@ function toCanvasCoords(canvas: HTMLCanvasElement, clientX: number, clientY: num
   return [x, y];
 }
 
+/**
+ * Dibuja un único trazo (`StrokeAction`) sobre el contexto dado, uniendo sus
+ * puntos con líneas rectas.
+ *
+ * @param ctx Contexto 2D del canvas destino.
+ * @param action Trazo a dibujar, con su color, grosor y lista de puntos.
+ */
 function drawStrokeAction(ctx: CanvasRenderingContext2D, action: StrokeAction): void {
   if (action.points.length === 0) return;
   ctx.strokeStyle = action.color;
@@ -65,10 +98,21 @@ function drawStrokeAction(ctx: CanvasRenderingContext2D, action: StrokeAction): 
   ctx.stroke();
 }
 
-// Classic 4-directional flood fill over the canvas's actual current pixels —
-// run inline during replay (see redraw below) so a fill correctly only
-// spreads within whatever's already been drawn at that point in the action
-// history, exactly like it would live for whoever's actually drawing.
+/**
+ * Rellena por inundación (flood fill), en 4 direcciones, la región de
+ * píxeles contigua y del mismo color que `(startX, startY)`.
+ *
+ * Se ejecuta sobre los píxeles reales ya pintados en `ctx` en el momento de
+ * la llamada — no sobre un modelo aparte — para que, durante el repintado
+ * del historial, el relleno se propague únicamente dentro de lo que ya
+ * estaba dibujado en ese punto de la secuencia, igual que ocurrió en vivo
+ * para quien dibujó.
+ *
+ * @param ctx Contexto 2D del canvas destino.
+ * @param startX Coordenada X (en el espacio del tablero) donde se hizo clic.
+ * @param startY Coordenada Y (en el espacio del tablero) donde se hizo clic.
+ * @param fillColor Color de relleno, en cualquier formato aceptado por `CanvasRenderingContext2D.fillStyle`.
+ */
 function floodFill(ctx: CanvasRenderingContext2D, startX: number, startY: number, fillColor: string): void {
   const w = CANVAS_WIDTH;
   const h = CANVAS_HEIGHT;
@@ -112,6 +156,13 @@ function floodFill(ctx: CanvasRenderingContext2D, startX: number, startY: number
   ctx.putImageData(imageData, 0, 0);
 }
 
+/**
+ * Resuelve cualquier color válido de CSS a sus componentes RGBA concretos,
+ * usando un canvas de 1x1 descartable como intérprete de color.
+ *
+ * @param color Color en cualquier formato aceptado por `CanvasRenderingContext2D.fillStyle` (hex, nombre, rgb(), etc.).
+ * @returns Tupla `[r, g, b, a]` con valores de 0 a 255.
+ */
 function hexToRgba(color: string): [number, number, number, number] {
   const c = document.createElement("canvas").getContext("2d") as CanvasRenderingContext2D;
   c.fillStyle = color;
@@ -119,31 +170,108 @@ function hexToRgba(color: string): [number, number, number, number] {
   return Array.from(c.getImageData(0, 0, 1, 1).data) as [number, number, number, number];
 }
 
+/**
+ * Interpreta y pinta una única acción del historial de dibujo (`stroke`,
+ * `fill` o `clear`) sobre el contexto dado.
+ *
+ * Único punto que conoce esta correspondencia acción → efecto visual, para
+ * no repetir el mismo switch en el repintado completo y en el incremental
+ * (ver {@link Canvas}).
+ *
+ * @param ctx Contexto 2D del canvas destino.
+ * @param action Acción a interpretar y pintar.
+ */
+function paintAction(ctx: CanvasRenderingContext2D, action: DrawAction): void {
+  if (action.type === "stroke") drawStrokeAction(ctx, action);
+  else if (action.type === "fill") floodFill(ctx, action.x, action.y, action.color);
+  else if (action.type === "clear") ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+}
+
+/**
+ * Tablero de dibujo: componente de presentación ("tonto") compartido por
+ * `LocalGame` (modo pantalla compartida) y `RoundView` (modo online).
+ *
+ * Es responsable únicamente del renderizado a nivel de píxel y de la captura
+ * de puntero; no conoce turnos, temporizadores ni puntaje — el componente
+ * padre decide qué es interactivo y qué significa un trazo o relleno
+ * terminado (ver {@link CanvasProps}).
+ *
+ * Rendimiento: en cada actualización de `strokes`, el pintado ocurre en el
+ * siguiente `requestAnimationFrame` y, siempre que sea posible, solo agrega
+ * al canvas las acciones nuevas en vez de repetir todo el historial — ver
+ * {@link paintIncremental}.
+ */
 export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
   const pendingPointsRef = useRef<[number, number][]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Bumped once per gesture (on pointer down) — every chunk flushed during
-  // that same gesture shares this id, so the parent's "undo" can group them.
+  /** Id del gesto de trazo actual. Se incrementa en cada `pointerdown`; todos los chunks de ese mismo gesto lo comparten (ver {@link CanvasProps.onStrokeChunk}). */
   const strokeIdRef = useRef(0);
 
-  // Full replay from scratch on every strokes change — simple and correct
-  // (a fill's spread depends on everything drawn before it), and cheap
-  // enough at the scale a single 99s turn's stroke history ever reaches.
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    for (const action of strokes) {
-      if (action.type === "stroke") drawStrokeAction(ctx, action);
-      else if (action.type === "fill") floodFill(ctx, action.x, action.y, action.color);
-      else if (action.type === "clear") ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  /** Último historial (`strokes`) efectivamente pintado en el canvas — referencia de comparación para el pintado incremental. */
+  const paintedStrokesRef = useRef<DrawAction[]>([]);
+  /** Historial más reciente recibido, pendiente de pintarse en el próximo frame. `null` cuando no hay pintado agendado. */
+  const pendingPaintStrokesRef = useRef<DrawAction[] | null>(null);
+  /** Id del `requestAnimationFrame` agendado, o `null` si no hay ninguno en curso. */
+  const rafIdRef = useRef<number | null>(null);
+
+  /**
+   * Pinta sobre `ctx` la diferencia entre el historial ya pintado (`prev`) y
+   * el nuevo (`toPaint`).
+   *
+   * `strokes` normalmente solo crece por el final (cada flush de red agrega
+   * un chunk más), así que el camino común es agregar solo las acciones
+   * nuevas sobre lo ya dibujado, sin repetir el historial completo en cada
+   * actualización. Se hace una excepción y se repinta todo desde cero cuando
+   * `toPaint` no es una extensión simple de `prev` — por ejemplo al deshacer
+   * (saca acciones del final), al alcanzar el tope `MAX_STROKES` del backend
+   * (saca del principio) o al empezar una ronda nueva con historial propio.
+   *
+   * @param ctx Contexto 2D del canvas destino.
+   * @param prev Historial previamente pintado.
+   * @param toPaint Historial actual a reflejar en pantalla.
+   */
+  const paintIncremental = (ctx: CanvasRenderingContext2D, prev: DrawAction[], toPaint: DrawAction[]) => {
+    const isIncrementalExtension = toPaint.length >= prev.length && prev.every((action, i) => action === toPaint[i]);
+    if (!isIncrementalExtension) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      for (const action of toPaint) paintAction(ctx, action);
+    } else {
+      for (let i = prev.length; i < toPaint.length; i++) paintAction(ctx, toPaint[i]);
     }
+  };
+
+  // Si llegan varias actualizaciones de `strokes` en el mismo tick (ráfaga de
+  // mensajes por WebSocket), coalescemos: solo se pinta la última, en el
+  // próximo frame, en vez de una vez por actualización.
+
+  useEffect(() => {
+    pendingPaintStrokesRef.current = strokes;
+    if (rafIdRef.current !== null) return;
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      const toPaint = pendingPaintStrokesRef.current;
+      pendingPaintStrokesRef.current = null;
+      if (!toPaint) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!ctx) return;
+
+      paintIncremental(ctx, paintedStrokesRef.current, toPaint);
+      paintedStrokesRef.current = toPaint;
+    });
   }, [strokes]);
+
+  useEffect(
+    () => () => {
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+    },
+    [],
+  );
 
   useEffect(
     () => () => {

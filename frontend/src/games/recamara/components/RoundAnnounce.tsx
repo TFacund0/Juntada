@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ROUND_ANNOUNCE_MS, ROUND_END_MS } from "../timing";
+import { ROUND_ANNOUNCE_MS, ROUND_END_MS } from "../utils/timing";
 
 // Beat 1 of "reveal" — shown identically by both LocalGame and RoundView
 // before it moves on by itself into the chests. When `previousRoundNumber`

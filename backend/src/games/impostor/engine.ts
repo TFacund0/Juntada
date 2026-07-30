@@ -29,13 +29,10 @@ interface Category {
   hints: Record<string, string>;
 }
 
-const { CATEGORIES } = require("@juntada/impostor-data") as { CATEGORIES: Record<string, Category> };
-// Fallback for the rare case a word predates the hints map (shouldn't happen
-// once every CATEGORIES entry has one, but keeps hintsEnabled from ever
-// crashing on a lookup miss).
-function wordHint(catKey: string, word: string): string | null {
-  return CATEGORIES[catKey]?.hints?.[word] ?? null;
-}
+const { CATEGORIES, wordHint } = require("@juntada/impostor-data") as {
+  CATEGORIES: Record<string, Category>;
+  wordHint: (catKey: string, word: string) => string | null;
+};
 const { shuffle } = require("@juntada/core-utils");
 const { timers } = require("../../state/roomStore") as { timers: Map<string, NodeJS.Timeout> };
 
@@ -54,6 +51,9 @@ interface ImpostorConfig {
   // or just that they're out — the full impostor roster only ever comes out
   // once the match itself ends, regardless of this setting.
   revealOnElimination: boolean;
+  // Shows the round's category above the word/hint on everyone's card once
+  // revealed — innocents and the impostor alike (see RoundView.tsx).
+  showCategory: boolean;
   // Bumped every time a round starts (a fresh match via startRound, or
   // another lap within one via continueMatch) — see effectiveTurnOrder. Not
   // host-editable; keeps the same player from always going first.
@@ -146,11 +146,12 @@ function createConfig(): ImpostorConfig {
     numImpostors: 1,
     hintsEnabled: true,
     clueTime: 90, // seconds, 0 = unlimited
-    writtenClues: false, // require typing the clue instead of just saying it out loud
+    writtenClues: true, // require typing the clue instead of just saying it out loud
     discussionTime: 30, // seconds, 0 = skip the discussion phase entirely
     discussionUnlimited: false, // discussion phase happens but with no timer/auto-advance — players mark ready manually
     turnOrder: [],
     revealOnElimination: true,
+    showCategory: false,
     turnRotation: 0,
   };
 }
@@ -744,6 +745,14 @@ function onPlayerOffline(room: Room, playerId: string): void {
   advanceTurn(room);
 }
 
+// A stuck vote blocks the whole table (see maybeAdvance's online-only quorum)
+// — 5 minutes instead of the generic 10 is enough grace for a real
+// reconnect without leaving everyone else waiting that much longer just to
+// find out someone actually left. Every other phase keeps the default.
+function offlineKickTimeoutMs(room: Room): number | undefined {
+  return room.phase === "voting" ? 5 * 60 * 1000 : undefined;
+}
+
 const engine: GameEngine = {
   id: "impostor",
   minPlayers: MIN_PLAYERS,
@@ -757,6 +766,7 @@ const engine: GameEngine = {
   getRevealMessage,
   getPhaseTimerEnd,
   onPlayerOffline,
+  offlineKickTimeoutMs,
 };
 
 module.exports = engine;

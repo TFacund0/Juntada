@@ -22,8 +22,12 @@ const { generateUniqueRoomCode } = require("./roomCode") as { generateUniqueRoom
 const { getEngine } = require("../games/registry") as {
   getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
 };
+const { ONLINE_CLEANUP_DELAY_MS } = require("./constants") as { ONLINE_CLEANUP_DELAY_MS: number };
+const { isNameTaken, pickHostReplacement } = require("./rosterUtils") as {
+  isNameTaken: (roster: { id: string; name: string; online: boolean }[], name: string) => boolean;
+  pickHostReplacement: (roster: { id: string; name: string; online: boolean }[], leavingId: string) => { id: string } | undefined;
+};
 
-const ONLINE_CLEANUP_DELAY_MS = 5 * 60 * 1000;
 const MAX_PLAYERS_PER_ROOM = 16;
 const MAX_TOTAL_ROOMS = 500;
 
@@ -90,16 +94,6 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
   return { room };
 }
 
-// Only an online player's name actually blocks a reuse — an offline one is
-// either about to be reaped (schedulePlayerKick) or the very player trying
-// to get back in (e.g. their saved session was lost and they're using
-// join_room fresh instead of rejoin). Without the online check, that
-// player would be locked out of their own name for up to the full 5-minute
-// grace period even though nobody else is actually using it.
-function isNameTaken(room: Room, name: string): boolean {
-  return room.players.some(p => p.online && p.name.toLowerCase() === name.toLowerCase());
-}
-
 function joinRoom(ws: WebSocket, { code, playerName }: { code?: string; playerName?: string }): RoomResult {
   const room = rooms.get(code?.toUpperCase() ?? "");
   if (!room) return { error: "No existe ninguna sala con ese código" };
@@ -109,7 +103,7 @@ function joinRoom(ws: WebSocket, { code, playerName }: { code?: string; playerNa
   if (room.players.length >= maxPlayers) return { error: "La sala está llena" };
 
   const name = playerName || "Jugador";
-  if (isNameTaken(room, name)) return { error: "Ese nombre ya está en uso en esta sala" };
+  if (isNameTaken(room.players, name)) return { error: "Ese nombre ya está en uso en esta sala" };
 
   const playerId: string = uuidv4();
   room.players.push({ id: playerId, name, ready: false, online: true });
@@ -129,7 +123,7 @@ function joinInstanceRoom(roomCode: string, playerId: string, playerName: string
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
   if (room.players.length >= maxPlayers) return { error: "Esa partida está llena" };
   if (room.players.some(p => p.id === playerId)) return { room };
-  if (isNameTaken(room, playerName)) return { error: "Ese nombre ya está en uso en esa partida" };
+  if (isNameTaken(room.players, playerName)) return { error: "Ese nombre ya está en uso en esa partida" };
 
   room.players.push({ id: playerId, name: playerName, ready: false, online: true });
   return { room };
@@ -141,6 +135,7 @@ function rejoinRoom(ws: WebSocket, { roomCode, playerId }: { roomCode: string; p
   const player = room.players.find(p => p.id === playerId);
   if (!player) return { error: "Ya no formás parte de esta sala" };
   player.online = true;
+  player.offlineSince = undefined;
   clients.set(ws, { groupCode: room.groupCode, roomCode: room.code, playerId });
   activeSockets.set(playerId, ws);
   return { room, playerId };
@@ -162,12 +157,11 @@ function updateConfig(room: Room, patch: Record<string, unknown>): void {
 
 // If the player leaving/going offline was the host, hand the room off to
 // someone still around rather than leaving it stuck with a host who's gone
-// and nobody able to configure/start rounds or kick. Prefers another online
-// player; only reaches for an offline one if literally everybody else is
-// offline too (about to be cleaned up anyway).
+// and nobody able to configure/start rounds or kick (see rosterUtils's
+// pickHostReplacement for the actual candidate rule).
 function reassignHostIfNeeded(room: Room, leavingId: string): void {
   if (room.hostId !== leavingId) return;
-  const candidate = room.players.find(p => p.id !== leavingId && p.online) || room.players.find(p => p.id !== leavingId);
+  const candidate = pickHostReplacement(room.players, leavingId);
   if (candidate) {
     room.hostId = candidate.id;
     logger.info({ roomCode: room.code, newHostId: candidate.id }, "host handed off");
@@ -208,7 +202,10 @@ function removePlayer(room: Room, playerId: string): void {
 // signal) before treating it as something worth reacting to.
 function markOffline(room: Room, playerId: string): void {
   const p = room.players.find(p => p.id === playerId);
-  if (p) p.online = false;
+  if (p) {
+    p.online = false;
+    p.offlineSince = Date.now();
+  }
   // Deliberately does NOT hand off the host here, even if they're the one
   // going offline — same reasoning as skipping maybeAdvance above: a brief
   // disconnect (network blip, backgrounded tab) shouldn't cost them

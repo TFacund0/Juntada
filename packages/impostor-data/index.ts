@@ -9,6 +9,14 @@ export interface Category {
   hints: Record<string, string>;
 }
 
+// A subtle, word-specific clue for the impostor — never the category name,
+// so it can't be traced back to what everyone else is actually giving clues
+// about. Shared by the backend engine and both frontend modes (local/online)
+// instead of each reimplementing the same lookup.
+export function wordHint(catKey: string, word: string): string | null {
+  return CATEGORIES[catKey]?.hints?.[word] ?? null;
+}
+
 export const CATEGORIES: Record<string, Category> = {
   futbolistas: {
     label: "Jugadores de Fútbol",

@@ -7,15 +7,19 @@ interface QRCodeProps {
   size?: number;
 }
 
-// Renders `value` as a QR code onto a canvas. Generation happens fully
-// client-side (no network call to a QR image service), so it works offline
-// and never leaks the room code/URL to a third party.
+/**
+ * Renderiza `value` como código QR en un canvas. La generación ocurre
+ * enteramente del lado del cliente (sin llamada de red a un servicio de
+ * imágenes QR), así funciona offline y nunca filtra el código de sala/URL a
+ * un tercero.
+ */
 export function QRCode({ value, size = 220 }: QRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
-  // Bumped on every failed generation attempt (even a retry that fails with
-  // the exact same message) so ErrorBanner's flash animation replays instead
-  // of silently doing nothing.
+  // Se incrementa en cada intento de generación fallido (incluso un
+  // reintento que falla con el mismo mensaje exacto) para que la animación
+  // de destello de ErrorBanner se repita en vez de no hacer nada en
+  // silencio.
   const [errorKey, setErrorKey] = useState(0);
 
   useEffect(() => {

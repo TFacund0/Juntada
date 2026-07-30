@@ -265,9 +265,20 @@ importers:
         specifier: workspace:*
         version: link:../tutifruti-words
 
-  packages/rayado-libre-data: {}
+  packages/rayado-libre-data:
+    dependencies:
+      '@juntada/core-utils':
+        specifier: workspace:*
+        version: link:../core-utils
 
-  packages/rayado-libre-scoring: {}
+  packages/rayado-libre-scoring:
+    dependencies:
+      '@juntada/core-utils':
+        specifier: workspace:*
+        version: link:../core-utils
+      '@juntada/tutifruti-words':
+        specifier: workspace:*
+        version: link:../tutifruti-words
 
   packages/recamara-engine: {}
 

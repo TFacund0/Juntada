@@ -228,7 +228,11 @@ function readyForDuel(room: Room, playerId: string): { handled: boolean } {
   if (r.subPhase !== "reveal") return { handled: false };
   if (!r.seatOrder.includes(playerId)) return { handled: false };
   if (!r.readyForDuel.includes(playerId)) r.readyForDuel.push(playerId);
-  if (r.seatOrder.every(id => r.readyForDuel.includes(id))) {
+  // Eliminated players are spectators now — nothing left for them to see
+  // in the reveal (no new items, see @juntada/recamara-engine's
+  // reloadIfNeeded), so the duel must never wait on them to confirm.
+  const aliveRoomIds = r.state.players.filter(p => p.lives > 0).map(p => r.seatOrder[p.id]);
+  if (aliveRoomIds.every(id => r.readyForDuel.includes(id))) {
     r.subPhase = "duel";
     r.readyForDuel = [];
   }

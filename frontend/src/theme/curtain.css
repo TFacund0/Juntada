@@ -1,6 +1,7 @@
-/* Fade-to-black used when entering/leaving a themed game (see
-   gameThemes.ts + App.tsx's withCurtain) — the palette swap always happens
-   while the screen is fully covered, never as a hard cut mid-render. */
+/* Fundido a negro usado al entrar/salir de un juego con tema propio (ver
+   gameThemes.ts + el withCurtain de useCurtainTransition.ts) — el cambio de
+   paleta siempre pasa mientras la pantalla está completamente tapada, nunca
+   como un corte brusco a mitad de render. */
 .app-curtain {
   position: fixed;
   inset: 0;

@@ -51,4 +51,9 @@ export interface GameEngine {
   // wherever it might get touched first. Optional since most engines'
   // round shape has stayed simple enough to never have needed this.
   migrateRound?(room: Room): void;
+  // Overrides ws/roomHandlers.ts's default 10-minute auto-kick grace period
+  // for a disconnected player, per-room/per-player — e.g. Impostor shortens
+  // this while a vote is stuck waiting on them, since everyone else is
+  // blocked in the meantime. Return undefined to fall back to the default.
+  offlineKickTimeoutMs?(room: Room, playerId: string): number | undefined;
 }

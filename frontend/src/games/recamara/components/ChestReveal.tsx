@@ -1,4 +1,4 @@
-import { ITEM_LABEL, type ItemKind, type Player } from "@juntada/recamara-engine";
+import { ITEM_LABEL, ITEMS_PER_RELOAD, MAX_ITEMS, type ItemKind, type Player } from "@juntada/recamara-engine";
 
 interface ChestRevealProps {
   player: Player;
@@ -36,11 +36,27 @@ export function ChestReveal({ player, newItems, revealedCount, onReveal }: Chest
           <span className="chest-reveal-icon">{lastRevealed}</span>
           <span className="chest-reveal-label">{ITEM_LABEL[lastRevealed]}</span>
         </div>
+      ) : total === 0 ? (
+        <p className="chest-anticipation">Nada esta vez — no había lugar para ningún ítem nuevo.</p>
       ) : (
         <p className="chest-anticipation">¿Qué habrá en el cofre?</p>
       )}
 
       <p className="chest-progress mono">{done ? "Cofre vacío" : `Tocá para abrir · ${revealedCount}/${total}`}</p>
+
+      {/* A full (or nearly full) inventory just misses out on whatever
+          doesn't fit — see @juntada/recamara-engine's reloadIfNeeded —
+          nothing already held ever gets bumped to make room. That's
+          invisible from newItems alone (it's just a shorter chest), so
+          spell it out explicitly whenever this reload granted fewer than
+          the usual ITEMS_PER_RELOAD. */}
+      {done && total < ITEMS_PER_RELOAD && (
+        <p className="chest-full-warning">
+          {total === 0
+            ? `Inventario lleno (${MAX_ITEMS}/${MAX_ITEMS}) — no pudiste sumar ningún ítem nuevo. Usá alguno para hacer lugar.`
+            : `Inventario casi lleno — solo entró ${total} de ${ITEMS_PER_RELOAD} ítems nuevos. Usá alguno para hacer lugar la próxima vez.`}
+        </p>
+      )}
 
       {revealedCount > 0 && (
         <div className="chest-collected">

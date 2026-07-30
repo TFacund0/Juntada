@@ -2,17 +2,21 @@ import { useState, useEffect } from "react";
 import { S } from "../theme/styles";
 import { Avatar } from "./Avatar";
 
-// Inline "tap to edit your name" pill, shared by the home screen and the
-// multiplayer create/join screen — same look, same behavior everywhere it's
-// used. While editing, a fixed full-screen overlay (below the pill, above
-// everything else) blocks the rest of the page: a stray tap elsewhere
-// doesn't silently discard the draft, it just nudges the player to confirm
-// (✓) or cancel (✕) explicitly instead.
-//
-// `editing`/`onEditingChange` are optional — omit them to let this manage
-// its own open/closed state, or pass them to also open editing from outside
-// (e.g. MultiplayerGame.tsx auto-opens it when a join is rejected for a
-// name already taken in that room).
+/**
+ * Pill inline de "tocá para editar tu nombre", compartida entre la pantalla
+ * de inicio y la de crear/unirse multijugador — mismo look, mismo
+ * comportamiento en todo lugar donde se usa. Mientras se edita, un overlay
+ * fijo de pantalla completa (debajo de la pill, encima de todo lo demás)
+ * bloquea el resto de la página: un toque perdido en otro lado no descarta
+ * el borrador en silencio, solo empuja al jugador a confirmar (✓) o
+ * cancelar (✕) explícitamente.
+ *
+ * `editing`/`onEditingChange` son opcionales — omitilos para que este
+ * componente maneje su propio estado de abierto/cerrado, o pasalos para
+ * también poder abrir la edición desde afuera (ej. `MultiplayerGame.tsx` la
+ * abre automáticamente cuando se rechaza un join por nombre ya usado en esa
+ * sala).
+ */
 export interface NamePillEditorProps {
   name: string;
   onSave: (name: string) => void;
@@ -32,8 +36,9 @@ export function NamePillEditor({ name, onSave, avatarSize = 26, editing: editing
   const [draft, setDraft] = useState(name);
   const [nudge, setNudge] = useState(false);
 
-  // Whenever editing opens (whether the player tapped the pill or a caller
-  // forced it open), start from the current name, not a stale draft.
+  // Cada vez que se abre la edición (ya sea porque el jugador tocó la pill
+  // o porque quien la usa la forzó a abrirse), arrancar desde el nombre
+  // actual, no desde un borrador desactualizado.
   useEffect(() => {
     if (editing) setDraft(name);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,7 +134,7 @@ export function NamePillEditor({ name, onSave, avatarSize = 26, editing: editing
           >
             <Avatar name={name} size={avatarSize} />
             <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{name}</span>
-            <span style={{ color: "#7F77DD", fontSize: 13 }}>✎</span>
+            <span style={{ color: "var(--jt-accent)", fontSize: 13 }}>✎</span>
           </button>
         )}
       </div>

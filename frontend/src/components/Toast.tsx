@@ -1,9 +1,12 @@
 import { useEffect } from "react";
 
-// A brief, self-dismissing banner (e.g. "X se desconectó") — the parent owns
-// the message state and just stops rendering this after `onExpire` fires;
-// this component only owns the timer. Renders nothing when there's no
-// message, so callers can mount it unconditionally.
+/**
+ * Un banner breve que se auto-cierra (ej. "X se desconectó") — el padre es
+ * dueño del estado del mensaje y simplemente deja de renderizar esto cuando
+ * dispara `onExpire`; este componente solo administra el timer. No
+ * renderiza nada cuando no hay mensaje, así quien lo usa puede montarlo
+ * incondicionalmente.
+ */
 export function Toast({ message, duration = 3000, onExpire }: { message: string | null; duration?: number; onExpire: () => void }) {
   useEffect(() => {
     if (!message) return;
@@ -16,9 +19,9 @@ export function Toast({ message, duration = 3000, onExpire }: { message: string 
 
   return (
     <>
-      {/* Drops in from above instead of just popping into place, so it
-          reads as a notification arriving rather than a static label that
-          happened to appear. */}
+      {/* Entra cayendo desde arriba en vez de aparecer de golpe, para que se
+          sienta como la llegada de una notificación y no como una etiqueta
+          estática que de repente apareció. */}
       <style>{`
         @keyframes toast-drop-in {
           from { opacity: 0; transform: translate(-50%, -16px); }
@@ -31,8 +34,8 @@ export function Toast({ message, duration = 3000, onExpire }: { message: string 
           top: 16,
           left: "50%",
           zIndex: 2000,
-          background: "#171329",
-          border: "1px solid rgba(127,119,221,0.35)",
+          background: "var(--jt-surface, #171329)",
+          border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.35))",
           borderRadius: 10,
           padding: "10px 18px",
           fontSize: 13,

@@ -32,7 +32,7 @@ const {
   broadcastGroupState,
   broadcastRoundReveal,
 } = require("./messaging");
-const { syncPhaseTimer, cleanupRoomIfEmpty, releaseStaleIdentity } = require("./shared");
+const { syncPhaseTimer, cleanupRoomIfEmpty, releaseStaleIdentity, PLAYER_OFFLINE_TIMEOUT_MS } = require("./shared");
 
 function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" }>): void {
   const prevInfo = clients.get(ws);
@@ -231,11 +231,6 @@ function scheduleGroupMemberKick(groupCode: string, playerId: string): void {
     else broadcastGroupState(group);
   }, PLAYER_OFFLINE_TIMEOUT_MS).unref();
 }
-
-// Mirrors roomHandlers.ts's PLAYER_OFFLINE_TIMEOUT_MS — kept as a separate
-// constant so this file has no dependency on that one, but intentionally the
-// same value (see roomHandlers.ts for the full rationale).
-const PLAYER_OFFLINE_TIMEOUT_MS = 10 * 60 * 1000;
 
 module.exports = {
   createGroup,

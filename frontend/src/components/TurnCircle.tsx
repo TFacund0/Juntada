@@ -14,19 +14,23 @@ const OUTCOME_STYLE: Record<TurnCircleOutcome, { color: string; badge: string }>
   conceded: { color: "#F09595", badge: "🏳️" },
 };
 
-// The round's turn order laid out as a circle: whoever's turn it is glows,
-// players who already went this lap are dimmed with a checkmark, and
-// everyone else waits their turn — so it's visually obvious who's up
-// without reading a list of names. Originally Impostor's own RoundView
-// component, promoted here so any turn-based game can reuse the same
-// "who's up" visual instead of re-implementing it (see games/quien-soy for
-// another user of this, both online and local pass-and-play).
-//
-// `outcomes` (optional) is for games like ¿Quién Soy? where a player can
-// drop out of the rotation mid-round (solved/eliminated/conceded) — rather
-// than vanishing from the circle, they stay in their original slot with a
-// colored ring/badge for how they finished, instead of the normal
-// current/hasGone styling.
+/**
+ * El orden de turno de la ronda dispuesto como un círculo: a quien le toca
+ * el turno brilla, los jugadores que ya jugaron esta vuelta quedan
+ * atenuados con un tilde, y el resto espera su turno — así queda
+ * visualmente obvio a quién le toca sin tener que leer una lista de
+ * nombres. Originalmente era un componente propio del `RoundView` de
+ * Impostor, se promovió acá para que cualquier juego por turnos pueda
+ * reutilizar el mismo visual de "a quién le toca" en vez de
+ * reimplementarlo (ver `games/quien-soy` para otro uso de esto, tanto
+ * online como local pasa-y-juega).
+ *
+ * `outcomes` (opcional) es para juegos como ¿Quién Soy? donde un jugador
+ * puede salirse de la rotación a mitad de ronda (resuelto/eliminado/
+ * rendido) — en vez de desaparecer del círculo, se queda en su lugar
+ * original con un anillo/insignia de color según cómo terminó, en vez del
+ * estilo normal de actual/ya-jugó.
+ */
 export function TurnCircle({
   turnOrder,
   turnIndex,
@@ -82,7 +86,7 @@ export function TurnCircle({
                   : isCurrent
                     ? "2px solid #5DCAA5"
                     : hasGone
-                      ? "2px solid rgba(127,119,221,0.45)"
+                      ? "2px solid var(--jt-accent-border-soft, rgba(127,119,221,0.45))"
                       : "2px solid transparent",
                 boxShadow: isCurrent ? "0 0 14px rgba(93,202,165,0.55)" : "none",
                 opacity: outcome ? 0.7 : p.online === false ? 0.4 : hasGone && !isCurrent ? 0.55 : 1,
@@ -116,7 +120,7 @@ export function TurnCircle({
                     position: "absolute",
                     top: -2,
                     right: -2,
-                    background: "#6b6490",
+                    background: "var(--jt-muted-text)",
                     color: "#fff",
                     borderRadius: "50%",
                     width: 16,
@@ -161,12 +165,12 @@ export function TurnCircle({
                 color: outcome
                   ? OUTCOME_STYLE[outcome].color
                   : p.online === false
-                    ? "#6b6490"
+                    ? "var(--jt-muted-text)"
                     : isCurrent
                       ? "#5DCAA5"
                       : isMe
                         ? "#fff"
-                        : "#9089c0",
+                        : "var(--jt-muted-text)",
                 textAlign: "center",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -181,8 +185,10 @@ export function TurnCircle({
         );
       })}
       <div style={{ position: "absolute", left: center, top: center, transform: "translate(-50%, -50%)", textAlign: "center" }}>
-        <p style={{ fontSize: 11, color: "#9089c0", margin: 0 }}>Turno de</p>
-        <p style={{ fontSize: 15, fontWeight: 800, color: "#AFA9EC", margin: 0, maxWidth: 100 }}>{current?.name ?? "—"}</p>
+        <p style={{ fontSize: 11, color: "var(--jt-muted-text)", margin: 0 }}>Turno de</p>
+        <p style={{ fontSize: 15, fontWeight: 800, color: "var(--jt-accent-strong, #AFA9EC)", margin: 0, maxWidth: 100 }}>
+          {current?.name ?? "—"}
+        </p>
       </div>
     </div>
   );

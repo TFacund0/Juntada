@@ -21,7 +21,15 @@ export function PlayerToken({ player, isActive, style, onClick }: PlayerTokenPro
           <i key={i} className={`life-dot${i >= player.lives ? " spent" : ""}`} />
         ))}
       </span>
-      {player.items.length > 0 && <span className="token-badge">{player.items.length}</span>}
+      {player.items.length > 0 && (
+        <span className="token-items">
+          {player.items.map((item, i) => (
+            <span key={i} className="token-item">
+              {item}
+            </span>
+          ))}
+        </span>
+      )}
       {player.cuffed && (
         <span className="token-cuffed" title="Esposado: pierde su próximo turno">
           🔒

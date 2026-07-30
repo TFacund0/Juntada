@@ -15,7 +15,7 @@ const CATEGORY_LABEL: Record<GameCategory, string> = {
   otros: "Más juegos",
 };
 
-// Fixed order for category sections when there's no active search.
+// Orden fijo de las secciones de categoría cuando no hay una búsqueda activa.
 const CATEGORY_ORDER: GameCategory[] = ["destacados", "rapidos", "palabras", "fiesta", "equipos", "tematicos", "otros"];
 
 type AvailabilityFilter = "available" | "soon";
@@ -30,20 +30,25 @@ interface GamePickerProps {
   onPick: (id: string) => void;
 }
 
-// Search + category-grouped catalog grid for the "pick a game" screen.
-// Replaces the old single-column list of full-width cards so the picker
-// keeps scaling as more games get added — see games/gameTypes.ts for the
-// `category` field each game opts into.
+/**
+ * Grilla de catálogo con búsqueda + agrupado por categoría para la pantalla
+ * de "elegir un juego". Reemplaza a la vieja lista de una sola columna de
+ * cards de ancho completo, para que el picker siga escalando a medida que
+ * se agregan más juegos — ver el campo `category` en `games/gameTypes.ts`
+ * que cada juego adopta.
+ */
 export function GamePicker({ games, onPick }: GamePickerProps) {
   const [query, setQuery] = useState("");
-  // Every category starts expanded; collapsing one just hides its grid, it
-  // never removes those games from a search match below.
+  // Toda categoría arranca expandida; colapsar una solo oculta su grilla,
+  // nunca saca esos juegos de un match de búsqueda más abajo.
   const [collapsed, setCollapsed] = useState<Set<GameCategory>>(() => new Set());
-  // Tapping a card opens a preview instead of navigating straight into the
-  // game — onPick(id) only fires once the player confirms from there.
+  // Tocar una card abre una vista previa en vez de navegar directo al
+  // juego — onPick(id) solo se dispara una vez que el jugador confirma
+  // desde ahí.
   const [previewGame, setPreviewGame] = useState<GameDef | null>(null);
-  // Defaults to hiding comingSoon games so the catalog only shows what's
-  // actually playable; the chips let players peek at what's coming.
+  // Por defecto oculta los juegos comingSoon para que el catálogo solo
+  // muestre lo que realmente se puede jugar; los chips dejan a los
+  // jugadores asomarse a lo que viene.
   const [availFilter, setAvailFilter] = useState<AvailabilityFilter>("available");
 
   const toggleCategory = (cat: GameCategory) => {
@@ -67,7 +72,7 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
   }, [availableGames, query]);
 
   const grouped = useMemo(() => {
-    if (query.trim()) return null; // searching: single "Resultados" grid instead
+    if (query.trim()) return null; // buscando: en vez de esto, una sola grilla de "Resultados"
     const byCategory = new Map<GameCategory, GameDef[]>();
     for (const cat of CATEGORY_ORDER) byCategory.set(cat, []);
     for (const g of availableGames) byCategory.get(g.category ?? "otros")!.push(g);
@@ -132,8 +137,9 @@ interface CategorySectionProps {
   children: ReactNode;
 }
 
-// Header-only toggle (no card wrapper) for a picker section — distinct from
-// components/Collapsible.tsx, which boxes secondary info inside an S.card.
+// Toggle de solo encabezado (sin envoltorio de card) para una sección del
+// picker — distinto de components/Collapsible.tsx, que encierra información
+// secundaria dentro de una S.card.
 function CategorySection({ title, count, open, onToggle, children }: CategorySectionProps) {
   return (
     <div style={{ marginBottom: 22 }}>
@@ -183,8 +189,8 @@ function GameGrid({ games, onSelect }: { games: GameDef[]; onSelect: (game: Game
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
       {games.map(g => (
         <div key={g.id} style={{ ...S.catalogCard, opacity: g.comingSoon || isUnderMaintenance(g) ? 0.55 : 1 }} onClick={() => onSelect(g)}>
-          <div style={S.catalogThumb}>
-            {g.icon}
+          <div style={{ ...S.catalogThumb, overflow: "hidden" }}>
+            {g.logo ? <img src={g.logo} alt={g.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : g.icon}
             {isUnderMaintenance(g) ? (
               <span style={{ ...S.soonBadge, color: "#EF9F27" }}>En mantenimiento</span>
             ) : (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { Btn } from "./Btn";
+import { DialogFrame } from "./DialogFrame";
 import { ErrorBanner } from "./ErrorBanner";
 
 interface QRScannerDialogProps {
@@ -9,11 +10,14 @@ interface QRScannerDialogProps {
   onClose: () => void;
 }
 
-// Opens the device's own camera in-app (no need to leave the game to use a
-// separate camera/QR app) and decodes frames locally with jsQR — nothing is
-// ever uploaded, the video never leaves the device. `onScan` fires once with
-// the raw decoded text; the caller (join screen) is the one that knows how
-// to turn that into a room/group code.
+/**
+ * Abre la cámara propia del dispositivo dentro de la app (sin necesidad de
+ * salir del juego para usar una app de cámara/QR separada) y decodifica los
+ * frames localmente con `jsQR` — nunca se sube nada, el video nunca sale
+ * del dispositivo. `onScan` se dispara una vez con el texto crudo
+ * decodificado; quien lo usa (la pantalla de unirse) es quien sabe cómo
+ * convertir eso en un código de sala/grupo.
+ */
 export function QRScannerDialog({ title, onScan, onClose }: QRScannerDialogProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -79,64 +83,38 @@ export function QRScannerDialog({ title, onScan, onClose }: QRScannerDialogProps
   }, []);
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,12,29,0.85)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 20,
-        zIndex: 1000,
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: "#171329",
-          border: "1px solid rgba(127,119,221,0.3)",
-          borderRadius: 16,
-          padding: "24px 20px",
-          maxWidth: 340,
-          width: "100%",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-          textAlign: "center",
-        }}
-      >
-        <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 14px" }}>{title}</p>
-        {error ? (
-          <ErrorBanner message={error} flashKey={0} variant="inline" />
-        ) : (
+    <DialogFrame onClose={onClose} maxWidth={340} overlayOpacity={0.85} textAlign="center">
+      <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 14px" }}>{title}</p>
+      {error ? (
+        <ErrorBanner message={error} flashKey={0} variant="inline" />
+      ) : (
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            aspectRatio: "1 / 1",
+            borderRadius: 14,
+            overflow: "hidden",
+            background: "#000",
+          }}
+        >
+          <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           <div
             style={{
-              position: "relative",
-              width: "100%",
-              aspectRatio: "1 / 1",
-              borderRadius: 14,
-              overflow: "hidden",
-              background: "#000",
+              position: "absolute",
+              inset: 24,
+              border: "3px solid rgba(255,255,255,0.6)",
+              borderRadius: 12,
+              pointerEvents: "none",
             }}
-          >
-            <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            <div
-              style={{
-                position: "absolute",
-                inset: 24,
-                border: "3px solid rgba(255,255,255,0.6)",
-                borderRadius: 12,
-                pointerEvents: "none",
-              }}
-            />
-          </div>
-        )}
-        <canvas ref={canvasRef} style={{ display: "none" }} />
-        <p style={{ ...(error ? {} : { marginTop: 14 }), color: "#a49dc9", fontSize: 13 }}>Apuntá la cámara al código QR</p>
-        <Btn variant="ghost" onClick={onClose} style={{ marginTop: 10 }}>
-          Cancelar
-        </Btn>
-      </div>
-    </div>
+          />
+        </div>
+      )}
+      <canvas ref={canvasRef} style={{ display: "none" }} />
+      <p style={{ ...(error ? {} : { marginTop: 14 }), color: "#a49dc9", fontSize: 13 }}>Apuntá la cámara al código QR</p>
+      <Btn variant="ghost" onClick={onClose} style={{ marginTop: 10 }}>
+        Cancelar
+      </Btn>
+    </DialogFrame>
   );
 }

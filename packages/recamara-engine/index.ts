@@ -46,6 +46,15 @@ export interface Player {
   // Set by 🔒 — cleared (and the turn skipped) the next time turn
   // resolution would land on this player, see fireShot's skip loop below.
   cuffed?: boolean;
+  // Exactly which items (0..ITEMS_PER_RELOAD) the most recent reload
+  // actually granted this player — see reloadIfNeeded. An inventory already
+  // at MAX_ITEMS simply doesn't gain the item that doesn't fit (nothing
+  // else gets bumped to make room for it), so this can be shorter than
+  // ITEMS_PER_RELOAD, or empty. The reveal screens (ChestReveal) read this
+  // instead of guessing "the last ITEMS_PER_RELOAD items in the array" —
+  // that guess would be wrong (and show already-owned items as if new)
+  // whenever a reload granted fewer than a full batch.
+  lastGrantedItems: ItemKind[];
 }
 
 export interface GameState {
@@ -58,8 +67,12 @@ export interface GameState {
   sawedOff: boolean;
 }
 
-export function randomItem(): ItemKind {
-  return ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)];
+// 🔄 flips the turn order's direction — meaningless with only two players
+// left (they'd just keep alternating either way), so it's excluded from the
+// draw pool whenever exactly two players are still standing.
+export function randomItem(aliveCount: number): ItemKind {
+  const pool = aliveCount === 2 ? ITEM_POOL.filter(i => i !== "🔄") : ITEM_POOL;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // A blank drawn a little more often lands ahead of a live one in the shuffle
@@ -68,11 +81,22 @@ export function randomItem(): ItemKind {
 // rather than every ordering being equally likely.
 const BLANK_ORDER_BIAS = 0.15;
 
-// 3 to 8 shells, any real/blank split — mirrors the tabletop rule this game
-// is based on (see recamara/index.tsx's `rules`).
+// 3 to 8 shells — mirrors the tabletop rule this game is based on (see
+// recamara/index.tsx's `rules`). Both kinds are guaranteed to show up at
+// least once (never an all-live or all-blank chamber), and lopsided splits
+// are still very much allowed (that swinginess is the point) — the only
+// extra guardrail is on the bigger chambers (6-8 shells), where the
+// minority kind is guaranteed at least 2 rather than 1, so a full chamber
+// can't land on the most extreme split (e.g. 7-1 or 5-1), just a slightly
+// less extreme one.
+const MIN_MINORITY_FOR_LARGE_CHAMBER = 2;
+const LARGE_CHAMBER_THRESHOLD = 6;
+
 export function buildShells(): Shell[] {
   const total = 3 + Math.floor(Math.random() * 6); // 3..8
-  const live = 1 + Math.floor(Math.random() * total); // 1..total
+  const minMinority = total >= LARGE_CHAMBER_THRESHOLD ? MIN_MINORITY_FOR_LARGE_CHAMBER : 1;
+  const maxLive = total - minMinority;
+  const live = minMinority + Math.floor(Math.random() * (maxLive - minMinority + 1));
   const blank = total - live;
   const arr: Shell[] = (
     Array(live)
@@ -103,6 +127,7 @@ export function createInitialState(names: string[]): GameState {
     name: name.trim() || `Jugador ${i + 1}`,
     lives: STARTING_LIVES,
     items: [],
+    lastGrantedItems: [],
   }));
   return {
     players,
@@ -153,15 +178,25 @@ function reloadIfNeeded(shells: Shell[], players: Player[]): { shells: Shell[]; 
   if (!shells.every(s => s.spent)) {
     return { shells, idx: shells.findIndex(s => !s.spent), players, reloaded: false };
   }
-  const reloadedPlayers = players.map(p => ({
-    ...p,
-    items: capItems([
-      ...p.items,
-      ...Array(ITEMS_PER_RELOAD)
-        .fill(null)
-        .map(() => randomItem()),
-    ]),
-  }));
+  // Eliminated players are pure spectators from here on — they never draw
+  // new items on a reload, only whoever's still alive does.
+  const aliveCount = players.filter(p => p.lives > 0).length;
+  const reloadedPlayers = players.map(p => {
+    if (p.lives <= 0) return { ...p, lastGrantedItems: [] };
+    const drawn = Array(ITEMS_PER_RELOAD)
+      .fill(null)
+      .map(() => randomItem(aliveCount));
+    // Whatever doesn't fit under MAX_ITEMS is simply never granted — a full
+    // inventory doesn't bump an older item to make room for a new one, it
+    // just misses out on the new one. Deliberately the opposite of
+    // capItems (used by 🧤 below), which favors whatever was *just* added;
+    // here it's the other way around on purpose, so nothing you're already
+    // holding can vanish just because a reload happened to land while you
+    // were full.
+    const room = Math.max(0, MAX_ITEMS - p.items.length);
+    const granted = drawn.slice(0, room);
+    return { ...p, items: [...p.items, ...granted], lastGrantedItems: granted };
+  });
   return { shells: buildShells(), idx: 0, players: reloadedPlayers, reloaded: true };
 }
 

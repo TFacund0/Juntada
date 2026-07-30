@@ -5,10 +5,13 @@ interface AvatarProps {
   size?: number;
 }
 
-// Rendered once per player in every room/lobby/voting list — memoized so a
-// re-render triggered by an unrelated WS "state" broadcast (which happens on
-// almost every player action in a multiplayer room) doesn't re-render every
-// avatar in the list, only the ones whose props actually changed.
+/**
+ * Se renderiza una vez por jugador en cada lista de sala/lobby/votación —
+ * memoizado para que un re-render disparado por un broadcast `"state"` de
+ * WS no relacionado (lo cual pasa en casi cada acción de un jugador en una
+ * sala multijugador) no vuelva a renderizar cada avatar de la lista, solo
+ * aquellos cuyas props realmente cambiaron.
+ */
 export const Avatar = memo(function Avatar({ name, size = 40 }: AvatarProps) {
   const initials =
     name

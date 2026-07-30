@@ -1,13 +1,18 @@
 import { S } from "../theme/styles";
 import { Avatar } from "./Avatar";
 
-// A host-picked order (room.config.turnOrder) is only ever a hint — drop
-// anyone who's since left, and append anyone who joined after in room-list
-// order, so a stale/partial order never silently drops a player from the
-// list. Exported since a game's own round-start logic may need the exact
-// same reconciliation the config preview uses (e.g. quien-soy's backend
-// engine mirrors this independently server-side, since only the server can
-// be trusted to apply it at round start — but the shape/rule is identical).
+/**
+ * Un orden elegido por el host (`room.config.turnOrder`) es siempre solo
+ * una sugerencia — se descarta a cualquiera que ya se fue, y se agrega al
+ * final a cualquiera que se sumó después, en el orden de la lista de la
+ * sala, así un orden desactualizado/parcial nunca hace que un jugador
+ * desaparezca en silencio de la lista. Se exporta porque la lógica propia
+ * de arranque de ronda de un juego puede necesitar exactamente la misma
+ * reconciliación que usa la vista previa de config (ej. el motor de
+ * backend de "¿Quién Soy?" replica esto de forma independiente del lado
+ * del servidor, ya que solo el servidor puede aplicarlo con confianza al
+ * arrancar la ronda — pero la forma/regla es idéntica).
+ */
 export function resolveTurnOrder(players: { id: string }[], turnOrder: string[] | undefined): string[] {
   const ids = players.map(p => p.id);
   const kept = (turnOrder || []).filter(id => ids.includes(id));
@@ -15,12 +20,15 @@ export function resolveTurnOrder(players: { id: string }[], turnOrder: string[] 
   return [...kept, ...missing];
 }
 
-// Host-only turn-order editor for a multiplayer lobby: a reorderable list
-// (avatar + name + ↑/↓) built from resolveTurnOrder, with an optional
-// random/manual toggle for games where an empty turnOrder means "shuffle it"
-// server-side (see the `allowRandom` prop) — shared between quien-soy and
-// limon-limon's ConfigPanels instead of two hand-rolled copies of the same
-// list/reorder markup.
+/**
+ * Editor de orden de turno, exclusivo del host, para un lobby multijugador:
+ * una lista reordenable (avatar + nombre + ↑/↓) construida a partir de
+ * `resolveTurnOrder`, con un toggle opcional de azar/manual para juegos
+ * donde un `turnOrder` vacío significa "mezclalo" del lado del servidor
+ * (ver la prop `allowRandom`) — compartido entre los `ConfigPanel` de
+ * "¿Quién Soy?" y limón-limón en vez de dos copias hechas a mano del mismo
+ * markup de lista/reordenamiento.
+ */
 export function TurnOrderEditor({
   players,
   turnOrder,
@@ -68,7 +76,7 @@ export function TurnOrderEditor({
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {rows.map((p, i) => (
             <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-              <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+              <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "var(--jt-muted-text)" }}>{i + 1}</span>
               <Avatar name={p.name} size={28} />
               <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
               <button

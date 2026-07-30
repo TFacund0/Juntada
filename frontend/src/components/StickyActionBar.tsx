@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
 
-// A single primary action (start the round/match) pinned to the bottom of
-// the screen with a fade so it never gets lost below a long scrollable
-// lobby/config — same treatment in the online lobby (MultiplayerGame.tsx)
-// and local pass-and-play setup (LocalGame.tsx). The page content needs its
-// own bottom padding (~88px) to keep this from covering the last card.
+/**
+ * Una única acción principal (arrancar la ronda/partida) fijada abajo de la
+ * pantalla con un degradé para que nunca se pierda debajo de un lobby/
+ * config largo con scroll — mismo tratamiento en el lobby online
+ * (`MultiplayerGame.tsx`) y en el setup local pasa-y-juega (`LocalGame.tsx`).
+ * El contenido de la página necesita su propio padding inferior (~88px)
+ * para que esto no tape la última card.
+ */
 export function StickyActionBar({ children }: { children: ReactNode }) {
   return (
     <div
@@ -14,9 +17,9 @@ export function StickyActionBar({ children }: { children: ReactNode }) {
         right: 0,
         bottom: 0,
         padding: "12px 16px calc(12px + env(safe-area-inset-bottom))",
-        // Reads --jt-bg (theme/sharedChrome.css) instead of hardcoding
-        // #0f0c1d, so this fades into a themed game's actual background
-        // instead of always fading into the untheemed one.
+        // Lee --jt-bg (theme/sharedChrome.css) en vez de hardcodear
+        // #0f0c1d, así esto se funde con el fondo real de un juego con
+        // tema propio en vez de fundirse siempre con el que no tiene tema.
         background: "linear-gradient(transparent, var(--jt-bg, #0f0c1d) 24%)",
         zIndex: 10,
       }}
