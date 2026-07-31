@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Btn } from "./Btn";
 
 /**
@@ -6,9 +7,21 @@ import { Btn } from "./Btn";
  * lados, sin importar de qué juego se trate. Cada juego solo aporta su
  * propio label ("Empezar a jugar", "Iniciar ronda", ...).
  */
-export function StartButton({ children, onClick, disabled }: { children: string; onClick: () => void; disabled?: boolean }) {
+export function StartButton({
+  children,
+  onClick,
+  disabled,
+  className,
+  style,
+}: {
+  children: string;
+  onClick: () => void;
+  disabled?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
-    <Btn variant="success" onClick={onClick} disabled={disabled}>
+    <Btn variant="success" onClick={onClick} disabled={disabled} className={className} style={style}>
       {children}
     </Btn>
   );

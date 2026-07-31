@@ -7,7 +7,7 @@ import backgroundImage from "./assets/background.png";
 // imported eagerly by the registry — this keeps every game's actual code out
 // of the initial bundle until the player picks that game (see registry.js).
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
-const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const ConfigPanel = lazy(() => import("./components/online/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
 
 export const impostorGame: GameDef = {
@@ -33,4 +33,5 @@ export const impostorGame: GameDef = {
   RoundView,
   tabbedLobby: true,
   gameTheme: "impostor",
+  startLabel: "Empezar partida",
 };

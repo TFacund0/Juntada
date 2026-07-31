@@ -68,6 +68,20 @@ export default function App() {
   const exposeReturnToGroup = useCallback((fn: () => void) => {
     returnToGroupRef.current = fn;
   }, []);
+  // Same idea, for a local game that wants "Volver" to reset it back to its
+  // own setup/players screen instead of exiting local mode — see
+  // LocalGame's onExposeBack/onExposeReset on GameDef. The check is a pure
+  // read (false once already sitting on setup, so goBack falls through to
+  // the normal exit-mode confirm); the actual reset only runs once the
+  // player confirms (see showLocalResetConfirm below) — never silently.
+  const localGameMidMatchRef = useRef<() => boolean>(() => false);
+  const exposeLocalGameBack = useCallback((fn: () => boolean) => {
+    localGameMidMatchRef.current = fn;
+  }, []);
+  const localGameResetRef = useRef<() => void>(() => {});
+  const exposeLocalGameReset = useCallback((fn: () => void) => {
+    localGameResetRef.current = fn;
+  }, []);
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const [showRules, setShowRules] = useState(false);
@@ -78,6 +92,10 @@ export default function App() {
   // branch of goBack is destructive enough to warn about; going back from
   // "elegí local u online" (mode still null) has nothing in progress to lose.
   const [showBackConfirm, setShowBackConfirm] = useState(false);
+  // "Volver" mid-match in local mode: always confirms too (see goBack) —
+  // separate from showBackConfirm above since confirming here resets the
+  // local game back to its players screen instead of exiting local mode.
+  const [showLocalResetConfirm, setShowLocalResetConfirm] = useState(false);
   const { curtain, withCurtain, withAsyncCurtain, settleAsyncCurtain } = useCurtainTransition();
   const [showDevNotice, setShowDevNotice] = useState(() => {
     try {
@@ -180,6 +198,13 @@ export default function App() {
       } else {
         setShowExitConfirm(true);
       }
+      return;
+    }
+    if (mode === "local" && localGameMidMatchRef.current()) {
+      // A local match is in progress — confirm before resetting back to the
+      // players screen, same as every other "Volver" mid-match everywhere
+      // else (online room, group instance).
+      setShowLocalResetConfirm(true);
       return;
     }
     if (mode === "local" || (mode === "multi" && inRoom)) {
@@ -346,7 +371,7 @@ export default function App() {
         {/* ── Paso 3: jugar ── */}
         {mode === "local" && game && (
           <Suspense fallback={<GameLoading />}>
-            <game.LocalGame />
+            <game.LocalGame onExposeBack={exposeLocalGameBack} onExposeReset={exposeLocalGameReset} />
           </Suspense>
         )}
         {mode === "multi" && (gameId || groupFlow) && (
@@ -386,6 +411,20 @@ export default function App() {
           cancelLabel="Seguir jugando"
           onConfirm={confirmGoBack}
           onCancel={() => setShowBackConfirm(false)}
+        />
+      )}
+
+      {showLocalResetConfirm && (
+        <ConfirmDialog
+          title="¿Volver a jugadores?"
+          message="Vas a volver a la pantalla de jugadores y perder el progreso de esta partida."
+          confirmLabel="Sí, volver"
+          cancelLabel="Seguir jugando"
+          onConfirm={() => {
+            setShowLocalResetConfirm(false);
+            localGameResetRef.current?.();
+          }}
+          onCancel={() => setShowLocalResetConfirm(false)}
         />
       )}
 

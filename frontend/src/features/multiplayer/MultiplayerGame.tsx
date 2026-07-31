@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Btn } from "../../components/Btn";
 import { getGame, GAME_LIST } from "../../games/registry";
 import { isUnderMaintenance } from "../../games/maintenance";
 import type { GameDef } from "../../games/gameTypes";
@@ -9,6 +8,7 @@ import { MenuScreen } from "./screens/MenuScreen";
 import { GroupScreen } from "./screens/GroupScreen";
 import { LobbyScreen } from "./screens/LobbyScreen";
 import { RoundScreen } from "./screens/RoundScreen";
+import { SessionRecoveryOverlay } from "./screens/SessionRecoveryOverlay";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:
@@ -172,6 +172,8 @@ export function MultiplayerGame({
     reconnectAttempt,
     reconnectFailed,
     justReconnected,
+    overlayMode,
+    confirmRejoin,
     maxReconnectAttempts,
     connect,
     retryConnection,
@@ -429,6 +431,16 @@ export function MultiplayerGame({
   const activeGame = (room ? getGame(room.gameType) : selectedGame) as GameDef | undefined;
   const inGroup = entryKind === "group";
 
+  // Tracks connectionPhase across renders (mutated during render, same
+  // sentinel-ref pattern as RoundView's own prevRoomPhase) purely to detect
+  // the "lobby" → anything-else edge — i.e. a match just starting. A
+  // per-game RoundView only mounts once connectionPhase already left
+  // "lobby", so it can't observe that edge itself; this shell can, since it
+  // renders through every phase.
+  const prevConnectionPhaseRef = useRef(connectionPhase);
+  const justEnteredRound = prevConnectionPhaseRef.current === "lobby" && connectionPhase !== "lobby";
+  prevConnectionPhaseRef.current = connectionPhase;
+
   const createRoom = () => {
     // A room is created with one tap, no form: always an auto-generated
     // code and a default name (the game's own name — good enough, since a
@@ -482,42 +494,47 @@ export function MultiplayerGame({
   // (see useMultiplayerSocket's onopen: groupMe takes priority) — so the
   // banner's wording always matches what's actually being rejoined.
   const reconnectContext = groupMe ? "grupo" : "sala";
+  // Who to greet on the "prompt" overlay (see SessionRecoveryOverlay) —
+  // the room's own host, since that's whose game is being rejoined.
+  const rejoinHostName = room?.players.find(p => p.id === room.hostId)?.name;
 
-  // Shown across every phase — a dropped connection doesn't lose your spot
-  // (see useMultiplayerSocket's session persistence), but the retry loop
-  // needs to be visible or it just looks frozen. Three states: mid-retry,
-  // a brief confirmation right after recovering, or — once the automatic
-  // retries are exhausted — a manual choice instead of failing silently.
-  const reconnectBanner = (reconnecting || justReconnected || reconnectFailed) && (
-    <div
-      style={{
-        background: reconnectFailed ? "rgba(226,75,74,0.1)" : justReconnected ? "rgba(74,226,138,0.1)" : "rgba(226,196,74,0.1)",
-        border: `1px solid ${reconnectFailed ? "rgba(226,75,74,0.3)" : justReconnected ? "rgba(74,226,138,0.3)" : "rgba(226,196,74,0.3)"}`,
-        borderRadius: 10,
-        padding: "10px 14px",
-        marginBottom: 16,
-        color: reconnectFailed ? "#F09595" : justReconnected ? "#7EE2A8" : "#E2C44A",
-        fontSize: 13,
-        textAlign: "center",
-      }}
-    >
-      {reconnectFailed
-        ? `No pudimos reconectarte a la ${reconnectContext}.`
-        : justReconnected
-          ? "Reconectado ✓"
-          : `Reconectando a la ${reconnectContext}... (intento ${reconnectAttempt} de ${maxReconnectAttempts})`}
-      {reconnectFailed && (
-        <div style={{ marginTop: 10, display: "flex", gap: 8, justifyContent: "center" }}>
-          <Btn variant="success" onClick={retryConnection} style={{ padding: "6px 14px", fontSize: 13 }}>
-            Reintentar
-          </Btn>
-          <Btn variant="ghost" onClick={leave} style={{ padding: "6px 14px", fontSize: 13 }}>
-            Volver al menú
-          </Btn>
-        </div>
-      )}
-    </div>
-  );
+  // Block the whole screen — instead of a small banner floating over an
+  // otherwise-tappable menu/lobby/round — for both a cold start (app just
+  // opened/remounted with a session saved in localStorage) and any live
+  // socket drop mid-session (flaky wifi, backgrounded tab). A dropped
+  // connection used to "reconnect" invisibly while the player kept
+  // interacting with a stale screen; this makes the state impossible to
+  // miss or act on top of, and forces an explicit choice once retries run
+  // out instead of failing silently. See useMultiplayerSocket's overlayMode
+  // for the state machine behind this.
+  if (overlayMode !== "none")
+    return (
+      <SessionRecoveryOverlay
+        mode={overlayMode}
+        contextLabel={reconnectContext}
+        hostName={rejoinHostName}
+        attempt={reconnecting ? reconnectAttempt : undefined}
+        maxAttempts={maxReconnectAttempts}
+        onReconnect={reconnectFailed ? retryConnection : confirmRejoin}
+        onGoToMenu={leave}
+        // Only offer "crear nueva sala" for a standalone room gone missing —
+        // a gone group has no equivalent one-tap replacement here, so it
+        // just falls back to "volver al inicio". Actually creates the room
+        // right away (same one-tap flow as "Crear partida" on the menu)
+        // instead of just opening the create form — the button reads as an
+        // action, not a navigation shortcut, so it should do the thing it says.
+        onCreateNew={
+          overlayMode === "gone" && !groupMe
+            ? () => {
+                leave();
+                createRoom();
+              }
+            : undefined
+        }
+      />
+    );
+
+  const reconnectBanner: null = null;
 
   // ── AUTO-CREATING A STANDALONE ROOM ── (see the auto-create effect above —
   // no form for this case, just a brief loading state while the room spins up)
@@ -651,7 +668,7 @@ export function MultiplayerGame({
     return (
       <RoundScreen
         activeGame={activeGame}
-        roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send }}
+        roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
         statusToast={statusToast}
         onStatusToastExpire={() => setStatusToast(null)}
         reconnectBanner={reconnectBanner}

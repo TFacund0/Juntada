@@ -1,5 +1,5 @@
-import { S } from "../../../theme/styles";
-import { Toggle } from "../../../components/Toggle";
+import { S } from "../../../../theme/styles";
+import { Toggle } from "../../../../components/Toggle";
 
 interface ShowCategoryControlProps {
   value: boolean;

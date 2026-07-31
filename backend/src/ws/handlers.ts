@@ -134,6 +134,7 @@ const HANDLERS: Record<ClientMessageType, Handler> = {
   skip_word: roomHandlers.gameAction("skip_word"),
   cancel_skip_word: roomHandlers.gameAction("cancel_skip_word"),
   continue_round: roomHandlers.gameAction("continue_round"),
+  send_chat_message: roomHandlers.gameAction("send_chat_message"),
   submit_guess: roomHandlers.gameAction("submit_guess"),
   confirm_round_setup: roomHandlers.gameAction("confirm_round_setup"),
   submit_spectrum: roomHandlers.gameAction("submit_spectrum"),

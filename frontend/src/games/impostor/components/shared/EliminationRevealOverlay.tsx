@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Avatar } from "../../../components/Avatar";
+import { Avatar } from "../../../../components/Avatar";
+import logo from "../../assets/logo.png";
 
 const overlayAnimations = `
   @keyframes reveal-overlay-fade {
@@ -88,7 +89,9 @@ function RevealModal({ borderColor, onContinue, children }: { borderColor: strin
 }
 
 // Step 1: who got eliminated and (once revealed) their role — shown the
-// moment a vote resolves.
+// moment a vote resolves. The avatar sits inside a role-colored ring instead
+// of a plain circle, and the card's own tint leans toward that role color,
+// so the verdict reads at a glance before anyone even gets to the text.
 export function EliminationRevealOverlay({
   name,
   wasImpostor,
@@ -98,26 +101,36 @@ export function EliminationRevealOverlay({
   wasImpostor: boolean | undefined;
   onContinue: () => void;
 }) {
-  const roleColor = wasImpostor ? "#F09595" : "#5DCAA5";
+  const roleColor = wasImpostor == null ? "#7F77DD" : wasImpostor ? "#F09595" : "#5DCAA5";
   return (
-    <RevealModal borderColor={`${wasImpostor == null ? "rgba(224,32,43,0.35)" : roleColor}66`} onContinue={onContinue}>
+    <RevealModal borderColor={`${roleColor}66`} onContinue={onContinue}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <Avatar name={name} size={52} />
-        <p style={{ fontWeight: 800, fontSize: 19, margin: "12px 0 2px" }}>{name}</p>
-        <p style={{ color: "var(--jt-muted-text)", fontSize: 13, margin: "0 0 12px" }}>quedó eliminado/a</p>
+        <div
+          style={{
+            padding: 4,
+            borderRadius: "50%",
+            border: `2px solid ${roleColor}`,
+            boxShadow: `0 0 20px -2px ${roleColor}`,
+            marginBottom: 14,
+          }}
+        >
+          <Avatar name={name} size={56} />
+        </div>
+        <p style={{ fontWeight: 800, fontSize: 20, margin: "0 0 4px" }}>{name}</p>
+        <p style={{ color: "var(--jt-muted-text)", fontSize: 13, margin: "0 0 14px" }}>quedó eliminado/a</p>
       </div>
       {wasImpostor != null && (
         <span
           style={{
             display: "inline-block",
-            padding: "6px 14px",
+            padding: "8px 18px",
             borderRadius: 999,
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 800,
-            letterSpacing: "0.02em",
+            letterSpacing: "0.04em",
             color: roleColor,
-            background: wasImpostor ? "rgba(240,149,149,0.15)" : "rgba(93,202,165,0.15)",
-            border: `1px solid ${wasImpostor ? "rgba(240,149,149,0.4)" : "rgba(93,202,165,0.4)"}`,
+            background: `${roleColor}22`,
+            border: `1px solid ${roleColor}66`,
           }}
         >
           {wasImpostor ? "ERA EL IMPOSTOR" : "ERA INOCENTE"}
@@ -127,9 +140,14 @@ export function EliminationRevealOverlay({
   );
 }
 
-// Step 2 (only once the match itself is over): who won, the rest of the
-// impostors if there was more than one, and the secret word — shown right
-// after the elimination reveal above is dismissed.
+// Step 2 (only once the match itself is over): who won and the rest of the
+// impostors if there was more than one — shown right after the elimination
+// reveal above is dismissed. `word` is optional: LocalGame's ResultScreen
+// already shows it further down its own result page, so it skips passing
+// this; online's ResultPhaseScreen has nowhere else to show it, so it still
+// does. An impostor win uses the game's own logo instead of a stand-in
+// emoji — there's no real "impostor" artwork, but the logo reads fine as
+// the game's own mark rather than a literal face.
 export function MatchOutcomeOverlay({
   winner,
   impostorNames,
@@ -138,56 +156,69 @@ export function MatchOutcomeOverlay({
 }: {
   winner: "innocents" | "impostors" | null;
   impostorNames: string[];
-  word: string;
+  word?: string;
   onContinue: () => void;
 }) {
   const winnerColor = winner === "innocents" ? "#5DCAA5" : "#F09595";
-  const icon = winner === "innocents" ? "🛡️" : "🕵️";
   return (
     <RevealModal borderColor={`${winnerColor}88`} onContinue={onContinue}>
       <div
         style={{
-          width: 72,
-          height: 72,
+          width: 68,
+          height: 68,
           margin: "0 auto 14px",
           borderRadius: "50%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 36,
+          fontSize: 32,
           background: `radial-gradient(circle, ${winnerColor}33, transparent 70%)`,
           border: `2px solid ${winnerColor}`,
           boxShadow: `0 0 24px -4px ${winnerColor}`,
+          overflow: "hidden",
         }}
       >
-        {icon}
+        {winner === "innocents" ? "🏆" : <img src={logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
       </div>
-      <span
+      <p
         style={{
-          display: "inline-block",
-          padding: "8px 18px",
-          borderRadius: 999,
-          fontSize: 15,
+          margin: "0 0 6px",
+          fontSize: 11,
           fontWeight: 800,
-          letterSpacing: "0.02em",
-          color: winnerColor,
-          background: `${winnerColor}26`,
-          border: `1px solid ${winnerColor}66`,
-          marginBottom: 20,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "var(--jt-muted-text)",
         }}
       >
-        {winner === "innocents" ? "GANARON LOS INOCENTES" : impostorNames.length === 1 ? "GANÓ EL IMPOSTOR" : "GANARON LOS IMPOSTORES"}
-      </span>
+        Partida terminada
+      </p>
+      <p
+        style={{
+          margin: "0 0 22px",
+          fontSize: 24,
+          fontWeight: 800,
+          letterSpacing: "-0.02em",
+          lineHeight: 1.2,
+          color: winnerColor,
+          textShadow: `0 0 24px ${winnerColor}55`,
+        }}
+      >
+        {winner === "innocents" ? "Ganaron los inocentes" : impostorNames.length === 1 ? "Ganó el impostor" : "Ganaron los impostores"}
+      </p>
       {impostorNames.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: word ? 16 : 0 }}>
           <p style={{ fontSize: 11, color: "var(--jt-muted-text)", margin: "0 0 4px" }}>
             {impostorNames.length === 1 ? "El impostor era" : "Los impostores eran"}
           </p>
-          <p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{impostorNames.join(", ")}</p>
+          <p style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{impostorNames.join(", ")}</p>
         </div>
       )}
-      <p style={{ fontSize: 11, color: "var(--jt-muted-text)", margin: "0 0 4px" }}>La palabra era</p>
-      <p style={{ fontSize: 16, fontWeight: 800, color: "#F2F0EA", margin: 0 }}>{word}</p>
+      {word && (
+        <>
+          <p style={{ fontSize: 11, color: "var(--jt-muted-text)", margin: "0 0 4px" }}>La palabra era</p>
+          <p style={{ fontSize: 17, fontWeight: 800, color: "#F2F0EA", margin: 0 }}>{word}</p>
+        </>
+      )}
     </RevealModal>
   );
 }

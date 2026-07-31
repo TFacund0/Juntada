@@ -117,6 +117,14 @@ export const SCHEMAS = {
   continue_round: z.object({
     type: z.literal("continue_round"),
   }),
+  // Impostor's discussion-phase chat — only accepted by the engine when
+  // discussionMode is "chat" and room.phase is "discussion" (see engine.ts),
+  // but validated at the wire level regardless so a malformed/oversized
+  // message never even reaches game logic.
+  send_chat_message: z.object({
+    type: z.literal("send_chat_message"),
+    text: z.string().trim().min(1).max(300),
+  }),
   // Shared by Sintonía (a 0-100 dial value) and Encuentra el Color Correcto
   // (a "#rrggbb" hex string) — each engine's own handleAction re-validates
   // the shape it actually expects and rejects the other's, so a permissive

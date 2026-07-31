@@ -2,6 +2,12 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import type { ClientMessage, RoomPublicState, GroupPublicState, ErrorCode } from "@juntada/shared-types";
 import { useFlashError } from "../../../hooks/useFlashError";
 
+// What SessionRecoveryOverlay should show, if anything — computed from the
+// half-dozen underlying flags below so MultiplayerGame doesn't have to
+// re-derive "which one wins" itself; the hook is the single source of truth
+// for what's actually going on with the connection.
+export type OverlayMode = "none" | "connecting" | "prompt" | "reconnected" | "failed" | "gone";
+
 // In dev, Vite (5173) and the backend (3001) run as separate servers, so the
 // socket has to point at the backend explicitly. In production a single
 // server serves the built frontend and the WS endpoint from the same origin.
@@ -19,6 +25,30 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 function reconnectDelayMs(attempt: number): number {
   return Math.min(3000 + (attempt - 1) * 600, 8000);
 }
+
+// The backend already pings every 30s and terminates sockets that don't
+// pong back (see backend/src/ws/server.ts's HEARTBEAT_INTERVAL_MS) — but
+// that's a protocol-level ping/pong the browser answers automatically
+// without ever surfacing it to this hook's onmessage. So when the far end
+// vanishes without a clean TCP close (phone loses signal mid-session, wifi
+// drops instantly), the client's readyState keeps reporting OPEN forever:
+// no onclose ever fires, so the reconnect loop below never kicks in and the
+// player is stuck until they manually reload. This app-level watchdog is
+// what actually notices — see the setInterval near the bottom of the hook.
+const WATCHDOG_CHECK_MS = 10_000;
+// Send our own {type:"ping"} once the server's gone quiet this long — well
+// past a normal lull between broadcasts, short enough to catch a dead
+// connection quickly.
+const PING_AFTER_IDLE_MS = 15_000;
+// No message at all (not even our own ping's "pong" reply) for this long
+// means the socket is lying about being OPEN — force-close it so the
+// existing onclose reconnect flow takes over.
+const WATCHDOG_DEAD_MS = 35_000;
+
+// How long to wait, after a group_joined/group_state during a group-attached
+// cold start, for the "joined" that only arrives if the persisted instance
+// is still live — see settleGroupColdStart below.
+const GROUP_JOINED_FALLBACK_MS = 1_500;
 
 // Backgrounding the tab on mobile (switching to WhatsApp, locking the screen,
 // etc.) can kill the socket or even discard the JS context entirely. We
@@ -176,6 +206,49 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // very first connect) — lets the UI flash a "Reconectado" confirmation
   // instead of the banner just vanishing with no acknowledgment.
   const [justReconnected, setJustReconnected] = useState(false);
+  // True from mount whenever a persisted session was found in localStorage,
+  // until it's been resolved one way or another — drives the full-screen
+  // "Autenticando sesión..." gate (SessionRecoveryOverlay) instead of letting
+  // the player see the menu/lobby flash by underneath while the rejoin
+  // round-trip is still in flight.
+  const [coldStart, setColdStart] = useState(() => {
+    const s = loadSession();
+    return Boolean(s?.room || s?.group);
+  });
+  // True once the cold-start rejoin lands on an in-progress game — instead of
+  // silently dropping the player back into the round, the overlay asks
+  // explicitly ("Reconectar a la partida" / "Volver al menú principal") since
+  // a stale tab jumping straight back into a live vote is more disorienting
+  // than reassuring.
+  const [rejoinChoicePending, setRejoinChoicePending] = useState(false);
+  // True once a rejoin attempt (cold start or a live drop reconnecting mid-
+  // game) comes back with REJOIN_FAILED/REJOIN_GROUP_FAILED — the room/group
+  // itself is gone (host ended it, expired while this player was offline),
+  // not just a flaky connection, so there's nothing left to retry. Drives
+  // the overlay's "gone" mode: an explicit "esta sala ya no existe" screen
+  // with only a way back to the menu, instead of silently dropping into the
+  // join form with just an easy-to-miss toast.
+  const [sessionGone, setSessionGone] = useState(false);
+  const coldStartRef = useRef(coldStart);
+  // Snapshot of what was persisted at mount — used to tell whether a
+  // group_joined/group_state during cold start should resolve immediately
+  // (no room ever expected) or wait for the "joined"/"state" that a live
+  // group instance sends right after (see connect()'s onopen comment).
+  const initialSessionRef = useRef(loadSession());
+  // Fallback for a group-attached cold start: group_joined/group_state waits
+  // for a "joined" that only arrives if the persisted instance is still
+  // live (see the comment below). If it ended while this player was
+  // offline, no "joined" ever comes — without this timeout the overlay
+  // would sit on "Autenticando" forever instead of falling through to the
+  // group screen.
+  const groupJoinedFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    coldStartRef.current = coldStart;
+  }, [coldStart]);
+  // Timestamp of the last message received from the server (any type,
+  // including the "pong" reply to our own watchdog ping below) — read by the
+  // watchdog interval to notice a half-open connection.
+  const lastMessageAtRef = useRef(Date.now());
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectedBannerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -217,6 +290,35 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     setReconnectFailed(false);
   }, []);
 
+  // Called whenever a message arrives that could settle the cold-start gate.
+  // `phase` is the room phase this message carries, if any — "lobby" (or no
+  // room at all) resolves immediately since there's nothing mid-game to ask
+  // about; anything else means a live round, so it waits for an explicit
+  // choice instead.
+  const resolveColdStart = useCallback((phase?: string) => {
+    if (!coldStartRef.current) return;
+    if (phase && phase !== "lobby") setRejoinChoicePending(true);
+    else setColdStart(false);
+  }, []);
+
+  // Shared by both group_joined and group_state below (see GROUP_JOINED_FALLBACK_MS):
+  // a persisted room session means a "joined" for the live instance is
+  // expected right after either message — wait for that instead of
+  // resolving the cold-start gate now and having it flicker away then back.
+  // But that instance may have ended while this player was offline, in
+  // which case no "joined" is ever coming, so a timeout is the only way out.
+  const settleGroupColdStart = useCallback(() => {
+    if (!initialSessionRef.current?.room) {
+      resolveColdStart();
+      return;
+    }
+    if (!coldStartRef.current) return;
+    if (groupJoinedFallbackRef.current) clearTimeout(groupJoinedFallbackRef.current);
+    groupJoinedFallbackRef.current = setTimeout(() => {
+      if (!roomRef.current) resolveColdStart();
+    }, GROUP_JOINED_FALLBACK_MS);
+  }, [resolveColdStart]);
+
   const connect = useCallback(
     (onOpen?: (ws: WebSocket) => void) => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -226,6 +328,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       const ws = new WebSocket(WS_URL);
       wsRef.current = ws;
       ws.onopen = () => {
+        lastMessageAtRef.current = Date.now();
         if (onOpen) onOpen(ws);
         else if (groupSessionEnabled && groupMeRef.current)
           ws.send(JSON.stringify({ type: "rejoin_group", groupCode: groupMeRef.current.groupCode, playerId: groupMeRef.current.playerId }));
@@ -233,6 +336,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
           ws.send(JSON.stringify({ type: "rejoin", roomCode: meRef.current.roomCode, playerId: meRef.current.playerId }));
       };
       ws.onmessage = e => {
+        lastMessageAtRef.current = Date.now();
         let msg: InboundMessage;
         try {
           msg = JSON.parse(e.data);
@@ -240,16 +344,22 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
           return;
         }
         if (msg.type === "joined") {
+          if (groupJoinedFallbackRef.current) {
+            clearTimeout(groupJoinedFallbackRef.current);
+            groupJoinedFallbackRef.current = null;
+          }
           setMe({ playerId: msg.playerId, roomCode: msg.roomCode });
           setRoom(msg.room);
           setConnectionPhase(msg.room.phase);
           clearError();
           onReconnected();
+          resolveColdStart(msg.room.phase);
         } else if (msg.type === "state") {
           setRoom(msg.room);
           setConnectionPhase(msg.room.phase);
           clearError();
           onReconnected();
+          resolveColdStart(msg.room.phase);
         } else if (msg.type === "group_joined") {
           setGroupMe({ playerId: msg.playerId, groupCode: msg.groupCode });
           setGroup(msg.group);
@@ -264,10 +374,12 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
           });
           clearError();
           onReconnected();
+          settleGroupColdStart();
         } else if (msg.type === "group_state") {
           setGroup(msg.group);
           clearError();
           onReconnected();
+          settleGroupColdStart();
         } else if (msg.type === "left_instance") {
           setMe(null);
           setRoom(null);
@@ -292,19 +404,32 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
           setWordReveal(msg);
         } else if (msg.type === "error") {
           flashError(msg.message);
-          // Failed before ever landing in a room/group — either a fresh
-          // join with a bad code, or a restored/rejoin session whose
-          // room/group has since expired. Either way, never leave the UI
-          // stuck: drop the stale session and send them back to the menu
-          // instead of an infinite "Conectando..." with nothing to rejoin.
-          if (!roomRef.current && !groupMeRef.current) {
+          if (msg.code === "REJOIN_FAILED" || msg.code === "REJOIN_GROUP_FAILED") {
+            // The room/group this session pointed at is gone — not a flaky
+            // connection, nothing left to retry. Covers both a cold start
+            // (reload after the host ended the game) and a live drop that
+            // reconnects into a room that ended while this player was
+            // offline. Deliberately doesn't clear me/groupMe here (that's
+            // what tells the "gone" overlay whether to say "sala" or
+            // "grupo") — the actual session/localStorage cleanup happens
+            // once the player dismisses it via leave().
+            setReconnecting(false);
+            setReconnectAttempt(0);
+            setReconnectFailed(false);
+            setRejoinChoicePending(false);
+            setSessionGone(true);
+          } else if (!roomRef.current && !groupMeRef.current) {
+            // Failed before ever landing in a room/group — a fresh join
+            // with a bad code, typed by the user on the join screen. Never
+            // leave the UI stuck: drop the stale session and send them back
+            // to the menu instead of an infinite "Conectando..." with
+            // nothing to rejoin.
             setMe(null);
             setRoom(null);
             setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
-          } else if (!roomRef.current && groupMeRef.current && msg.code === "REJOIN_GROUP_FAILED") {
-            setGroupMe(null);
-            setGroup(null);
-            setConnectionPhase("menu");
+            setColdStart(false);
+          } else {
+            setColdStart(false);
           }
         } else if (msg.type === "room_preview") {
           setRoomPreview(msg);
@@ -315,6 +440,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
           setMyRole(null);
           flashError("Fuiste expulsado de la sala");
           setReconnecting(false);
+          setColdStart(false);
         } else if (msg.type === "kicked_from_group") {
           setMe(null);
           setRoom(null);
@@ -326,6 +452,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
           flashError("Fuiste expulsado del grupo");
           setReconnecting(false);
           onLeftGroupRef.current?.();
+          setColdStart(false);
         }
       };
       ws.onclose = () => {
@@ -350,7 +477,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       };
       ws.onerror = () => flashError("No se pudo conectar al servidor");
     },
-    [onReconnected, flashError, clearError, groupSessionEnabled],
+    [onReconnected, flashError, clearError, groupSessionEnabled, resolveColdStart, settleGroupColdStart],
   );
 
   // Manual retry after the automatic loop gave up (see reconnectFailed) —
@@ -370,19 +497,46 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // See WATCHDOG_DEAD_MS above: readyState alone can't tell a healthy socket
+  // from a half-open one where the far end vanished without a clean close.
+  // This periodically pokes the connection with our own app-level ping once
+  // it's gone quiet, and force-closes it if even that gets no reply — which
+  // hands off to the existing onclose reconnect loop instead of leaving the
+  // player stuck on a screen that looks connected but never updates again.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const idleMs = Date.now() - lastMessageAtRef.current;
+      if (idleMs > WATCHDOG_DEAD_MS) ws.close();
+      else if (idleMs > PING_AFTER_IDLE_MS) {
+        try {
+          ws.send(JSON.stringify({ type: "ping" }));
+        } catch {
+          /* socket not actually writable — the close above will catch it next tick */
+        }
+      }
+    }, WATCHDOG_CHECK_MS);
+    return () => clearInterval(id);
+  }, []);
+
   // Timers/sockets get throttled or suspended while a mobile tab is in the
   // background. Rather than waiting for the passive onclose+3s retry (which
   // may be delayed well past when the user actually comes back), proactively
-  // check the connection the moment the tab becomes visible again.
+  // check the connection the moment the tab becomes visible again — and
+  // don't just trust a stale-looking OPEN readyState either (see the
+  // watchdog above), since a phone that lost signal while backgrounded is
+  // exactly the case this needs to catch.
   useEffect(() => {
     const onVisible = () => {
-      if (
-        document.visibilityState === "visible" &&
-        (meRef.current || (groupSessionEnabled && groupMeRef.current)) &&
-        wsRef.current?.readyState !== WebSocket.OPEN
-      ) {
+      if (document.visibilityState !== "visible" || (!meRef.current && !(groupSessionEnabled && groupMeRef.current))) return;
+      const ws = wsRef.current;
+      const stale = ws?.readyState === WebSocket.OPEN && Date.now() - lastMessageAtRef.current > PING_AFTER_IDLE_MS;
+      if (ws?.readyState !== WebSocket.OPEN) {
         if (reconnectRef.current) clearTimeout(reconnectRef.current);
         connect();
+      } else if (stale) {
+        ws.close();
       }
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -398,6 +552,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       wsRef.current?.close();
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
+      if (groupJoinedFallbackRef.current) clearTimeout(groupJoinedFallbackRef.current);
     },
     [],
   );
@@ -418,6 +573,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     wsRef.current?.close();
     if (reconnectRef.current) clearTimeout(reconnectRef.current);
     if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
+    if (groupJoinedFallbackRef.current) clearTimeout(groupJoinedFallbackRef.current);
     setMe(null);
     setRoom(null);
     setMyRole(null);
@@ -428,7 +584,35 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     setReconnectAttempt(0);
     setReconnectFailed(false);
     setJustReconnected(false);
+    setColdStart(false);
+    setRejoinChoicePending(false);
+    setSessionGone(false);
   }, []);
+
+  // The "rejoin" choice offered by SessionRecoveryOverlay once a cold-start
+  // rejoin lands on a live round (see rejoinChoicePending above) — the
+  // "decline" choice is just `leave` itself, same as every other "volver al
+  // menú" in this hook.
+  const confirmRejoin = useCallback(() => {
+    setColdStart(false);
+    setRejoinChoicePending(false);
+  }, []);
+
+  // Priority order matters: sessionGone/reconnectFailed/justReconnected are
+  // all terminal-ish states of a live reconnect and win over a stale
+  // coldStart flag that just hasn't been cleared yet; rejoinChoicePending
+  // only means anything while still mid coldStart.
+  const overlayMode: OverlayMode = !(coldStart || reconnecting || reconnectFailed || justReconnected || sessionGone)
+    ? "none"
+    : sessionGone
+      ? "gone"
+      : reconnectFailed
+        ? "failed"
+        : justReconnected
+          ? "reconnected"
+          : rejoinChoicePending
+            ? "prompt"
+            : "connecting";
 
   return {
     connectionPhase,
@@ -448,6 +632,8 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     reconnectAttempt,
     reconnectFailed,
     justReconnected,
+    overlayMode,
+    confirmRejoin,
     maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
     connect,
     retryConnection,

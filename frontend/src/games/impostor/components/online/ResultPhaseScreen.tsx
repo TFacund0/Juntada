@@ -1,10 +1,15 @@
-import { S } from "../../../theme/styles";
-import { StartButton } from "../../../components/StartButton";
-import { RevealCountdown } from "../../../components/RevealCountdown";
-import { PhaseTransition } from "../../../components/PhaseTransition";
-import { EliminationRevealOverlay, MatchOutcomeOverlay } from "./EliminationRevealOverlay";
-import type { RoundViewProps } from "../../gameTypes";
-import type { ImpostorRoundState, ImpostorHistoryEntry } from "../types/roundView";
+import type { CSSProperties } from "react";
+import { S } from "../../../../theme/styles";
+import { StartButton } from "../../../../components/StartButton";
+import { StickyActionBar } from "../../../../components/StickyActionBar";
+import { PhaseTransition } from "../../../../components/PhaseTransition";
+import { BigTextFlash } from "../shared/BigTextFlash";
+import { EliminationRevealOverlay, MatchOutcomeOverlay } from "../shared/EliminationRevealOverlay";
+import { MatchResultHeader } from "../shared/MatchResultHeader";
+import { VotesBreakdownCard } from "../shared/VotesBreakdownCard";
+import { actionBtnStyle } from "../shared/actionBtnStyle";
+import type { RoundViewProps } from "../../../gameTypes";
+import type { ImpostorRoundState, ImpostorHistoryEntry } from "../../types/roundView";
 
 interface ResultPhaseScreenProps {
   room: RoundViewProps["room"];
@@ -49,7 +54,7 @@ export function ResultPhaseScreen({
   const roundParticipants = turnOrder ? room.players.filter(p => turnOrder.includes(p.id)) : room.players;
   const votes: Record<string, string> = round?.votes || {};
 
-  if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando resultado..." />;
+  if (revealCount > 0) return <BigTextFlash text="Descubramos quién era..." />;
 
   const winnerColor = abortedReason ? "#E2C44A" : winner === "innocents" ? "#5DCAA5" : "#F09595";
 
@@ -68,28 +73,39 @@ export function ResultPhaseScreen({
       );
     }
     if (revealStep === "outcome" && matchOver) {
-      return (
-        <MatchOutcomeOverlay
-          winner={winner}
-          impostorNames={impostors.map(p => p.name)}
-          word={String(word ?? "")}
-          onContinue={() => setRevealStep("done")}
-        />
-      );
+      return <MatchOutcomeOverlay winner={winner} impostorNames={impostors.map(p => p.name)} onContinue={() => setRevealStep("done")} />;
     }
   }
 
+  const eliminatedId = round?.eliminated ?? lastH?.eliminated;
+  const glowStyle = { "--impostor-action-glow": "rgba(93,202,165,0.35)" } as CSSProperties;
+
   return (
     <PhaseTransition phaseKey="result">
-      <div>
+      <div style={{ paddingBottom: 88 }}>
+        <style>{actionBtnStyle}</style>
         {/* The normal win/lose outcome is already shown in MatchOutcomeOverlay
             above — this only needs to cover abortedReason, whose path skips
             that overlay entirely (there's no real elimination to walk
             through when the impostor just left). */}
         {abortedReason === "impostor_disconnected" && (
-          <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: winnerColor, marginTop: 8 }}>🔌 El impostor se desconectó</p>
-            <p style={{ fontSize: 13, color: "var(--jt-muted-text)", marginTop: 4 }}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <p
+              style={{
+                margin: "0 0 6px",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--jt-accent, #e0202b)",
+              }}
+            >
+              Partida terminada
+            </p>
+            <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", color: winnerColor }}>
+              🔌 El impostor se desconectó
+            </h2>
+            <p style={{ ...S.muted, fontSize: 13 }}>
               La partida se cerró sin definir un ganador porque el impostor abandonó.
               {votesDiscarded && " Los votos que ya se habían emitido en esta ronda no se cuentan."}
             </p>
@@ -102,44 +118,41 @@ export function ResultPhaseScreen({
           </p>
         )}
 
-        <div style={S.card}>
-          <span style={S.label}>Votos</span>
-          {roundParticipants.map(p => {
-            const count = Object.values(votes).filter(v => v === p.id).length;
-            const total = Math.max(1, roundParticipants.length - 1);
-            const voterNames = roundParticipants.filter(v => votes[v.id] === p.id).map(v => v.name);
-            return (
-              <div key={p.id} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 13 }}>{p.name}</span>
-                  <span style={S.muted}>{count} votos</span>
-                </div>
-                <div style={{ height: 5, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
-                  <div
-                    style={{
-                      height: "100%",
-                      borderRadius: 3,
-                      width: `${Math.round((count / total) * 100)}%`,
-                      background: p.id === (round?.eliminated ?? lastH?.eliminated) ? "#E24B4A" : "#5a2226",
-                      transition: "width 0.6s",
-                    }}
-                  />
-                </div>
-                {voterNames.length > 0 && <p style={{ ...S.muted, marginTop: 4, fontSize: 12 }}>Votado por: {voterNames.join(", ")}</p>}
-              </div>
-            );
-          })}
-        </div>
-
-        {isHost && matchOver && <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>}
-        {isHost && !matchOver && <StartButton onClick={() => send({ type: "continue_round" })}>Siguiente ronda</StartButton>}
-        {!isHost && (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "var(--jt-muted-text)", fontSize: 14 }}>
-              {matchOver ? "Esperando que el anfitrión inicie otra partida" : "Esperando que el anfitrión continúe la ronda"}
-            </p>
-          </div>
+        {!abortedReason && (
+          <MatchResultHeader
+            matchOver={matchOver}
+            eliminatedName={eliminated?.name}
+            winner={winner}
+            impostorNames={impostors.map(p => p.name)}
+            word={matchOver ? String(word ?? "") : undefined}
+          />
         )}
+
+        <VotesBreakdownCard
+          participants={roundParticipants.map(p => ({ id: p.id, name: p.name }))}
+          votes={votes}
+          eliminatedId={eliminatedId}
+        />
+
+        <StickyActionBar>
+          {isHost && matchOver && (
+            <StartButton onClick={() => send({ type: "new_game" })} className="impostor-action-btn" style={glowStyle}>
+              Nueva partida
+            </StartButton>
+          )}
+          {isHost && !matchOver && (
+            <StartButton onClick={() => send({ type: "continue_round" })} className="impostor-action-btn" style={glowStyle}>
+              Siguiente ronda
+            </StartButton>
+          )}
+          {!isHost && (
+            <div style={{ ...S.card, textAlign: "center", marginBottom: 0 }}>
+              <p style={{ color: "var(--jt-muted-text)", fontSize: 14 }}>
+                {matchOver ? "Esperando que el anfitrión inicie otra partida" : "Esperando que el anfitrión continúe la ronda"}
+              </p>
+            </div>
+          )}
+        </StickyActionBar>
       </div>
     </PhaseTransition>
   );
