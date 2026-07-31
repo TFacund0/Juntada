@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { S } from "../../../theme/styles";
+import { S } from "../../../../theme/styles";
 import { maxImpostors } from "@juntada/impostor-match-rules";
-import { TurnOrderEditor } from "../../../components/TurnOrderEditor";
-import { ConfigSection } from "./ConfigSection";
-import { ConfigTabs } from "./ConfigTabs";
-import { CategoriesTab } from "./CategoriesTab";
-import { RevealOnEliminationControl } from "./RevealOnEliminationControl";
-import { ShowCategoryControl } from "./ShowCategoryControl";
-import type { ConfigPanelProps } from "../../gameTypes";
+import { TurnOrderEditor } from "../../../../components/TurnOrderEditor";
+import { ConfigSection } from "../config/ConfigSection";
+import { ConfigTabs } from "../config/ConfigTabs";
+import { CategoriesTab } from "../config/CategoriesTab";
+import { RevealOnEliminationControl } from "../config/RevealOnEliminationControl";
+import { ShowCategoryControl } from "../config/ShowCategoryControl";
+import type { ConfigPanelProps } from "../../../gameTypes";
+import type { ImpostorConfigPanelState } from "../../types/roundView";
 
 // Host-only rules editor shown in the multiplayer lobby. Only re-renders when
 // this game is active in the room (see games/registry.js contract). Every
@@ -16,7 +17,7 @@ import type { ConfigPanelProps } from "../../gameTypes";
 
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const [tab, setTab] = useState<"cats" | "rules" | "order">("cats");
-  const config = room.config as any;
+  const config = room.config as unknown as ImpostorConfigPanelState;
   const maxImp = maxImpostors(room.players.length);
   const usedWords = room.usedWords as Record<string, string[]>;
 
@@ -165,6 +166,29 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
               </span>
             </label>
+          </ConfigSection>
+
+          <ConfigSection>
+            <span style={S.label}>¿Cómo van a discutir?</span>
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <button
+                onClick={() => updateConfig({ discussionMode: "voice" })}
+                style={{ ...S.btn(config.discussionMode !== "chat" ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+              >
+                Por voz
+              </button>
+              <button
+                onClick={() => updateConfig({ discussionMode: "chat" })}
+                style={{ ...S.btn(config.discussionMode === "chat" ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+              >
+                Chat de texto
+              </button>
+            </div>
+            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+              {config.discussionMode === "chat"
+                ? "Aparece un chat de texto en la fase de discusión para escribirse entre todos."
+                : "Discuten en voz alta (en persona o por llamada) — la app no necesita mostrar nada extra."}
+            </p>
           </ConfigSection>
         </div>
       )}

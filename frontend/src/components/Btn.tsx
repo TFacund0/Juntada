@@ -7,6 +7,7 @@ interface BtnProps {
   variant?: "primary" | "success" | "danger" | "ghost";
   disabled?: boolean;
   style?: CSSProperties;
+  className?: string;
 }
 
 /**
@@ -15,9 +16,14 @@ interface BtnProps {
  * Cambiar el look de una variante se hace ahí, una sola vez, en vez de en
  * cada lugar donde se usa un botón.
  */
-export function Btn({ children, onClick, variant = "primary", disabled, style = {} }: BtnProps) {
+export function Btn({ children, onClick, variant = "primary", disabled, style = {}, className }: BtnProps) {
   return (
-    <button disabled={disabled} onClick={disabled ? undefined : onClick} style={{ ...S.btn(variant, disabled), ...style }}>
+    <button
+      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      className={className}
+      style={{ ...S.btn(variant, disabled), ...style }}
+    >
       {children}
     </button>
   );

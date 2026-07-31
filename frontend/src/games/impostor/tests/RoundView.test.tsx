@@ -63,7 +63,7 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
-    expect(screen.getByText("Tocá para ver tu palabra")).toBeInTheDocument();
+    expect(screen.getByText("Tocá para ver tu carta")).toBeInTheDocument();
 
     const rerolledRoom = makeRoom("round", { rerollCount: 1 });
     rerender(
@@ -79,7 +79,7 @@ describe("Impostor RoundView — round phase", () => {
     );
 
     expect(screen.getByText("Cambiando de palabra...")).toBeInTheDocument();
-    expect(screen.queryByText("Tocá para ver tu palabra")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tocá para ver tu carta")).not.toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
@@ -89,7 +89,7 @@ describe("Impostor RoundView — round phase", () => {
     });
 
     expect(screen.queryByText("Cambiando de palabra...")).not.toBeInTheDocument();
-    expect(screen.getByText("Tocá para ver tu palabra")).toBeInTheDocument();
+    expect(screen.getByText("Tocá para ver tu carta")).toBeInTheDocument();
   });
 
   test("shows the innocent's secret word once the card is revealed", async () => {
@@ -106,12 +106,12 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
-    expect(screen.getByText("Tocá para ver tu palabra")).toBeInTheDocument();
-    await user.click(screen.getByText("Tocá para ver tu palabra"));
+    expect(screen.getByText("Tocá para ver tu carta")).toBeInTheDocument();
+    await user.click(screen.getByText("Tocá para ver tu carta"));
     expect(screen.getByText("Gato")).toBeInTheDocument();
   });
 
-  test("shows 'Sos el impostor' and the hint instead of the word for the impostor", async () => {
+  test("shows '¡Eres el impostor!' and the hint instead of the word for the impostor", async () => {
     const user = userEvent.setup();
     render(
       <RoundView
@@ -125,8 +125,8 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
-    await user.click(screen.getByText("Tocá para ver tu palabra"));
-    expect(screen.getByText("Sos el impostor")).toBeInTheDocument();
+    await user.click(screen.getByText("Tocá para ver tu carta"));
+    expect(screen.getByText("¡Eres el impostor!")).toBeInTheDocument();
     expect(screen.getByText("Vive en el agua")).toBeInTheDocument();
   });
 
@@ -177,11 +177,13 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Empezar pistas" }));
     await user.click(screen.getByRole("button", { name: "Ya dije mi palabra" }));
     expect(send).toHaveBeenCalledWith({ type: "submit_clue", clue: "" });
   });
 
-  test("players whose turn hasn't come up yet see a waiting message, not the input", () => {
+  test("players whose turn hasn't come up yet see a waiting message, not the input", async () => {
+    const user = userEvent.setup();
     render(
       <RoundView
         room={makeRoom("round")} // turnIndex 0 -> p1's turn, not p2's
@@ -194,6 +196,7 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Empezar pistas" }));
     expect(screen.getByText("Esperando a Jugador 1...")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Ya dije mi palabra" })).not.toBeInTheDocument();
   });
@@ -215,6 +218,7 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: "Empezar pistas" }));
     expect(screen.getByRole("button", { name: "Enviar palabra" })).toBeDisabled();
 
     await user.type(screen.getByPlaceholderText("Escribí tu palabra..."), "Maúlla");
@@ -269,7 +273,7 @@ describe("Impostor RoundView — voting phase", () => {
     await user.click(screen.getByRole("button", { name: "Confirmar voto" }));
 
     expect(send).toHaveBeenCalledWith({ type: "vote", suspectId: "p2" });
-    expect(screen.getByText("Voto confirmado. Esperando a los demás")).toBeInTheDocument();
+    expect(screen.getByText("Ya votaste — esperando a que confirmen los demás.")).toBeInTheDocument();
   });
 
   test("a tie limits the suspect list to just the revote candidates", () => {
@@ -330,10 +334,12 @@ describe("Impostor RoundView — result phase", () => {
     expect(screen.getByText("quedó eliminado/a")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
 
-    expect(screen.getByText("GANARON LOS INOCENTES")).toBeInTheDocument();
-    expect(screen.getByText("Gato")).toBeInTheDocument();
+    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
 
+    // The word only shows once now, on the underlying result page (not
+    // duplicated in the MatchOutcomeOverlay above) — same as LocalGame.
+    expect(screen.getByText("Gato")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Nueva partida" }));
     expect(send).toHaveBeenCalledWith({ type: "new_game" });
   });
@@ -413,7 +419,7 @@ describe("Impostor RoundView — result phase", () => {
     vi.useRealTimers();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    expect(screen.getByText("GANARON LOS INOCENTES")).toBeInTheDocument();
+    expect(screen.getByText("Ganaron los inocentes")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
 
     expect(screen.getByText("Esperando que el anfitrión inicie otra partida")).toBeInTheDocument();

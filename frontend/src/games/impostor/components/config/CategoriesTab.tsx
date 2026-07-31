@@ -1,4 +1,4 @@
-import { S } from "../../../theme/styles";
+import { S } from "../../../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 
 interface CategoriesTabProps {

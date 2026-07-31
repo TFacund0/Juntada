@@ -603,6 +603,245 @@ test("getPrivateView never reveals the word to the impostor", () => {
   assert.equal(engine.getPrivateView(room, innocentId).word, room.round.word);
 });
 
+test("cancel_skip_word withdraws a pending skip vote", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+
+  engine.handleAction(room, "p1", "skip_word", {});
+  assert.equal(room.round.skipVotes.length, 1);
+
+  const res = engine.handleAction(room, "p1", "cancel_skip_word", {});
+  assert.equal(res.handled, true);
+  assert.equal(room.round.skipVotes.length, 0);
+});
+
+test("cancel_skip_word only works during the round phase", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  finishAllTurns(room); // -> discussion
+
+  const res = engine.handleAction(room, "p1", "cancel_skip_word", {});
+  assert.equal(res.handled, false);
+});
+
+test("send_chat_message is rejected unless discussionMode is 'chat'", () => {
+  const room = makeRoom(); // default discussionMode: "voice"
+  engine.startRound(room);
+  finishAllTurns(room); // -> discussion
+
+  const res = engine.handleAction(room, "p1", "send_chat_message", { text: "hola" });
+  assert.equal(res.handled, false);
+  assert.deepEqual(room.round.chat, []);
+});
+
+test("send_chat_message is only accepted during discussion, from an alive player, with non-empty text", () => {
+  const room = makeRoom({
+    config: { ...engine.createConfig(), enabledCategories: allCategoriesEnabled(), discussionMode: "chat" },
+  });
+  engine.startRound(room);
+
+  // Not discussion yet.
+  const duringRound = engine.handleAction(room, "p1", "send_chat_message", { text: "hola" });
+  assert.equal(duringRound.handled, false);
+
+  finishAllTurns(room); // -> discussion
+
+  const empty = engine.handleAction(room, "p1", "send_chat_message", { text: "   " });
+  assert.equal(empty.handled, false);
+
+  const res = engine.handleAction(room, "p1", "send_chat_message", { text: "  sospecho de p2  " });
+  assert.equal(res.handled, true);
+  assert.equal(room.round.chat.length, 1);
+  assert.equal(room.round.chat[0].text, "sospecho de p2", "trimmed");
+  assert.equal(room.round.chat[0].playerId, "p1");
+  assert.equal(room.round.chat[0].name, "Ana");
+
+  const longText = "x".repeat(400);
+  engine.handleAction(room, "p2", "send_chat_message", { text: longText });
+  assert.equal(room.round.chat[1].text.length, 300, "clamped to 300 chars");
+});
+
+test("getPublicRoundView only exposes chat when discussionMode is 'chat'", () => {
+  const chatRoom = makeRoom({
+    config: { ...engine.createConfig(), enabledCategories: allCategoriesEnabled(), discussionMode: "chat" },
+  });
+  engine.startRound(chatRoom);
+  finishAllTurns(chatRoom);
+  engine.handleAction(chatRoom, "p1", "send_chat_message", { text: "hola" });
+  assert.deepEqual(engine.getPublicRoundView(chatRoom).chat, chatRoom.round.chat);
+
+  const voiceRoom = makeRoom();
+  engine.startRound(voiceRoom);
+  finishAllTurns(voiceRoom);
+  assert.equal(engine.getPublicRoundView(voiceRoom).chat, undefined);
+});
+
+test("new_game is host-only and only once the match is over, resetting the room to the lobby", () => {
+  const room = makeRoom({ hostId: "p1" });
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+
+  // Match still in progress: refused for anyone, including the host.
+  const tooEarly = engine.handleAction(room, "p1", "new_game", {});
+  assert.equal(tooEarly.handled, false);
+
+  room.phase = "voting";
+  for (const p of room.players) engine.handleAction(room, p.id, "vote", { suspectId: impostorId });
+  assert.equal(room.round.matchOver, true);
+
+  const nonHost = room.players.find((p: TestPlayer) => p.id !== room.hostId)!.id;
+  const nonHostAttempt = engine.handleAction(room, nonHost, "new_game", {});
+  assert.equal(nonHostAttempt.handled, false);
+
+  const res = engine.handleAction(room, "p1", "new_game", {});
+  assert.equal(res.handled, true);
+  assert.equal(room.round, null);
+  assert.equal(room.phase, "lobby");
+  assert.ok(room.players.every((p: TestPlayer) => p.ready === false));
+});
+
+test("a tied vote triggers a revote among just the tied suspects", () => {
+  const room = makeRoom({
+    players: [1, 2, 3, 4].map(n => ({ id: `p${n}`, name: `P${n}`, ready: false, online: true })),
+  });
+  engine.startRound(room);
+
+  room.phase = "voting";
+  // p1/p4 vote p3, p2/p3 vote p1 -> 2-2 tie between p1 and p3.
+  engine.handleAction(room, "p1", "vote", { suspectId: "p3" });
+  engine.handleAction(room, "p4", "vote", { suspectId: "p3" });
+  engine.handleAction(room, "p2", "vote", { suspectId: "p1" });
+  engine.handleAction(room, "p3", "vote", { suspectId: "p1" });
+
+  assert.equal(room.phase, "voting", "still voting — a tie doesn't resolve the round");
+  assert.equal(room.round.eliminated, null);
+  assert.deepEqual([...room.round.revoteCandidates].sort(), ["p1", "p3"]);
+  assert.equal(room.round.revoteCount, 1);
+  assert.deepEqual(room.round.votes, {}, "votes reset for the revote");
+});
+
+test("a revote only accepts votes for the tied candidates", () => {
+  const room = makeRoom({
+    players: [1, 2, 3, 4].map(n => ({ id: `p${n}`, name: `P${n}`, ready: false, online: true })),
+  });
+  engine.startRound(room);
+  room.phase = "voting";
+  engine.handleAction(room, "p1", "vote", { suspectId: "p3" });
+  engine.handleAction(room, "p4", "vote", { suspectId: "p3" });
+  engine.handleAction(room, "p2", "vote", { suspectId: "p1" });
+  engine.handleAction(room, "p3", "vote", { suspectId: "p1" });
+  assert.deepEqual([...room.round.revoteCandidates].sort(), ["p1", "p3"]);
+
+  const rejected = engine.handleAction(room, "p1", "vote", { suspectId: "p2" });
+  assert.equal(rejected.handled, false, "p2 isn't one of the tied candidates");
+
+  const accepted = engine.handleAction(room, "p1", "vote", { suspectId: "p3" });
+  assert.equal(accepted.handled, true);
+});
+
+test("a tie repeated past MAX_REVOTES is broken randomly instead of looping forever", () => {
+  const room = makeRoom({
+    players: [1, 2, 3, 4].map(n => ({ id: `p${n}`, name: `P${n}`, ready: false, online: true })),
+  });
+  engine.startRound(room);
+  room.phase = "voting";
+
+  // Same 2-2 tie, three times in a row (MAX_REVOTES = 2, so the third tie
+  // must resolve instead of asking for yet another revote).
+  for (let i = 0; i < 3; i++) {
+    engine.handleAction(room, "p1", "vote", { suspectId: "p3" });
+    engine.handleAction(room, "p4", "vote", { suspectId: "p3" });
+    engine.handleAction(room, "p2", "vote", { suspectId: "p1" });
+    engine.handleAction(room, "p3", "vote", { suspectId: "p1" });
+  }
+
+  assert.equal(room.phase, "result");
+  assert.equal(room.round.tieBrokenRandomly, true);
+  assert.ok(["p1", "p3"].includes(room.round.eliminated));
+  assert.equal(room.roundHistory.at(-1).tieBrokenRandomly, true);
+});
+
+test("onPlayerOffline immediately advances the turn only when it's specifically that player's turn", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const [current, next] = room.round.turnOrder;
+
+  // Someone else in the order going offline (not their turn yet) shouldn't
+  // touch the current turn.
+  engine.onPlayerOffline(room, next);
+  assert.equal(room.round.turnIndex, 0);
+
+  engine.onPlayerOffline(room, current);
+  assert.equal(room.round.turnIndex, 1, "the current player's turn was skipped immediately");
+  assert.equal(room.round.clues[current], "", "treated as an implicit pass, same as a timed-out turn");
+});
+
+test("onPlayerOffline is a no-op outside the round phase", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  finishAllTurns(room); // -> discussion
+  const someone = room.players[0].id;
+
+  engine.onPlayerOffline(room, someone); // should not throw or change phase
+  assert.equal(room.phase, "discussion");
+});
+
+test("votes already cast are discarded (and flagged) when the impostor is removed mid-voting", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+  const bystander = room.players.find((p: TestPlayer) => p.id !== impostorId)!;
+
+  room.phase = "voting";
+  engine.handleAction(room, bystander.id, "vote", { suspectId: impostorId });
+  assert.equal(Object.keys(room.round.votes).length, 1);
+
+  room.players = room.players.filter((p: TestPlayer) => p.id !== impostorId);
+  engine.maybeAdvance(room);
+
+  assert.equal(room.round.matchOver, true);
+  assert.equal(room.round.abortedReason, "impostor_disconnected");
+  assert.equal(room.round.votesDiscarded, true, "a vote had already been cast when the abort happened");
+  assert.equal(room.roundHistory.at(-1).votesDiscarded, true);
+});
+
+test("no votesDiscarded flag when the impostor is removed before voting even started", () => {
+  const room = makeRoom();
+  engine.startRound(room);
+  const impostorId = room.round.impostors[0];
+
+  room.players = room.players.filter((p: TestPlayer) => p.id !== impostorId);
+  engine.maybeAdvance(room);
+
+  assert.equal(room.round.abortedReason, "impostor_disconnected");
+  assert.equal(room.round.votesDiscarded, false);
+});
+
+test("rerollWord falls back to a brand-new match (word_pool_exhausted) once its category runs out of words", () => {
+  const [catA, catB] = Object.keys(CATEGORIES);
+  const room = makeRoom({
+    config: { ...engine.createConfig(), enabledCategories: { [catA]: true } },
+  });
+  engine.startRound(room);
+  assert.equal(room.round.categoryKey, catA, "the only enabled category");
+
+  // Exhaust catA completely (including the word currently in play), then
+  // switch what's "active" to catB — same as a host changing categories
+  // mid-match — so the fallback startRound has somewhere else to draw from.
+  room.usedWords[catA] = [...(CATEGORIES[catA] as { words: string[] }).words];
+  room.config.enabledCategories = { [catB]: true };
+
+  const first = engine.handleAction(room, "p1", "skip_word", {});
+  assert.equal(first.rerolled, undefined, "1 of 3 isn't a majority yet");
+  const res = engine.handleAction(room, "p2", "skip_word", {});
+
+  assert.equal(res.handled, true);
+  assert.equal(res.rerolled, true);
+  assert.equal(room.round.categoryKey, catB, "fell back to the only category with words left");
+  assert.equal(room.round.restartedReason, "word_pool_exhausted");
+  assert.deepEqual(room.round.matchEliminated, [], "a brand-new match, not a continuation");
+});
+
 // Data integrity, not engine behavior — but it belongs to the impostor's
 // hint feature and would otherwise only surface as a silently missing hint
 // in production the day someone adds a word without its match. words/hints

@@ -14,6 +14,19 @@ const OUTCOME_STYLE: Record<TurnCircleOutcome, { color: string; badge: string }>
   conceded: { color: "#F09595", badge: "🏳️" },
 };
 
+// With a handful of players the circle stays exactly as it always looked;
+// past that, avatars/labels shrink and the ring grows so a big roster (16+)
+// doesn't turn into an overlapping pile — chord length between neighboring
+// avatars only gets tight enough to collide once you're well past what a
+// pass-and-play group of that size can even fit in a room anyway.
+function scaleFor(n: number) {
+  if (n <= 6) return { size: 260, radius: 96, avatar: 44, font: 11, labelWidth: 68, badge: 16 };
+  if (n <= 8) return { size: 280, radius: 108, avatar: 38, font: 10, labelWidth: 60, badge: 15 };
+  if (n <= 10) return { size: 300, radius: 122, avatar: 32, font: 10, labelWidth: 52, badge: 13 };
+  if (n <= 13) return { size: 320, radius: 136, avatar: 26, font: 9, labelWidth: 44, badge: 12 };
+  return { size: 340, radius: 148, avatar: 22, font: 8, labelWidth: 38, badge: 11 };
+}
+
 /**
  * El orden de turno de la ronda dispuesto como un círculo: a quien le toca
  * el turno brilla, los jugadores que ya jugaron esta vuelta quedan
@@ -44,12 +57,11 @@ export function TurnCircle({
   meId: string | undefined;
   outcomes?: Record<string, TurnCircleOutcome>;
 }) {
-  const size = 260;
-  const radius = 96;
-  const center = size / 2;
   const ordered = turnOrder.map(id => players.find(p => p.id === id)).filter((p): p is TurnCirclePlayer => Boolean(p));
   const n = ordered.length;
   const current = ordered[turnIndex];
+  const { size, radius, avatar, font, labelWidth, badge } = scaleFor(n);
+  const center = size / 2;
 
   return (
     <div style={{ position: "relative", width: size, height: size, margin: "0 auto 12px" }}>
@@ -73,7 +85,7 @@ export function TurnCircle({
               flexDirection: "column",
               alignItems: "center",
               gap: 3,
-              width: 68,
+              width: labelWidth,
             }}
           >
             <div
@@ -93,7 +105,7 @@ export function TurnCircle({
                 transition: "all 0.2s",
               }}
             >
-              <Avatar name={p.name} size={44} />
+              <Avatar name={p.name} size={avatar} />
               {outcome ? (
                 <span
                   style={{
@@ -103,9 +115,9 @@ export function TurnCircle({
                     background: OUTCOME_STYLE[outcome].color,
                     color: "#0f0c1d",
                     borderRadius: "50%",
-                    width: 16,
-                    height: 16,
-                    fontSize: 9,
+                    width: badge,
+                    height: badge,
+                    fontSize: badge - 7,
                     fontWeight: 800,
                     display: "flex",
                     alignItems: "center",
@@ -123,9 +135,9 @@ export function TurnCircle({
                     background: "var(--jt-muted-text)",
                     color: "#fff",
                     borderRadius: "50%",
-                    width: 16,
-                    height: 16,
-                    fontSize: 9,
+                    width: badge,
+                    height: badge,
+                    fontSize: badge - 7,
                     fontWeight: 800,
                     display: "flex",
                     alignItems: "center",
@@ -144,9 +156,9 @@ export function TurnCircle({
                       background: "#5DCAA5",
                       color: "#0f0c1d",
                       borderRadius: "50%",
-                      width: 16,
-                      height: 16,
-                      fontSize: 10,
+                      width: badge,
+                      height: badge,
+                      fontSize: badge - 6,
                       fontWeight: 800,
                       display: "flex",
                       alignItems: "center",
@@ -160,7 +172,7 @@ export function TurnCircle({
             </div>
             <span
               style={{
-                fontSize: 11,
+                fontSize: font,
                 fontWeight: isCurrent ? 800 : 600,
                 color: outcome
                   ? OUTCOME_STYLE[outcome].color
@@ -175,7 +187,7 @@ export function TurnCircle({
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                maxWidth: 68,
+                maxWidth: labelWidth,
               }}
             >
               {isMe ? "Vos" : p.name}
@@ -186,7 +198,18 @@ export function TurnCircle({
       })}
       <div style={{ position: "absolute", left: center, top: center, transform: "translate(-50%, -50%)", textAlign: "center" }}>
         <p style={{ fontSize: 11, color: "var(--jt-muted-text)", margin: 0 }}>Turno de</p>
-        <p style={{ fontSize: 15, fontWeight: 800, color: "var(--jt-accent-strong, #AFA9EC)", margin: 0, maxWidth: 100 }}>
+        <p
+          style={{
+            fontSize: n > 10 ? 13 : 15,
+            fontWeight: 800,
+            color: "var(--jt-accent-strong, #AFA9EC)",
+            margin: 0,
+            maxWidth: Math.max(60, 2 * (radius - avatar)),
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
           {current?.name ?? "—"}
         </p>
       </div>

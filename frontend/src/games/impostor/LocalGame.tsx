@@ -3,11 +3,16 @@ import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors, matchWinner } from "@juntada/impostor-match-rules";
 import { shuffle } from "@juntada/core-utils";
 import { useFlashError } from "../../hooks/useFlashError";
-import { SetupScreen } from "./components/SetupScreen";
-import { RevealScreen } from "./components/RevealScreen";
-import { DiscussionScreen } from "./components/DiscussionScreen";
-import { VoteScreen } from "./components/VoteScreen";
-import { ResultScreen } from "./components/ResultScreen";
+import { SetupScreen } from "./components/local/SetupScreen";
+import { IntroScreen } from "./components/local/IntroScreen";
+import { RevealScreen } from "./components/local/RevealScreen";
+import { ClueEntryScreen } from "./components/local/ClueEntryScreen";
+import { ClueReadyScreen } from "./components/local/ClueReadyScreen";
+import { DiscussionScreen } from "./components/local/DiscussionScreen";
+import { VoteScreen } from "./components/local/VoteScreen";
+import { VoteResultsFlash } from "./components/local/VoteResultsFlash";
+import { RoundStartFlash } from "./components/shared/RoundStartFlash";
+import { ResultScreen } from "./components/local/ResultScreen";
 import type { LocalPlayer, Round, Config } from "./types/localGame";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -21,8 +26,16 @@ import type { LocalPlayer, Round, Config } from "./types/localGame";
 
 const MAX_REVOTES = 2;
 
-export function LocalGame() {
-  const [phase, setPhase] = useState<"setup" | "reveal" | "discussion" | "vote" | "result">("setup");
+export function LocalGame({
+  onExposeBack,
+  onExposeReset,
+}: {
+  onExposeBack?: (fn: () => boolean) => void;
+  onExposeReset?: (fn: () => void) => void;
+}) {
+  const [phase, setPhase] = useState<
+    "setup" | "intro" | "roundFlash" | "reveal" | "clues" | "cluesReady" | "discussion" | "vote" | "result"
+  >("setup");
   const [players, setPlayers] = useState<LocalPlayer[]>([
     { id: 1, name: "Jugador 1" },
     { id: 2, name: "Jugador 2" },
@@ -49,17 +62,22 @@ export function LocalGame() {
   // pace, same idea as Recámara's OutcomeBanner.
   const [revealStep, setRevealStep] = useState<"elimination" | "outcome" | "done">("elimination");
   const [revealIdx, setRevealIdx] = useState(0);
-  // A pass-and-play device shows the same screen to whoever's holding it —
-  // without an explicit "it's my turn now" tap between reveals, the previous
-  // player's word/impostor status could flash to the wrong eyes for however
-  // long the physical handoff takes. Reset every time revealIdx moves so
-  // each new player has to confirm before their own card becomes tappable.
-  const [handoffConfirmed, setHandoffConfirmed] = useState(false);
   const [wordVisible, setWordVisible] = useState(false);
+  const [clueIdx, setClueIdx] = useState(0);
   const [clueInput, setClueInput] = useState("");
   const [clues, setClues] = useState<Record<number, string>>({});
+  // Which lap of clue-giving this is within the current match (1 on a brand-
+  // new match, +1 every continueMatch) — keys clueHistory below so a vote
+  // that comes back around for another lap doesn't overwrite what got
+  // written the first time.
+  const [matchRound, setMatchRound] = useState(1);
+  const [clueHistory, setClueHistory] = useState<Record<number, Record<number, string>>>({});
   const [selection, setSelection] = useState<Record<number, number>>({}); // voterId -> suspectId not yet confirmed
   const [votes, setVotes] = useState<Record<number, number>>({});
+  // True for a beat right after the last vote confirms — holds the vote
+  // screen behind a full-screen dark flash (see VoteResultsFlash) instead
+  // of cutting straight to the result screen the instant votes resolve.
+  const [resultsFlashing, setResultsFlashing] = useState(false);
   const [usedWords, setUsedWords] = useState<Record<string, string[]>>({});
   // Bumped every time a round starts (a fresh match via startRound, or
   // another lap within one via continueMatch) — mirrors the online engine's
@@ -69,6 +87,23 @@ export function LocalGame() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeCats = Object.keys(config.enabledCategories).filter(k => config.enabledCategories[k]);
+
+  // Lets the app's global header "Volver" send an in-progress match back to
+  // the players/setup screen instead of exiting local mode entirely — only
+  // relevant once past setup, so it reports "not handled" from there and
+  // the header falls back to its normal exit-mode confirm. A pure check (no
+  // side effect) so App.tsx can confirm with the player *before* anything
+  // actually resets — see onExposeReset below for the actual action.
+  useEffect(() => {
+    onExposeBack?.(() => phase !== "setup");
+  }, [onExposeBack, phase]);
+
+  useEffect(() => {
+    onExposeReset?.(() => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setPhase("setup");
+    });
+  }, [onExposeReset]);
 
   // A host who sets e.g. 2 impostors then removes players down to where
   // maxImpostors(players.length) is only 1 would otherwise keep seeing "2"
@@ -98,13 +133,43 @@ export function LocalGame() {
 
   const beginReveal = () => {
     setRevealIdx(0);
-    setHandoffConfirmed(false);
     setWordVisible(false);
     setClueInput("");
     setClues({});
     setSelection({});
     setVotes({});
     setPhase("reveal");
+  };
+
+  // Bridges into a fresh round of reveals with the same brief full-screen
+  // flash (see RoundStartFlash) whether it's the very first round after the
+  // intro screen or another lap via continueMatch — instead of cutting
+  // straight to the first card either way.
+  const goToReveal = () => {
+    setPhase("roundFlash");
+    setTimeout(beginReveal, 1300);
+  };
+
+  // Once everyone's seen their card, "Pistas escritas" gets its own
+  // turn-based phase to actually type them (see ClueEntryScreen) instead of
+  // typing inline while still looking at your word/role — otherwise it's
+  // the same instant flip from reveal straight to discussion.
+  const afterReveal = () => {
+    if (config.writtenClues) {
+      setClueIdx(0);
+      setClueInput("");
+      setPhase("clues");
+    } else {
+      setPhase("cluesReady");
+    }
+  };
+
+  // Snapshots this lap's words into clueHistory (see matchRound above)
+  // before actually moving to discussion, so a later lap's ClueHistoryCard
+  // can still show what got written earlier instead of only the latest.
+  const finishClueEntry = () => {
+    setClueHistory(h => ({ ...h, [matchRound]: clues }));
+    goToDiscussion();
   };
 
   // Rotates a list of ids so the same player isn't always first — offset
@@ -133,7 +198,13 @@ export function LocalGame() {
       revoteCount: 0,
     });
     setTurnRotation(r => r + 1);
-    beginReveal();
+    setMatchRound(1);
+    setClueHistory({});
+    // A brand-new match gets the "Comienza la partida" intro beat first —
+    // it's the group's one chance to hear how the handoff works before the
+    // first card shows up. continueMatch (another lap within the same
+    // match, below) skips straight to reveal since that's already known.
+    setPhase("intro");
   };
 
   // Starts another round of clue-giving within the same match: a fresh turn
@@ -158,7 +229,8 @@ export function LocalGame() {
       revoteCount: 0,
     });
     setTurnRotation(r => r + 1);
-    beginReveal();
+    setMatchRound(r => r + 1);
+    goToReveal();
   };
 
   const goToDiscussion = () => {
@@ -245,7 +317,11 @@ export function LocalGame() {
       };
       setRound(resolved);
       setRevealStep("elimination");
-      setPhase("result");
+      setResultsFlashing(true);
+      setTimeout(() => {
+        setResultsFlashing(false);
+        setPhase("result");
+      }, 1400);
     }
   };
 
@@ -264,32 +340,54 @@ export function LocalGame() {
     );
   }
 
+  if (phase === "intro" && round) {
+    return <IntroScreen onStart={goToReveal} />;
+  }
+
+  if (phase === "roundFlash" && round) {
+    return <RoundStartFlash matchRound={matchRound} />;
+  }
+
   if (phase === "reveal" && round) {
     return (
       <RevealScreen
         round={round}
         players={players}
         config={config}
-        clues={clues}
-        setClues={setClues}
         revealIdx={revealIdx}
         setRevealIdx={setRevealIdx}
-        handoffConfirmed={handoffConfirmed}
-        setHandoffConfirmed={setHandoffConfirmed}
         wordVisible={wordVisible}
         setWordVisible={setWordVisible}
-        clueInput={clueInput}
-        setClueInput={setClueInput}
-        goToDiscussion={goToDiscussion}
+        onDone={afterReveal}
       />
     );
+  }
+
+  if (phase === "clues" && round) {
+    return (
+      <ClueEntryScreen
+        round={round}
+        players={players}
+        clues={clues}
+        clueIdx={clueIdx}
+        setClueIdx={setClueIdx}
+        clueInput={clueInput}
+        setClueInput={setClueInput}
+        setClues={setClues}
+        onDone={finishClueEntry}
+      />
+    );
+  }
+
+  if (phase === "cluesReady" && round) {
+    return <ClueReadyScreen round={round} players={players} config={config} matchRound={matchRound} onStart={goToDiscussion} />;
   }
 
   if (phase === "discussion" && round) {
     return (
       <DiscussionScreen
         config={config}
-        clues={clues}
+        clueHistory={clueHistory}
         players={players}
         timeLeft={timeLeft}
         onGoToVote={() => {
@@ -302,15 +400,17 @@ export function LocalGame() {
 
   if (phase === "vote" && round) {
     return (
-      <VoteScreen
-        round={round}
-        players={players}
-        clues={clues}
-        selection={selection}
-        setSelection={setSelection}
-        votes={votes}
-        confirmVote={confirmVote}
-      />
+      <>
+        <VoteScreen
+          round={round}
+          players={players}
+          selection={selection}
+          setSelection={setSelection}
+          votes={votes}
+          confirmVote={confirmVote}
+        />
+        {resultsFlashing && <VoteResultsFlash />}
+      </>
     );
   }
 

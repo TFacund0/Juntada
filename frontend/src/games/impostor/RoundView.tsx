@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useRevealCountdown } from "../../components/RevealCountdown";
-import { RoundPhaseScreen } from "./components/RoundPhaseScreen";
-import { DiscussionPhaseScreen } from "./components/DiscussionPhaseScreen";
-import { VotingPhaseScreen } from "./components/VotingPhaseScreen";
-import { ResultPhaseScreen } from "./components/ResultPhaseScreen";
+import { RoundPhaseScreen } from "./components/online/RoundPhaseScreen";
+import { DiscussionPhaseScreen } from "./components/online/DiscussionPhaseScreen";
+import { VotingPhaseScreen } from "./components/online/VotingPhaseScreen";
+import { ResultPhaseScreen } from "./components/online/ResultPhaseScreen";
+import { RoundStartFlash } from "./components/shared/RoundStartFlash";
 import type { RoundViewProps } from "../gameTypes";
 import type { ImpostorRoundState, ImpostorConfigState } from "./types/roundView";
 
@@ -12,8 +13,16 @@ import type { ImpostorRoundState, ImpostorConfigState } from "./types/roundView"
 // knows to render this while room.phase is one of those — everything about
 // what those phases *mean* for Impostor lives here (or in the per-phase
 // screen it dispatches to, under components/).
-export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send }: RoundViewProps) {
+export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }: RoundViewProps) {
   const [wordVisible, setWordVisible] = useState(false);
+  // Local-only, per-player pacing: everyone reveals their own card on their
+  // own device (no pass-and-play handoff to gate on), so instead of the
+  // whole room waiting on a server-driven step, each player taps "Empezar
+  // pistas" to move themselves from the reveal card to the turn-order
+  // screen whenever they're ready — same two-screen split as LocalGame's
+  // RevealScreen -> ClueEntryScreen, just paced individually instead of by
+  // device handoff.
+  const [readyForClues, setReadyForClues] = useState(false);
   const [clueText, setClueText] = useState("");
   const [clueSubmitted, setClueSubmitted] = useState(false);
   const [selectedSuspect, setSelectedSuspect] = useState<string | null>(null);
@@ -47,6 +56,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   // way it's a new word, so re-hide it and clear per-round local UI state.
   useEffect(() => {
     setWordVisible(false);
+    setReadyForClues(false);
     setClueText("");
     setClueSubmitted(false);
     setSelectedSuspect(null);
@@ -100,7 +110,36 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     setVoteConfirmed(false);
   }, [round?.revoteCount]);
 
+  // Same "¡A revelar cartas!" beat as LocalGame's own RoundStartFlash,
+  // bridging into a fresh round instead of cutting straight to the first
+  // card — fires whenever room.phase actually transitions *into* "round"
+  // (a brand-new match from the lobby, or continue_round after a
+  // non-decisive vote), not on every render while already there. Skipped on
+  // the very first render (joining/reconnecting mid-round shouldn't replay
+  // it) — same sentinel-ref guard as prevRerollCount/prevRestartedReason.
+  // The seed below is the one exception: this component only mounts once
+  // room.phase is already "round", so it can never itself observe the
+  // lobby→round edge for a match's actual first round — justEnteredRound is
+  // the shell (MultiplayerGame.tsx) telling us that edge just happened, so
+  // we seed "prev" as something other than "round" instead of null.
+  const prevRoomPhase = useRef<string | null>(justEnteredRound ? "lobby" : null);
+  const [roundStartFlashing, setRoundStartFlashing] = useState(false);
+  useEffect(() => {
+    const prev = prevRoomPhase.current;
+    prevRoomPhase.current = room.phase;
+    if (prev !== null && prev !== "round" && room.phase === "round") {
+      setRoundStartFlashing(true);
+      const t = setTimeout(() => setRoundStartFlashing(false), 1300);
+      return () => clearTimeout(t);
+    }
+  }, [room.phase]);
+
   if (room.phase === "round") {
+    // Each lap of clue-giving within a match adds one entry to
+    // matchEliminated (a vote that didn't decide it yet) before
+    // continue_round starts the next one — same "how many laps in" count as
+    // LocalGame's own matchRound.
+    if (roundStartFlashing) return <RoundStartFlash matchRound={(round?.matchEliminated?.length ?? 0) + 1} />;
     return (
       <RoundPhaseScreen
         room={room}
@@ -111,6 +150,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         config={config}
         wordVisible={wordVisible}
         setWordVisible={setWordVisible}
+        readyForClues={readyForClues}
+        setReadyForClues={setReadyForClues}
         clueText={clueText}
         setClueText={setClueText}
         clueSubmitted={clueSubmitted}

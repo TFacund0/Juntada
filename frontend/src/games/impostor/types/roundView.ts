@@ -29,6 +29,11 @@ export interface ImpostorRoundState {
   rerollCount: number;
   revoteCandidates: string[] | null;
   revoteCount: number;
+  // Only present when config.discussionMode is "chat" (see engine.ts's
+  // getPublicRoundView) — absent entirely for a "voice" match instead of an
+  // always-empty array, so the UI can key its "is chat on" check off
+  // presence rather than duplicating the config check.
+  chat?: { playerId: string; name: string; text: string; ts: number }[];
 }
 
 // Snapshot pushed onto room.roundHistory once a vote resolves (see engine.ts's
@@ -56,5 +61,19 @@ export interface ImpostorConfigState {
   hintsEnabled: boolean;
   clueTime: number;
   discussionTime: number;
+  discussionUnlimited: boolean;
   showCategory: boolean;
+  discussionMode: "voice" | "chat";
+}
+
+// The broader shape ConfigPanel.tsx (the host-only rules editor) reads/
+// writes — a superset of ImpostorConfigState above, which only covers what
+// the in-round screens themselves need. Kept separate so RoundPhaseScreen
+// et al. don't have to know about host-only concerns like numImpostors or
+// turnOrder.
+export interface ImpostorConfigPanelState extends ImpostorConfigState {
+  numImpostors: number;
+  revealOnElimination: boolean;
+  enabledCategories: Record<string, boolean>;
+  turnOrder: string[];
 }

@@ -1,5 +1,5 @@
-import { S } from "../../../theme/styles";
-import { TabRow } from "../../../components/TabRow";
+import { S } from "../../../../theme/styles";
+import { TabRow } from "../../../../components/TabRow";
 
 export type ConfigTabKey = "cats" | "rules" | "order";
 

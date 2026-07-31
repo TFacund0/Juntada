@@ -1,22 +1,22 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import { S } from "../../../../theme/styles";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors } from "@juntada/impostor-match-rules";
-import { nextPlayerName } from "../../../utils/playerNames";
-import { Btn } from "../../../components/Btn";
-import { Avatar } from "../../../components/Avatar";
-import { SetupTabs, type SetupTab } from "../../../components/SetupTabs";
-import { StickyActionBar } from "../../../components/StickyActionBar";
-import { StartButton } from "../../../components/StartButton";
-import { MinPlayersHint } from "../../../components/MinPlayersHint";
-import { ErrorBanner } from "../../../components/ErrorBanner";
-import { useFlashError } from "../../../hooks/useFlashError";
-import { ConfigSection } from "./ConfigSection";
-import { ConfigTabs } from "./ConfigTabs";
-import { CategoriesTab } from "./CategoriesTab";
-import { RevealOnEliminationControl } from "./RevealOnEliminationControl";
-import { ShowCategoryControl } from "./ShowCategoryControl";
-import type { LocalPlayer, Config } from "../types/localGame";
+import { nextPlayerName } from "../../../../utils/playerNames";
+import { Btn } from "../../../../components/Btn";
+import { Avatar } from "../../../../components/Avatar";
+import { SetupTabs, type SetupTab } from "../../../../components/SetupTabs";
+import { StickyActionBar } from "../../../../components/StickyActionBar";
+import { StartButton } from "../../../../components/StartButton";
+import { MinPlayersHint } from "../../../../components/MinPlayersHint";
+import { ErrorBanner } from "../../../../components/ErrorBanner";
+import { useFlashError } from "../../../../hooks/useFlashError";
+import { ConfigSection } from "../config/ConfigSection";
+import { ConfigTabs } from "../config/ConfigTabs";
+import { CategoriesTab } from "../config/CategoriesTab";
+import { RevealOnEliminationControl } from "../config/RevealOnEliminationControl";
+import { ShowCategoryControl } from "../config/ShowCategoryControl";
+import type { LocalPlayer, Config } from "../../types/localGame";
 
 interface SetupScreenProps {
   players: LocalPlayer[];
@@ -33,7 +33,6 @@ interface SetupScreenProps {
 // the "Iniciar ronda" sticky bar. Everything here is local-only concern —
 // nothing outside this phase needs the player-name input, tab state, etc.
 export function SetupScreen({ players, setPlayers, config, setConfig, usedWords, startRound, wordError, wordErrorKey }: SetupScreenProps) {
-  const [newName, setNewName] = useState("");
   const [nameError, nameErrorKey, setNameError] = useFlashError();
   const [tab, setTab] = useState<SetupTab>("players");
   // Mirrors online's ConfigPanel.tsx sub-tabs so both modes organize the
@@ -74,14 +73,9 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
   };
 
   const addPlayer = () => {
-    const trimmed = newName.trim() || nextPlayerName(players.map(p => p.name));
-    if (isDuplicateName(trimmed, null)) {
-      setNameError("Ya hay un jugador con ese nombre");
-      return;
-    }
+    const trimmed = nextPlayerName(players.map(p => p.name));
     setNameError("");
     setPlayers(p => [...p, { id: Date.now(), name: trimmed }]);
-    setNewName("");
   };
 
   return (
@@ -92,6 +86,24 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
 
       {tab === "players" && (
         <div style={S.card}>
+          <style>{`
+            .impostor-add-player-btn {
+              transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.2s ease-out;
+            }
+            .impostor-add-player-btn:hover {
+              transform: translateY(-1px);
+              filter: brightness(1.25);
+              border-color: var(--jt-accent, #7F77DD);
+            }
+            .impostor-add-player-btn:active {
+              transform: scale(0.97);
+            }
+            .impostor-remove-player-btn {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+          `}</style>
           <span style={S.label}>Jugadores ({players.length})</span>
           {players.map(p => (
             <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
@@ -99,26 +111,24 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
               <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
               <button
                 onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
+                className="impostor-remove-player-btn"
+                aria-label="Eliminar jugador"
                 style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
               >
-                ×
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
               </button>
             </div>
           ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <input
-              style={{ ...S.input, flex: 1 }}
-              placeholder="Nombre"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter") addPlayer();
-              }}
-            />
-            <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
-              Agregar
-            </Btn>
-          </div>
+          <Btn
+            variant="ghost"
+            onClick={addPlayer}
+            className="impostor-add-player-btn"
+            style={{ marginTop: 10, borderStyle: "dashed", borderWidth: 2 }}
+          >
+            + Añadir jugador
+          </Btn>
           <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
         </div>
       )}
@@ -310,7 +320,7 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
 
       <StickyActionBar>
         <StartButton onClick={startRound} disabled={players.length < 3 || activeCats.length === 0 || allCategoriesExhausted}>
-          Iniciar ronda
+          Empezar partida
         </StartButton>
         <MinPlayersHint count={players.length} min={3} />
         {players.length >= 3 && activeCats.length === 0 && (
