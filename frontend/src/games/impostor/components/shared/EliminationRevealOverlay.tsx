@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Avatar } from "../../../../components/Avatar";
+import { Avatar } from "../../../../components/ui/Avatar";
 import logo from "../../assets/logo.png";
 
 const overlayAnimations = `

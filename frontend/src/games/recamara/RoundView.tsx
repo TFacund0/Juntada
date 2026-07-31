@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./recamara.css";
-import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
-import { StartButton } from "../../components/StartButton";
+import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
+import { StartButton } from "../../components/setup/StartButton";
 import {
   describeFireOutcome,
   describeItemResult,

@@ -1,4 +1,4 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { ComingSoon } from "../../components/game-kit/ComingSoon";
 import type { GameDef } from "../gameTypes";
 
 // Aparece un número aleatorio de segundos objetivo; el jugador debe

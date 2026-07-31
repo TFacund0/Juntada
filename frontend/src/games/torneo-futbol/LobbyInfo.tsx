@@ -1,5 +1,5 @@
 import { S } from "../../theme/styles";
-import { Avatar } from "../../components/Avatar";
+import { Avatar } from "../../components/ui/Avatar";
 import type { LobbyInfoProps } from "../gameTypes";
 
 // Read-only mirror of the host's "Asignar" tab (see TeamConfigPanel), shown

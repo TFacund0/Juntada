@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from "react";
 import { S } from "../../theme/styles";
 import { DEFAULT_CATEGORIES, LETTERS } from "@juntada/tutifruti-data";
-import { Btn } from "../../components/Btn";
+import { Btn } from "../../components/ui/Btn";
 import type { ConfigPanelProps } from "../gameTypes";
 import { PageNumbers } from "./components/PageNumbers";
 import { CategoryChip } from "./components/CategoryChip";

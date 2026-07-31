@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { StartButton } from "../../components/StartButton";
-import { ConfirmBackButton } from "../../components/ConfirmBackButton";
-import { Avatar } from "../../components/Avatar";
-import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
-import { StickyActionBar } from "../../components/StickyActionBar";
+import { Btn } from "../../components/ui/Btn";
+import { StartButton } from "../../components/setup/StartButton";
+import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
+import { Avatar } from "../../components/ui/Avatar";
+import { SetupTabs, type SetupTab } from "../../components/setup/SetupTabs";
+import { StickyActionBar } from "../../components/setup/StickyActionBar";
 import { TeamConfigPanel } from "./components/TeamConfigPanel";
 import { buildBracket, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
-import { ErrorBanner } from "../../components/ErrorBanner";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
-import { nextPlayerName } from "../../utils/playerNames";
+import { nextPlayerName } from "../../utils/nextPlayerName";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TORNEO DE FÚTBOL — un solo dispositivo. Mismo esquema de setup que el modo

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { Avatar } from "../../../components/Avatar";
-import { TabRow } from "../../../components/TabRow";
+import { Btn } from "../../../components/ui/Btn";
+import { Avatar } from "../../../components/ui/Avatar";
+import { TabRow } from "../../../components/setup/TabRow";
 import { shuffle } from "@juntada/core-utils";
 import { nextPowerOf2 } from "@juntada/torneo-futbol-bracket";
 

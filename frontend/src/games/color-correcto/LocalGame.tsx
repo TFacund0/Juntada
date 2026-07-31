@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { S } from "../../theme/styles";
-import { StartButton } from "../../components/StartButton";
-import { ConfirmBackButton } from "../../components/ConfirmBackButton";
-import { Timer } from "../../components/Timer";
-import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
-import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
-import { StickyActionBar } from "../../components/StickyActionBar";
+import { StartButton } from "../../components/setup/StartButton";
+import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
+import { Timer } from "../../components/game-kit/Timer";
+import { RevealCountdown, useRevealCountdown } from "../../components/game-kit/RevealCountdown";
+import { SetupTabs, type SetupTab } from "../../components/setup/SetupTabs";
+import { StickyActionBar } from "../../components/setup/StickyActionBar";
 import { randomTargetColor, scoreGuess, SHOW_SECONDS } from "@juntada/color-correcto-scoring";
 import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./components/ColorPicker";
 import { ColorCompareRow } from "./components/ColorCompareRow";

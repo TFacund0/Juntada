@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
+import { RevealCountdown, useRevealCountdown } from "../../components/game-kit/RevealCountdown";
 import { type Tool } from "./components/Canvas";
 import { ChoosingPhaseScreen } from "./components/ChoosingPhaseScreen";
 import { DrawingPhaseScreen } from "./components/DrawingPhaseScreen";

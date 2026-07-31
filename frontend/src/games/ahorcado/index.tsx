@@ -1,4 +1,4 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { ComingSoon } from "../../components/game-kit/ComingSoon";
 import type { GameDef } from "../gameTypes";
 
 // El clásico juego de adivinar una palabra letra por letra antes de

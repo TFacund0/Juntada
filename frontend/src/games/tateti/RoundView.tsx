@@ -1,9 +1,9 @@
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { StartButton } from "../../components/StartButton";
-import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
+import { Btn } from "../../components/ui/Btn";
+import { StartButton } from "../../components/setup/StartButton";
+import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
 import { Board } from "./components/Board";
-import { PhaseTransition } from "../../components/PhaseTransition";
+import { PhaseTransition } from "../../components/game-kit/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 
 interface TatetiRoundState {

@@ -1,0 +1,93 @@
+/* Scrim de fondo (oscurecido + blur, como si la homepage siguiera detrás) +
+   card centrada del modal de "Crear grupo"/"Unirme". Mismo lenguaje visual
+   que el Hero del home (blobs difuminados, gradiente de marca) para que se
+   sienta parte de la misma pantalla en vez de un diálogo de sistema aparte. */
+.jt-group-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 72%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.jt-group-modal-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(90px);
+}
+
+.jt-group-modal-glow--a {
+  left: 8%;
+  top: 12%;
+  width: 32vw;
+  height: 32vw;
+  max-width: 380px;
+  max-height: 380px;
+  min-width: 200px;
+  min-height: 200px;
+  background: color-mix(in srgb, var(--jt-accent, #7f77dd) 26%, transparent);
+}
+
+.jt-group-modal-glow--b {
+  right: 10%;
+  bottom: 10%;
+  width: 28vw;
+  height: 28vw;
+  max-width: 320px;
+  max-height: 320px;
+  min-width: 180px;
+  min-height: 180px;
+  background: color-mix(in srgb, #1d9e75 22%, transparent);
+}
+
+.jt-group-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.3));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.1));
+  color: var(--jt-accent-strong, #afa9ec);
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.jt-group-modal-close:hover {
+  transform: scale(1.08);
+  filter: brightness(1.2);
+}
+
+.jt-group-modal-close:active {
+  transform: scale(0.92);
+}
+
+.jt-group-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 28px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  box-shadow: 0 24px 70px -20px rgba(0, 0, 0, 0.7);
+  padding: 22px;
+}
+
+@media (min-width: 640px) {
+  .jt-group-modal-card {
+    max-width: 480px;
+    padding: 28px;
+  }
+}

@@ -1,0 +1,100 @@
+/* Menú desplegable "Grupo" — reemplaza a los botones "Unirme"/"Crear grupo"
+   en pantallas angostas (ver jt-home-nav-link/jt-home-cta-btn, ocultos ahí
+   por debajo del breakpoint) para que no compitan por espacio con el título
+   "Juntada" del navbar. Mismo lenguaje que las filas título+subtítulo del
+   resto de la app (ModePicker/MenuScreen), sin íconos. */
+
+.jt-group-menu-trigger {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.1));
+  color: var(--jt-accent-strong, #afa9ec);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.jt-group-menu-trigger:hover {
+  filter: brightness(1.15);
+}
+
+.jt-group-menu-trigger:active {
+  transform: scale(0.96);
+}
+
+.jt-group-menu-caret {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.jt-group-menu-trigger[aria-expanded="true"] .jt-group-menu-caret {
+  transform: rotate(180deg);
+}
+
+.jt-group-menu-panel {
+  width: 260px;
+  border-radius: 20px;
+  border: 1px solid var(--jt-accent-border, rgba(127, 119, 221, 0.4));
+  background: var(--jt-surface, #171329);
+  box-shadow: 0 20px 50px -14px rgba(0, 0, 0, 0.75);
+  padding: 10px;
+  animation: jt-dropdown-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.jt-group-menu-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 14px;
+  background: none;
+  padding: 12px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.jt-group-menu-row + .jt-group-menu-row {
+  margin-top: 4px;
+}
+
+.jt-group-menu-row:hover {
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.1));
+  transform: translateX(2px);
+}
+
+.jt-group-menu-row-title {
+  display: block;
+  font-weight: 800;
+  font-size: 14px;
+  color: #e8e4f0;
+}
+
+.jt-group-menu-row--primary .jt-group-menu-row-title {
+  background: linear-gradient(135deg, var(--jt-cta-from, #1d9e75), var(--jt-cta-to, #0f6e56));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.jt-group-menu-row-subtitle {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+/* Bajo este ancho, "Juntada" + los botones "Unirme"/"Crear grupo" ya no
+   entran en una sola fila sin superponerse — acá se los reemplaza por el
+   trigger compacto de este menú. */
+@media (max-width: 480px) {
+  .jt-group-menu-trigger {
+    display: inline-flex;
+  }
+}

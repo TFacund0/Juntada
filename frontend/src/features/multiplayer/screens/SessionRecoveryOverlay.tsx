@@ -2,115 +2,12 @@ import { useEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import brandLogo from "../../../assets/brand/logo.webp";
 import type { OverlayMode } from "../hooks/useMultiplayerSocket";
+import "./SessionRecoveryOverlay.css";
 
 // Modes with buttons a keyboard/screen-reader user actually needs to act on
 // — everything else ("connecting"/"reconnected") is a passive status update
 // that resolves on its own, so there's nothing to move focus to.
 const ACTIONABLE_MODES: OverlayMode[] = ["prompt", "gone", "failed"];
-
-const overlayStyle = `
-  @keyframes session-recovery-spin { to { transform: rotate(360deg); } }
-  @keyframes session-recovery-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes session-recovery-pulse-ring {
-    0% { box-shadow: 0 0 0 0 rgba(226,75,74,0.45); }
-    70% { box-shadow: 0 0 0 14px rgba(226,75,74,0); }
-    100% { box-shadow: 0 0 0 0 rgba(226,75,74,0); }
-  }
-  @keyframes session-recovery-check-pop {
-    0% { transform: scale(0.6); opacity: 0; }
-    60% { transform: scale(1.12); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  @keyframes session-recovery-mascot-pop {
-    0% { transform: scale(0.7) translateY(-10px); opacity: 0; }
-    55% { transform: scale(1.06) translateY(2px); opacity: 1; }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
-  }
-  @keyframes session-recovery-mascot-bob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-  }
-  @keyframes session-recovery-line-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes session-recovery-badge-pop {
-    0% { transform: scale(0); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  .session-recovery-mascot {
-    animation: session-recovery-mascot-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both, session-recovery-mascot-bob 3s ease-in-out 0.5s infinite;
-  }
-  .session-recovery-mascot.gone { animation: session-recovery-mascot-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-  .session-recovery-badge {
-    animation: session-recovery-badge-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both;
-  }
-  .session-recovery-line {
-    animation: session-recovery-line-in 0.35s ease-out both;
-  }
-  .session-recovery-link {
-    background: none;
-    border: none;
-    font-family: inherit;
-    cursor: pointer;
-    color: rgba(255,255,255,0.75);
-    font-weight: 700;
-    font-size: 14px;
-    padding: 8px;
-    position: relative;
-    transition: color 0.15s ease-out;
-  }
-  .session-recovery-link::after {
-    content: "";
-    position: absolute;
-    left: 8px;
-    right: 8px;
-    bottom: 4px;
-    height: 1px;
-    background: currentColor;
-    transform: scaleX(0);
-    transform-origin: center;
-    transition: transform 0.2s ease-out;
-  }
-  .session-recovery-link:hover { color: #fff; }
-  .session-recovery-link:hover::after { transform: scaleX(1); }
-  .session-recovery-link:active { transform: scale(0.97); }
-  .session-recovery-failed-icon {
-    animation: session-recovery-pulse-ring 1.8s ease-out infinite;
-  }
-  .session-recovery-failed-icon svg {
-    animation: session-recovery-spin 2.2s linear infinite;
-  }
-  .session-recovery-check {
-    animation: session-recovery-check-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  }
-  .session-recovery-btn {
-    border: none;
-    font-family: inherit;
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 14px 24px;
-    border-radius: 999px;
-    font-weight: 800;
-    font-size: 15px;
-    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease-out, box-shadow 0.2s ease-out;
-  }
-  .session-recovery-btn:hover { transform: translateY(-2px) scale(1.015); filter: brightness(1.15); }
-  .session-recovery-btn:active { transform: scale(0.96) translateY(0); filter: brightness(0.97); transition-duration: 0.05s; }
-  .session-recovery-btn.primary {
-    background: linear-gradient(135deg,#7F77DD,#534AB7);
-    color: #fff;
-    box-shadow: 0 8px 24px rgba(127,119,221,0.35);
-  }
-  .session-recovery-btn.primary:hover { box-shadow: 0 10px 30px rgba(127,119,221,0.5); }
-  .session-recovery-btn.ghost {
-    background: transparent;
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.18);
-  }
-  .session-recovery-btn.ghost:hover { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.06); }
-`;
 
 // Staggers the "prompt"/"gone" title → subtitle → button-stack reveal so
 // they read as a deliberate sequence instead of popping in all at once.
@@ -206,7 +103,6 @@ export function SessionRecoveryOverlay({
         textAlign: "center",
       }}
     >
-      <style>{overlayStyle}</style>
       <div style={{ animation: "session-recovery-fade-in 0.25s ease-out both", width: "100%", maxWidth: 320 }}>
         {mode !== "failed" && (
           <div style={{ position: "relative", display: "inline-block", marginBottom: 24 }}>

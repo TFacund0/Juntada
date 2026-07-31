@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-import { ReturnToGroupButton } from "../../../components/ReturnToGroupButton";
-import { Toast } from "../../../components/Toast";
-import { ErrorBanner } from "../../../components/ErrorBanner";
+import { ReturnToGroupButton } from "../../../components/ui/ReturnToGroupButton";
+import { Toast } from "../../../components/ui/Toast";
+import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import type { GameDef, RoundViewProps } from "../../../games/gameTypes";
 
 // Any in-progress phase that isn't menu/lobby/group — delegated entirely to

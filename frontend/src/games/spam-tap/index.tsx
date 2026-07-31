@@ -1,4 +1,4 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { ComingSoon } from "../../components/game-kit/ComingSoon";
 import type { GameDef } from "../gameTypes";
 
 // Competencia de toques: gana quien logre tocar la pantalla más veces en

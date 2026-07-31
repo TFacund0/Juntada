@@ -1,4 +1,4 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { ComingSoon } from "../../components/game-kit/ComingSoon";
 import type { GameDef } from "../gameTypes";
 
 // Un jugador actúa una palabra o frase secreta sin hablar y el resto debe

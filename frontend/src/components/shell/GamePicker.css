@@ -1,0 +1,266 @@
+/* Micro-animación de los chips de disponibilidad y foco de la barra de
+   búsqueda — consistente con el resto de la navbar/picker rediseñados. */
+
+.jt-avail-chip:hover {
+  transform: translateY(-1px);
+}
+
+.jt-avail-chip:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Campo de búsqueda — ícono absoluto adentro del input (no dos piezas con
+   flexbox), medidas calcadas del diseño de referencia: rounded-2xl (16px),
+   py-2.5/pl-10/pr-3 (10px / 40px / 12px), text-sm (14px). */
+.jt-search-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.jt-search-field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--jt-muted-text, #a49dc9);
+  pointer-events: none;
+}
+
+.jt-search-field-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 60%, transparent);
+  padding: 10px 12px 10px 40px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #e8e4f0;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.jt-search-field-input::placeholder {
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+.jt-search-field-input:focus {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.6));
+}
+
+/* Título de cada sección de categoría — peso normal (no extra-bold) y sin
+   letter-spacing negativo, más parecido en ancho/alto al font-bold del
+   diseño de referencia; crece un poco en pantallas grandes. */
+.jt-cat-title {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: normal;
+  color: #e8e4f0;
+}
+
+@media (min-width: 640px) {
+  .jt-cat-title {
+    font-size: 24px;
+  }
+}
+
+/* Barra de búsqueda + disponibilidad — queda pegada (sticky) justo debajo
+   del navbar al scrollear, con su propio fondo/blur para no mezclarse con
+   las cards que pasan por atrás. Los chips de categoría, debajo, no son
+   sticky (igual que el diseño de referencia). */
+.jt-sticky-controls {
+  position: sticky;
+  top: 64px;
+  z-index: 15;
+  background: var(--gradient-card, var(--jt-card-bg, rgba(255, 255, 255, 0.04)));
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  box-shadow: 0 1px 0 0 color-mix(in srgb, var(--jt-accent-strong, #afa9ec) 10%, transparent) inset;
+  border-radius: 24px;
+  padding: 12px;
+  backdrop-filter: blur(24px);
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.jt-sticky-controls .jt-search-field {
+  flex: 1;
+}
+
+/* Buscador (crece) + tabs Disponibles/Próximamente (segmented control, se
+   achica al contenido) — apilados en mobile, en la misma fila desde 640px,
+   igual que el diseño de referencia: rounded-2xl (16px) + p-1 (4px). */
+.jt-avail-tabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  border-radius: 16px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 50%, transparent);
+  padding: 4px;
+}
+
+@media (min-width: 640px) {
+  .jt-sticky-controls {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Fila de chips de categoría (Todos + cada categoría) — scroll horizontal
+   sin scrollbar visible, igual que el diseño de referencia. */
+.jt-cat-chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 18px;
+  scrollbar-width: none;
+}
+
+.jt-cat-chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* Chips de categoría — calcados del original: rounded-full, px-4 py-1.5
+   (16px/6px), text-sm (14px), inactivo bg-surface/40 + border-border,
+   hover SOLO en inactivo (border-accent/40 + text-foreground), activo
+   border-accent/60 + bg-accent/20 + text-foreground. Todo por clase (nada
+   por `style` inline) para que el hover pueda ganarle a algo — un estilo
+   inline siempre le gana a una regla de hoja de estilos, hover incluido. */
+.jt-cat-chip {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: color-mix(in srgb, var(--jt-surface, #171329) 40%, transparent);
+  color: var(--jt-muted-text, #a49dc9);
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.jt-cat-chip:hover {
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.4));
+  color: #e8e4f0;
+}
+
+.jt-cat-chip:active {
+  transform: scale(0.95);
+}
+
+.jt-cat-chip--active,
+.jt-cat-chip--active:hover {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.6));
+  background: color-mix(in srgb, var(--jt-accent, #7f77dd) 20%, transparent);
+  color: #e8e4f0;
+}
+
+/* Cards del catálogo — glow al hover + destello ("shine") que las cruza,
+   trasplantado del rediseño de Lovable. */
+.jt-game-card {
+  position: relative;
+  isolation: isolate;
+}
+
+.jt-game-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.45)) !important;
+  box-shadow: 0 24px 60px -22px color-mix(in srgb, var(--jt-accent, #7f77dd) 55%, transparent);
+}
+
+.jt-game-card:active {
+  transform: translateY(-1px) scale(0.985);
+}
+
+.jt-game-card .jt-card-thumb-img {
+  transition: transform 500ms ease;
+}
+
+.jt-game-card:hover .jt-card-thumb-img {
+  transform: scale(1.06);
+}
+
+.jt-game-card .jt-shine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.jt-game-card .jt-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: -60%;
+  width: 35%;
+  background: color-mix(in srgb, var(--jt-accent-strong, #afa9ec) 14%, transparent);
+  filter: blur(10px);
+  transform: translateX(-40%) skewX(-18deg);
+}
+
+.jt-game-card:hover .jt-shine::after {
+  animation: jt-shine 900ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-game-card,
+  .jt-game-card .jt-card-thumb-img {
+    transition: none !important;
+  }
+  .jt-game-card:hover .jt-shine::after {
+    animation: none !important;
+  }
+}
+
+/* Badge de duración sobre la miniatura (esquina superior derecha) — igual
+   criterio visual que soonBadge (styles.ts) pero para el tiempo de partida. */
+.jt-card-time-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.25));
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 65%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--jt-accent-strong, #afa9ec);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+}
+
+/* Grid de "Destacados" — cards más grandes (miniatura 16:10) y menos
+   columnas que el resto de las categorías, igual que el diseño original. */
+.jt-game-grid--featured {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 480px) {
+  .jt-game-grid--featured {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .jt-game-grid--featured {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

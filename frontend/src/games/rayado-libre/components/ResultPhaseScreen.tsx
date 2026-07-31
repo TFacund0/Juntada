@@ -1,7 +1,7 @@
 import { S } from "../../../theme/styles";
-import { StartButton } from "../../../components/StartButton";
-import { PhaseTransition } from "../../../components/PhaseTransition";
-import { LeaveToLobbyButton } from "../../../components/LeaveToLobbyButton";
+import { StartButton } from "../../../components/setup/StartButton";
+import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
+import { LeaveToLobbyButton } from "../../../components/game-kit/LeaveToLobbyButton";
 import type { RoundViewProps } from "../../gameTypes";
 import { Scoreboard } from "./Scoreboard";
 import { roomScore } from "../utils/roomScore";

@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 import { S } from "../../../../theme/styles";
-import { Btn } from "../../../../components/Btn";
-import { Timer } from "../../../../components/Timer";
-import { RevealCountdown } from "../../../../components/RevealCountdown";
-import { PhaseTransition } from "../../../../components/PhaseTransition";
-import { TurnCircle } from "../../../../components/TurnCircle";
+import { Btn } from "../../../../components/ui/Btn";
+import { Timer } from "../../../../components/game-kit/Timer";
+import { RevealCountdown } from "../../../../components/game-kit/RevealCountdown";
+import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
+import { TurnCircle } from "../../../../components/game-kit/TurnCircle";
 import { FlipRevealCard } from "../shared/FlipRevealCard";
 import { CluesReview } from "../shared/CluesReview";
 import { actionBtnStyle } from "../shared/actionBtnStyle";

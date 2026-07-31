@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 import { S } from "../../../../theme/styles";
-import { Btn } from "../../../../components/Btn";
-import { StickyActionBar } from "../../../../components/StickyActionBar";
-import { PhaseTransition } from "../../../../components/PhaseTransition";
+import { Btn } from "../../../../components/ui/Btn";
+import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
+import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
 import { CluesReview } from "../shared/CluesReview";
 import { SuspectGrid } from "../shared/SuspectGrid";
 import { useCountdownSeconds } from "../shared/RingTimer";

@@ -1,8 +1,8 @@
 import { useState, type CSSProperties } from "react";
 import { S } from "../../../../theme/styles";
 import { wordHint } from "@juntada/impostor-data";
-import { Btn } from "../../../../components/Btn";
-import { Avatar } from "../../../../components/Avatar";
+import { Btn } from "../../../../components/ui/Btn";
+import { Avatar } from "../../../../components/ui/Avatar";
 import { FlipRevealCard } from "../shared/FlipRevealCard";
 import { staggerPopStyle } from "../shared/staggerPopStyle";
 import { actionBtnStyle } from "../shared/actionBtnStyle";

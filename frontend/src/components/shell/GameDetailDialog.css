@@ -1,0 +1,143 @@
+/* Rediseño del diálogo de detalle de un juego (GamePicker → tocar una card)
+   — botones circulares sobre la miniatura (cerrar + "¿cómo se juega?", mismo
+   lenguaje que los íconos redondos del navbar de la partida en curso, ver
+   AppHeader.css .jt-nav-icon-btn) y un degradé para que el texto no quede
+   pegado al borde de la imagen. */
+
+.jt-detail-icon-btn {
+  position: absolute;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 12, 29, 0.55);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.jt-detail-icon-btn:hover {
+  transform: scale(1.08);
+  filter: brightness(1.25);
+}
+
+.jt-detail-icon-btn:active {
+  transform: scale(0.92);
+}
+
+.jt-detail-thumb-fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--jt-surface, #171329) 0%, transparent 45%);
+}
+
+.jt-detail-time-badge {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  right: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 12, 29, 0.55);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.jt-detail-category-pill {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.1));
+  color: var(--jt-accent-strong, #afa9ec);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+/* La card en sí — el `maxWidth={400}` de DialogFrame (inline) es lo que
+   dejaba esta card chica también en desktop, ya que un `style` inline le
+   gana a cualquier regla de una hoja de estilos, `@media` incluido; acá se
+   la puntea con `!important` para poder crecer en pantallas grandes. En
+   mobile se queda en el tamaño de siempre (bien, según el pedido original). */
+@media (min-width: 640px) {
+  .jt-detail-card {
+    max-width: 480px !important;
+  }
+}
+
+@media (min-width: 900px) {
+  .jt-detail-card {
+    max-width: 560px !important;
+  }
+}
+
+.jt-detail-thumb {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--jt-accent, #7f77dd) 26%, transparent), transparent 70%);
+}
+
+.jt-detail-body {
+  padding: 18px 20px 20px;
+}
+
+@media (min-width: 900px) {
+  .jt-detail-body {
+    padding: 24px 28px 28px;
+  }
+}
+
+/* Color explícito (no heredado) — el título usaba el color de texto por
+   defecto del navegador para un <h2> sin clase, que en algunos contextos
+   quedaba oscuro/negro sobre el fondo oscuro de la card y se veía invisible. */
+.jt-detail-title {
+  font-weight: 800;
+  font-size: 21px;
+  margin: 0;
+  letter-spacing: -0.01em;
+  color: #e8e4f0;
+}
+
+@media (min-width: 900px) {
+  .jt-detail-title {
+    font-size: 26px;
+  }
+}
+
+.jt-detail-players {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--jt-accent-strong, #afa9ec);
+}
+
+.jt-detail-desc {
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 14px;
+  margin: 0 0 20px;
+  line-height: 1.55;
+}
+
+@media (min-width: 900px) {
+  .jt-detail-players {
+    font-size: 14px;
+  }
+
+  .jt-detail-desc {
+    font-size: 15.5px;
+  }
+}

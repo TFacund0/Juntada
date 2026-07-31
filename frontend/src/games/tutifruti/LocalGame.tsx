@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
+import { Btn } from "../../components/ui/Btn";
 import { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } from "@juntada/tutifruti-data";
 import { PageNumbers } from "./components/PageNumbers";
 

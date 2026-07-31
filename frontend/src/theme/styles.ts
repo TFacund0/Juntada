@@ -239,10 +239,11 @@ export const S = {
     gap: 10,
     background: "var(--jt-card-bg, rgba(255,255,255,0.04))",
     border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-    borderRadius: 14,
-    padding: "0 14px",
-    height: 44,
+    borderRadius: 999,
+    padding: "0 16px",
+    height: 46,
     marginBottom: 18,
+    backdropFilter: "blur(10px)",
   } satisfies CSSProperties,
   searchInput: {
     flex: 1,
@@ -254,16 +255,17 @@ export const S = {
     fontFamily: "inherit",
   } satisfies CSSProperties,
   catalogCard: {
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(127,119,221,0.18)",
-    borderRadius: 14,
+    background: "var(--jt-card-bg, rgba(255,255,255,0.04))",
+    border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
+    borderRadius: 20,
     overflow: "hidden",
     cursor: "pointer",
+    transition:
+      "transform 320ms cubic-bezier(0.22,1,0.36,1), box-shadow 320ms cubic-bezier(0.22,1,0.36,1), border-color 320ms cubic-bezier(0.22,1,0.36,1)",
   } satisfies CSSProperties,
   catalogThumb: {
     aspectRatio: "4 / 3",
-    background:
-      "repeating-linear-gradient(135deg, rgba(127,119,221,0.16) 0px, rgba(127,119,221,0.16) 8px, rgba(127,119,221,0.06) 8px, rgba(127,119,221,0.06) 16px)",
+    background: "radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--jt-accent, #7f77dd) 22%, transparent), transparent 70%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -271,12 +273,13 @@ export const S = {
     position: "relative",
   } satisfies CSSProperties,
   catalogName: {
-    padding: "10px 12px",
+    padding: "10px 12px 12px",
     fontWeight: 700,
     fontSize: 14,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
+    borderTop: "1px solid var(--jt-row-border, rgba(127,119,221,0.08))",
   } satisfies CSSProperties,
   soonBadge: {
     position: "absolute",

@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { ErrorBanner } from "../../../components/ErrorBanner";
-import { NamePillEditor } from "../../../components/NamePillEditor";
-import { QRScannerDialog } from "../../../components/QRScannerDialog";
+import { Btn } from "../../../components/ui/Btn";
+import { ErrorBanner } from "../../../components/ui/ErrorBanner";
+import { NamePillEditor } from "../../../components/shell/NamePillEditor";
+import { QRScannerDialog } from "../../../components/dialogs/QRScannerDialog";
 import { getGame } from "../../../games/registry";
 import type { GameDef } from "../../../games/gameTypes";
 import type { RoomPreview } from "../hooks/useMultiplayerSocket";
-import "../../../components/ModePicker.css";
+import "../../../theme/modeRow.css";
+import "./MenuScreen.css";
 
 // Mismo lenguaje visual que ModePicker: squircle + SVG (Feather-style, trazo
 // blanco) para el ícono de cada fila principal — pero solo ahí. Adentro del
@@ -87,7 +88,7 @@ function ExpandableRow({
   children?: ReactNode;
 }) {
   return (
-    <div className="jt-mode-row" style={{ ...S.modeRow, flexDirection: "column", alignItems: "stretch", padding: 20 }}>
+    <div className="jt-mode-row jt-group-row-glow" style={{ ...S.modeRow, flexDirection: "column", alignItems: "stretch", padding: 20 }}>
       <button
         onClick={onSelect}
         aria-label={title}
@@ -106,7 +107,9 @@ function ExpandableRow({
           color: "inherit",
         }}
       >
-        <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>{icon}</div>
+        <div className="jt-group-icon-badge" style={S.modeIconBadge}>
+          {icon}
+        </div>
         <div style={{ flex: 1 }}>
           <p style={S.modeRowTitle}>{title}</p>
           <p style={S.modeRowSubtitle}>{subtitle}</p>
@@ -183,141 +186,145 @@ export function MenuScreen({
   submitting: boolean;
 }) {
   return (
-    <div>
-      {reconnectBanner}
-      <ErrorBanner message={error} flashKey={errorKey} variant="block" />
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
-        <NamePillEditor name={playerName} onSave={onSaveName} avatarSize={22} editing={editingName} onEditingChange={onEditingChange} />
-      </div>
+    <div className="jt-group-menu-bleed">
+      <div className="jt-group-menu-inner">
+        {reconnectBanner}
+        <ErrorBanner message={error} flashKey={errorKey} variant="block" />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
+          <NamePillEditor name={playerName} onSave={onSaveName} avatarSize={22} editing={editingName} onEditingChange={onEditingChange} />
+        </div>
 
-      <ExpandableRow
-        icon={<PlusIcon />}
-        title={inGroup ? "Crear grupo" : "Crear partida"}
-        subtitle="Generamos un código para compartir con tu grupo"
-        active={connectionPhase === "create"}
-        onSelect={() => onSetPhase(connectionPhase === "create" ? "menu" : "create")}
-      >
-        {inGroup && (
-          <div style={{ marginBottom: 16 }}>
-            <span style={S.label}>Nombre del grupo</span>
-            <input style={S.input} placeholder="Ej: Los pibes" value={roomName} onChange={e => onRoomNameChange(e.target.value)} />
-            <p style={{ ...S.muted, marginTop: 10 }}>Elegís qué jugar una vez adentro, con todo el grupo</p>
-          </div>
-        )}
-        <span style={S.label}>Código de acceso</span>
-        <p style={{ ...S.muted, margin: 0 }}>
-          El servidor genera un código random de 5 caracteres (ej. XJ7K2), listo cuando toques "Crear".
-        </p>
-        <Btn onClick={onCreateRoom} disabled={submitting} style={{ marginTop: 14 }}>
-          {submitting ? "Creando..." : inGroup ? "Crear grupo" : "Crear partida"}
-        </Btn>
-      </ExpandableRow>
-
-      <ExpandableRow
-        icon={<LinkIcon />}
-        title="Unirse"
-        subtitle={inGroup ? "Entrá a un grupo con su código" : "Entrá a una sala con su código"}
-        active={connectionPhase === "join"}
-        onSelect={() => onSetPhase(connectionPhase === "join" ? "menu" : "join")}
-      >
-        <span style={S.label}>{inGroup ? "Código del grupo" : "Código de sala"}</span>
-        <input
-          style={{ ...S.input, letterSpacing: "0.2em", textTransform: "uppercase", fontSize: 20, fontWeight: 700, textAlign: "center" }}
-          placeholder="XXXXX"
-          maxLength={5}
-          value={joinCode}
-          onChange={e => onJoinCodeChange(e.target.value.toUpperCase())}
-        />
-        <button
-          onClick={() => onShowScanner(true)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 6,
-            width: "100%",
-            margin: "10px 0 0",
-            background: "none",
-            border: "none",
-            color: "#7F77DD",
-            cursor: "pointer",
-            fontSize: 13,
-            fontFamily: "inherit",
-            fontWeight: 700,
-          }}
-        >
-          📷 Escanear código QR
-        </button>
-        {!inGroup &&
-          roomPreview &&
-          roomPreview.code === joinCode.trim().toUpperCase() &&
-          (roomPreview.found ? (
-            <div
-              style={{
-                marginTop: 10,
-                padding: "8px 10px",
-                borderRadius: 8,
-                background: "rgba(93,202,165,0.1)",
-                border: "1px solid rgba(93,202,165,0.3)",
-              }}
-            >
-              <p style={{ margin: 0, fontSize: 13, color: "#5DCAA5" }}>
-                {getGame(roomPreview.gameType ?? "")?.icon} Vas a unirte a: <b>{roomPreview.name}</b>
-              </p>
-              {selectedGame && roomPreview.gameType !== selectedGame.id && (
-                <p style={{ margin: "4px 0 0", fontSize: 11, color: "#EF9F27" }}>
-                  Ojo: esa sala es de {getGame(roomPreview.gameType ?? "")?.label ?? roomPreview.gameType}, no de {selectedGame.label}
-                </p>
-              )}
-            </div>
-          ) : roomPreview.isGroupCode ? (
-            <div
-              style={{
-                marginTop: 10,
-                padding: "10px 12px",
-                borderRadius: 8,
-                background: "rgba(226,196,74,0.1)",
-                border: "1px solid rgba(226,196,74,0.3)",
-              }}
-            >
-              <p style={{ margin: 0, fontSize: 13, color: "#E2C44A" }}>
-                Ese código es de un grupo
-                {roomPreview.name ? (
-                  <>
-                    {" "}
-                    (<b>{roomPreview.name}</b>)
-                  </>
-                ) : null}
-                , no de una sala.
-              </p>
-              <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                <Btn
-                  variant="success"
-                  onClick={() => onSwitchToGroup?.(roomPreview.code)}
-                  style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}
-                >
-                  Unirme al grupo
-                </Btn>
-                <Btn variant="ghost" onClick={() => onJoinCodeChange("")} style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}>
-                  Cancelar
-                </Btn>
+        <div className="jt-group-menu-rows">
+          <ExpandableRow
+            icon={<PlusIcon />}
+            title={inGroup ? "Crear grupo" : "Crear partida"}
+            subtitle="Generamos un código para compartir con tu grupo"
+            active={connectionPhase === "create"}
+            onSelect={() => onSetPhase(connectionPhase === "create" ? "menu" : "create")}
+          >
+            {inGroup && (
+              <div style={{ marginBottom: 16 }}>
+                <span style={S.label}>Nombre del grupo</span>
+                <input style={S.input} placeholder="Ej: Los pibes" value={roomName} onChange={e => onRoomNameChange(e.target.value)} />
+                <p style={{ ...S.muted, marginTop: 10 }}>Elegís qué jugar una vez adentro, con todo el grupo</p>
               </div>
-            </div>
-          ) : (
-            <p style={{ ...S.muted, marginTop: 10, fontSize: 12 }}>No encontramos ninguna sala con ese código</p>
-          ))}
-        <Btn onClick={onJoinRoom} disabled={submitting} style={{ marginTop: 12 }}>
-          {submitting ? "Uniéndose..." : "Unirse →"}
-        </Btn>
-      </ExpandableRow>
+            )}
+            <span style={S.label}>Código de acceso</span>
+            <p style={{ ...S.muted, margin: 0 }}>
+              El servidor genera un código random de 5 caracteres (ej. XJ7K2), listo cuando toques "Crear".
+            </p>
+            <Btn onClick={onCreateRoom} disabled={submitting} className="jt-home-cta-btn" style={{ marginTop: 14 }}>
+              {submitting ? "Creando..." : inGroup ? "Crear grupo" : "Crear partida"}
+            </Btn>
+          </ExpandableRow>
 
-      {showScanner && (
-        <QRScannerDialog
-          title={inGroup ? "Escaneá el QR del grupo" : "Escaneá el QR de la sala"}
-          onScan={onScan}
-          onClose={() => onShowScanner(false)}
-        />
-      )}
+          <ExpandableRow
+            icon={<LinkIcon />}
+            title="Unirse"
+            subtitle={inGroup ? "Entrá a un grupo con su código" : "Entrá a una sala con su código"}
+            active={connectionPhase === "join"}
+            onSelect={() => onSetPhase(connectionPhase === "join" ? "menu" : "join")}
+          >
+            <span style={S.label}>{inGroup ? "Código del grupo" : "Código de sala"}</span>
+            <input
+              style={{ ...S.input, letterSpacing: "0.2em", textTransform: "uppercase", fontSize: 20, fontWeight: 700, textAlign: "center" }}
+              placeholder="XXXXX"
+              maxLength={5}
+              value={joinCode}
+              onChange={e => onJoinCodeChange(e.target.value.toUpperCase())}
+            />
+            <button
+              onClick={() => onShowScanner(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+                margin: "10px 0 0",
+                background: "none",
+                border: "none",
+                color: "#7F77DD",
+                cursor: "pointer",
+                fontSize: 13,
+                fontFamily: "inherit",
+                fontWeight: 700,
+              }}
+            >
+              📷 Escanear código QR
+            </button>
+            {!inGroup &&
+              roomPreview &&
+              roomPreview.code === joinCode.trim().toUpperCase() &&
+              (roomPreview.found ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    background: "rgba(93,202,165,0.1)",
+                    border: "1px solid rgba(93,202,165,0.3)",
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: 13, color: "#5DCAA5" }}>
+                    {getGame(roomPreview.gameType ?? "")?.icon} Vas a unirte a: <b>{roomPreview.name}</b>
+                  </p>
+                  {selectedGame && roomPreview.gameType !== selectedGame.id && (
+                    <p style={{ margin: "4px 0 0", fontSize: 11, color: "#EF9F27" }}>
+                      Ojo: esa sala es de {getGame(roomPreview.gameType ?? "")?.label ?? roomPreview.gameType}, no de {selectedGame.label}
+                    </p>
+                  )}
+                </div>
+              ) : roomPreview.isGroupCode ? (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    background: "rgba(226,196,74,0.1)",
+                    border: "1px solid rgba(226,196,74,0.3)",
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: 13, color: "#E2C44A" }}>
+                    Ese código es de un grupo
+                    {roomPreview.name ? (
+                      <>
+                        {" "}
+                        (<b>{roomPreview.name}</b>)
+                      </>
+                    ) : null}
+                    , no de una sala.
+                  </p>
+                  <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                    <Btn
+                      variant="success"
+                      onClick={() => onSwitchToGroup?.(roomPreview.code)}
+                      style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}
+                    >
+                      Unirme al grupo
+                    </Btn>
+                    <Btn variant="ghost" onClick={() => onJoinCodeChange("")} style={{ padding: "6px 14px", fontSize: 13, flex: 1 }}>
+                      Cancelar
+                    </Btn>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ ...S.muted, marginTop: 10, fontSize: 12 }}>No encontramos ninguna sala con ese código</p>
+              ))}
+            <Btn onClick={onJoinRoom} disabled={submitting} className="jt-home-cta-btn" style={{ marginTop: 12 }}>
+              {submitting ? "Uniéndose..." : "Unirse →"}
+            </Btn>
+          </ExpandableRow>
+        </div>
+
+        {showScanner && (
+          <QRScannerDialog
+            title={inGroup ? "Escaneá el QR del grupo" : "Escaneá el QR de la sala"}
+            onScan={onScan}
+            onClose={() => onShowScanner(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

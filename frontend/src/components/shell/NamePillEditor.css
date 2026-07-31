@@ -1,0 +1,110 @@
+/* Rediseño de NamePillEditor — gradiente de marca en el borde/anillo del
+   avatar (en vez del pill plano de antes), "Guardar"/"Cancelar" en texto (sin
+   íconos/emoji), input con el mismo look rounded + glow al foco que el resto
+   del rediseño (ver GroupEntryCard.css). */
+
+.jt-name-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  padding: 6px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.jt-name-pill:hover {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.5));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.08));
+}
+
+.jt-name-pill:active {
+  transform: scale(0.97);
+}
+
+.jt-name-pill--editing {
+  cursor: default;
+  padding: 6px 6px 6px 8px;
+}
+
+.jt-name-pill--editing:hover {
+  border-color: var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+}
+
+/* Anillo con el gradiente de marca alrededor del avatar — reemplaza el
+   círculo plano de antes sin tocar Avatar.tsx (que además se reusa en listas
+   de jugadores, donde su color por-nombre sí importa). */
+.jt-name-avatar-ring {
+  display: flex;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--jt-accent-strong, #afa9ec), var(--jt-accent, #7f77dd));
+  flex-shrink: 0;
+}
+
+.jt-name-pill-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: #e8e4f0;
+}
+
+.jt-name-pill-edit-hint {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--jt-accent-strong, #afa9ec);
+}
+
+.jt-name-pill-input {
+  background: none;
+  border: none;
+  outline: none;
+  color: #e8e4f0;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  width: 120px;
+}
+
+.jt-name-pill-input::placeholder {
+  color: var(--jt-muted-text, #a49dc9);
+  font-weight: 600;
+}
+
+.jt-name-pill-btn {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.jt-name-pill-btn--save {
+  color: #5dcaa5;
+  background: rgba(93, 202, 165, 0.14);
+}
+
+.jt-name-pill-btn--save:hover {
+  background: rgba(93, 202, 165, 0.24);
+}
+
+.jt-name-pill-btn--save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.jt-name-pill-btn--cancel {
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+.jt-name-pill-btn--cancel:hover {
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.08));
+  color: #e8e4f0;
+}

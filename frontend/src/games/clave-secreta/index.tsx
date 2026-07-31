@@ -1,4 +1,4 @@
-import { ComingSoon } from "../../components/ComingSoon";
+import { ComingSoon } from "../../components/game-kit/ComingSoon";
 import type { GameDef } from "../gameTypes";
 
 // Juego de mesa por equipos (Rojo vs Azul): un "spymaster" por equipo da

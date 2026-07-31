@@ -1,0 +1,24 @@
+/* Fade-in genérico para cambios de pantalla que no ameritan la cortina
+   completa (ver curtain.css) — onboarding, pasos de App.tsx y las
+   pantallas dentro de MultiplayerGame. Se remonta por `key` (ver
+   components/ScreenFade.tsx), así que solo anima la entrada. */
+@keyframes screen-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.screen-fade-in {
+  animation: screen-fade-in 0.32s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-fade-in {
+    animation: none;
+  }
+}

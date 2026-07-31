@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { StartButton } from "../../components/StartButton";
-import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
-import { PhaseTransition } from "../../components/PhaseTransition";
-import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
-import { Timer } from "../../components/Timer";
+import { Btn } from "../../components/ui/Btn";
+import { StartButton } from "../../components/setup/StartButton";
+import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
+import { PhaseTransition } from "../../components/game-kit/PhaseTransition";
+import { RevealCountdown, useRevealCountdown } from "../../components/game-kit/RevealCountdown";
+import { Timer } from "../../components/game-kit/Timer";
 import { ColorPicker, NEUTRAL_HSL, hexFromHsl } from "./components/ColorPicker";
 import { ColorCompareRow } from "./components/ColorCompareRow";
 import { Leaderboard } from "./components/Leaderboard";

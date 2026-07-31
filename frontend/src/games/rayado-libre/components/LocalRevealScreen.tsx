@@ -1,5 +1,5 @@
-import { StartButton } from "../../../components/StartButton";
-import { PhaseTransition } from "../../../components/PhaseTransition";
+import { StartButton } from "../../../components/setup/StartButton";
+import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import type { LocalPlayer } from "../types/localGame";
 import { RevealedWordCard } from "./RevealedWordCard";
 import { Scoreboard } from "./Scoreboard";

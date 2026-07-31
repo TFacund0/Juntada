@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Btn } from "../../../../components/Btn";
+import { Btn } from "../../../../components/ui/Btn";
 import logo from "../../assets/logo.png";
 
 interface IntroScreenProps {

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
-import type { SetupTab } from "../../components/SetupTabs";
+import { RevealCountdown, useRevealCountdown } from "../../components/game-kit/RevealCountdown";
+import type { SetupTab } from "../../components/setup/SetupTabs";
 import { useFlashError } from "../../hooks/useFlashError";
 import { shuffle } from "@juntada/core-utils";
-import { nextPlayerName } from "../../utils/playerNames";
+import { nextPlayerName } from "../../utils/nextPlayerName";
 import { CATEGORIES, activeWordPool, pickThreeWords as pickThreeWordsFromPool } from "@juntada/rayado-libre-data";
 import { scoreForGuess, DRAWER_POINTS_PER_GUESS, TURN_SECONDS, buildHintOrder, computeWordHint } from "@juntada/rayado-libre-scoring";
 import { type DrawAction, type Tool } from "./components/Canvas";

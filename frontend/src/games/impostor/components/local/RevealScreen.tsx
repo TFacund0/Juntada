@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { S } from "../../../../theme/styles";
 import { wordHint } from "@juntada/impostor-data";
-import { Btn } from "../../../../components/Btn";
+import { Btn } from "../../../../components/ui/Btn";
 import { FlipRevealCard } from "../shared/FlipRevealCard";
 import { actionBtnStyle } from "../shared/actionBtnStyle";
 import type { LocalPlayer, Round, Config } from "../../types/localGame";

@@ -1,0 +1,231 @@
+/* Micro-animaciones del navbar compartido (AppHeader) — un simple hover/press
+   en los círculos de navegación y una entrada breve para el menú
+   desplegable, en vez de que aparezcan/cambien de estado en seco. */
+
+.jt-nav-icon-btn {
+  width: 34px;
+  height: 34px;
+  transform: scale(1);
+}
+
+@media (min-width: 900px) {
+  .jt-nav-icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Logo/nombre del juego + iconos del navbar de las pantallas de juego —
+   crecen un poco en pantallas grandes, igual criterio que el navbar del
+   home (jt-text-gradient, jt-home-navbar). */
+.jt-ingame-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+@media (min-width: 900px) {
+  .jt-ingame-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+}
+
+.jt-ingame-title {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+@media (min-width: 900px) {
+  .jt-ingame-title {
+    font-size: 19px;
+  }
+}
+
+.jt-ingame-subtitle {
+  font-size: 10px;
+}
+
+@media (min-width: 900px) {
+  .jt-ingame-subtitle {
+    font-size: 12px;
+  }
+}
+
+.jt-nav-icon-btn:hover {
+  transform: scale(1.08);
+  filter: brightness(1.2);
+  background: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.4)) !important;
+}
+
+.jt-nav-icon-btn:active {
+  transform: scale(0.92);
+  filter: brightness(0.95);
+}
+
+.jt-dropdown-menu {
+  transform-origin: top right;
+  animation: jt-dropdown-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes jt-dropdown-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.jt-dropdown-menu-item {
+  transition:
+    background 0.12s ease,
+    transform 0.12s ease;
+}
+
+.jt-dropdown-menu-item:hover {
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.12));
+  transform: translateX(2px);
+}
+
+/* Navbar de la pantalla de inicio — "Unirme a un grupo" (acción real, se ve
+   siempre) y el botón "Crear grupo". */
+.jt-home-nav-link {
+  display: inline-flex;
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jt-muted-text, #a49dc9);
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.jt-home-nav-link:hover {
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.06));
+  color: #e8e4f0;
+}
+
+@media (min-width: 640px) {
+  .jt-home-nav-link {
+    padding: 8px 14px;
+  }
+}
+
+.jt-home-cta-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s ease;
+}
+
+.jt-home-cta-btn:hover {
+  transform: scale(1.04);
+}
+
+.jt-home-cta-btn:active {
+  transform: scale(0.96);
+}
+
+/* Disparador del menú de perfil — el avatar del jugador (con el mismo anillo
+   de gradiente que NamePillEditor.css) en vez del ícono de hamburguesa de
+   antes, ya que lo que abre es justamente su perfil. */
+.jt-profile-trigger {
+  display: flex;
+  border-radius: 50%;
+  padding: 2px;
+  border: none;
+  background: linear-gradient(135deg, var(--jt-accent-strong, #afa9ec), var(--jt-accent, #7f77dd));
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.jt-profile-trigger:hover {
+  transform: scale(1.08);
+  filter: brightness(1.15);
+}
+
+.jt-profile-trigger:active {
+  transform: scale(0.92);
+}
+
+.jt-home-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.jt-home-subtitle {
+  font-size: 12px;
+}
+
+.jt-home-nav {
+  gap: 8px;
+}
+
+/* Agrupa Unirme/Crear grupo (o el trigger "Grupo" en mobile, ver
+   GroupMenuDropdown.css) con el avatar de perfil como un solo bloque pegado
+   al borde derecho del navbar, en vez de dejar que "space-between" reparta
+   el espacio entre nav y avatar como si fueran secciones separadas. */
+.jt-home-actions {
+  gap: 14px;
+}
+
+/* Contenedor interno del navbar — simétrico a propósito: mismos anchos de
+   referencia y mismo padding interno (16px) que el contenido centrado
+   (jt-home-wrap, theme/homeDesign.css), así que el título/logo de un lado y
+   los botones/avatar del otro quedan alineados exactamente con el borde del
+   contenido de la página, no solo con el de la ventana. */
+.jt-home-navbar-inner {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+}
+
+@media (min-width: 640px) {
+  .jt-home-navbar-inner {
+    padding-left: max(16px, calc((100% - 660px) / 2 + 16px));
+    padding-right: max(16px, calc((100% - 660px) / 2 + 16px));
+  }
+}
+
+@media (min-width: 900px) {
+  .jt-home-navbar-inner {
+    padding-left: max(16px, calc((100% - 1140px) / 2 + 16px));
+    padding-right: max(16px, calc((100% - 1140px) / 2 + 16px));
+  }
+}
+
+
+/* Navbar del home en celulares angostos — "Juntada" + "Unirme" + "Crear
+   grupo" + avatar no entraban todos en una fila sin superponerse. Por debajo
+   de este ancho, "Unirme"/"Crear grupo" se esconden del todo (reemplazados
+   por GroupMenuDropdown, ver ese componente/CSS) — así el navbar se queda
+   en una sola fila siempre, sin necesitar envolver ni achicar texto.
+   El logo se achica un poco y el subtítulo decorativo se esconde para darle
+   más aire al título. */
+@media (max-width: 480px) {
+  .jt-home-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .jt-home-subtitle {
+    display: none;
+  }
+
+  .jt-home-nav .jt-home-nav-link,
+  .jt-home-nav .jt-home-cta-btn {
+    display: none;
+  }
+}
