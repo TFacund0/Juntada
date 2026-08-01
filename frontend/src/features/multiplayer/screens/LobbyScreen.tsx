@@ -1,5 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
 import { CodeDisplay } from "../../../components/ui/CodeDisplay";
 import { QRDialog } from "../../../components/dialogs/QRDialog";
@@ -316,13 +317,20 @@ export function LobbyScreen({
         </div>
       </div>
 
-      {isHost && (
-        <div ref={actionBarRef} className="jt-lobby-action-bar jt-lobby-breakout">
-          <div className="jt-lobby-action-inner jt-animate-rise" style={{ animationDelay: "160ms" }}>
-            {startAction}
-          </div>
-        </div>
-      )}
+      {isHost &&
+        // Portal a document.body: esta barra cuelga del <ScreenFade> de
+        // App.tsx, que anima con `transform` durante 0.32s al entrar al
+        // lobby — sin el portal quedaría atrapada por ese `transform` (mal
+        // ubicada) en vez de fija al viewport durante ese instante. Mismo
+        // motivo que StickyActionBar/RoomEntryModal.
+        createPortal(
+          <div ref={actionBarRef} className="jt-lobby-action-bar jt-lobby-breakout">
+            <div className="jt-lobby-action-inner jt-animate-rise" style={{ animationDelay: "160ms" }}>
+              {startAction}
+            </div>
+          </div>,
+          document.body,
+        )}
 
       <ReturnToGroupButton groupCode={room.groupCode} roomPhase={room.phase} onLeave={onLeaveInstance} />
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import brandLogo from "../../../assets/brand/logo.webp";
 import type { OverlayMode } from "../hooks/useMultiplayerSocket";
 import "./SessionRecoveryOverlay.css";
@@ -55,6 +56,13 @@ function IconCircle({
 // otherwise-interactive screen. A dropped socket used to "reconnect" behind
 // the player's back while they kept tapping around a stale screen; blocking
 // the whole screen makes the state impossible to miss or act on top of.
+// Portal to document.body: this hangs off MultiplayerGame, which sits
+// inside App.tsx's <ScreenFade>, and that animates with `transform` for
+// 0.32s on mount — a `transform` on an ancestor makes it the containing
+// block for any `position: fixed` descendant. Without the portal, this
+// overlay showed up pinned to that animating wrapper (mispositioned near
+// the top) for that first instant, then snapped to the real viewport once
+// the animation ended — same reason RoomEntryModal/GroupEntryModal portal.
 export function SessionRecoveryOverlay({
   mode,
   contextLabel,
@@ -85,7 +93,7 @@ export function SessionRecoveryOverlay({
     if (isActionable) primaryButtonRef.current?.focus();
   }, [mode, isActionable]);
 
-  return (
+  return createPortal(
     <div
       role={isActionable ? "alertdialog" : "status"}
       aria-live={isActionable ? "assertive" : "polite"}
@@ -324,6 +332,7 @@ export function SessionRecoveryOverlay({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

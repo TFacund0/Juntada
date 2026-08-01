@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Una única acción principal (arrancar la ronda/partida) fijada abajo de la
@@ -7,9 +8,15 @@ import type { ReactNode } from "react";
  * (`MultiplayerGame.tsx`) y en el setup local pasa-y-juega (`LocalGame.tsx`).
  * El contenido de la página necesita su propio padding inferior (~88px)
  * para que esto no tape la última card.
+ *
+ * Portal a document.body: esto cuelga del <ScreenFade> de App.tsx, que
+ * anima con `transform` durante 0.32s al montar la pantalla — un `transform`
+ * en un ancestro atrapa cualquier `position: fixed` de acá adentro, pegando
+ * esta barra al wrapper animado (mal ubicada) en vez de al viewport durante
+ * ese instante. Mismo motivo que RoomEntryModal/GroupEntryModal.
  */
 export function StickyActionBar({ children }: { children: ReactNode }) {
-  return (
+  return createPortal(
     <div
       style={{
         position: "fixed",
@@ -25,6 +32,7 @@ export function StickyActionBar({ children }: { children: ReactNode }) {
       }}
     >
       <div style={{ maxWidth: 480, margin: "0 auto" }}>{children}</div>
-    </div>
+    </div>,
+    document.body,
   );
 }
