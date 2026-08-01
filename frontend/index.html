@@ -23,8 +23,15 @@
         padding: 0;
         box-sizing: border-box;
       }
+      /* color explícito (no solo background): los diálogos modales
+         (DialogFrame, GroupEntryModal, RoomEntryModal, ...) usan
+         createPortal directo a este <body>, así que quedan afuera del
+         árbol donde App.tsx define color:#e8e4f0 (ver S.app en
+         theme/styles.ts) — sin esto, cualquier texto ahí adentro que no
+         fije su propio color caía al negro por defecto del navegador. */
       body {
         background: #0f0c1d;
+        color: #e8e4f0;
       }
       input,
       button,

@@ -1,0 +1,248 @@
+/* Diseño propio de la card de "Crear sala"/"Unirse" a la sala de un juego ya
+   elegido — mismo criterio de organización que GroupEntryCard (tabs +
+   panel) pero con su propia identidad visual para que no parezca un calco
+   de "Crear grupo": ícono del juego en una placa romboidal (en vez de un
+   ícono adentro del header) y tabs con subrayado deslizante (en vez de
+   pastilla rellena). */
+
+/* Contenida adentro de la card a propósito (nada de margin negativo para
+   "salirse" por arriba): RoomEntryModal.css le pone overflow-y:auto a la
+   card para que el formulario pueda scrollear en pantallas chicas, y ese
+   overflow en un solo eje hace que el navegador fuerce también el otro eje
+   a recortar (no puede quedar "visible" en un eje mientras el otro
+   scrollea) — así que cualquier cosa que sobresaliera del borde de la card
+   quedaba cortada a la mitad. */
+.jt-room-card-badge-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.jt-room-card-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    120% 120% at 30% 20%,
+    color-mix(in srgb, var(--jt-accent, #7f77dd) 55%, transparent),
+    var(--jt-surface, #171329)
+  );
+  border: 1px solid var(--jt-accent-border, rgba(127, 119, 221, 0.5));
+  box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
+  overflow: hidden;
+}
+
+.jt-room-card-badge > * {
+  transform: rotate(-45deg);
+}
+
+.jt-room-card-badge img {
+  width: 60%;
+  height: 60%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.jt-room-card-badge span {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.jt-room-card-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.jt-room-card-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--jt-accent-strong, #afa9ec);
+}
+
+.jt-room-card-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+/* Tabs con subrayado deslizante — distinto de la pastilla rellena de
+   GroupEntryCard (jt-group-tabs), para diferenciar "sala" de "grupo" a
+   simple vista aunque compartan la misma idea de organización. */
+.jt-room-tabs {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  border-bottom: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  margin-bottom: 20px;
+}
+
+.jt-room-tab {
+  position: relative;
+  padding: 8px 2px 12px;
+  background: none;
+  border: none;
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.jt-room-tab::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 0.25s ease;
+}
+
+.jt-room-tab:hover {
+  color: #e8e4f0;
+}
+
+.jt-room-tab--active,
+.jt-room-tab--active:hover {
+  color: #fff;
+}
+
+.jt-room-tab--active::after {
+  background: linear-gradient(90deg, var(--jt-accent-strong, #afa9ec), var(--jt-accent, #7f77dd));
+}
+
+.jt-room-tab-panel {
+  animation: jt-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.jt-room-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jt-accent-strong, #afa9ec);
+  margin-bottom: 8px;
+}
+
+.jt-room-field-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 60%, transparent);
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #e8e4f0;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.jt-room-field-input::placeholder {
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+.jt-room-field-input:focus {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.6));
+}
+
+.jt-room-field-input--code {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.jt-room-scan-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px dashed var(--jt-card-border, rgba(127, 119, 221, 0.3));
+  background: none;
+  color: var(--jt-accent-strong, #afa9ec);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.jt-room-scan-btn:hover {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.6));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.08));
+}
+
+.jt-room-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--jt-muted-text, #a49dc9);
+  line-height: 1.5;
+}
+
+/* Vista previa de la sala al escribir un código válido (found), o aviso de
+   que ese código pertenece a un grupo en vez de una sala (isGroupCode). */
+.jt-room-preview {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.jt-room-preview--found {
+  background: rgba(93, 202, 165, 0.1);
+  border: 1px solid rgba(93, 202, 165, 0.3);
+}
+
+.jt-room-preview--found .jt-room-preview-text {
+  color: #5dcaa5;
+}
+
+.jt-room-preview--group {
+  padding: 10px 12px;
+  background: rgba(226, 196, 74, 0.1);
+  border: 1px solid rgba(226, 196, 74, 0.3);
+}
+
+.jt-room-preview--group .jt-room-preview-text {
+  color: #e2c44a;
+}
+
+.jt-room-preview-text {
+  margin: 0;
+  font-size: 13px;
+}
+
+.jt-room-preview-warning {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #ef9f27;
+}
+
+.jt-room-preview-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-room-tab-panel {
+    animation: none;
+  }
+}

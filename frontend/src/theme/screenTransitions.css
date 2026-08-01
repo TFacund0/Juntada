@@ -27,8 +27,31 @@
   animation: screen-fade-in 0.32s ease-out;
 }
 
+/* Variante "para atrás" (ver `direction` en ScreenFade.tsx) — entra
+   deslizando desde la izquierda en vez de subir desde abajo, para que
+   retroceder un paso (Volver) se sienta espacialmente distinto de avanzar
+   (elegir juego/modo), no la misma animación sin importar el sentido. Mismo
+   motivo de `animation-fill-mode` no "both" que screen-fade-in de arriba:
+   un transform que quede pegado tras la animación atraparía cualquier
+   `position: fixed` descendiente. */
+@keyframes screen-fade-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.screen-fade-in--back {
+  animation: screen-fade-in-back 0.32s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .screen-fade-in {
+  .screen-fade-in,
+  .screen-fade-in--back {
     animation: none;
   }
 }

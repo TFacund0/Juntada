@@ -47,6 +47,7 @@ export function AppConfirmDialogs({
           cancelLabel="Seguir jugando"
           onConfirm={onConfirmGoBack}
           onCancel={onCancelBackConfirm}
+          tone="back"
         />
       )}
 
@@ -58,6 +59,7 @@ export function AppConfirmDialogs({
           cancelLabel="Seguir jugando"
           onConfirm={onConfirmLocalReset}
           onCancel={onCancelLocalResetConfirm}
+          tone="back"
         />
       )}
 
@@ -77,7 +79,12 @@ export function AppConfirmDialogs({
       )}
 
       {showReturnToGroupConfirm && (
-        <ConfirmDialog {...RETURN_TO_GROUP_CONFIRM} onConfirm={onConfirmReturnToGroup} onCancel={onCancelReturnToGroupConfirm} />
+        <ConfirmDialog
+          {...RETURN_TO_GROUP_CONFIRM}
+          onConfirm={onConfirmReturnToGroup}
+          onCancel={onCancelReturnToGroupConfirm}
+          tone="back"
+        />
       )}
     </>
   );

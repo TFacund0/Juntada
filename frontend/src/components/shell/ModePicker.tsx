@@ -97,57 +97,60 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
         </p>
       </div>
 
-      <div className="jt-mode-row" style={{ ...S.modeRow, padding: 20, marginBottom: 16 }} onClick={onSelectMulti}>
-        <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
-          <PlusIcon />
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={S.modeRowTitle}>Jugar online con amigos</p>
-          <p style={S.modeRowSubtitle}>Creá una sala o unite con un código, cada uno desde su celular</p>
-        </div>
-        <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
-      </div>
-
-      <div
-        className="jt-mode-row jt-mode-row-disabled"
-        style={{ ...S.modeRow, padding: 20, marginBottom: 16 }}
-        aria-disabled="true"
-        title="Todavía en desarrollo"
-      >
-        <div style={{ ...S.modeIconBadge, background: "var(--jt-muted, #5a5280)" }}>
-          <SearchIcon />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <p style={{ ...S.modeRowTitle, margin: 0 }}>Unirme a una partida online</p>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "var(--jt-muted-text, #6b6490)",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-                borderRadius: 999,
-                padding: "2px 8px",
-                flexShrink: 0,
-              }}
-            >
-              En desarrollo
-            </span>
+      <div className="jt-mode-grid">
+        <div className="jt-mode-card" onClick={onSelectMulti}>
+          <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
+            <PlusIcon />
           </div>
-          <p style={{ ...S.modeRowSubtitle, marginTop: 4 }}>Entrá a una sala pública con otros jugadores</p>
+          <div>
+            <p style={{ ...S.modeRowTitle, fontSize: 15 }}>Jugar online con amigos</p>
+            <p style={S.modeRowSubtitle}>Creá una sala o unite con un código, cada uno desde su celular</p>
+          </div>
+          <span className="jt-mode-card-cta">
+            Elegir
+            <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
+          </span>
         </div>
-      </div>
 
-      <div className="jt-mode-row" style={{ ...S.modeRow, padding: 20, marginBottom: 16 }} onClick={onSelectLocal}>
-        <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
-          <PhoneIcon />
+        <div className="jt-mode-card jt-mode-row-disabled" aria-disabled="true" title="Todavía en desarrollo">
+          <div style={{ ...S.modeIconBadge, background: "var(--jt-muted, #5a5280)", boxShadow: "none" }}>
+            <SearchIcon />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+              <p style={{ ...S.modeRowTitle, fontSize: 15, margin: 0 }}>Unirme a una partida online</p>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--jt-muted-text, #6b6490)",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
+                  borderRadius: 999,
+                  padding: "2px 8px",
+                  flexShrink: 0,
+                }}
+              >
+                En desarrollo
+              </span>
+            </div>
+            <p style={{ ...S.modeRowSubtitle, marginTop: 6 }}>Entrá a una sala pública con otros jugadores</p>
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <p style={S.modeRowTitle}>Jugar en persona</p>
-          <p style={S.modeRowSubtitle}>Un solo dispositivo para todo el grupo, se pasa por turnos</p>
+
+        <div className="jt-mode-card" onClick={onSelectLocal}>
+          <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
+            <PhoneIcon />
+          </div>
+          <div>
+            <p style={{ ...S.modeRowTitle, fontSize: 15 }}>Jugar en persona</p>
+            <p style={S.modeRowSubtitle}>Un solo dispositivo para todo el grupo, se pasa por turnos</p>
+          </div>
+          <span className="jt-mode-card-cta">
+            Elegir
+            <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
+          </span>
         </div>
-        <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
       </div>
     </div>
   );

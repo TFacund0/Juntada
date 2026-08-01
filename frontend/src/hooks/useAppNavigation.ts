@@ -240,6 +240,22 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
               ? "multi"
               : "empty";
 
+  // Dirección del ScreenFade (App.tsx) para este cambio de paso — un rango
+  // fijo por prefijo de stepKey (elegir juego → elegir modo → jugar) en vez
+  // de comparar los strings enteros, ya que dos stepKey del mismo "nivel"
+  // (ej. dos juegos distintos en modepicker-*) deben seguir sintiéndose como
+  // un salto lateral, no como ir "para atrás". El ref guarda el stepKey
+  // anterior y se actualiza recién en el efecto (después de este render),
+  // así la comparación de acá arriba siempre ve el valor previo al cambio
+  // actual, no el que se acaba de calcular.
+  const stepRank = (key: string) =>
+    key === "picker" ? 0 : key.startsWith("modepicker-") || key.startsWith("localonly-") ? 1 : key === "empty" ? 1 : 2;
+  const prevStepKeyRef = useRef(stepKey);
+  const stepDirection: "forward" | "back" = stepRank(stepKey) < stepRank(prevStepKeyRef.current) ? "back" : "forward";
+  useEffect(() => {
+    prevStepKeyRef.current = stepKey;
+  }, [stepKey]);
+
   return {
     gameId,
     setGameId,
@@ -285,6 +301,7 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     pickGame,
     startGroupFlow,
     stepKey,
+    stepDirection,
     GAME_LIST,
   };
 }

@@ -1,5 +1,7 @@
 import { Btn } from "../ui/Btn";
+import { BackArrowIcon, AlertIcon } from "../ui/icons";
 import { DialogFrame } from "./DialogFrame";
+import "./ConfirmDialog.css";
 
 interface ConfirmDialogProps {
   title: string;
@@ -8,34 +10,26 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
-}
-
-/** Ícono de alerta (Feather-style, trazo) para el badge del diálogo. */
-function AlertIcon() {
-  return (
-    <svg
-      width={22}
-      height={22}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="#F09595"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
+  /**
+   * "exit" (por defecto, rojo + ícono de alerta): dejar el flujo actual del
+   * todo (salir al menú principal, salir de un grupo) — irreversible sin
+   * repetir un código. "back" (ámbar + ícono de flecha): retroceder un paso
+   * dentro del mismo flujo (volver atrás en la partida, volver a jugadores,
+   * volver al grupo) — se puede volver a entrar sin fricción. Antes ambos
+   * casos compartían el mismo rojo/ícono de alerta, así que "¿Volver
+   * atrás?" y "¿Volver al menú principal?" se veían idénticos pese a ser
+   * severidades bien distintas.
+   */
+  tone?: "exit" | "back";
 }
 
 /**
  * Diálogo genérico de "¿estás seguro?" con confirmar/cancelar — usado en
  * toda la app (salir de una partida, del grupo, etc.). Centrado, con un
- * ícono de alerta arriba y texto más chico que antes: el título/mensaje
- * grandes y alineados a la izquierda leían más como un encabezado de
- * pantalla que como un aviso puntual.
+ * ícono arriba y texto más chico que antes: el título/mensaje grandes y
+ * alineados a la izquierda leían más como un encabezado de pantalla que
+ * como un aviso puntual. Ver `tone` arriba para la diferencia visual entre
+ * "salir del todo" y "retroceder un paso".
  */
 export function ConfirmDialog({
   title,
@@ -44,27 +38,20 @@ export function ConfirmDialog({
   cancelLabel = "Cancelar",
   onConfirm,
   onCancel,
+  tone = "exit",
 }: ConfirmDialogProps) {
+  const toneClass = tone === "back" ? "jt-confirm-card--back" : "";
   return (
-    <DialogFrame onClose={onCancel} textAlign="center">
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: 14,
-          background: "rgba(226,75,74,0.15)",
-          border: "1px solid rgba(226,75,74,0.3)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: "0 auto 14px",
-        }}
-      >
-        <AlertIcon />
+    <DialogFrame onClose={onCancel} textAlign="center" cardClassName={`jt-confirm-card jt-card-glow ${toneClass}`.trim()}>
+      <div className="jt-confirm-badge-wrap">
+        <div className="jt-confirm-badge-ping jt-animate-ping" />
+        <div className="jt-confirm-badge">
+          {tone === "back" ? <BackArrowIcon size={22} color="#E8C868" /> : <AlertIcon size={22} color="#F09595" />}
+        </div>
       </div>
-      <p style={{ fontWeight: 800, fontSize: 15, margin: "0 0 6px" }}>{title}</p>
-      <p style={{ color: "var(--jt-muted-text, #a49dc9)", fontSize: 13, margin: "0 0 20px", lineHeight: 1.5 }}>{message}</p>
-      <div style={{ display: "flex", gap: 10 }}>
+      <p className="jt-confirm-title">{title}</p>
+      <p className="jt-confirm-message">{message}</p>
+      <div className="jt-confirm-actions">
         <Btn variant="ghost" onClick={onCancel} style={{ fontSize: 13, padding: "11px 20px" }}>
           {cancelLabel}
         </Btn>

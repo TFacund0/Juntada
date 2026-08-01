@@ -13,7 +13,10 @@
   padding: 6px 8px;
   cursor: pointer;
   font-family: inherit;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .jt-name-pill:hover {
@@ -83,7 +86,9 @@
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .jt-name-pill-btn--save {

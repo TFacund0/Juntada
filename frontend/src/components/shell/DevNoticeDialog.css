@@ -1,0 +1,42 @@
+/* Diseño propio del aviso "app en desarrollo" — antes era el look genérico
+   de DialogFrame con un emoji suelto arriba del texto. Mismo lenguaje visual
+   que el resto del rediseño (glow detrás de la card, badge en placa), en
+   tono ámbar/construcción en vez de violeta o rojo — esto es un aviso
+   informativo, no una advertencia ni una acción destructiva. */
+
+/* position/overflow + el glow en sí (::before) viven en .jt-card-glow
+   (theme/sharedChrome.css, compartido con ConfirmDialog/GameRules) — acá
+   solo el color propio de este aviso (ámbar/construcción). */
+.jt-devnotice-card {
+  --jt-glow-color: var(--jt-warn-glow, rgba(226, 196, 74, 0.22));
+}
+
+.jt-devnotice-badge {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  background: linear-gradient(135deg, #e8c868, #e2a44a);
+  box-shadow: 0 10px 24px -10px rgba(226, 164, 74, 0.6);
+}
+
+.jt-devnotice-title {
+  position: relative;
+  font-weight: 800;
+  font-size: 17px;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.jt-devnotice-message {
+  position: relative;
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 14px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}

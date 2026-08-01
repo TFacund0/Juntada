@@ -1,5 +1,6 @@
 import type { CSSProperties, RefObject } from "react";
 import { Avatar } from "../ui/Avatar";
+import { CloseIcon, BackArrowIcon } from "../ui/icons";
 import { ProfilePanel } from "./ProfilePanel";
 import { GroupMenuDropdown } from "./GroupMenuDropdown";
 import type { GameDef } from "../../games/gameTypes";
@@ -45,6 +46,22 @@ const navIconBtn = (accentColor: string): CSSProperties => ({
   transition: "transform 0.15s, filter 0.15s",
 });
 
+// Chip del logo/ícono del juego en la navbar compacta — mismo lenguaje visual
+// que la miniatura de las cards del catálogo (GamePicker: catalogThumb, radial
+// gradient del acento + borde + glow) en vez de una imagen suelta sin fondo,
+// para que este navbar se sienta parte del mismo sistema que el resto del home
+// y no un componente aparte.
+const ingameIconWrap = (accentColor: string): CSSProperties => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  overflow: "hidden",
+  background: `radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, ${accentColor} 26%, transparent), transparent 70%)`,
+  border: `1px solid color-mix(in srgb, ${accentColor} 35%, transparent)`,
+  boxShadow: `0 8px 20px -12px color-mix(in srgb, ${accentColor} 65%, transparent)`,
+});
+
 // Iconos en línea (Feather-style: viewBox 24, trazo currentColor) en vez de
 // glifos de texto/emoji — un glifo como "←" o "⌂" trae su propio
 // ascenso/descenso tipográfico y queda ópticamente descentrado dentro del
@@ -69,24 +86,6 @@ function HelpIcon() {
       <circle cx="12" cy="12" r="10" />
       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg {...iconProps}>
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function BackIcon() {
-  return (
-    <svg {...iconProps}>
-      <line x1="19" y1="12" x2="5" y2="12" />
-      <polyline points="12 19 5 12 12 5" />
     </svg>
   );
 }
@@ -263,18 +262,24 @@ export function AppHeader({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            {game?.logo ? (
-              <img src={game.logo} alt="" className="jt-ingame-logo" style={{ objectFit: "cover", flexShrink: 0 }} />
-            ) : game?.icon ? (
-              <div style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>{game.icon}</div>
-            ) : (
-              <img src={logo} alt="" className="jt-ingame-logo" style={{ flexShrink: 0 }} />
-            )}
+            <div className="jt-ingame-logo" style={ingameIconWrap(accentColor)}>
+              {game?.logo ? (
+                <img src={game.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : game?.icon ? (
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{game.icon}</span>
+              ) : (
+                <img src={logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              )}
+            </div>
             <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
               <span
                 className="jt-ingame-title"
                 style={{
-                  color: accentColor,
+                  backgroundImage: `linear-gradient(100deg, color-mix(in srgb, ${accentColor} 100%, white 30%) 0%, ${accentColor} 55%, color-mix(in srgb, ${accentColor} 100%, white 30%) 100%)`,
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                  letterSpacing: "-0.02em",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -299,11 +304,11 @@ export function AppHeader({
                 aria-label="¿Cómo se juega?"
                 title="¿Cómo se juega?"
               >
-                {showRules ? <CloseIcon /> : <HelpIcon />}
+                {showRules ? <CloseIcon size={18} /> : <HelpIcon />}
               </button>
             )}
             <button onClick={onBack} className="jt-nav-icon-btn" style={navIconBtn(accentColor)} aria-label="Volver" title="Volver">
-              <BackIcon />
+              <BackArrowIcon size={18} />
             </button>
             <button
               onClick={onExit}

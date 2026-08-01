@@ -45,31 +45,15 @@
   background: color-mix(in srgb, #1d9e75 22%, transparent);
 }
 
+/* El look del botón en sí (30px, fondo/borde/hover) vive en .jt-close-chip
+   (theme/sharedChrome.css, compartido con RoomEntryModal/GameRules) — acá
+   solo su posición dentro de este modal en particular. La variante circular
+   sin giro (jt-close-chip--circle) es a propósito distinta del cuadrado con
+   giro de RoomEntryModal, para que las dos pantallas no se sientan la misma. */
 .jt-group-modal-close {
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.3));
-  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.1));
-  color: var(--jt-accent-strong, #afa9ec);
-  font-size: 13px;
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.jt-group-modal-close:hover {
-  transform: scale(1.08);
-  filter: brightness(1.2);
-}
-
-.jt-group-modal-close:active {
-  transform: scale(0.92);
 }
 
 .jt-group-modal-card {

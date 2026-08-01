@@ -64,6 +64,7 @@ export function ReturnToGroupButton({
             onLeave();
           }}
           onCancel={() => setConfirming(false)}
+          tone="back"
         />
       )}
     </>

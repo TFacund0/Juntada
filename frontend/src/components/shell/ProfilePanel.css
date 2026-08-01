@@ -104,7 +104,9 @@
   color: #fff;
   cursor: pointer;
   background: linear-gradient(135deg, var(--jt-cta-from, #1d9e75), var(--jt-cta-to, #0f6e56));
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .jt-profile-panel-save-btn:hover {

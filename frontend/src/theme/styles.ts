@@ -10,7 +10,14 @@ export const S = {
     color: "#e8e4f0",
     overflowX: "hidden",
   } satisfies CSSProperties,
-  wrap: { maxWidth: 480, margin: "0 auto", padding: "0 16px 60px" } satisfies CSSProperties,
+  // paddingTop deliberadamente afuera de acá (no es "padding" shorthand) — lo
+  // pone la clase .jt-content-pad-top (theme/sharedChrome.css) en vez de un
+  // valor fijo, porque necesita crecer en pantallas grandes (el navbar
+  // in-game crece desde los 900px) y un valor puesto por `style` inline le
+  // gana siempre a cualquier regla de una hoja de estilos — así que si
+  // "padding" (shorthand) incluyera el top acá, ninguna clase podría
+  // ajustarlo por breakpoint.
+  wrap: { maxWidth: 480, margin: "0 auto", paddingLeft: 16, paddingRight: 16, paddingBottom: 60 } satisfies CSSProperties,
   header: {
     textAlign: "center",
     padding: "32px 0 20px",
@@ -321,25 +328,15 @@ export const S = {
     cursor: "pointer",
     fontFamily: "inherit",
   } satisfies CSSProperties,
-  modeRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    background: "var(--jt-card-bg, rgba(255,255,255,0.04))",
-    border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    cursor: "pointer",
-  } satisfies CSSProperties,
   modeIconBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 15,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+    boxShadow: "0 10px 26px -10px color-mix(in srgb, var(--jt-accent, #7f77dd) 55%, transparent)",
   } satisfies CSSProperties,
   modeRowTitle: {
     fontWeight: 800,

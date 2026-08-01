@@ -3,6 +3,7 @@ import jsQR from "jsqr";
 import { Btn } from "../ui/Btn";
 import { DialogFrame } from "./DialogFrame";
 import { ErrorBanner } from "../ui/ErrorBanner";
+import "./QRScannerDialog.css";
 
 interface QRScannerDialogProps {
   title: string;
@@ -83,36 +84,30 @@ export function QRScannerDialog({ title, onScan, onClose }: QRScannerDialogProps
   }, []);
 
   return (
-    <DialogFrame onClose={onClose} maxWidth={340} overlayOpacity={0.85} textAlign="center">
-      <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 14px" }}>{title}</p>
+    <DialogFrame
+      onClose={onClose}
+      maxWidth={340}
+      overlayOpacity={0.85}
+      textAlign="center"
+      cardClassName="jt-qr-scan-card"
+      cardStyle={{ position: "relative", overflow: "hidden" }}
+    >
+      <p className="jt-text-gradient jt-qr-scan-title">{title}</p>
       {error ? (
         <ErrorBanner message={error} flashKey={0} variant="inline" />
       ) : (
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            aspectRatio: "1 / 1",
-            borderRadius: 14,
-            overflow: "hidden",
-            background: "#000",
-          }}
-        >
-          <video ref={videoRef} muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          <div
-            style={{
-              position: "absolute",
-              inset: 24,
-              border: "3px solid rgba(255,255,255,0.6)",
-              borderRadius: 12,
-              pointerEvents: "none",
-            }}
-          />
+        <div className="jt-qr-scan-frame">
+          <video ref={videoRef} muted playsInline className="jt-qr-scan-video" />
+          <div className="jt-qr-scan-corner jt-qr-scan-corner--tl" />
+          <div className="jt-qr-scan-corner jt-qr-scan-corner--tr" />
+          <div className="jt-qr-scan-corner jt-qr-scan-corner--bl" />
+          <div className="jt-qr-scan-corner jt-qr-scan-corner--br" />
+          <div className="jt-qr-scan-line" />
         </div>
       )}
       <canvas ref={canvasRef} style={{ display: "none" }} />
-      <p style={{ ...(error ? {} : { marginTop: 14 }), color: "#a49dc9", fontSize: 13 }}>Apuntá la cámara al código QR</p>
-      <Btn variant="ghost" onClick={onClose} style={{ marginTop: 10 }}>
+      <p className="jt-qr-scan-hint">Apuntá la cámara al código QR</p>
+      <Btn variant="ghost" onClick={onClose} style={{ marginTop: 14, position: "relative" }}>
         Cancelar
       </Btn>
     </DialogFrame>

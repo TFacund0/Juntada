@@ -4,6 +4,7 @@ import type { GameDef } from "../../games/gameTypes";
 import { isUnderMaintenance } from "../../games/maintenance";
 import { PICKER_META } from "../../games/pickerMeta";
 import { Btn } from "../ui/Btn";
+import { CloseIcon } from "../ui/icons";
 import { DialogFrame } from "../dialogs/DialogFrame";
 import { GameRules } from "./GameRules";
 import "./GameDetailDialog.css";
@@ -23,24 +24,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   tematicos: "Con su propia temática",
   otros: "Más juegos",
 };
-
-function CloseIcon() {
-  return (
-    <svg
-      width={16}
-      height={16}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      style={{ display: "block" }}
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
 
 function HelpIcon() {
   return (
@@ -97,7 +80,7 @@ export function GameDetailDialog({ game, onStart, onClose }: GameDetailDialogPro
           <div className="jt-detail-thumb-fade" />
 
           <button onClick={onClose} aria-label="Cerrar" className="jt-detail-icon-btn" style={{ top: 12, left: 12 }}>
-            <CloseIcon />
+            <CloseIcon size={16} />
           </button>
           {hasRules && (
             <button

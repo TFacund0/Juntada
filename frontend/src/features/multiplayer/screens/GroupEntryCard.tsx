@@ -1,9 +1,9 @@
-import { useState } from "react";
 import type { ReactNode } from "react";
 import { Btn } from "../../../components/ui/Btn";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { NamePillEditor } from "../../../components/shell/NamePillEditor";
 import { QRScannerDialog } from "../../../components/dialogs/QRScannerDialog";
+import { useEntryTabs } from "../hooks/useEntryTabs";
 import "./GroupEntryCard.css";
 
 const GROUP_NAME_ADJECTIVES = ["Los", "Las", "Equipo", "Banda de", "Peña", "Combo"];
@@ -77,17 +77,7 @@ export function GroupEntryCard({
   onScan: (raw: string) => void;
   submitting: boolean;
 }) {
-  // connectionPhase arranca en "menu" hasta que se toca una pestaña (o llega
-  // ya con una intención inicial, ver initialGroupIntent en App.tsx) — "menu"
-  // no tiene tab propio en este diseño, así que cae en "create" por defecto.
-  const [localTab, setLocalTab] = useState<"create" | "join">(connectionPhase === "join" ? "join" : "create");
-
-  const activeTab = connectionPhase === "join" ? "join" : connectionPhase === "create" ? "create" : localTab;
-
-  const selectTab = (tab: "create" | "join") => {
-    setLocalTab(tab);
-    onSetPhase(tab);
-  };
+  const { activeTab, selectTab } = useEntryTabs(connectionPhase, onSetPhase);
 
   return (
     <div>

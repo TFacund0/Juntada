@@ -1,6 +1,7 @@
 import { getGame } from "../../games/registry";
 import { extractScannedCode } from "./utils/joinLink";
-import { MenuScreen } from "./screens/MenuScreen";
+import { RoomEntryModal } from "./screens/RoomEntryModal";
+import { RoomEntryCard } from "./screens/RoomEntryCard";
 import { GroupEntryModal } from "./screens/GroupEntryModal";
 import { GroupEntryCard } from "./screens/GroupEntryCard";
 import { GroupScreen } from "./screens/GroupScreen";
@@ -70,6 +71,26 @@ export interface MultiplayerGameProps {
   // to know it should leave the whole group flow and go back to its home
   // screen (pick a game / start a new group), not just re-render this shell.
   onLeaveGroup?: () => void;
+  // Only meaningful for entryKind "room" — closes the create/join modal's
+  // own "✕" (RoomEntryModal) back to "elegí cómo jugar". Not the same as
+  // `leave()` from useMultiplayerSocket: that only resets local connection
+  // state back to connectionPhase "menu", which is still one of the phases
+  // that renders this very modal — so without this prop the "✕" would just
+  // flash the modal shut and immediately back open. App.tsx passes its
+  // `goBack` here, same place its header's "Volver" button already goes.
+  onExitRoomEntry?: () => void;
+  // Usado por SessionRecoveryOverlay's "Volver al inicio" (sesión perdida/
+  // sala que ya no existe/reconexión fallida) — a diferencia de
+  // `onExitRoomEntry` (un paso atrás, a "elegí cómo jugar"), acá no queda
+  // nada a lo que volver: la sala/grupo ya se perdió del todo, así que esto
+  // manda derecho al picker de juegos. Tampoco alcanza con `leave()` de
+  // useMultiplayerSocket: eso solo resetea el estado de conexión local de
+  // vuelta a connectionPhase "menu", que sigue siendo una de las fases que
+  // este mismo shell renderiza — sin este prop, "Volver al inicio" dejaba
+  // gameId/mode intactos en App.tsx y el jugador terminaba viendo el mismo
+  // modal de conectar en vez del menú principal. App.tsx pasa su `goHome`
+  // acá, el mismo que ya usa el botón "Menú principal" del navbar.
+  onGoHome?: () => void;
   // Only meaningful for entryKind "room" — fires when the player typed a
   // code on the room-join form that turns out to belong to a group instead
   // (both are 5-char codes shared the same way, so this mix-up is common).
@@ -112,7 +133,7 @@ export interface MultiplayerGameProps {
 }
 
 export function MultiplayerGame(props: MultiplayerGameProps) {
-  const { playerName, onSwitchToGroup, onLeaveGroup, runTransition = action => action() } = props;
+  const { playerName, onSwitchToGroup, onLeaveGroup, onExitRoomEntry, onGoHome, runTransition = action => action() } = props;
   const {
     connectionPhase,
     setConnectionPhase,
@@ -194,7 +215,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
         attempt={reconnecting ? reconnectAttempt : undefined}
         maxAttempts={maxReconnectAttempts}
         onReconnect={reconnectFailed ? retryConnection : confirmRejoin}
-        onGoToMenu={leave}
+        onGoToMenu={onGoHome ?? leave}
         // Only offer "crear nueva sala" for a standalone room gone missing —
         // a gone group has no equivalent one-tap replacement here, so it
         // just falls back to "volver al inicio". Actually creates the room
@@ -225,9 +246,12 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       else setError("Ese código QR no es válido");
     };
 
-    // Entrar a un grupo (vs. hostear/unirse a una sala puntual de un juego
-    // ya elegido) tiene su propio diseño nuevo — tabs en una card flotante
-    // en vez del accordion de MenuScreen — ver GroupEntryCard/GroupEntryModal.
+    // Entrar a un grupo (vs. hostear/unirse a una sala puntual de un juego ya
+    // elegido) usa su propio modal con su propio motivo visual — ver
+    // GroupEntryCard/GroupEntryModal vs. RoomEntryCard/RoomEntryModal más
+    // abajo. Ambos comparten la misma idea de organización (modal centrado,
+    // tabs crear/unirse) a propósito, pero cada uno con su propio look para
+    // que no parezcan la misma pantalla.
     if (inGroup)
       return (
         <GroupEntryModal onClose={() => onLeaveGroup?.()}>
@@ -262,8 +286,8 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       );
 
     return (
-      <ScreenFade transitionKey={connectionPhase}>
-        <MenuScreen
+      <RoomEntryModal onClose={onExitRoomEntry ?? leave}>
+        <RoomEntryCard
           connectionPhase={connectionPhase}
           reconnectBanner={reconnectBanner}
           error={error}
@@ -273,9 +297,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           onEditingChange={setEditingName}
           onSaveName={saveName}
           onSetPhase={setConnectionPhase}
-          inGroup={inGroup}
-          roomName={roomName}
-          onRoomNameChange={setRoomName}
           onCreateRoom={() => {
             setSubmitting(true);
             runTransition(createRoom);
@@ -294,7 +315,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           onSwitchToGroup={onSwitchToGroup}
           onScan={onScan}
         />
-      </ScreenFade>
+      </RoomEntryModal>
     );
   }
 

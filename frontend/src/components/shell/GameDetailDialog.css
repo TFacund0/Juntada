@@ -18,7 +18,9 @@
   backdrop-filter: blur(6px);
   color: #fff;
   cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
 }
 
 .jt-detail-icon-btn:hover {

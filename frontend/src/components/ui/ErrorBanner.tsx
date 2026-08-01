@@ -1,3 +1,6 @@
+import { AlertIcon } from "./icons";
+import "./ErrorBanner.css";
+
 /**
  * Un banner de error que se auto-limpia. El estado de error de quien lo usa
  * (ver `useMultiplayerSocket`) ya se auto-cronometra después de unos
@@ -10,38 +13,12 @@
 export function ErrorBanner({ message, flashKey, variant = "block" }: { message: string; flashKey: number; variant?: "block" | "inline" }) {
   if (!message) return null;
 
-  const style =
-    variant === "block"
-      ? {
-          background: "rgba(226,75,74,0.1)",
-          border: "1px solid rgba(226,75,74,0.3)",
-          borderRadius: 10,
-          padding: "10px 14px",
-          marginBottom: 16,
-          color: "#F09595",
-          fontSize: 13,
-          textAlign: "center" as const,
-        }
-      : {
-          color: "#F09595",
-          fontSize: 13,
-          textAlign: "center" as const,
-          marginTop: 10,
-        };
-
   return (
-    <>
-      <style>{`
-        @keyframes error-flash {
-          0% { opacity: 0; transform: scale(0.96); }
-          12% { opacity: 1; transform: scale(1.015); }
-          25% { transform: scale(1); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
-      <div key={flashKey} style={{ ...style, animation: "error-flash 0.4s ease-out" }}>
-        {message}
-      </div>
-    </>
+    <div key={flashKey} className={`jt-error-banner jt-error-banner--${variant}`}>
+      <span className="jt-error-banner-icon" aria-hidden>
+        <AlertIcon size={variant === "block" ? 16 : 14} color="var(--jt-danger-text, #f09595)" />
+      </span>
+      <span className="jt-error-banner-text">{message}</span>
+    </div>
   );
 }

@@ -14,6 +14,7 @@ import { AppBackdrop } from "./components/shell/AppBackdrop";
 import { DevNoticeDialog } from "./components/shell/DevNoticeDialog";
 import { NameOnboardingScreen } from "./components/shell/NameOnboardingScreen";
 import { ScreenFade } from "./components/ui/ScreenFade";
+import { Spinner } from "./components/ui/Spinner";
 import { AppHeader } from "./components/shell/AppHeader";
 import { ModePicker } from "./components/shell/ModePicker";
 import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/utils/playerName";
@@ -28,7 +29,12 @@ import { useAppNavigation } from "./hooks/useAppNavigation";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function GameLoading() {
-  return <p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 40 }}>
+      <Spinner />
+      <p style={{ margin: 0, color: "var(--jt-muted-text, #6b6490)", fontSize: 14 }}>Cargando juego...</p>
+    </div>
+  );
 }
 
 export default function App() {
@@ -77,6 +83,7 @@ export default function App() {
     pickGame,
     startGroupFlow,
     stepKey,
+    stepDirection,
     GAME_LIST,
   } = nav;
 
@@ -153,7 +160,7 @@ export default function App() {
           <>
             {showRules && (game?.rules?.length ?? 0) > 0 && <GameRules rules={game!.rules} onClose={() => setShowRules(false)} />}
 
-            <ScreenFade transitionKey={stepKey}>
+            <ScreenFade transitionKey={stepKey} direction={stepDirection}>
               {/* ── Paso 1: elegir juego (crear/unirse a un grupo vive en el "+" del header) ── */}
               {!gameId && !groupFlow && (
                 <div>
@@ -196,6 +203,8 @@ export default function App() {
                   onGameTypeChange={handleRoomGameType}
                   onRoomPhaseChange={setRoomPhase}
                   onLeaveGroup={goHome}
+                  onExitRoomEntry={goBack}
+                  onGoHome={goHome}
                   onSwitchToGroup={switchToGroupJoin}
                   onGroupAttachedChange={setGroupAttached}
                   onExposeReturnToGroup={exposeReturnToGroup}
@@ -243,11 +252,30 @@ export default function App() {
           );
         }
 
+        // Paso "elegí cómo jugar": a diferencia de las pantallas de juego en
+        // sí (formularios/lobby, pensados mobile-first a 480px fijos), acá no
+        // hay nada que se vuelva incómodo si crece — así que en vez de dejar
+        // 3 filas angostas nadando en espacio vacío en desktop, este paso usa
+        // un contenedor propio que crece por breakpoint (jt-mode-wrap,
+        // theme/modeRow.css) para que ModePicker pueda acomodar sus opciones
+        // en grilla en pantallas grandes.
+        if (stepKey.startsWith("modepicker-")) {
+          return (
+            <div className="jt-mode-wrap jt-content-pad-top" style={{ margin: "0 auto", position: "relative", zIndex: 1 }}>
+              {header}
+              {rest}
+            </div>
+          );
+        }
+
         return (
-          // paddingTop compensa que el navbar de estas pantallas también
-          // pasó a ser fixed (ver AppHeader) y ya no ocupa espacio en el
-          // flujo normal.
-          <div style={{ ...S.wrap, position: "relative", zIndex: 1, paddingTop: 64 }}>
+          // jt-content-pad-top compensa que el navbar de estas pantallas
+          // también pasó a ser fixed (ver AppHeader) y ya no ocupa espacio en
+          // el flujo normal — vive en una clase (theme/sharedChrome.css) y no
+          // en `style` porque necesita crecer desde los 900px (el navbar
+          // in-game crece ahí también), algo que un padding puesto por
+          // `style` inline no puede hacer.
+          <div className="jt-content-pad-top" style={{ ...S.wrap, position: "relative", zIndex: 1 }}>
             {header}
             {rest}
           </div>

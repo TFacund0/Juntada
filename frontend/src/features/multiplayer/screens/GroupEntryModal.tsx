@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { CloseIcon } from "../../../components/ui/icons";
 import "./GroupEntryModal.css";
 
 /**
@@ -22,24 +23,8 @@ export function GroupEntryModal({ onClose, children }: { onClose: () => void; ch
       <div aria-hidden className="jt-group-modal-glow jt-group-modal-glow--a" />
       <div aria-hidden className="jt-group-modal-glow jt-group-modal-glow--b" />
       <div className="jt-group-modal-card jt-animate-rise" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} aria-label="Cancelar" className="jt-group-modal-close">
-          {/* SVG (no el glifo de texto "✕") — un glifo trae su propio
-              ascenso/descenso tipográfico y queda descentrado dentro del
-              círculo aunque el botón esté centrado por flexbox; ver el mismo
-              criterio en AppHeader.tsx. */}
-          <svg
-            width={14}
-            height={14}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            style={{ display: "block" }}
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+        <button onClick={onClose} aria-label="Cancelar" className="jt-group-modal-close jt-close-chip jt-close-chip--circle">
+          <CloseIcon size={14} />
         </button>
         {children}
       </div>

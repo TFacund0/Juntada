@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./Toast.css";
 
 const EXIT_MS = 200;
 
@@ -32,41 +33,12 @@ export function Toast({ message, duration = 3000, onExpire }: { message: string 
   if (!shown) return null;
 
   return (
-    <>
-      {/* Entra cayendo desde arriba y sale con un fade corto en vez de
-          aparecer/desaparecer de golpe, para que se sienta como la llegada
-          (y despedida) de una notificación real. */}
-      <style>{`
-        @keyframes toast-drop-in {
-          from { opacity: 0; transform: translate(-50%, -16px); }
-          to { opacity: 1; transform: translate(-50%, 0); }
-        }
-        @keyframes toast-fade-out {
-          from { opacity: 1; transform: translate(-50%, 0); }
-          to { opacity: 0; transform: translate(-50%, -10px); }
-        }
-      `}</style>
-      <div
-        style={{
-          position: "fixed",
-          top: 16,
-          left: "50%",
-          zIndex: 2000,
-          background: "var(--jt-surface, #171329)",
-          border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.35))",
-          borderRadius: 10,
-          padding: "10px 18px",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "#e8e4f0",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-          maxWidth: "calc(100vw - 32px)",
-          textAlign: "center",
-          animation: phase === "out" ? `toast-fade-out ${EXIT_MS}ms ease-in forwards` : "toast-drop-in 0.25s ease-out forwards",
-        }}
-      >
-        {shown}
-      </div>
-    </>
+    <div
+      className={phase === "out" ? "jt-toast jt-toast--out" : "jt-toast jt-toast--in"}
+      style={{ animationDuration: phase === "out" ? `${EXIT_MS}ms` : undefined }}
+    >
+      <span aria-hidden className="jt-toast-dot" />
+      {shown}
+    </div>
   );
 }
