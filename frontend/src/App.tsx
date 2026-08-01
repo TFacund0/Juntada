@@ -1,4 +1,4 @@
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { S } from "./theme/styles";
 import "./theme/curtain.css";
 import "./theme/sharedChrome.css";
@@ -12,6 +12,7 @@ import { GameRules } from "./components/shell/GameRules";
 import { AppConfirmDialogs } from "./components/shell/AppConfirmDialogs";
 import { AppBackdrop } from "./components/shell/AppBackdrop";
 import { DevNoticeDialog } from "./components/shell/DevNoticeDialog";
+import { GameLoadErrorBoundary } from "./components/shell/GameLoadErrorBoundary";
 import { NameOnboardingScreen } from "./components/shell/NameOnboardingScreen";
 import { ScreenFade } from "./components/ui/ScreenFade";
 import { Spinner } from "./components/ui/Spinner";
@@ -22,6 +23,7 @@ import { loadActive } from "./hooks/useActiveSession";
 import { useValidJoinLink } from "./features/multiplayer/hooks/useValidJoinLink";
 import { useGameTheme } from "./hooks/useGameTheme";
 import { useAppNavigation } from "./hooks/useAppNavigation";
+import { setAppInGame } from "./hooks/appActivity";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROOT APP — landing = elegir juego, luego elegir modo (local/multi) para ese
@@ -122,6 +124,15 @@ export default function App() {
   // after it) can never be called conditionally.
   const { activeTheme, accentColor, mutedColor, chromeVars } = useGameTheme(game, inGameView);
 
+  // Lets a pending service worker update (see useServiceWorkerUpdate) know
+  // it's not safe to reload right now — a round can last just a few
+  // seconds, and yanking the page mid-tap would lose whatever the player
+  // was doing. useEffect (not a direct call in the render body) so this
+  // only fires on an actual mode change, not every re-render.
+  useEffect(() => {
+    setAppInGame(inGameView);
+  }, [inGameView]);
+
   if (!playerName) return <NameOnboardingScreen onSave={savePlayerName} />;
 
   return (
@@ -173,9 +184,11 @@ export default function App() {
 
               {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}
               {gameId && game?.localOnly && isGameAvailable(game) && !mode && (
-                <Suspense fallback={<GameLoading />}>
-                  <game.LocalGame />
-                </Suspense>
+                <GameLoadErrorBoundary key={gameId}>
+                  <Suspense fallback={<GameLoading />}>
+                    <game.LocalGame />
+                  </Suspense>
+                </GameLoadErrorBoundary>
               )}
 
               {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
@@ -188,9 +201,11 @@ export default function App() {
 
               {/* ── Paso 3: jugar ── */}
               {mode === "local" && game && (
-                <Suspense fallback={<GameLoading />}>
-                  <game.LocalGame onExposeBack={exposeLocalGameBack} onExposeReset={exposeLocalGameReset} />
-                </Suspense>
+                <GameLoadErrorBoundary key={gameId}>
+                  <Suspense fallback={<GameLoading />}>
+                    <game.LocalGame onExposeBack={exposeLocalGameBack} onExposeReset={exposeLocalGameReset} />
+                  </Suspense>
+                </GameLoadErrorBoundary>
               )}
               {mode === "multi" && (gameId || groupFlow) && (
                 <MultiplayerGame

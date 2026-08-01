@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ReturnToGroupButton } from "../../../components/ui/ReturnToGroupButton";
 import { Toast } from "../../../components/ui/Toast";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
+import { GameLoadErrorBoundary } from "../../../components/shell/GameLoadErrorBoundary";
 import type { GameDef, RoundViewProps } from "../../../games/gameTypes";
 
 // Any in-progress phase that isn't menu/lobby/group — delegated entirely to
@@ -43,9 +44,11 @@ export function RoundScreen({
       {reconnectBanner}
       <ErrorBanner message={error} flashKey={errorKey} variant="block" />
 
-      <Suspense fallback={<p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>}>
-        {activeGame.RoundView && <activeGame.RoundView {...roundViewProps} />}
-      </Suspense>
+      <GameLoadErrorBoundary key={activeGame.id}>
+        <Suspense fallback={<p style={{ textAlign: "center", color: "#6b6490", padding: 40 }}>Cargando juego...</p>}>
+          {activeGame.RoundView && <activeGame.RoundView {...roundViewProps} />}
+        </Suspense>
+      </GameLoadErrorBoundary>
 
       <ReturnToGroupButton groupCode={groupCode} roomPhase={roomPhase} onLeave={onLeaveInstance} />
     </div>

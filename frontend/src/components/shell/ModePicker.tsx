@@ -78,7 +78,50 @@ function ChevronRightIcon({ color }: { color: string }) {
  */
 export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
   return (
-    <div style={{ padding: "24px 0 12px" }}>
+    <div style={{ padding: "24px 0 12px", position: "relative" }}>
+      {/* Blobs de fondo (mismo criterio que Hero.tsx) — fixed cubre todo el
+          viewport de punta a punta sin importar cuánto contenido real haya
+          arriba, así esta pantalla no se siente vacía en desktop (3 cards
+          cortas dejaban un colchón grande de nada debajo) sin necesitar
+          agregar texto de relleno. */}
+      <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" }}>
+        <div
+          className="jt-animate-drift"
+          style={{
+            position: "absolute",
+            left: "8%",
+            bottom: "-10%",
+            width: "30vw",
+            height: "30vw",
+            maxWidth: 360,
+            maxHeight: 360,
+            minWidth: 180,
+            minHeight: 180,
+            borderRadius: "50%",
+            background: "color-mix(in srgb, var(--jt-accent, #7f77dd) 22%, transparent)",
+            filter: "blur(90px)",
+          }}
+        />
+        <div
+          className="jt-animate-drift"
+          style={{
+            position: "absolute",
+            right: "10%",
+            bottom: "5%",
+            width: "26vw",
+            height: "26vw",
+            maxWidth: 320,
+            maxHeight: 320,
+            minWidth: 160,
+            minHeight: 160,
+            borderRadius: "50%",
+            background: "color-mix(in srgb, #1d9e75 18%, transparent)",
+            filter: "blur(100px)",
+            animationDelay: "-6s",
+          }}
+        />
+      </div>
+
       <div style={{ textAlign: "center", marginBottom: 36 }}>
         <h2
           style={{

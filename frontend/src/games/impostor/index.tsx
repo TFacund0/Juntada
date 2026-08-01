@@ -1,7 +1,7 @@
 import { lazy } from "react";
 import type { GameDef } from "../gameTypes";
-import logo from "./assets/logo.png";
-import backgroundImage from "./assets/background.png";
+import logo from "./assets/logo.webp";
+import backgroundImage from "./assets/background.webp";
 
 // Dynamic import() creates its own chunk even though this metadata object is
 // imported eagerly by the registry — this keeps every game's actual code out

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Btn } from "../../../../components/ui/Btn";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/logo.webp";
 
 interface IntroScreenProps {
   onStart: () => void;

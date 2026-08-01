@@ -1,0 +1,34 @@
+.jt-app-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #0f0c1d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  animation: jt-app-update-fade-in 0.2s ease-out both;
+}
+
+.jt-app-update-overlay p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+@keyframes jt-app-update-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-app-update-overlay {
+    animation: none;
+  }
+}

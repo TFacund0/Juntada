@@ -105,14 +105,9 @@ export function RoomEntryCard({
 
       <div className="jt-room-tab-panel">
         {activeTab === "create" ? (
-          <>
-            <p className="jt-room-hint" style={{ marginTop: 0 }}>
-              El servidor genera un código random de 5 caracteres (ej. XJ7K2), listo cuando toques "Crear".
-            </p>
-            <Btn onClick={onCreateRoom} disabled={submitting} variant="success" className="jt-home-cta-btn" style={{ marginTop: 4 }}>
-              {submitting ? "Creando..." : "Crear partida"}
-            </Btn>
-          </>
+          <Btn onClick={onCreateRoom} disabled={submitting} variant="success" className="jt-home-cta-btn" style={{ marginTop: 0 }}>
+            {submitting ? "Creando..." : "Crear partida"}
+          </Btn>
         ) : (
           <>
             <label className="jt-room-field-label" htmlFor="jt-room-code">
