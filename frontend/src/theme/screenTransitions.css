@@ -1,0 +1,57 @@
+/* Fade-in genérico para cambios de pantalla que no ameritan la cortina
+   completa (ver curtain.css) — onboarding, pasos de App.tsx y las
+   pantallas dentro de MultiplayerGame. Se remonta por `key` (ver
+   components/ScreenFade.tsx), así que solo anima la entrada. */
+@keyframes screen-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* `animation-fill-mode` deliberately NOT "both"/"forwards": a `transform`
+   value other than `none` — including the resting `translateY(0)` this
+   animation ends on — makes the element a new containing block for any
+   `position: fixed` descendant (e.g. StickyActionBar). With "both" that
+   final `transform: translateY(0)` stuck around forever after the
+   animation finished, silently trapping every fixed element inside a
+   screen so it scrolled away with the page instead of staying pinned. Once
+   the animation ends here, the keyframe stops applying and the element
+   reverts to its un-animated style (no transform at all) — same visual
+   result, but real `position: fixed` again. */
+.screen-fade-in {
+  animation: screen-fade-in 0.32s ease-out;
+}
+
+/* Variante "para atrás" (ver `direction` en ScreenFade.tsx) — entra
+   deslizando desde la izquierda en vez de subir desde abajo, para que
+   retroceder un paso (Volver) se sienta espacialmente distinto de avanzar
+   (elegir juego/modo), no la misma animación sin importar el sentido. Mismo
+   motivo de `animation-fill-mode` no "both" que screen-fade-in de arriba:
+   un transform que quede pegado tras la animación atraparía cualquier
+   `position: fixed` descendiente. */
+@keyframes screen-fade-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.screen-fade-in--back {
+  animation: screen-fade-in-back 0.32s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-fade-in,
+  .screen-fade-in--back {
+    animation: none;
+  }
+}

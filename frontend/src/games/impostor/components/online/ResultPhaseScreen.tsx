@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 import { S } from "../../../../theme/styles";
-import { StartButton } from "../../../../components/StartButton";
-import { StickyActionBar } from "../../../../components/StickyActionBar";
-import { PhaseTransition } from "../../../../components/PhaseTransition";
+import { StartButton } from "../../../../components/setup/StartButton";
+import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
+import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
 import { BigTextFlash } from "../shared/BigTextFlash";
 import { EliminationRevealOverlay, MatchOutcomeOverlay } from "../shared/EliminationRevealOverlay";
 import { MatchResultHeader } from "../shared/MatchResultHeader";

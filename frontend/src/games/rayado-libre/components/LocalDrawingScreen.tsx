@@ -1,8 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
 import { S } from "../../../theme/styles";
-import { Avatar } from "../../../components/Avatar";
-import { Timer } from "../../../components/Timer";
-import { PhaseTransition } from "../../../components/PhaseTransition";
+import { Avatar } from "../../../components/ui/Avatar";
+import { Timer } from "../../../components/game-kit/Timer";
+import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { TURN_SECONDS, popLastDrawUnit } from "@juntada/rayado-libre-scoring";
 import type { LocalPlayer } from "../types/localGame";
 import { Canvas, type DrawAction, type Tool } from "./Canvas";

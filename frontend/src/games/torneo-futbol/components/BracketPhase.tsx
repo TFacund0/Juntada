@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { Avatar } from "../../../components/Avatar";
+import { Btn } from "../../../components/ui/Btn";
+import { Avatar } from "../../../components/ui/Avatar";
 import type { RoundViewProps } from "../../gameTypes";
 import type { Entrant, Match } from "../types";
 import { ROUND_NAMES } from "../types";

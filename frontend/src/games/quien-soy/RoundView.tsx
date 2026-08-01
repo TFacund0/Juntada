@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { StartButton } from "../../components/StartButton";
-import { Collapsible } from "../../components/Collapsible";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
-import { PhaseTransition } from "../../components/PhaseTransition";
-import { TurnCircle } from "../../components/TurnCircle";
+import { Btn } from "../../components/ui/Btn";
+import { StartButton } from "../../components/setup/StartButton";
+import { Collapsible } from "../../components/game-kit/Collapsible";
+import { ConfirmDialog } from "../../components/dialogs/ConfirmDialog";
+import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
+import { PhaseTransition } from "../../components/game-kit/PhaseTransition";
+import { TurnCircle } from "../../components/game-kit/TurnCircle";
 import { Standings, buildStandingEntries } from "./components/Standings";
 import { OthersWordsList } from "./components/OthersWordsList";
 import {

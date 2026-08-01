@@ -1,0 +1,90 @@
+/* Diseño propio del diálogo de confirmación ("¿Volver al menú principal?",
+   "¿Volver atrás?", ...) — antes era el look genérico de DialogFrame sin
+   nada que lo distinguiera de cualquier otro diálogo. Mismo lenguaje visual
+   que el resto del rediseño (glow detrás de la card, badge con anillo), pero
+   en tono rojo/alerta en vez del acento violeta — esto SÍ es una advertencia
+   ("vas a perder progreso"), no solo un formulario más. */
+
+/* position/overflow + el glow en sí (::before) viven en .jt-card-glow
+   (theme/sharedChrome.css, compartido con GameRules/DevNoticeDialog) — acá
+   solo el color propio de este diálogo (rojo/alerta). */
+.jt-confirm-card {
+  --jt-glow-color: rgba(226, 75, 74, 0.22);
+}
+
+.jt-confirm-badge-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+}
+
+/* Anillo pulsante detrás del ícono de alerta — reusa la animación
+   jt-ping ya definida globalmente (theme/homeDesign.css) para el "punto
+   en vivo" de otras partes de la app, acá como una señal sutil de "atención"
+   en vez de silencio total hasta el click. */
+.jt-confirm-badge-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(226, 75, 74, 0.4);
+}
+
+.jt-confirm-badge {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  background: rgba(226, 75, 74, 0.15);
+  border: 1px solid rgba(226, 75, 74, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jt-confirm-title {
+  position: relative;
+  font-weight: 800;
+  font-size: 16px;
+  margin: 0 0 6px;
+  color: #fff;
+}
+
+.jt-confirm-message {
+  position: relative;
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 13px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.jt-confirm-actions {
+  position: relative;
+  display: flex;
+  gap: 10px;
+}
+
+/* tone="back" — retroceder un paso dentro del mismo flujo (volver atrás en
+   la partida, volver a jugadores, volver al grupo), no salir del todo. Ámbar
+   en vez de rojo, e ícono de flecha (ver BackArrowIcon) en vez de alerta, para
+   que "¿Volver atrás?" no se vea idéntico a "¿Volver al menú principal?"
+   pese a compartir el mismo componente. */
+.jt-confirm-card--back {
+  --jt-glow-color: var(--jt-warn-glow, rgba(226, 196, 74, 0.22));
+}
+
+.jt-confirm-card--back .jt-confirm-badge-ping {
+  background: rgba(226, 196, 74, 0.4);
+}
+
+.jt-confirm-card--back .jt-confirm-badge {
+  background: rgba(226, 196, 74, 0.15);
+  border-color: rgba(226, 196, 74, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-confirm-badge-ping {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -1,0 +1,76 @@
+/* Notificación flotante breve (ej. "X se desconectó") — antes era una pill
+   plana (superficie lisa + borde tenue) con sus keyframes definidos en un
+   <style> inline dentro del propio componente en vez de en un .css
+   co-locado como el resto de la app. Ahora vive acá (misma convención que
+   cualquier otro componente) y suma un puntito de acento pulsante a la
+   izquierda del texto — la misma idea de "señal en vivo" que ya usa
+   jt-animate-ping en otras partes, para que una notificación se sienta
+   activa en vez de un cartel estático. */
+
+@keyframes jt-toast-drop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -16px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes jt-toast-fade-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+}
+
+.jt-toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--jt-surface, #171329);
+  border: 1px solid var(--jt-accent-border, rgba(127, 119, 221, 0.4));
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8e4f0;
+  box-shadow:
+    0 12px 30px -10px rgba(0, 0, 0, 0.5),
+    0 0 0 1px color-mix(in srgb, var(--jt-accent, #7f77dd) 15%, transparent) inset;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+}
+
+.jt-toast--in {
+  animation: jt-toast-drop-in 0.25s ease-out forwards;
+}
+
+.jt-toast--out {
+  animation: jt-toast-fade-out 200ms ease-in forwards;
+}
+
+.jt-toast-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--jt-accent-strong, #afa9ec);
+  box-shadow: 0 0 8px 1px color-mix(in srgb, var(--jt-accent, #7f77dd) 80%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-toast--in,
+  .jt-toast--out {
+    animation: none;
+  }
+}

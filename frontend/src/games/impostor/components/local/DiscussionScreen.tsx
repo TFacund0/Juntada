@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
-import { Btn } from "../../../../components/Btn";
+import { Btn } from "../../../../components/ui/Btn";
 import { S } from "../../../../theme/styles";
-import { StickyActionBar } from "../../../../components/StickyActionBar";
+import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { RingTimer } from "../shared/RingTimer";
 import { ClueHistoryCard } from "./ClueHistoryCard";
 import { actionBtnStyle } from "../shared/actionBtnStyle";

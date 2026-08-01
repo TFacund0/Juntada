@@ -1,5 +1,5 @@
 import { S } from "../../../theme/styles";
-import { Avatar } from "../../../components/Avatar";
+import { Avatar } from "../../../components/ui/Avatar";
 
 // Shared by both LocalGame and RoundView (they used to each carry their own
 // near-identical copy) — takes a plain list of entries instead of a Room or

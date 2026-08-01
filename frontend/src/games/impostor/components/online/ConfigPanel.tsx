@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { S } from "../../../../theme/styles";
 import { maxImpostors } from "@juntada/impostor-match-rules";
-import { TurnOrderEditor } from "../../../../components/TurnOrderEditor";
+import { TurnOrderEditor } from "../../../../components/game-kit/TurnOrderEditor";
 import { ConfigSection } from "../config/ConfigSection";
 import { ConfigTabs } from "../config/ConfigTabs";
 import { CategoriesTab } from "../config/CategoriesTab";

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { S } from "../../../../theme/styles";
-import { Btn } from "../../../../components/Btn";
+import { Btn } from "../../../../components/ui/Btn";
 import type { RoundViewProps } from "../../../gameTypes";
 
 interface DiscussionChatProps {

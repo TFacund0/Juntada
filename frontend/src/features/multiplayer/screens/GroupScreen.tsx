@@ -1,11 +1,11 @@
 import type { ReactNode, RefObject } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { Avatar } from "../../../components/Avatar";
-import { CodeDisplay } from "../../../components/CodeDisplay";
-import { QRDialog } from "../../../components/QRDialog";
-import { ConfirmDialog } from "../../../components/ConfirmDialog";
-import { ErrorBanner } from "../../../components/ErrorBanner";
+import { Btn } from "../../../components/ui/Btn";
+import { Avatar } from "../../../components/ui/Avatar";
+import { CodeDisplay } from "../../../components/ui/CodeDisplay";
+import { QRDialog } from "../../../components/dialogs/QRDialog";
+import { ConfirmDialog } from "../../../components/dialogs/ConfirmDialog";
+import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { getGame } from "../../../games/registry";
 import type { GameDef } from "../../../games/gameTypes";
 import type { GroupPublicState } from "@juntada/shared-types";
@@ -169,7 +169,7 @@ export function GroupScreen({
         <span style={S.label}>Partidas abiertas</span>
         {group.instances.length === 0 && <p style={{ ...S.muted, margin: "8px 0 0" }}>Nadie abrió una partida todavía.</p>}
         {group.instances.map(inst => {
-          const g = getGame(inst.gameType) as GameDef | undefined;
+          const g = getGame(inst.gameType);
           const joinable = inst.phase === "lobby" && inst.playerCount < inst.maxPlayers;
           return (
             <div

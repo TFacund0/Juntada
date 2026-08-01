@@ -1,4 +1,4 @@
-import { PhaseTransition } from "../../components/PhaseTransition";
+import { PhaseTransition } from "../../components/game-kit/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 import { SetupPhase } from "./components/SetupPhase";
 import { WritingPhase } from "./components/WritingPhase";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { S } from "../../../../theme/styles";
-import { Btn } from "../../../../components/Btn";
-import { TurnCircle } from "../../../../components/TurnCircle";
+import { Btn } from "../../../../components/ui/Btn";
+import { TurnCircle } from "../../../../components/game-kit/TurnCircle";
 import { CluesReview } from "../shared/CluesReview";
 import { actionBtnStyle } from "../shared/actionBtnStyle";
 import type { LocalPlayer, Round } from "../../types/localGame";

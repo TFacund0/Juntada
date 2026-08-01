@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { S } from "../../../../theme/styles";
-import { Btn } from "../../../../components/Btn";
-import { Avatar } from "../../../../components/Avatar";
+import { Btn } from "../../../../components/ui/Btn";
+import { Avatar } from "../../../../components/ui/Avatar";
 import { SuspectGrid } from "../shared/SuspectGrid";
 import { actionBtnStyle } from "../shared/actionBtnStyle";
 import type { LocalPlayer, Round } from "../../types/localGame";

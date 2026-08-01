@@ -1,7 +1,7 @@
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { Timer } from "../../../components/Timer";
-import { PhaseTransition } from "../../../components/PhaseTransition";
+import { Btn } from "../../../components/ui/Btn";
+import { Timer } from "../../../components/game-kit/Timer";
+import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { TURN_SECONDS } from "@juntada/rayado-libre-scoring";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RayadoLibreRoundState } from "../types/roundView";

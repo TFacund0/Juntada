@@ -1,6 +1,6 @@
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { PhaseTransition } from "../../../components/PhaseTransition";
+import { Btn } from "../../../components/ui/Btn";
+import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RayadoLibreRoundState } from "../types/roundView";
 import { RevealedWordCard } from "./RevealedWordCard";

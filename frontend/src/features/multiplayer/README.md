@@ -25,20 +25,29 @@ vez, mismo `playerId`).
 
 ## Cómo entrar al código (de más genérico a más específico)
 
-1. **`MultiplayerGame.tsx`** — el shell/orquestador. Es el único archivo que
-   sabe en qué pantalla estás (`connectionPhase`) y decide cuál de las 4
-   pantallas de `screens/` renderizar. Dueño de todo el estado de sesión
-   (diálogos, toasts, joins pendientes) y de los handlers que lo modifican.
-   Ver el comentario "MULTIPLAYER SHELL" al inicio del archivo para el
-   detalle completo de los dos `entryKind` ("room" vs "group").
+1. **`MultiplayerGame.tsx`** — el shell/orquestador, pero solo el render: es
+   el único archivo que sabe en qué pantalla estás (`connectionPhase`) y
+   decide cuál de las 4 pantallas de `screens/` renderizar. Ver el
+   comentario "MULTIPLAYER SHELL" al inicio del archivo para el detalle
+   completo de los dos `entryKind` ("room" vs "group").
 
-2. **`hooks/useMultiplayerSocket.ts`** — la conexión en sí: abrir el socket,
+2. **`hooks/useMultiplayerGameShell.ts`** — dueño de todo el estado de
+   sesión de ese shell (diálogos, toasts, joins pendientes) y de los
+   handlers que lo modifican; envuelve a `useMultiplayerSocket` y le agrega
+   toda la lógica que no es pura conexión. `MultiplayerGame.tsx` es el único
+   consumidor.
+
+3. **`hooks/useMultiplayerSocket.ts`** — la conexión en sí: abrir el socket,
    reconectar con backoff si se cae, guardar la sesión en `localStorage` para
    sobrevivir a que el navegador mate la pestaña de fondo, y traducir cada
-   mensaje del servidor a estado de React. `MultiplayerGame.tsx` es el único
-   consumidor de este hook.
+   mensaje del servidor a estado de React. Consumido por
+   `useMultiplayerGameShell`.
 
-3. **`screens/*.tsx`** — un componente por etapa, cada uno una pantalla pura
+4. **`hooks/useValidJoinLink.ts`** — consume un link de "unirse" pendiente en
+   la URL (`?join=CODE&...`) en la primera carga. Usado directo por
+   `App.tsx`, antes incluso de que este shell monte.
+
+5. **`screens/*.tsx`** — un componente por etapa, cada uno una pantalla pura
    (recibe props, renderiza; no tiene su propio estado de sesión):
    - `MenuScreen` — antes de conectar: elegir nombre, crear o unirse.
    - `GroupScreen` — adentro de un grupo, sin instancia activa.
@@ -46,7 +55,7 @@ vez, mismo `playerId`).
    - `RoundScreen` — la partida en sí — delega entero al `RoundView` del
      juego activo (este shell no conoce las fases de ningún juego puntual).
 
-4. **`utils/joinLink.ts`** / **`utils/playerName.ts`** — helpers chicos y
+6. **`utils/joinLink.ts`** / **`utils/playerName.ts`** — helpers chicos y
    sin estado: armar/leer el link de "escanear y unirse", y persistir el
    nombre elegido en `localStorage`.
 
@@ -54,5 +63,6 @@ vez, mismo `playerId`).
 
 - ¿Cambia cómo se ve una pantalla? → el archivo de `screens/` correspondiente.
 - ¿Cambia qué datos viajan o cómo se reconecta? → `useMultiplayerSocket.ts`.
-- ¿Cambia qué pantalla se muestra cuándo, o agregás un diálogo/toast nuevo
-  compartido entre pantallas? → `MultiplayerGame.tsx`.
+- ¿Cambia el estado de sesión/toasts/diálogos de este shell (no de una
+  pantalla puntual)? → `useMultiplayerGameShell.ts`.
+- ¿Cambia qué pantalla se muestra cuándo? → `MultiplayerGame.tsx`.

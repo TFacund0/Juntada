@@ -1,5 +1,5 @@
 import { S } from "../../../../theme/styles";
-import { Toggle } from "../../../../components/Toggle";
+import { Toggle } from "../../../../components/game-kit/Toggle";
 
 interface ShowCategoryControlProps {
   value: boolean;

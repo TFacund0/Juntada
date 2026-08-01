@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { AddPlayerForm } from "../../../components/AddPlayerForm";
+import { Btn } from "../../../components/ui/Btn";
+import { AddPlayerForm } from "../../../components/game-kit/AddPlayerForm";
 import { useFlashError } from "../../../hooks/useFlashError";
-import { nextPlayerName } from "../../../utils/playerNames";
+import { nextPlayerName } from "../../../utils/nextPlayerName";
 
 // Local pass-and-play's "who's playing" editor — add/remove names before
 // starting. Reuses the same "sumar jugador" form (AddPlayerForm) and empty-

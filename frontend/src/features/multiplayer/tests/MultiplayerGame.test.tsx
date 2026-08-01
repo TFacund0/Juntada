@@ -65,7 +65,7 @@ describe("MultiplayerGame — menu", () => {
     render(<MultiplayerGame entryKind="room" gameId={GAME_ID} playerName="Ana" />);
     expect(screen.getByText("Ana")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Crear partida" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Unirse" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Unirme" })).toBeInTheDocument();
   });
 });
 
@@ -74,7 +74,6 @@ describe("MultiplayerGame — menu, creating", () => {
     const user = userEvent.setup();
     render(<MultiplayerGame entryKind="room" gameId={GAME_ID} playerName="Ana" />);
     await user.click(screen.getByRole("button", { name: "Crear partida" }));
-    await user.click(screen.getAllByRole("button", { name: "Crear partida" }).slice(-1)[0]);
 
     expect(screen.getByRole("button", { name: "Creando..." })).toBeDisabled();
 
@@ -91,7 +90,6 @@ describe("MultiplayerGame — standalone room lobby", () => {
     const user = userEvent.setup();
     render(<MultiplayerGame entryKind="room" gameId={GAME_ID} playerName="Ana" />);
     await user.click(screen.getByRole("button", { name: "Crear partida" }));
-    await user.click(screen.getAllByRole("button", { name: "Crear partida" }).slice(-1)[0]);
 
     const ws = lastSocket();
     act(() => ws.simulateOpen());
@@ -132,7 +130,6 @@ describe("MultiplayerGame — in-round view", () => {
     const user = userEvent.setup();
     render(<MultiplayerGame entryKind="room" gameId={GAME_ID} playerName="Ana" />);
     await user.click(screen.getByRole("button", { name: "Crear partida" }));
-    await user.click(screen.getAllByRole("button", { name: "Crear partida" }).slice(-1)[0]);
 
     const ws = lastSocket();
     act(() => ws.simulateOpen());
@@ -161,7 +158,6 @@ describe("MultiplayerGame — group flow", () => {
     const user = userEvent.setup();
     render(<MultiplayerGame entryKind="group" gameId={null} playerName="Ana" />);
     await user.click(screen.getByRole("button", { name: "Crear grupo" }));
-    await user.click(screen.getAllByRole("button", { name: "Crear grupo" }).slice(-1)[0]);
 
     const ws = lastSocket();
     act(() => ws.simulateOpen());
@@ -193,7 +189,6 @@ describe("MultiplayerGame — reconnect banner", () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<MultiplayerGame entryKind="room" gameId={GAME_ID} playerName="Ana" />);
     await user.click(screen.getByRole("button", { name: "Crear partida" }));
-    await user.click(screen.getAllByRole("button", { name: "Crear partida" }).slice(-1)[0]);
 
     const ws = lastSocket();
     act(() => ws.simulateOpen());

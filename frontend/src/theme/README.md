@@ -25,6 +25,13 @@ aplica todo lo que se describe acá.
 - **`curtain.css`** — el overlay de fundido a negro que reproduce
   `hooks/useCurtainTransition.ts` al entrar/salir de un juego con tema
   propio, para que el cambio de paleta nunca se vea como un corte brusco.
+- **`screenTransitions.css`** — la animación que reproduce `<ScreenFade>`
+  (`components/ui/ScreenFade.tsx`) al cambiar de paso dentro de una pantalla.
+- **`homeDesign.css`** — layout/breakpoints propios de la pantalla de inicio
+  (`App.tsx`/`GamePicker`), no pensado para reutilizarse fuera de ahí.
+- **`modeRow.css`** — la micro-animación de hover de una "fila de modo"
+  (`.jt-mode-row`), compartida entre `ModePicker` y `MenuScreen` — vive acá
+  en vez de en `components/` porque ninguno de los dos es dueño exclusivo.
 
 ## Cómo se aplica de verdad el look de un juego con tema propio
 

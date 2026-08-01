@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
-import { StartButton } from "../../../../components/StartButton";
-import { StickyActionBar } from "../../../../components/StickyActionBar";
-import { ErrorBanner } from "../../../../components/ErrorBanner";
+import { StartButton } from "../../../../components/setup/StartButton";
+import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
+import { ErrorBanner } from "../../../../components/ui/ErrorBanner";
 import { EliminationRevealOverlay, MatchOutcomeOverlay } from "../shared/EliminationRevealOverlay";
 import { MatchResultHeader } from "../shared/MatchResultHeader";
 import { VotesBreakdownCard } from "../shared/VotesBreakdownCard";

@@ -1,4 +1,4 @@
-import { TurnOrderEditor } from "../../components/TurnOrderEditor";
+import { TurnOrderEditor } from "../../components/game-kit/TurnOrderEditor";
 import type { ConfigPanelProps } from "../gameTypes";
 import { WordSourceConfig } from "./components/WordSourceConfig";
 
