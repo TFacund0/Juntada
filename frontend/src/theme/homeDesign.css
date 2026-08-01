@@ -172,6 +172,33 @@
   }
 }
 
+/* Las cards de "Destacados" usan un thumb 16/10 y tipografía más grande que
+   el resto (ver GamePicker.tsx) para destacarse en desktop, pero en mobile
+   (mismo grid de 2 columnas angostas) eso las hacía desproporcionadamente
+   altas. Estas overrides las achican un poco sin igualarlas del todo a las
+   cards normales — siguen leyéndose como "las importantes" pero ya no
+   comen media pantalla. Solo hasta el breakpoint de 3 columnas: ahí arriba
+   ya tienen ancho de sobra y las medidas base (inline, ver GamePicker.tsx)
+   vuelven a aplicar. */
+@media (max-width: 639px) {
+  .jt-game-thumb--featured {
+    aspect-ratio: 3 / 2 !important;
+    font-size: 38px !important;
+  }
+
+  .jt-game-title--featured {
+    font-size: 15px !important;
+  }
+
+  .jt-game-tagline--featured {
+    font-size: 11.5px !important;
+  }
+
+  .jt-game-body--featured {
+    padding: 10px 12px 12px !important;
+  }
+}
+
 /* Tope en 4 columnas (igual que el diseño de referencia: grid-cols-2
    sm:grid-cols-3 lg:grid-cols-4) — 5 achicaba demasiado las cards en
    pantallas grandes. */

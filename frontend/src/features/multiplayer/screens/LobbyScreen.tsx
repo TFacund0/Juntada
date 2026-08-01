@@ -10,6 +10,7 @@ import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { StickyActionBar } from "../../../components/setup/StickyActionBar";
 import { StartButton } from "../../../components/setup/StartButton";
 import { ReturnToGroupButton } from "../../../components/ui/ReturnToGroupButton";
+import { GameLoadErrorBoundary } from "../../../components/shell/GameLoadErrorBoundary";
 import type { GameDef } from "../../../games/gameTypes";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 import { buildRoomJoinUrl } from "../utils/joinLink";
@@ -185,9 +186,11 @@ export function LobbyScreen({
       {isHost && (
         <>
           {activeGame?.ConfigPanel && (!showLobbyTabs || lobbyTab === "config") && (
-            <Suspense fallback={null}>
-              <activeGame.ConfigPanel room={room} updateConfig={updateConfig} />
-            </Suspense>
+            <GameLoadErrorBoundary key={activeGame.id}>
+              <Suspense fallback={null}>
+                <activeGame.ConfigPanel room={room} updateConfig={updateConfig} />
+              </Suspense>
+            </GameLoadErrorBoundary>
           )}
           <StickyActionBar>
             {(() => {
@@ -215,9 +218,11 @@ export function LobbyScreen({
       {!isHost && (
         <>
           {activeGame?.LobbyInfo && (
-            <Suspense fallback={null}>
-              <activeGame.LobbyInfo room={room} />
-            </Suspense>
+            <GameLoadErrorBoundary key={activeGame.id}>
+              <Suspense fallback={null}>
+                <activeGame.LobbyInfo room={room} />
+              </Suspense>
+            </GameLoadErrorBoundary>
           )}
           <div style={{ ...S.card, textAlign: "center" }}>
             <p style={{ fontSize: 15, color: "#9089c0" }}>Esperando que el anfitrión inicie la partida</p>

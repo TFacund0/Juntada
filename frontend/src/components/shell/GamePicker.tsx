@@ -301,6 +301,7 @@ function GameGrid({ games, onSelect, featured = false }: { games: GameDef[]; onS
           >
             <span className="jt-shine" aria-hidden />
             <div
+              className={featured ? "jt-game-thumb jt-game-thumb--featured" : "jt-game-thumb"}
               style={{ ...S.catalogThumb, aspectRatio: featured ? "16 / 10" : "4 / 3", fontSize: featured ? 46 : 32, overflow: "hidden" }}
             >
               {g.logo ? (
@@ -321,12 +322,14 @@ function GameGrid({ games, onSelect, featured = false }: { games: GameDef[]; onS
               )}
             </div>
             <div
+              className={featured ? "jt-game-body jt-game-body--featured" : "jt-game-body"}
               style={{
                 padding: featured ? "12px 14px 14px" : "10px 12px 12px",
                 borderTop: "1px solid var(--jt-row-border, rgba(127,119,221,0.08))",
               }}
             >
               <div
+                className={featured ? "jt-game-title jt-game-title--featured" : "jt-game-title"}
                 style={{
                   fontWeight: 700,
                   fontSize: featured ? 16 : 14,
@@ -338,6 +341,7 @@ function GameGrid({ games, onSelect, featured = false }: { games: GameDef[]; onS
                 {g.label}
               </div>
               <p
+                className={featured ? "jt-game-tagline jt-game-tagline--featured" : "jt-game-tagline"}
                 style={{
                   margin: "3px 0 0",
                   fontSize: featured ? 12.5 : 11.5,
@@ -350,11 +354,6 @@ function GameGrid({ games, onSelect, featured = false }: { games: GameDef[]; onS
               >
                 {meta?.tagline ?? g.description}
               </p>
-              {meta && (
-                <p style={{ margin: "4px 0 0", fontSize: 11.5, fontWeight: 600, color: "var(--jt-accent-strong, #afa9ec)" }}>
-                  {meta.players}
-                </p>
-              )}
             </div>
           </div>
         );

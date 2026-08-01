@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Avatar } from "../../../../components/ui/Avatar";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/logo.webp";
 
 const overlayAnimations = `
   @keyframes reveal-overlay-fade {

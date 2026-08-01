@@ -1,5 +1,5 @@
 import { S } from "../../../../theme/styles";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/logo.webp";
 
 interface FlipRevealCardProps {
   visible: boolean;
