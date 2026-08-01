@@ -15,6 +15,7 @@ export function CodeDisplay({ code }: CodeDisplayProps) {
   return (
     <div
       onClick={copy}
+      className="jt-glow-hover jt-animate-rise"
       style={{
         cursor: "pointer",
         textAlign: "center",

@@ -8,6 +8,12 @@ interface QRDialogProps {
   subtitle?: string;
   value: string;
   onClose: () => void;
+  /**
+   * `false` para un QR de solo lectura (sin botón de compartir/copiar) —
+   * la sala ahora separa "ver QR" de "compartir enlace" (ShareLinkDialog)
+   * en vez de mezclar las dos acciones en un mismo diálogo.
+   */
+  showShare?: boolean;
 }
 
 // Los tipos de lib.dom de TS declaran navigator.share como siempre definido,
@@ -15,8 +21,8 @@ interface QRDialogProps {
 // explícito en su lugar.
 const canShare = typeof (navigator as { share?: unknown }).share === "function";
 
-/** Muestra un código de sala/grupo como QR, con un botón de compartir/copiar link. */
-export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
+/** Muestra un código de sala/grupo como QR, opcionalmente con un botón de compartir/copiar link. */
+export function QRDialog({ title, subtitle, value, onClose, showShare = true }: QRDialogProps) {
   const [copied, setCopied] = useState(false);
 
   // Los navegadores mobile reciben la hoja nativa de compartir (WhatsApp,
@@ -53,9 +59,11 @@ export function QRDialog({ title, subtitle, value, onClose }: QRDialogProps) {
       <div style={{ display: "flex", justifyContent: "center", padding: 12, background: "#f2f0fb", borderRadius: 14, marginBottom: 18 }}>
         <QRCode value={value} />
       </div>
-      <Btn variant="ghost" onClick={shareLink} style={{ marginBottom: 10 }}>
-        {copied ? "Copiado" : canShare ? "Compartir enlace" : "Copiar enlace"}
-      </Btn>
+      {showShare && (
+        <Btn variant="ghost" onClick={shareLink} style={{ marginBottom: 10 }}>
+          {copied ? "Copiado" : canShare ? "Compartir enlace" : "Copiar enlace"}
+        </Btn>
+      )}
       <Btn variant="ghost" onClick={onClose}>
         Cerrar
       </Btn>

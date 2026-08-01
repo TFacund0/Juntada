@@ -26,6 +26,7 @@ export function TabRow<T extends string>({ tabs, active, onChange, style, button
       {tabs.map(t => (
         <button
           key={t.key}
+          className="jt-btn-anim"
           onClick={() => onChange(t.key)}
           style={{ ...S.btn(active === t.key ? "primary" : "ghost"), flex: 1, padding: buttonPadding, fontSize: 13 }}
         >

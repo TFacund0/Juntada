@@ -134,7 +134,7 @@ el frontend) y se enchufa registrándose en su `registry.ts`. Agregar un
 juego nuevo no debería requerir tocar `roomService.ts`, `handlers.ts`,
 `App.tsx` ni `MultiplayerGame.tsx`.
 
-Ver [WEBSOCKET.md](./WEBSOCKET.md) para la referencia completa de mensajes
+Ver [docs/WEBSOCKET.md](./docs/WEBSOCKET.md) para la referencia completa de mensajes
 cliente↔servidor.
 
 ## Salas y grupos
@@ -471,7 +471,7 @@ explicarlo desde cero más adelante.
   genérico para cualquier juego, acepta cualquier clave pero solo valores
   acotados (string/número/boolean, o arrays/objetos de esos primitivos).
 - **Errores:** todo error que manda el servidor por WS tiene el mismo shape
-  (`{ type: "error", code, message }`, ver `WEBSOCKET.md`), construido en un
+  (`{ type: "error", code, message }`, ver `docs/WEBSOCKET.md`), construido en un
   solo lugar (`sendError()` en `backend/src/ws/messaging.ts`). Si el
   servidor rechaza una acción durante la ronda, el error se muestra como un
   banner arriba del `RoundView` — se maneja una sola vez en

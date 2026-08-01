@@ -4,8 +4,8 @@ Este `README.md` de nivel superior cubre solo los tres archivos que están
 _por encima_ de cada juego individual — `gameTypes.ts`, `registry.ts`,
 `maintenance.ts`. La carpeta propia de cada juego (`games/<id>/`) tiene su
 propia estructura interna y queda fuera de alcance acá; la reorganización
-por juego se sigue por separado (ver `REORGANIZACION_JUEGOS.md` en la raíz
-del repo).
+por juego se sigue por separado (ver `docs/REORGANIZACION_JUEGOS.md` en la
+raíz del repo).
 
 - **`gameTypes.ts`** — `GameDef`, el contrato que debe cumplir el
   `index.tsx` de cada juego (id, label, componentes `LocalGame`/

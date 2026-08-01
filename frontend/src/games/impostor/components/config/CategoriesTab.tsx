@@ -7,10 +7,39 @@ interface CategoriesTabProps {
   onChange: (enabledCategories: Record<string, boolean>) => void;
 }
 
+// Idem para el patch que produce cada botón masivo — todas las categorías
+// prendidas o todas apagadas, mismo shape, solo cambia el valor.
+function allCategoriesSetTo(value: boolean): Record<string, boolean> {
+  return Object.keys(CATEGORIES).reduce((acc, k) => ({ ...acc, [k]: value }), {} as Record<string, boolean>);
+}
+
+// "Seleccionar todas"/"Quitar todas" son el mismo botón con el estado
+// invertido — antes cada uno repetía el mismo objeto de estilo entero
+// cambiando solo qué condición mira, con el riesgo de que un ajuste futuro
+// (color, padding) se aplicara a uno y no al otro por copy-paste.
+function bulkBtnStyle(active: boolean) {
+  return {
+    flex: 1,
+    background: active ? "rgba(224,32,43,0.12)" : "rgba(255,255,255,0.04)",
+    border: active ? "1px solid rgba(224,32,43,0.4)" : "1px solid rgba(255,255,255,0.14)",
+    borderRadius: 8,
+    color: active ? "#FF6B6B" : "var(--jt-muted-text)",
+    cursor: "pointer",
+    padding: "8px 12px",
+    fontSize: 12,
+    fontWeight: 700,
+    fontFamily: "inherit",
+  } as const;
+}
+
 // The "Categorías" config tab — identical between LocalGame and ConfigPanel
 // (online), just wired to a different write path (local React state vs a
 // patch sent to the server). Bulk-select buttons, one chip per category
 // (toggle + remaining-words count), and a summary/exhausted warning below.
+// Sin card propia: ConfigTabs (el único caller, ver ese componente) ya
+// pone una sola card alrededor del switcher de tabs y el contenido de la
+// tab activa — antes esto traía la suya y quedaban dos bloques separados
+// para lo que es una sola sección.
 export function CategoriesTab({ enabledCategories, usedWords, onChange }: CategoriesTabProps) {
   const activeKeys = Object.keys(enabledCategories || {}).filter(k => enabledCategories[k]);
   const wordsLeftIn = (catKey: string) => CATEGORIES[catKey].words.length - (usedWords[catKey] || []).length;
@@ -25,9 +54,8 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
   const allDeselected = activeKeys.length === 0;
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Categorías</span>
-      <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
+    <div>
+      <p style={{ ...S.muted, margin: "0 0 12px", lineHeight: 1.4 }}>
         Elegí de qué van a ser las palabras. Tocá una categoría para activarla.
       </p>
       <style>{`
@@ -49,41 +77,29 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
           60% { transform: scale(1.05); }
           100% { transform: scale(1); }
         }
+        .impostor-cats-chip {
+          transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease-out, box-shadow 0.15s ease-out;
+        }
+        .impostor-cats-chip:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.15);
+        }
+        .impostor-cats-chip:active {
+          transform: translateY(0) scale(0.94);
+        }
       `}</style>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         <button
           className={`impostor-cats-bulk-btn${allSelected ? " impostor-cats-bulk-btn-active" : ""}`}
-          onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}))}
-          style={{
-            flex: 1,
-            background: allSelected ? "rgba(224,32,43,0.12)" : "rgba(255,255,255,0.04)",
-            border: allSelected ? "1px solid rgba(224,32,43,0.4)" : "1px solid rgba(255,255,255,0.14)",
-            borderRadius: 8,
-            color: allSelected ? "#FF6B6B" : "var(--jt-muted-text)",
-            cursor: "pointer",
-            padding: "8px 12px",
-            fontSize: 12,
-            fontWeight: 700,
-            fontFamily: "inherit",
-          }}
+          onClick={() => onChange(allCategoriesSetTo(true))}
+          style={bulkBtnStyle(allSelected)}
         >
           ✓ Seleccionar todas
         </button>
         <button
           className={`impostor-cats-bulk-btn${allDeselected ? " impostor-cats-bulk-btn-active" : ""}`}
-          onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}))}
-          style={{
-            flex: 1,
-            background: allDeselected ? "rgba(224,32,43,0.12)" : "rgba(255,255,255,0.04)",
-            border: allDeselected ? "1px solid rgba(224,32,43,0.4)" : "1px solid rgba(255,255,255,0.14)",
-            borderRadius: 8,
-            color: allDeselected ? "#FF6B6B" : "var(--jt-muted-text)",
-            cursor: "pointer",
-            padding: "8px 12px",
-            fontSize: 12,
-            fontWeight: 700,
-            fontFamily: "inherit",
-          }}
+          onClick={() => onChange(allCategoriesSetTo(false))}
+          style={bulkBtnStyle(allDeselected)}
         >
           ✕ Quitar todas
         </button>
@@ -96,6 +112,7 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
           return (
             <button
               key={k}
+              className="impostor-cats-chip"
               onClick={() => onChange({ ...enabledCategories, [k]: !active })}
               title={exhausted ? "Ya se usaron todas las palabras de esta categoría en esta partida" : undefined}
               style={{

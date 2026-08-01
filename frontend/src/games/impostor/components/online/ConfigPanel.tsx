@@ -31,11 +31,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   }, [room.players.length]);
 
   return (
-    <div>
-      <ConfigTabs active={tab} onChange={setTab} />
-
+    <ConfigTabs active={tab} onChange={setTab}>
       {tab === "rules" && (
-        <div style={S.card}>
+        <div>
           <ConfigSection divider={false}>
             <span style={S.label}>Impostores</span>
             <div style={{ display: "flex", gap: 8 }}>
@@ -203,6 +201,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
       {tab === "order" && (
         <TurnOrderEditor
+          bare
           players={room.players}
           turnOrder={config.turnOrder}
           onChange={turnOrder => updateConfig({ turnOrder })}
@@ -210,6 +209,6 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           helpText="Así van a ir pasando su palabra en la ronda. Los que se sumen después entran al final."
         />
       )}
-    </div>
+    </ConfigTabs>
   );
 }

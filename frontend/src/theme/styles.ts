@@ -152,7 +152,8 @@ export const S = {
     background: on ? "rgba(29,158,117,0.8)" : "rgba(255,255,255,0.1)",
     border: `1px solid ${on ? "rgba(29,158,117,0.5)" : "rgba(255,255,255,0.1)"}`,
     cursor: "pointer",
-    transition: "background 0.2s",
+    transition: "background 0.2s, box-shadow 0.2s",
+    boxShadow: on ? "0 0 0 3px rgba(29,158,117,0.15)" : "0 0 0 0 transparent",
   }),
   knob: (on: boolean): CSSProperties => ({
     position: "absolute",
@@ -162,7 +163,7 @@ export const S = {
     height: 18,
     borderRadius: "50%",
     background: "#fff",
-    transition: "left 0.2s",
+    transition: "left 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
     boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
   }),
   segmentedControl: {

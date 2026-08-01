@@ -36,6 +36,7 @@ export function TurnOrderEditor({
   allowRandom = false,
   label = "Orden de turno",
   helpText,
+  bare = false,
 }: {
   players: { id: string; name: string }[];
   turnOrder: string[] | undefined;
@@ -43,6 +44,11 @@ export function TurnOrderEditor({
   allowRandom?: boolean;
   label?: string;
   helpText?: string;
+  // true cuando un caller ya lo mete adentro de su propia card (ej. el tab
+  // "Orden" de ConfigTabs, ver games/impostor) — evita quedar en una card
+  // dentro de otra card. Los demás usos (quien-soy, limón-limón) lo dejan
+  // como su propio bloque independiente, así que por default trae la suya.
+  bare?: boolean;
 }) {
   const order = resolveTurnOrder(players, turnOrder);
   const manual = !allowRandom || (turnOrder?.length ?? 0) > 0;
@@ -57,7 +63,7 @@ export function TurnOrderEditor({
   };
 
   return (
-    <div style={S.card}>
+    <div style={bare ? undefined : S.card}>
       <span style={S.label}>{label}</span>
       {helpText && <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>{helpText}</p>}
 
