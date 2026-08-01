@@ -177,6 +177,13 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // servidor"). The session itself is still kept/persisted untouched so a
   // real group elsewhere isn't affected by visiting a standalone room.
   const groupSessionEnabled = entryKind !== "room";
+  // Mirror image of groupSessionEnabled: a persisted room session shouldn't
+  // drive auto-rejoin either when this screen was opened for the group flow
+  // — otherwise tapping "Crear o unirme a un grupo" with an old standalone
+  // room still in localStorage (tab closed mid-game instead of using
+  // "Volver"/"Menú principal") silently rejoins that unrelated room instead
+  // of showing the group create/join screen the player actually tapped into.
+  const roomSessionEnabled = entryKind !== "group";
   const [room, setRoom] = useState<RoomPublicState | null>(null);
   const [group, setGroup] = useState<GroupPublicState | null>(null);
   const [myRole, setMyRole] = useState<Record<string, unknown> | null>(null); // { isImpostor, word, hint }
@@ -213,7 +220,14 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // round-trip is still in flight.
   const [coldStart, setColdStart] = useState(() => {
     const s = loadSession();
-    return Boolean(s?.room || s?.group);
+    // Must mirror the auto-rejoin effect's condition below: a persisted
+    // group session only counts here if this screen actually cares about
+    // group sessions (groupSessionEnabled). Otherwise a leftover group
+    // session from a past visit sets coldStart=true but the mount effect
+    // never calls connect() for it (entryKind "room" ignores group
+    // sessions) — no socket ever opens, so nothing ever resolves coldStart
+    // and the "Autenticando sesión" overlay hangs forever.
+    return Boolean((roomSessionEnabled && s?.room) || (groupSessionEnabled && s?.group));
   });
   // True once the cold-start rejoin lands on an in-progress game — instead of
   // silently dropping the player back into the round, the overlay asks
@@ -332,7 +346,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
         if (onOpen) onOpen(ws);
         else if (groupSessionEnabled && groupMeRef.current)
           ws.send(JSON.stringify({ type: "rejoin_group", groupCode: groupMeRef.current.groupCode, playerId: groupMeRef.current.playerId }));
-        else if (meRef.current)
+        else if (roomSessionEnabled && meRef.current)
           ws.send(JSON.stringify({ type: "rejoin", roomCode: meRef.current.roomCode, playerId: meRef.current.playerId }));
       };
       ws.onmessage = e => {
@@ -456,7 +470,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
         }
       };
       ws.onclose = () => {
-        if (!meRef.current && !(groupSessionEnabled && groupMeRef.current)) return;
+        if (!(roomSessionEnabled && meRef.current) && !(groupSessionEnabled && groupMeRef.current)) return;
         setReconnecting(true);
         // A fresh drop mid-retry-loop shouldn't still show a stale
         // "Reconectado" from an earlier, unrelated recovery.
@@ -470,14 +484,14 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
             return prevAttempt;
           }
           reconnectRef.current = setTimeout(() => {
-            if (meRef.current || (groupSessionEnabled && groupMeRef.current)) connect();
+            if ((roomSessionEnabled && meRef.current) || (groupSessionEnabled && groupMeRef.current)) connect();
           }, reconnectDelayMs(attempt));
           return attempt;
         });
       };
       ws.onerror = () => flashError("No se pudo conectar al servidor");
     },
-    [onReconnected, flashError, clearError, groupSessionEnabled, resolveColdStart, settleGroupColdStart],
+    [onReconnected, flashError, clearError, groupSessionEnabled, roomSessionEnabled, resolveColdStart, settleGroupColdStart],
   );
 
   // Manual retry after the automatic loop gave up (see reconnectFailed) —
@@ -493,7 +507,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // mobile browser fully discarded the page while backgrounded, so the app
   // remounted from scratch instead of just dropping the socket).
   useEffect(() => {
-    if (meRef.current || (groupSessionEnabled && groupMeRef.current)) connect();
+    if ((roomSessionEnabled && meRef.current) || (groupSessionEnabled && groupMeRef.current)) connect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -529,7 +543,11 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // exactly the case this needs to catch.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState !== "visible" || (!meRef.current && !(groupSessionEnabled && groupMeRef.current))) return;
+      if (
+        document.visibilityState !== "visible" ||
+        (!(roomSessionEnabled && meRef.current) && !(groupSessionEnabled && groupMeRef.current))
+      )
+        return;
       const ws = wsRef.current;
       const stale = ws?.readyState === WebSocket.OPEN && Date.now() - lastMessageAtRef.current > PING_AFTER_IDLE_MS;
       if (ws?.readyState !== WebSocket.OPEN) {
@@ -545,7 +563,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("pageshow", onVisible);
     };
-  }, [connect, groupSessionEnabled]);
+  }, [connect, groupSessionEnabled, roomSessionEnabled]);
 
   useEffect(
     () => () => {

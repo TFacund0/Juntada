@@ -82,8 +82,6 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
     <div style={{ paddingBottom: 88 }}>
       <SetupTabs tab={tab} onChange={setTab} />
 
-      {tab === "config" && <ConfigTabs active={configTab} onChange={setConfigTab} />}
-
       {tab === "players" && (
         <div style={S.card}>
           <style>{`
@@ -133,189 +131,193 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
         </div>
       )}
 
-      {tab === "config" && configTab === "rules" && (
-        <div style={S.card}>
-          <ConfigSection divider={false}>
-            <span style={S.label}>Impostores</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[1, 2, 3].map(n => {
-                const maxImp = maxImpostors(players.length);
-                return (
+      {tab === "config" && (
+        <ConfigTabs active={configTab} onChange={setConfigTab}>
+          {configTab === "rules" && (
+            <div>
+              <ConfigSection divider={false}>
+                <span style={S.label}>Impostores</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[1, 2, 3].map(n => {
+                    const maxImp = maxImpostors(players.length);
+                    return (
+                      <button
+                        key={n}
+                        onClick={() => setConfig(c => ({ ...c, numImpostors: n }))}
+                        disabled={n > maxImp}
+                        style={{
+                          ...S.btn(config.numImpostors === n ? "primary" : "ghost"),
+                          flex: 1,
+                          padding: "10px 0",
+                          fontSize: 14,
+                          opacity: n > maxImp ? 0.35 : 1,
+                        }}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+                {maxImpostors(players.length) < 3 && (
+                  <p style={{ ...S.muted, marginTop: 8, lineHeight: 1.4 }}>
+                    Con {players.length} jugadores, como máximo puede haber {maxImpostors(players.length)}{" "}
+                    {maxImpostors(players.length) === 1 ? "impostor" : "impostores"}.
+                  </p>
+                )}
+              </ConfigSection>
+              <ConfigSection>
+                <span style={S.label}>¿El impostor recibe una pista?</span>
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                   <button
-                    key={n}
-                    onClick={() => setConfig(c => ({ ...c, numImpostors: n }))}
-                    disabled={n > maxImp}
-                    style={{
-                      ...S.btn(config.numImpostors === n ? "primary" : "ghost"),
-                      flex: 1,
-                      padding: "10px 0",
-                      fontSize: 14,
-                      opacity: n > maxImp ? 0.35 : 1,
-                    }}
+                    onClick={() => setConfig(c => ({ ...c, hintsEnabled: true }))}
+                    style={{ ...S.btn(config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
                   >
-                    {n}
+                    Sí, con pista
                   </button>
-                );
-              })}
-            </div>
-            {maxImpostors(players.length) < 3 && (
-              <p style={{ ...S.muted, marginTop: 8, lineHeight: 1.4 }}>
-                Con {players.length} jugadores, como máximo puede haber {maxImpostors(players.length)}{" "}
-                {maxImpostors(players.length) === 1 ? "impostor" : "impostores"}.
-              </p>
-            )}
-          </ConfigSection>
-          <ConfigSection>
-            <span style={S.label}>¿El impostor recibe una pista?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              <button
-                onClick={() => setConfig(c => ({ ...c, hintsEnabled: true }))}
-                style={{ ...S.btn(config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                Sí, con pista
-              </button>
-              <button
-                onClick={() => setConfig(c => ({ ...c, hintsEnabled: false }))}
-                style={{ ...S.btn(!config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                No, a ciegas
-              </button>
-            </div>
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
-              {config.hintsEnabled
-                ? "El impostor ve una pista sutil sobre la palabra, para poder disimular."
-                : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
-            </p>
-          </ConfigSection>
-          <ConfigSection>
-            <RevealOnEliminationControl
-              value={config.revealOnElimination}
-              onChange={revealOnElimination => setConfig(c => ({ ...c, revealOnElimination }))}
-            />
-          </ConfigSection>
-          <ConfigSection>
-            <ShowCategoryControl value={config.showCategory} onChange={showCategory => setConfig(c => ({ ...c, showCategory }))} />
-          </ConfigSection>
-          <ConfigSection>
-            <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              <button
-                onClick={() => setConfig(c => ({ ...c, writtenClues: true }))}
-                style={{ ...S.btn(config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                Escrita
-              </button>
-              <button
-                onClick={() => setConfig(c => ({ ...c, writtenClues: false }))}
-                style={{ ...S.btn(!config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
-              >
-                En voz alta
-              </button>
-            </div>
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
-              {config.writtenClues
-                ? "Cada uno escribe su palabra en el dispositivo antes de pasarlo, y quedan visibles para repasar antes de votar."
-                : "Cada uno dice su palabra en voz alta, por turnos, sin escribir nada."}
-            </p>
-            {/* Online tiene un "tiempo por turno" además de este porque cada
+                  <button
+                    onClick={() => setConfig(c => ({ ...c, hintsEnabled: false }))}
+                    style={{ ...S.btn(!config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                  >
+                    No, a ciegas
+                  </button>
+                </div>
+                <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                  {config.hintsEnabled
+                    ? "El impostor ve una pista sutil sobre la palabra, para poder disimular."
+                    : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
+                </p>
+              </ConfigSection>
+              <ConfigSection>
+                <RevealOnEliminationControl
+                  value={config.revealOnElimination}
+                  onChange={revealOnElimination => setConfig(c => ({ ...c, revealOnElimination }))}
+                />
+              </ConfigSection>
+              <ConfigSection>
+                <ShowCategoryControl value={config.showCategory} onChange={showCategory => setConfig(c => ({ ...c, showCategory }))} />
+              </ConfigSection>
+              <ConfigSection>
+                <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <button
+                    onClick={() => setConfig(c => ({ ...c, writtenClues: true }))}
+                    style={{ ...S.btn(config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                  >
+                    Escrita
+                  </button>
+                  <button
+                    onClick={() => setConfig(c => ({ ...c, writtenClues: false }))}
+                    style={{ ...S.btn(!config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                  >
+                    En voz alta
+                  </button>
+                </div>
+                <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                  {config.writtenClues
+                    ? "Cada uno escribe su palabra en el dispositivo antes de pasarlo, y quedan visibles para repasar antes de votar."
+                    : "Cada uno dice su palabra en voz alta, por turnos, sin escribir nada."}
+                </p>
+                {/* Online tiene un "tiempo por turno" además de este porque cada
                 jugador tiene su propio dispositivo y hay que evitar que uno
                 se cuelgue mientras el resto espera. Acá el dispositivo se va
                 pasando de mano en mano, así que ya queda en manos del grupo
                 cuánto tarda cada uno antes de tocar "Siguiente jugador" —
                 no hace falta un cronómetro server-side para eso. */}
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4, fontSize: 12 }}>
-              No hay límite de tiempo por turno: como se van pasando el dispositivo de mano en mano, cada uno avanza cuando ya dijo su
-              palabra.
-            </p>
-          </ConfigSection>
-          <ConfigSection>
-            <span style={S.label}>
-              Tiempo de discusión:{" "}
-              {config.discussionUnlimited
-                ? "Sin límite"
-                : config.discussionTime === 0
-                  ? "Sin fase de discusión"
-                  : `${config.discussionTime}s`}
-            </span>
-            <input
-              type="range"
-              min="0"
-              max="180"
-              step="15"
-              value={config.discussionTime}
-              disabled={config.discussionUnlimited}
-              onChange={e => setConfig(c => ({ ...c, discussionTime: +e.target.value, discussionUnlimited: false }))}
-              style={{ width: "100%", marginTop: 8, opacity: config.discussionUnlimited ? 0.4 : 1 }}
+                <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4, fontSize: 12 }}>
+                  No hay límite de tiempo por turno: como se van pasando el dispositivo de mano en mano, cada uno avanza cuando ya dijo su
+                  palabra.
+                </p>
+              </ConfigSection>
+              <ConfigSection>
+                <span style={S.label}>
+                  Tiempo de discusión:{" "}
+                  {config.discussionUnlimited
+                    ? "Sin límite"
+                    : config.discussionTime === 0
+                      ? "Sin fase de discusión"
+                      : `${config.discussionTime}s`}
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="180"
+                  step="15"
+                  value={config.discussionTime}
+                  disabled={config.discussionUnlimited}
+                  onChange={e => setConfig(c => ({ ...c, discussionTime: +e.target.value, discussionUnlimited: false }))}
+                  style={{ width: "100%", marginTop: 8, opacity: config.discussionUnlimited ? 0.4 : 1 }}
+                />
+                <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
+                  <div
+                    style={S.toggle(config.discussionUnlimited)}
+                    onClick={() => setConfig(c => ({ ...c, discussionUnlimited: !c.discussionUnlimited }))}
+                  >
+                    <div style={S.knob(config.discussionUnlimited)} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "var(--jt-muted-text)" }}>
+                    Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
+                  </span>
+                </label>
+              </ConfigSection>
+            </div>
+          )}
+
+          {configTab === "cats" && (
+            <CategoriesTab
+              enabledCategories={config.enabledCategories}
+              usedWords={usedWords}
+              onChange={enabledCategories => setConfig(c => ({ ...c, enabledCategories }))}
             />
-            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
-              <div
-                style={S.toggle(config.discussionUnlimited)}
-                onClick={() => setConfig(c => ({ ...c, discussionUnlimited: !c.discussionUnlimited }))}
-              >
-                <div style={S.knob(config.discussionUnlimited)} />
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "var(--jt-muted-text)" }}>
-                Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
-              </span>
-            </label>
-          </ConfigSection>
-        </div>
-      )}
+          )}
 
-      {tab === "config" && configTab === "cats" && (
-        <CategoriesTab
-          enabledCategories={config.enabledCategories}
-          usedWords={usedWords}
-          onChange={enabledCategories => setConfig(c => ({ ...c, enabledCategories }))}
-        />
-      )}
-
-      {tab === "config" && configTab === "order" && (
-        <div style={S.card}>
-          <span style={S.label}>Orden de turno para dar la palabra</span>
-          <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
-            Así van a ir pasando el dispositivo y dando su palabra en la ronda.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {players.map((p, i) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "var(--jt-muted-text)" }}>{i + 1}</span>
-                <Avatar name={p.name} size={28} />
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
-                <button
-                  onClick={() => movePlayer(i, -1)}
-                  disabled={i === 0}
-                  style={{
-                    ...S.btn("ghost"),
-                    width: 32,
-                    height: 32,
-                    padding: 0,
-                    borderRadius: 8,
-                    fontSize: 14,
-                    opacity: i === 0 ? 0.35 : 1,
-                  }}
-                >
-                  ↑
-                </button>
-                <button
-                  onClick={() => movePlayer(i, 1)}
-                  disabled={i === players.length - 1}
-                  style={{
-                    ...S.btn("ghost"),
-                    width: 32,
-                    height: 32,
-                    padding: 0,
-                    borderRadius: 8,
-                    fontSize: 14,
-                    opacity: i === players.length - 1 ? 0.35 : 1,
-                  }}
-                >
-                  ↓
-                </button>
+          {configTab === "order" && (
+            <div>
+              <span style={S.label}>Orden de turno para dar la palabra</span>
+              <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
+                Así van a ir pasando el dispositivo y dando su palabra en la ronda.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {players.map((p, i) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+                    <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "var(--jt-muted-text)" }}>{i + 1}</span>
+                    <Avatar name={p.name} size={28} />
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+                    <button
+                      onClick={() => movePlayer(i, -1)}
+                      disabled={i === 0}
+                      style={{
+                        ...S.btn("ghost"),
+                        width: 32,
+                        height: 32,
+                        padding: 0,
+                        borderRadius: 8,
+                        fontSize: 14,
+                        opacity: i === 0 ? 0.35 : 1,
+                      }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      onClick={() => movePlayer(i, 1)}
+                      disabled={i === players.length - 1}
+                      style={{
+                        ...S.btn("ghost"),
+                        width: 32,
+                        height: 32,
+                        padding: 0,
+                        borderRadius: 8,
+                        fontSize: 14,
+                        opacity: i === players.length - 1 ? 0.35 : 1,
+                      }}
+                    >
+                      ↓
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )}
+        </ConfigTabs>
       )}
 
       <StickyActionBar>

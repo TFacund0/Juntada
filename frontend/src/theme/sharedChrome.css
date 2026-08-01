@@ -195,3 +195,53 @@
     animation-duration: 1.6s;
   }
 }
+
+/* Levanta + achica al tocar, compartido por cualquier botón/chip clickeable
+   que no tenga ya su propia animación de hover/press (TabRow, chips de
+   categorías, controles de config en general) — antes esos quedaban del
+   todo estáticos salvo el cambio de color de :hover del navegador. La
+   transición vive en el "all 0.15s"/"transition: all" que ya trae S.btn (u
+   otro inline style) vía cascada normal — esta clase solo agrega los
+   estados que un inline style no puede declarar (:hover/:active). */
+.jt-btn-anim:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+}
+
+.jt-btn-anim:active {
+  transform: translateY(0) scale(0.95);
+  filter: brightness(0.98);
+}
+
+/* Scrollbar angosta con el acento de la sala, transparente cuando no hace
+   falta — compartida por cualquier caja con overflow-y:auto propio (antes
+   repetida entera, webkit + Firefox, en cada una de LobbyScreen.css:
+   jt-lobby-col, jt-player-grid, jt-lobby-config-scroll). */
+.jt-thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35)) transparent;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
+  border-radius: 20px;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--jt-accent, #7f77dd);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-btn-anim:hover,
+  .jt-btn-anim:active {
+    transform: none;
+  }
+}
