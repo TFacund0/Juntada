@@ -17,11 +17,12 @@ tiene el propio del shell multijugador (`useMultiplayerSocket`).
   que sí conoce multijugador, vive en
   `features/multiplayer/hooks/useValidJoinLink.ts`, no acá.)
 - **`useCurtainTransition.ts`** — el fundido a negro que se reproduce al
-  entrar/salir de un juego con tema propio, para que el cambio de paleta de
-  toda la app pase tapado en vez de como un corte brusco. Dos variantes:
-  `withCurtain` (acciones locales instantáneas) y `withAsyncCurtain`
-  (crear/unirse online, que espera un viaje de ida y vuelta al servidor
-  antes de levantar la cortina).
+  entrar/salir de cualquier juego, para que el cambio de pantalla nunca se
+  vea como un corte brusco (un juego con tema propio además cambia la
+  paleta detrás de esta misma cortina). Dos variantes: `withCurtain`
+  (acciones locales instantáneas) y `withAsyncCurtain` (crear/unirse
+  online, que espera un viaje de ida y vuelta al servidor antes de levantar
+  la cortina).
 - **`useFlashError.ts`** — un mensaje de error/validación transitorio:
   setearlo incrementa una `key` (para que la animación de destello de
   `ErrorBanner` se repita incluso con un mensaje idéntico repetido) y se
@@ -30,9 +31,12 @@ tiene el propio del shell multijugador (`useMultiplayerSocket`).
 useMultiplayerSocket.ts`, `NamePillEditor`, ...) en vez de que cada uno
   reimplemente su propia lógica de timeout.
 - **`useGameTheme.ts`** — calcula el reskin de toda la app (ver `gameTheme`
-  en `GameDef`, `theme/gameThemes.ts`) para el juego que esté en pantalla, y
-  mantiene sincronizados el fondo del `<body>` y el meta tag `theme-color`
-  con ese tema.
+  en `GameDef`, `theme/gameThemes.ts`) para el juego que esté en pantalla,
+  setea las variables `--jt-*` (`theme/sharedChrome.css`) en `<html>` (no en
+  el div raíz de `App.tsx`, para que también las herede cualquier
+  componente compartido portado a `document.body`), y mantiene
+  sincronizados el fondo del `<body>` y el meta tag `theme-color` con ese
+  tema.
 
 ## Si necesitás cambiar algo
 

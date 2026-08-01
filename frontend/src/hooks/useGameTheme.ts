@@ -1,6 +1,38 @@
-import { useEffect, type CSSProperties } from "react";
-import { GAME_THEMES } from "../theme/gameThemes";
+import { useEffect } from "react";
+import { GAME_THEMES, type GameTheme } from "../theme/gameThemes";
 import type { GameDef } from "../games/gameTypes";
+
+/**
+ * Deriva las variables CSS `--jt-*` (ver `theme/sharedChrome.css`) a partir
+ * de las tres obligatorias de un `GameTheme` (`app`/`accent`/`muted`) — así
+ * sumar un juego con tema propio nuevo solo implica agregar su entrada en
+ * `GAME_THEMES` con esos valores (y opcionalmente `accentStrong`/`surface`);
+ * ningún componente compartido nuevo necesita tocarse para heredar el color.
+ */
+function chromeVarsFor(theme: GameTheme): Record<string, string> {
+  const accent = theme.accent;
+  return {
+    "--jt-accent": accent,
+    "--jt-accent-strong": theme.accentStrong ?? accent,
+    "--jt-surface": theme.surface ?? (theme.app.background as string),
+    "--jt-muted": theme.muted,
+    // El CTA estilo "Iniciar ronda" combina con el acento de este tema, en
+    // vez de quedarse con el verde de toda la app.
+    "--jt-cta-from": accent,
+    "--jt-cta-to": `color-mix(in srgb, ${accent} 70%, black)`,
+    "--jt-cta-shadow": `color-mix(in srgb, ${accent} 35%, transparent)`,
+    // La franja de fade-to-bg de StickyActionBar (detrás de ese mismo CTA).
+    "--jt-bg": theme.app.background as string,
+    // El look compartido de card/label/texto muted (S.card/S.label/
+    // S.muted en theme/styles.ts) — cubre gratis la card de la lista de
+    // jugadores del lobby online, sin cambios por pantalla.
+    "--jt-card-bg": "color-mix(in srgb, black 25%, transparent)",
+    "--jt-card-border": `color-mix(in srgb, ${accent} 30%, transparent)`,
+    "--jt-row-border": `color-mix(in srgb, ${accent} 15%, transparent)`,
+    "--jt-label": accent,
+    "--jt-muted-text": theme.muted,
+  };
+}
 
 /**
  * Calcula el reskin de toda la app (ver `gameTheme` en `GameDef`,
@@ -42,40 +74,31 @@ export function useGameTheme(game: GameDef | null | undefined, inGameView: boole
     };
   }, [activeTheme]);
 
+  /**
+   * Las variables `--jt-*` (ver `theme/sharedChrome.css`) se setean en
+   * `<html>` (documentElement), no en el div raíz de `App.tsx`: varios de
+   * los componentes compartidos que las leen (`StickyActionBar`, la barra
+   * de "Iniciar ronda" del lobby, `Toast`, los modales de sala/grupo) se
+   * portan a `document.body` para escapar del wrapper animado de
+   * `<ScreenFade>` (ver esos componentes), quedando así fuera del subárbol
+   * de ese div — pero siempre dentro del de `<html>`. Solo se setean
+   * cuando hay un tema realmente activo; al desmontar/cambiar se limpian y
+   * las variables vuelven a los valores por defecto de `:root` en
+   * `sharedChrome.css` (el look normal de la app, para todo juego sin tema
+   * propio).
+   */
+  useEffect(() => {
+    if (!activeTheme) return;
+    const root = document.documentElement.style;
+    const vars = chromeVarsFor(activeTheme);
+    for (const [key, value] of Object.entries(vars)) root.setProperty(key, value);
+    return () => {
+      for (const key of Object.keys(vars)) root.removeProperty(key);
+    };
+  }, [activeTheme]);
+
   const accentColor = activeTheme?.accent ?? "#7F77DD";
   const mutedColor = activeTheme?.muted ?? "#6b6490";
 
-  /**
-   * Todo componente compartido de "unirse a una sala" (`CodeDisplay`,
-   * `QRDialog`) lee estas variables CSS en vez de hardcodear el morado/verde
-   * por defecto — ver `theme/sharedChrome.css`. Solo se setean cuando hay un
-   * tema realmente activo; si no, las variables se quedan con los valores
-   * por defecto de `:root` propios de `sharedChrome.css` (el look normal de
-   * esta app, sin tocar, para todo juego sin tema propio).
-   */
-  const chromeVars: CSSProperties = activeTheme
-    ? ({
-        "--jt-accent": accentColor,
-        "--jt-accent-strong": activeTheme.accentStrong ?? accentColor,
-        "--jt-surface": activeTheme.surface ?? (activeTheme.app.background as string | undefined),
-        "--jt-muted": mutedColor,
-        // El CTA estilo "Iniciar ronda" también combina con el acento de
-        // este tema, en vez de quedarse con el verde de toda la app.
-        "--jt-cta-from": accentColor,
-        "--jt-cta-to": `color-mix(in srgb, ${accentColor} 70%, black)`,
-        "--jt-cta-shadow": `color-mix(in srgb, ${accentColor} 35%, transparent)`,
-        // La franja de fade-to-bg de StickyActionBar (detrás de ese mismo CTA).
-        "--jt-bg": activeTheme.app.background as string | undefined,
-        // El look compartido de card/label/texto muted (S.card/S.label/
-        // S.muted en theme/styles.ts) — cubre gratis la card de la lista de
-        // jugadores del lobby online, sin cambios por pantalla.
-        "--jt-card-bg": "color-mix(in srgb, black 25%, transparent)",
-        "--jt-card-border": `color-mix(in srgb, ${accentColor} 30%, transparent)`,
-        "--jt-row-border": `color-mix(in srgb, ${accentColor} 15%, transparent)`,
-        "--jt-label": accentColor,
-        "--jt-muted-text": mutedColor,
-      } as CSSProperties)
-    : {};
-
-  return { activeTheme, accentColor, mutedColor, chromeVars };
+  return { activeTheme, accentColor, mutedColor };
 }

@@ -177,8 +177,22 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     }
   };
 
+  // Whether a themed game's reskin (see gameTheme on GameDef) is actually
+  // live right now — used below to decide whether *leaving* needs the
+  // fade-to-black curtain or can just happen instantly. Entering a game
+  // always gets the curtain now (see withCurtain/withAsyncCurtain callers
+  // in App.tsx/MultiplayerGame), but leaving is different: <ScreenFade>
+  // already plays its own 0.32s entrance animation for the screen being
+  // returned to (the picker, "elegí modo", etc), so stacking the curtain's
+  // own fade-in/out on top of that for every plain exit reads as the page
+  // stuttering/reloading twice. A themed game is the one case where that
+  // extra fade earns its keep — it's covering a palette swap that would
+  // otherwise flash mid-transition, not just re-showing the same look.
+  const themeIsLive = Boolean(game?.gameTheme) && (mode === "local" || (mode === "multi" && inRoom));
+
   const confirmGoBack = () => {
-    withCurtain(() => {
+    const run = themeIsLive ? withCurtain : (action: () => void) => action();
+    run(() => {
       if (mode === "multi") clearMultiplayerSession();
       setMode(null);
       // Group flow jumps straight from home into multi mode with no "pick
@@ -189,7 +203,8 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
   };
 
   const goHome = () => {
-    withCurtain(() => {
+    const run = themeIsLive ? withCurtain : (action: () => void) => action();
+    run(() => {
       if (mode === "multi") clearMultiplayerSession();
       setGameId(null);
       setMode(null);

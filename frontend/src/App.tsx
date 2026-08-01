@@ -122,7 +122,7 @@ export default function App() {
   // to drive the body/theme-color sync effect. Computed above the
   // "!playerName" early return further down since Hooks (the effect right
   // after it) can never be called conditionally.
-  const { activeTheme, accentColor, mutedColor, chromeVars } = useGameTheme(game, inGameView);
+  const { activeTheme, accentColor, mutedColor } = useGameTheme(game, inGameView);
 
   // Lets a pending service worker update (see useServiceWorkerUpdate) know
   // it's not safe to reload right now — a round can last just a few
@@ -140,7 +140,6 @@ export default function App() {
       style={{
         ...S.app,
         ...activeTheme?.app,
-        ...chromeVars,
         position: "relative",
         transition: "background-color .4s ease, color .4s ease",
       }}
