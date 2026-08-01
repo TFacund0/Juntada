@@ -23,8 +23,10 @@ aplica todo lo que se describe acá.
   — no hace falta cambiar nada más para que ese juego adopte su propio look
   en todos los componentes compartidos.
 - **`curtain.css`** — el overlay de fundido a negro que reproduce
-  `hooks/useCurtainTransition.ts` al entrar/salir de un juego con tema
-  propio, para que el cambio de paleta nunca se vea como un corte brusco.
+  `hooks/useCurtainTransition.ts` al entrar/salir de cualquier juego (con
+  tema propio o no), para que el cambio de pantalla nunca se vea como un
+  corte brusco. Un juego con tema propio además cambia la paleta detrás de
+  esta misma cortina.
 - **`screenTransitions.css`** — la animación que reproduce `<ScreenFade>`
   (`components/ui/ScreenFade.tsx`) al cambiar de paso dentro de una pantalla.
 - **`homeDesign.css`** — layout/breakpoints propios de la pantalla de inicio

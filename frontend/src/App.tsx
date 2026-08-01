@@ -193,10 +193,7 @@ export default function App() {
 
               {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
               {gameId && !mode && game && isGameAvailable(game) && !game.localOnly && (
-                <ModePicker
-                  onSelectMulti={() => setMode("multi")}
-                  onSelectLocal={() => withCurtain(() => setMode("local"), Boolean(game?.gameTheme))}
-                />
+                <ModePicker onSelectMulti={() => setMode("multi")} onSelectLocal={() => withCurtain(() => setMode("local"))} />
               )}
 
               {/* ── Paso 3: jugar ── */}
@@ -230,7 +227,7 @@ export default function App() {
                   // join fires. Callers there know the target game synchronously
                   // (the picker's own gameId, or the instance's gameType) and pass
                   // it as `themedOverride` instead of relying on this closure.
-                  runTransition={(action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme))}
+                  runTransition={action => withAsyncCurtain(action)}
                   onTransitionSettled={settleAsyncCurtain}
                 />
               )}

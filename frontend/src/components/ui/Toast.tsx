@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import "./Toast.css";
 
 const EXIT_MS = 200;
@@ -10,6 +11,12 @@ const EXIT_MS = 200;
  * desaparecer de golpe en el mismo tick en que el padre limpia el estado) y
  * recién ahí llama a `onExpire`. No renderiza nada cuando no hay nada que
  * mostrar, así quien lo usa puede montarlo incondicionalmente.
+ *
+ * Portal a document.body: se monta desde LobbyScreen/RoundScreen, ambos
+ * colgando del <ScreenFade> de App.tsx, que anima con `transform` durante
+ * 0.32s al entrar a la pantalla — un toast que aparece justo en ese instante
+ * (ej. un error de join) quedaría atrapado por ese `transform` y mal ubicado
+ * en vez de fijo al viewport. Mismo motivo que RoomEntryModal/GroupEntryModal.
  */
 export function Toast({ message, duration = 3000, onExpire }: { message: string | null; duration?: number; onExpire: () => void }) {
   const [shown, setShown] = useState(message);
@@ -32,13 +39,14 @@ export function Toast({ message, duration = 3000, onExpire }: { message: string 
 
   if (!shown) return null;
 
-  return (
+  return createPortal(
     <div
       className={phase === "out" ? "jt-toast jt-toast--out" : "jt-toast jt-toast--in"}
       style={{ animationDuration: phase === "out" ? `${EXIT_MS}ms` : undefined }}
     >
       <span aria-hidden className="jt-toast-dot" />
       {shown}
-    </div>
+    </div>,
+    document.body,
   );
 }

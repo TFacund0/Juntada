@@ -177,11 +177,6 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     }
   };
 
-  // Whether the themed reskin (see gameTheme on GameDef) is actually live
-  // right now, for games with one — used to decide whether leaving needs
-  // the fade-to-black curtain or can just happen instantly.
-  const themeIsLive = Boolean(game?.gameTheme) && (mode === "local" || (mode === "multi" && inRoom));
-
   const confirmGoBack = () => {
     withCurtain(() => {
       if (mode === "multi") clearMultiplayerSession();
@@ -190,7 +185,7 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
       // mode" step in between, so going back from it goes straight home too.
       if (groupFlow) setGroupFlow(false);
       setShowBackConfirm(false);
-    }, themeIsLive);
+    });
   };
 
   const goHome = () => {
@@ -202,7 +197,7 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
       setShowRules(false);
       setShowExitConfirm(false);
       setGroupAttached(false);
-    }, themeIsLive);
+    });
   };
 
   const pickGame = (id: string) => {

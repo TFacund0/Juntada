@@ -1,10 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 
 /**
- * Fundido a negro ("cortina") reproducido cada vez que un juego con tema
- * propio (ver `gameTheme` en `GameDef`) está por entrar o salir de pantalla,
- * para que el cambio de paleta de toda la app siempre pase tapado por completo
- * en vez de como un corte brusco.
+ * Fundido a negro ("cortina") reproducido cada vez que un juego está por
+ * entrar a pantalla (o salir de ella) — sea o no un juego con tema propio
+ * (ver `gameTheme` en `GameDef`) — para que ese cambio de pantalla nunca se
+ * sienta como un corte brusco. Un juego con tema propio además cambia la
+ * paleta de toda la app detrás de esta misma cortina.
  */
 export function useCurtainTransition() {
   const [curtain, setCurtain] = useState<"none" | "in" | "out">("none");
@@ -14,8 +15,8 @@ export function useCurtainTransition() {
    * que alcanza con un timer fijo — no hay ningún viaje de ida y vuelta al
    * servidor que esperar.
    */
-  const withCurtain = useCallback((action: () => void, themed: boolean) => {
-    if (!themed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const withCurtain = useCallback((action: () => void) => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       action();
       return;
     }
@@ -50,8 +51,8 @@ export function useCurtainTransition() {
    * instantáneo, y un timeout de resguardo para que una conexión que nunca
    * responde no deje al jugador atrapado detrás del negro para siempre.
    */
-  const withAsyncCurtain = useCallback((action: () => void, themed: boolean) => {
-    if (!themed || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const withAsyncCurtain = useCallback((action: () => void) => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       action();
       return;
     }
