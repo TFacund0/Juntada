@@ -7,6 +7,12 @@ interface DialogFrameProps {
   maxWidth?: number;
   padding?: CSSProperties["padding"];
   overlayOpacity?: number;
+  /**
+   * Desenfoca lo que queda detrás del overlay (ej. NewGameDialog en mobile,
+   * donde el menú del grupo debe seguir viéndose de fondo pero borroso) en
+   * vez del oscurecido liso por defecto.
+   */
+  overlayBlur?: number;
   textAlign?: CSSProperties["textAlign"];
   /**
    * Overrides puntuales para la card interna — ej. el `overflow: hidden` +
@@ -51,6 +57,7 @@ export function DialogFrame({
   maxWidth = 360,
   padding = "24px 20px",
   overlayOpacity = 0.75,
+  overlayBlur,
   textAlign,
   cardStyle,
   cardClassName,
@@ -65,6 +72,8 @@ export function DialogFrame({
         position: "fixed",
         inset: 0,
         background: `rgba(15,12,29,${overlayOpacity})`,
+        backdropFilter: overlayBlur ? `blur(${overlayBlur}px)` : undefined,
+        WebkitBackdropFilter: overlayBlur ? `blur(${overlayBlur}px)` : undefined,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

@@ -17,6 +17,15 @@
   }
 }
 
+/* Espacio reservado al pie en mobile para que el contenido (ErrorBanner
+   incluido) no quede tapado detrás de la barra fija de "Nueva
+   partida"/"Salir del grupo" — ver .jt-group-bottom-bar más abajo. */
+@media (max-width: 899px) {
+  .jt-group-root {
+    padding-bottom: 136px;
+  }
+}
+
 .jt-group-glow {
   position: absolute;
   z-index: -1;
@@ -197,16 +206,186 @@
   gap: 14px;
 }
 
-.jt-group-section-label {
+/* Columna derecha (grilla de "Nueva partida" suelta) — solo desde
+   desktop. En mobile ese catálogo completo vive en NewGameDialog, disparado
+   por .jt-group-newgame-trigger debajo de "Partidas abiertas", así el
+   mismo contenido no se repite dos veces en la misma pantalla. */
+.jt-group-col--newgame {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .jt-group-col--newgame {
+    display: flex;
+  }
+}
+
+/* Card "Nueva partida" (columna derecha, desktop) — menos protagonismo que
+   "Partidas abiertas"/"Integrantes": borde punteado en vez de sólido, fondo
+   más apagado, ya que no es una lista de estado sino una acción secundaria
+   siempre disponible. */
+.jt-group-newgame-card {
+  border-style: dashed !important;
+  border-color: var(--jt-card-border, rgba(127, 119, 221, 0.18)) !important;
+  background: transparent !important;
+}
+
+.jt-group-newgame-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--jt-muted-text, #a49dc9);
+  margin: 0 0 10px;
+}
+
+/* Trigger "Nueva partida" — mobile only, abre NewGameDialog. Ícono relleno
+   (no solo con borde) + título/subtítulo apilados debajo, en vez de una fila
+   ícono-texto: centrado así se lee como una pieza propia, no como una fila
+   de lista más. El halo pulsante detrás + el brillo diagonal al hover le dan
+   algo de vida sin competir con "Partidas abiertas"/"Integrantes", que sí
+   son datos. */
+.jt-group-newgame-trigger {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--jt-label, #7f77dd);
-  margin-bottom: 10px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 16px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--jt-accent-border-soft, rgba(127, 119, 221, 0.4));
+  background: radial-gradient(
+    120% 200% at 50% -30%,
+    color-mix(in srgb, var(--jt-accent, #7f77dd) 16%, transparent),
+    var(--jt-accent-soft, rgba(127, 119, 221, 0.05)) 70%
+  );
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease;
+}
+
+.jt-group-newgame-trigger:hover {
+  transform: translateY(-3px);
+  border-style: solid;
+  border-color: var(--jt-accent, #7f77dd);
+  box-shadow: 0 16px 36px -20px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
+}
+
+.jt-group-newgame-trigger:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* Brillo diagonal que cruza el botón al pasar el mouse — mismo recurso que
+   jt-shine en las cards del catálogo (GamePicker.css), replicado acá en vez
+   de compartir la clase porque este botón no es una card de juego. */
+.jt-group-newgame-trigger-shine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.jt-group-newgame-trigger-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  left: -60%;
+  width: 35%;
+  background: color-mix(in srgb, var(--jt-accent-strong, #afa9ec) 18%, transparent);
+  filter: blur(10px);
+  transform: translateX(-40%) skewX(-18deg);
+}
+
+.jt-group-newgame-trigger:hover .jt-group-newgame-trigger-shine::after {
+  animation: jt-group-newgame-shine 900ms ease-out;
+}
+
+@keyframes jt-group-newgame-shine {
+  from {
+    transform: translateX(-40%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(340%) skewX(-18deg);
+  }
+}
+
+.jt-group-newgame-trigger-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--jt-accent, #7f77dd), var(--jt-accent-strong, #afa9ec));
+  box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
+  animation: jt-group-newgame-icon-pulse 2600ms ease-in-out infinite;
+}
+
+.jt-group-newgame-trigger:hover .jt-group-newgame-trigger-icon {
+  animation-play-state: paused;
+}
+
+@keyframes jt-group-newgame-icon-pulse {
+  0%,
+  100% {
+    box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 6px 18px -4px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent),
+      0 0 0 6px color-mix(in srgb, var(--jt-accent, #7f77dd) 14%, transparent);
+  }
+}
+
+.jt-group-newgame-trigger-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0px;
+  min-width: 0;
+}
+
+.jt-group-newgame-trigger-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #fff;
+}
+
+.jt-group-newgame-trigger-hint {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-group-newgame-trigger,
+  .jt-group-newgame-trigger-icon {
+    animation: none;
+  }
+  .jt-group-newgame-trigger:hover .jt-group-newgame-trigger-shine::after {
+    animation: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .jt-group-newgame-trigger {
+    display: none;
+  }
 }
 
 .jt-group-section-count {
@@ -216,33 +395,123 @@
   letter-spacing: normal;
 }
 
-/* Fila de partida abierta / integrante — misma altura y separación en las
-   dos listas para que la pantalla se lea como un único ritmo, no dos
-   componentes distintos apilados. */
-.jt-group-row {
+/* "Partidas abiertas" — título suelto por fuera de cualquier card (no
+   encerrado en el mismo bloque que sus filas) y cada partida como su propia
+   card flotante, en vez de una única caja grande con filas separadas por
+   líneas — menos "todo encerrado", cada partida se lee como su propia
+   pieza clickeable. */
+.jt-group-open-section {
+  margin-bottom: 14px;
+}
+
+.jt-group-open-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 2px 12px;
+}
+
+.jt-group-open-empty {
+  margin: 0 2px;
+}
+
+.jt-group-open-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jt-group-open-card {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--jt-row-border, rgba(127, 119, 221, 0.08));
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  overflow: hidden;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.jt-group-row:last-child {
-  border-bottom: none;
+/* Filo de color a la izquierda solo en las partidas a las que te podés
+   unir — junto con el punto "en vivo" del ícono, marca de un vistazo cuáles
+   de estas cards son una acción y cuáles son solo estado. */
+.jt-group-open-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 220ms ease;
 }
 
-.jt-group-row-icon {
-  width: 40px;
-  height: 40px;
+.jt-group-open-card--joinable::before {
+  background: linear-gradient(180deg, var(--jt-cta-from, #1d9e75), var(--jt-cta-to, #0f6e56));
+}
+
+.jt-group-open-card--joinable:hover {
+  transform: translateY(-3px);
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.45));
+  box-shadow: 0 16px 36px -22px color-mix(in srgb, var(--jt-accent, #7f77dd) 55%, transparent);
+}
+
+.jt-group-open-card-icon {
+  position: relative;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 19px;
   flex-shrink: 0;
   background: var(--jt-surface, #171329);
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
 }
 
+/* Punto "en vivo" — mismo indicador que jt-group-member-status (online),
+   reutilizado acá para "esta partida se puede unir ahora". */
+.jt-group-open-card-live {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #5dcaa5;
+  border: 2px solid var(--jt-surface, #171329);
+  box-shadow: 0 0 0 2px rgba(93, 202, 165, 0.25);
+  animation: jt-group-open-live-pulse 1800ms ease-in-out infinite;
+}
+
+@keyframes jt-group-open-live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(93, 202, 165, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(93, 202, 165, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-group-open-card,
+  .jt-group-open-card-live {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Título + meta de cada partida abierta, dentro de jt-group-open-card. */
 .jt-group-row-body {
   flex: 1;
   min-width: 0;
@@ -330,15 +599,127 @@
   box-shadow: none;
 }
 
-.jt-group-host-tag {
-  display: inline-flex;
+/* "Integrantes" — grilla de chips centrados (avatar + nombre) en vez de la
+   lista de filas horizontales de antes, mismo criterio que la grilla de
+   jugadores de LobbyScreen (jt-player-grid): cada persona ocupa su propio
+   espacio parejo, se lee de un vistazo en vez de ir fila por fila. */
+.jt-group-members-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 420px) and (max-width: 899px) {
+  .jt-group-members-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.jt-group-member-chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 14px 8px 12px;
+  border-radius: 16px;
+  text-align: center;
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.jt-group-member-chip:hover {
+  transform: translateY(-3px);
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.4));
+}
+
+.jt-group-member-avatar-wrap {
+  position: relative;
+}
+
+.jt-group-member-avatar-wrap .jt-group-member-status {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  border: 2px solid var(--jt-surface, #171329);
+}
+
+/* Corona de "Anfitrión" — badge de ancho fijo sobre el avatar (esquina
+   opuesta al punto de conectado) en vez de la pill de texto de antes: esa
+   pill, en las 3 columnas angostas de mobile, no entraba y se salía del
+   recuadro pase lo que pase con el texto. Un ícono solo nunca desborda. */
+.jt-group-host-badge {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--jt-surface, #171329);
+  border: 2px solid var(--jt-warn-text, #e2c44a);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.jt-group-member-name {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jt-group-member-menu {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.jt-group-member-menu-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.3));
+  background: var(--jt-surface, #171329);
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--jt-warn-text, #e2c44a);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    transform 200ms ease;
+}
+
+.jt-group-member-menu-btn:hover {
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.2));
+  border-color: var(--jt-accent, #7f77dd);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-group-member-chip {
+    transition: none !important;
+  }
 }
 
 /* Nueva partida — grilla de dos columnas parejas de juegos, mismo look de
@@ -418,13 +799,45 @@
   color: var(--jt-muted-text, #6b6490);
 }
 
+/* Barra inferior — agrupa "Nueva partida" y "Salir del grupo", portada a
+   document.body (ver GroupScreen.tsx) para poder ser realmente
+   `position: fixed` en mobile: queda pegada al fondo de la ventana pase lo
+   que pase con el scroll del resto de la pantalla, ambos botones siempre a
+   mano. En desktop no hace falta fijarla — jt-group-newgame-trigger ni se
+   renderiza ahí (ver su propio @media), así que queda como un bloque más al
+   pie del flujo normal; jt-group-breakout (misma clase que el resto de la
+   pantalla) le da el mismo ancho centrado que la grilla de arriba. */
+.jt-group-bottom-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 899px) {
+  .jt-group-bottom-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, transparent, var(--jt-bg, #0f0c1d) 35%);
+  }
+}
+
+@media (min-width: 900px) {
+  .jt-group-bottom-bar {
+    margin-top: 24px;
+    padding-bottom: 24px;
+  }
+}
+
 /* Salir del grupo — acción secundaria pero con su propio tratamiento visual
    (franja con tinte rojo, no solo texto suelto), separada del resto por
    aire propio en vez de vivir dentro de una card; en desktop ocupa todo el
    ancho del breakout como una franja chica al pie, igual que la
    referencia. */
 .jt-group-leave-row {
-  margin-top: 24px;
   text-align: center;
 }
 
