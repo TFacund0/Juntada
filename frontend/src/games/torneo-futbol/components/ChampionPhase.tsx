@@ -1,7 +1,7 @@
 import { S } from "../../../theme/styles";
-import { StartButton } from "../../../components/StartButton";
-import { LeaveToLobbyButton } from "../../../components/LeaveToLobbyButton";
-import { Avatar } from "../../../components/Avatar";
+import { StartButton } from "../../../components/setup/StartButton";
+import { LeaveToLobbyButton } from "../../../components/game-kit/LeaveToLobbyButton";
+import { Avatar } from "../../../components/ui/Avatar";
 import type { RoundViewProps } from "../../gameTypes";
 import type { Entrant, Match } from "../types";
 import { ROUND_NAMES } from "../types";

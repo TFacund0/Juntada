@@ -4,19 +4,12 @@
 // different requirement than Impostor's "hard to describe" pick or
 // Tutifrutti's "starts with a letter" one, so mixing the pools wouldn't make
 // sense even if it were convenient to share.
+import { shuffle } from "@juntada/core-utils";
+
 export interface Category {
   label: string;
   icon: string;
   words: string[];
-}
-
-function shuffleArray<T>(arr: readonly T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 // Every word across the given active categories, combined (not one category
@@ -35,7 +28,7 @@ export function activeWordPool(categories: Record<string, Category>, activeKeys:
 export function pickThreeWords(pool: readonly string[], usedWords: readonly string[]): { words: string[]; resetUsed: boolean } {
   const available = pool.filter(w => !usedWords.includes(w));
   const resetUsed = available.length < 3;
-  return { words: shuffleArray(resetUsed ? pool : available).slice(0, 3), resetUsed };
+  return { words: shuffle(resetUsed ? pool : available).slice(0, 3), resetUsed };
 }
 
 export const CATEGORIES: Record<string, Category> = {

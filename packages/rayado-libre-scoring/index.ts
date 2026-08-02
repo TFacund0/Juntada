@@ -20,6 +20,9 @@
 // from which guess number this is), no extra "did zone 1 already happen"
 // flags are needed: once a jump lands the timer at 60 or 30, any later guess
 // naturally reads a value in the next zone down.
+import { shuffle } from "@juntada/core-utils";
+import { normalizeWord } from "@juntada/tutifruti-words";
+
 export const TURN_SECONDS = 99;
 export const ZONE_1_FLOOR = 60;
 export const ZONE_1_POINTS = 60;
@@ -46,12 +49,11 @@ export function scoreForGuess(secondsRemaining: number): GuessScore {
 
 // Case/accent/whitespace-insensitive comparison so "Camión", "camion " and
 // "CAMIÓN" all count as the same guess — players shouldn't lose out on a
-// technicality of typing.
-const DIACRITICS_RANGE = new RegExp("[\\u0300-\\u036f]", "g");
-
-export function normalizeGuess(text: string): string {
-  return text.trim().toLowerCase().normalize("NFD").replace(DIACRITICS_RANGE, "");
-}
+// technicality of typing. Reuses tutifruti-words's normalizeWord rather than
+// a second hand-rolled copy, since it also correctly keeps "ñ" distinct from
+// "n" (this word bank has words like "Araña"/"Piña"/"Montaña" where that
+// distinction matters).
+export const normalizeGuess = normalizeWord;
 
 export function isCorrectGuess(guess: string, word: string): boolean {
   const g = normalizeGuess(guess);
@@ -67,15 +69,6 @@ export function isCorrectGuess(guess: string, word: string): boolean {
 // that one jumps forward on a correct guess (see scoreForGuess) — hints
 // shouldn't suddenly cascade just because someone scored.
 export const HINT_INTERVAL_SECONDS = 20;
-
-function shuffleArray<T>(arr: readonly T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 // Spaces (and only spaces — accented letters, numbers, hyphens all count as
 // revealable) are always shown as-is; everything else can be hinted.
@@ -108,7 +101,7 @@ export function buildHintOrder(word: string): number[] {
     current = [];
   }
   groups.sort((a, b) => b.length - a.length);
-  return groups.flatMap(g => shuffleArray(g));
+  return groups.flatMap(g => shuffle(g));
 }
 
 // Never reveals every letter automatically — capped at just under half of

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
-import { ErrorBanner } from "../../../components/ErrorBanner";
+import { Btn } from "../../../components/ui/Btn";
+import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { useFlashError } from "../../../hooks/useFlashError";
 
 export interface RuletaEntry<Id> {

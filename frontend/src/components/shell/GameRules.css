@@ -1,0 +1,105 @@
+/* Diseño propio del diálogo "Cómo se juega" — antes era un bloque de texto
+   plano (label chico + párrafos/bullets, todo del mismo gris muted, sin
+   ninguna jerarquía visual) montado sobre el look genérico de DialogFrame.
+   Ahora cada línea suelta de `rules` se lee como un paso numerado (con su
+   propia medalla de acento) en vez de un párrafo más, y los bullets que
+   cuelgan de un paso tienen su propio marcador en vez del punto por
+   defecto del navegador — mismo lenguaje visual (glow de acento, gradiente
+   de texto) que el resto del rediseño. */
+
+/* position/overflow + el glow en sí (::before) viven en .jt-card-glow
+   (theme/sharedChrome.css, compartido con ConfirmDialog/DevNoticeDialog) —
+   acá solo la altura propia (esta card suele tener más contenido) y el uso
+   del acento dinámico del juego en vez de un color fijo. */
+.jt-rules-card {
+  --jt-glow-height: 220px;
+  --jt-glow-color: color-mix(in srgb, var(--jt-accent, #7f77dd) 26%, transparent);
+}
+
+.jt-rules-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.jt-rules-badge {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--jt-accent-strong, #afa9ec), var(--jt-accent, #7f77dd));
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
+}
+
+.jt-rules-title {
+  flex: 1;
+  margin: 0;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.jt-rules-step {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.jt-rules-step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.12));
+  border: 1px solid var(--jt-accent-border, rgba(127, 119, 221, 0.4));
+  color: var(--jt-accent-strong, #afa9ec);
+}
+
+.jt-rules-step-text {
+  flex: 1;
+  margin: 0;
+  padding-top: 2px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #e8e4f0;
+}
+
+.jt-rules-bullets {
+  list-style: none;
+  margin: 0 0 14px;
+  padding-left: 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jt-rules-bullet-item {
+  position: relative;
+  padding-left: 16px;
+  font-size: 13px;
+  color: var(--jt-muted-text, #a49dc9);
+  line-height: 1.45;
+}
+
+.jt-rules-bullet-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jt-accent-strong, #afa9ec);
+}

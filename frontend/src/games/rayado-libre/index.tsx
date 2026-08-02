@@ -5,7 +5,7 @@ import type { GameDef } from "../gameTypes";
 // conflictos de marca registrada): un jugador dibuja una palabra secreta y
 // el resto adivina escribiendo en el chat antes de que se acabe el tiempo.
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
-const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
 
 export const rayadoLibreGame: GameDef = {

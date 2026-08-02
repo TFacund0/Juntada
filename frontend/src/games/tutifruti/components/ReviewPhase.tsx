@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
+import { Btn } from "../../../components/ui/Btn";
 import { shuffle } from "@juntada/core-utils";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../../gameTypes";

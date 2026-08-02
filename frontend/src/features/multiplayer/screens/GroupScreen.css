@@ -1,0 +1,468 @@
+/* Sala de grupo (GroupScreen) — pantalla "casa" del grupo, antes de que
+   exista una partida activa. Vive junto a GroupScreen.tsx (mismo criterio
+   que LobbyScreen.css: reglas exclusivas de esta pantalla, no tokens
+   compartidos por todo juego, esos van en theme/styles.ts o
+   theme/sharedChrome.css). */
+
+/* Contenedor relativo para el blob difuminado de fondo — mismo lenguaje
+   visual que jt-lobby-glow/Hero. */
+.jt-group-root {
+  position: relative;
+  margin-top: 8px;
+}
+
+@media (min-width: 900px) {
+  .jt-group-root {
+    margin-top: 20px;
+  }
+}
+
+.jt-group-glow {
+  position: absolute;
+  z-index: -1;
+  left: -10%;
+  top: -6%;
+  width: 32vw;
+  height: 32vw;
+  max-width: 340px;
+  max-height: 340px;
+  min-width: 200px;
+  min-height: 200px;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(100px);
+  opacity: 0.55;
+  background: color-mix(in srgb, var(--jt-accent, #7f77dd) 14%, transparent);
+}
+
+/* Igual que jt-lobby-breakout: el ancestro (App.tsx) mete la pantalla en un
+   contenedor angosto de 480px pensado para formularios; en desktop esta
+   pantalla se "escapa" de ese ancho para aprovechar el viewport, sin tocar
+   el contenedor compartido del resto del flujo multijugador. */
+@media (min-width: 900px) {
+  .jt-group-breakout {
+    width: calc(100vw - 48px);
+    max-width: 1100px;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+/* Header: nombre del grupo + "X de Y conectados" apilado arriba de todo en
+   mobile (el código va aparte, como card propia); en desktop se acomoda en
+   una fila con el código como chip compacto a la derecha, para no gastar
+   una fila entera de la pantalla en un dato que se lee de un vistazo. */
+.jt-group-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 900px) {
+  .jt-group-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+}
+
+.jt-group-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 900px) {
+  .jt-group-title {
+    font-size: 26px;
+  }
+}
+
+.jt-group-subtitle {
+  font-size: 13px;
+  color: var(--jt-muted-text, #6b6490);
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+/* Chip de código compacto — solo visible desde el breakpoint de desktop,
+   reemplaza a la card grande de CodeDisplay que en mobile ocupa su propia
+   fila (ver CodeDisplay.tsx, prop `compact`). */
+.jt-group-code-chip {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .jt-group-code-chip {
+    display: block;
+    flex-shrink: 0;
+  }
+}
+
+.jt-group-code-full {
+  display: block;
+  /* Separa la card de código de la barra "Copiar link" de abajo — sin esto
+     quedaban pegadas (el borde punteado del código tocando la pill), se
+     leían como un solo bloque confuso en mobile. En desktop esta card ni
+     siquiera se muestra (ver arriba), así que no afecta ese layout. */
+  margin-bottom: 14px;
+}
+
+@media (min-width: 900px) {
+  .jt-group-code-full {
+    display: none;
+  }
+}
+
+/* Barra "Copiar link" — pill ancha con botón secundario circular para
+   compartir/QR al lado, mismo patrón que jt-lobby-link-btn pero como acción
+   primaria de esta pantalla en vez de un link chico bajo el código. */
+.jt-group-copybar {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.jt-group-copy-btn {
+  flex: 1;
+  min-width: 0;
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  border-radius: 999px;
+  color: var(--jt-accent-strong, #afa9ec);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0 20px;
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.jt-group-copy-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.45));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.08));
+}
+
+.jt-group-share-btn {
+  width: 48px;
+  flex-shrink: 0;
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  border-radius: 999px;
+  color: var(--jt-accent-strong, #afa9ec);
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease;
+}
+
+.jt-group-share-btn:hover {
+  transform: translateY(-2px) rotate(8deg);
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.45));
+}
+
+/* Una columna en mobile (partidas, integrantes, nueva partida apilados);
+   dos columnas parejas desde el breakpoint de desktop — izquierda
+   (partidas + integrantes) y derecha (nueva partida), igual criterio que
+   jt-lobby-grid. */
+.jt-group-grid {
+  display: block;
+}
+
+@media (min-width: 900px) {
+  .jt-group-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+}
+
+.jt-group-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.jt-group-section-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--jt-label, #7f77dd);
+  margin-bottom: 10px;
+}
+
+.jt-group-section-count {
+  color: var(--jt-muted-text, #6b6490);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Fila de partida abierta / integrante — misma altura y separación en las
+   dos listas para que la pantalla se lea como un único ritmo, no dos
+   componentes distintos apilados. */
+.jt-group-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--jt-row-border, rgba(127, 119, 221, 0.08));
+}
+
+.jt-group-row:last-child {
+  border-bottom: none;
+}
+
+.jt-group-row-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  background: var(--jt-surface, #171329);
+}
+
+.jt-group-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.jt-group-row-title {
+  font-weight: 700;
+  margin: 0;
+  font-size: 14px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jt-group-row-meta {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--jt-muted-text, #6b6490);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jt-group-row-meta strong {
+  color: var(--jt-cta-from, #1d9e75);
+  font-weight: 700;
+}
+
+.jt-group-join-btn {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    transform 200ms ease,
+    filter 200ms ease;
+}
+
+.jt-group-join-btn--active {
+  background: linear-gradient(135deg, var(--jt-cta-from, #1d9e75), var(--jt-cta-to, #0f6e56));
+  color: #fff;
+  box-shadow: 0 4px 16px var(--jt-cta-shadow, rgba(29, 158, 117, 0.3));
+}
+
+.jt-group-join-btn--active:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.jt-group-join-btn--disabled {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--jt-muted-text, #6b6490);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.jt-group-empty {
+  color: var(--jt-muted-text, #6b6490);
+  font-size: 13px;
+  margin: 0;
+  padding: 6px 0;
+}
+
+/* Integrante — avatar, nombre, pills de estado, punto verde online igual al
+   de la referencia (reemplaza la pill "Desconectado" por un indicador más
+   chico y visual). */
+.jt-group-member-status {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #5dcaa5;
+  box-shadow: 0 0 0 3px rgba(93, 202, 165, 0.18);
+}
+
+.jt-group-member-status--offline {
+  background: var(--jt-muted-text, #6b6490);
+  box-shadow: none;
+}
+
+.jt-group-host-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--jt-warn-text, #e2c44a);
+}
+
+/* Nueva partida — grilla de dos columnas parejas de juegos, mismo look de
+   card apagada que las filas de arriba pero clickeable entera (no un botón
+   suelto adentro). */
+.jt-group-games-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Debajo de esto, dos columnas de ~150px o menos dejaban el ícono + nombre
+   de juegos con nombre largo ("Encuentra el Color Correcto") apretados
+   contra el borde — una sola columna ahí en vez de forzar el mismo grid de
+   dos que sí funciona desde un mobile mediano en adelante. */
+@media (max-width: 379px) {
+  .jt-group-games-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.jt-group-game-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.jt-group-game-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.45));
+  box-shadow: 0 16px 36px -20px color-mix(in srgb, var(--jt-accent, #7f77dd) 55%, transparent);
+}
+
+.jt-group-game-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  background: var(--jt-surface, #171329);
+}
+
+.jt-group-game-body {
+  min-width: 0;
+}
+
+.jt-group-game-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin: 0;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jt-group-game-meta {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--jt-muted-text, #6b6490);
+}
+
+/* Salir del grupo — acción secundaria pero con su propio tratamiento visual
+   (franja con tinte rojo, no solo texto suelto), separada del resto por
+   aire propio en vez de vivir dentro de una card; en desktop ocupa todo el
+   ancho del breakout como una franja chica al pie, igual que la
+   referencia. */
+.jt-group-leave-row {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.jt-group-leave-btn {
+  width: 100%;
+  background: var(--jt-danger-bg, rgba(226, 75, 74, 0.1));
+  border: 1px solid var(--jt-danger-border, rgba(226, 75, 74, 0.3));
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jt-danger-text, #f09595);
+  cursor: pointer;
+  padding: 13px 10px;
+  transition:
+    transform 200ms ease,
+    background 200ms ease,
+    border-color 200ms ease;
+}
+
+.jt-group-leave-btn:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--jt-danger-bg, rgba(226, 75, 74, 0.1)) 60%, rgba(226, 75, 74, 0.18));
+  border-color: color-mix(in srgb, var(--jt-danger-border, rgba(226, 75, 74, 0.3)) 60%, rgba(226, 75, 74, 0.5));
+}
+
+.jt-group-leave-btn:active {
+  transform: translateY(0) scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-group-copy-btn,
+  .jt-group-share-btn,
+  .jt-group-join-btn,
+  .jt-group-game-card,
+  .jt-group-leave-btn {
+    transition: none !important;
+  }
+}

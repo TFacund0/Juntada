@@ -1,5 +1,5 @@
-import { RevealCountdown, useRevealCountdown } from "../../components/RevealCountdown";
-import { PhaseTransition } from "../../components/PhaseTransition";
+import { RevealCountdown, useRevealCountdown } from "../../components/game-kit/RevealCountdown";
+import { PhaseTransition } from "../../components/game-kit/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
 import type { Match } from "./types";
 import { ChampionPhase } from "./components/ChampionPhase";

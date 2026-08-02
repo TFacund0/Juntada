@@ -20,6 +20,13 @@ export interface RoundViewProps {
   wordReveal: Record<string, unknown> | null;
   isHost: boolean;
   send: (msg: Record<string, unknown>) => void;
+  // True only on the render where the shell (MultiplayerGame.tsx) observes
+  // connectionPhase actually transitioning out of "lobby" — i.e. a brand-new
+  // match's first round. RoundView itself doesn't mount until connectionPhase
+  // already left "lobby", so it can't tell "just started" from "joined/
+  // reconnected mid-round" on its own; the shell sees the lobby→round edge
+  // and passes the answer down instead.
+  justEnteredRound?: boolean;
 }
 
 export interface LobbyInfoProps {
@@ -34,10 +41,25 @@ export interface GameDef {
   id: string;
   label: string;
   icon?: string;
+  // Optional image logo shown instead of the emoji `icon` wherever a game's
+  // identity is displayed prominently (App.tsx's header, GameDetailDialog).
+  logo?: string;
+  // Optional background art for GameDetailDialog — the preview stop shown
+  // after tapping a game card, before "Jugar" is actually pressed.
+  backgroundImage?: string;
   description: string;
   minPlayers?: number;
   category?: GameCategory;
-  LocalGame: ComponentType<Record<string, never>>;
+  // `onExposeBack`/`onExposeReset` are optional, and always used together: a
+  // game whose local mode has its own sub-screens past the initial setup
+  // (impostor's reveal/discussion/vote/result) can register a pure check
+  // (`onExposeBack`, "am I past setup right now?") and a separate action
+  // (`onExposeReset`, "reset back to setup") — App.tsx's global "Volver"
+  // calls the check first, and only if it's true does it confirm with the
+  // player before calling the reset, instead of dropping progress silently.
+  // A game that never calls either prop just gets the old exit-local-mode
+  // behavior.
+  LocalGame: ComponentType<{ onExposeBack?: (fn: () => boolean) => void; onExposeReset?: (fn: () => void) => void }>;
   ConfigPanel?: ComponentType<ConfigPanelProps>;
   RoundView?: ComponentType<RoundViewProps>;
   LobbyInfo?: ComponentType<LobbyInfoProps>;

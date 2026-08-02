@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PhaseTransition } from "../../../components/PhaseTransition";
+import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import type { RoundViewProps } from "../../gameTypes";
 import type { TutifrutiRoundState } from "../types";
 import { RoundResult } from "./RoundResult";

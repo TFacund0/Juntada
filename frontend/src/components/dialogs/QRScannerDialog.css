@@ -1,0 +1,127 @@
+/* Diseño propio del diálogo de escanear QR — antes usaba el look genérico de
+   DialogFrame (surface plana, sin nada distinto de un ConfirmDialog). Ahora
+   con el mismo lenguaje visual "creativo" del resto del rediseño (glow de
+   acento, texto en gradiente) y, sobre todo, esquinas de mira + una línea de
+   escaneo animada sobre el visor — el motivo obvio para una pantalla que es,
+   literalmente, un escáner. */
+
+.jt-qr-scan-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glow de acento detrás de todo, mismo criterio que el haz de RoomEntryModal
+   — ancla el diálogo al resto del rediseño sin copiar el mismo elemento. */
+.jt-qr-scan-card::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(60% 60% at 50% 0%, color-mix(in srgb, var(--jt-accent, #7f77dd) 30%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.jt-qr-scan-title {
+  position: relative;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  margin: 0 0 14px;
+}
+
+.jt-qr-scan-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--jt-accent, #7f77dd) 15%, transparent) inset;
+}
+
+.jt-qr-scan-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Esquinas de mira (4 divs, uno por esquina) en vez del cuadrado de borde
+   parejo de antes — se lee como el visor de una cámara de verdad, no como
+   un placeholder cualquiera. */
+.jt-qr-scan-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--jt-accent-strong, #afa9ec);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--jt-accent, #7f77dd) 70%, transparent));
+}
+
+.jt-qr-scan-corner--tl {
+  top: 16px;
+  left: 16px;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 8px 0 0 0;
+}
+
+.jt-qr-scan-corner--tr {
+  top: 16px;
+  right: 16px;
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 8px 0 0;
+}
+
+.jt-qr-scan-corner--bl {
+  bottom: 16px;
+  left: 16px;
+  border-right: none;
+  border-top: none;
+  border-radius: 0 0 0 8px;
+}
+
+.jt-qr-scan-corner--br {
+  bottom: 16px;
+  right: 16px;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 8px 0;
+}
+
+/* Línea de escaneo que sube y baja adentro del visor mientras no se detectó
+   nada todavía — el único indicio de "esto está buscando activamente" que
+   tenía la versión anterior era el video crudo de la cámara. */
+.jt-qr-scan-line {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--jt-accent-strong, #afa9ec), transparent);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--jt-accent, #7f77dd) 80%, transparent);
+  animation: jt-qr-scan-sweep 2.2s ease-in-out infinite;
+}
+
+@keyframes jt-qr-scan-sweep {
+  0%,
+  100% {
+    top: 16px;
+  }
+  50% {
+    top: calc(100% - 18px);
+  }
+}
+
+.jt-qr-scan-hint {
+  position: relative;
+  margin: 14px 0 0;
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-qr-scan-line {
+    animation: none;
+    top: 50%;
+  }
+}

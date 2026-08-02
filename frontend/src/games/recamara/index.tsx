@@ -1,6 +1,6 @@
 import type { GameDef } from "../gameTypes";
 import { LocalGame } from "./LocalGame";
-import { ConfigPanel } from "./ConfigPanel";
+import { ConfigPanel } from "./components/ConfigPanel";
 import { RoundView } from "./RoundView";
 
 // Duelo por turnos estilo Buckshot Roulette (2 a 6 jugadores): escopeta con
@@ -14,7 +14,7 @@ export const recamaraGame: GameDef = {
   description:
     "Duelo con una escopeta cargada con cartuchos reales y falsos en orden oculto. En cada turno elegís dispararte a vos o a otro jugador, y usás ítems (lupa, cigarrillo, sierra, inversor, ladrón, teléfono, esposas) para blofear o jugar sobre seguro.",
   minPlayers: 2,
-  category: "tematicos",
+  category: "destacados",
   gameTheme: "recamara",
   rules: [
     "La recámara se carga con entre 3 y 8 cartuchos, mezcla de reales y falsos en una proporción aleatoria, en un orden que nadie conoce de antemano.",

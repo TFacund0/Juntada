@@ -1,0 +1,170 @@
+/* Diseño propio de la card de "Crear grupo"/"Unirme" — tabs + panel, en vez
+   del accordion de dos filas de MenuScreen. Vive dentro de GroupEntryModal. */
+
+.jt-group-card-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.jt-group-card-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.jt-group-card-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+/* Tabs — segmented control grande, mismo criterio que jt-avail-tabs del
+   picker pero con ícono + label y ocupando todo el ancho de la card. */
+.jt-group-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 50%, transparent);
+  margin-bottom: 20px;
+}
+
+.jt-group-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: none;
+  background: none;
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.jt-group-tab:hover {
+  color: #e8e4f0;
+}
+
+.jt-group-tab--active,
+.jt-group-tab--active:hover {
+  color: #fff;
+  background: linear-gradient(135deg, var(--jt-accent-strong, #afa9ec), var(--jt-accent, #7f77dd));
+  box-shadow: 0 10px 26px -12px color-mix(in srgb, var(--jt-accent, #7f77dd) 70%, transparent);
+}
+
+.jt-group-tab-panel {
+  animation: jt-rise 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.jt-group-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--jt-accent-strong, #afa9ec);
+  margin-bottom: 8px;
+}
+
+.jt-group-field-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 60%, transparent);
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #e8e4f0;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.jt-group-field-input::placeholder {
+  color: var(--jt-muted-text, #a49dc9);
+}
+
+.jt-group-field-input:focus {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.6));
+}
+
+/* Input de nombre + botón de dado para generar uno al azar. */
+.jt-group-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.jt-group-name-row .jt-group-field-input {
+  flex: 1;
+}
+
+.jt-group-dice-btn {
+  flex-shrink: 0;
+  width: 48px;
+  border-radius: 16px;
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  background: color-mix(in srgb, var(--jt-bg, #0f0c1d) 60%, transparent);
+  font-size: 20px;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.jt-group-dice-btn:hover {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.6));
+  transform: scale(1.05) rotate(-8deg);
+}
+
+.jt-group-dice-btn:active {
+  transform: scale(0.94);
+}
+
+.jt-group-field-input--code {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.jt-group-scan-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px dashed var(--jt-card-border, rgba(127, 119, 221, 0.3));
+  background: none;
+  color: var(--jt-accent-strong, #afa9ec);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.jt-group-scan-btn:hover {
+  border-color: var(--jt-accent-border, rgba(127, 119, 221, 0.6));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.08));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-group-tab-panel {
+    animation: none;
+  }
+}

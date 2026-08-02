@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { TabRow } from "../../components/TabRow";
-import { StickyActionBar } from "../../components/StickyActionBar";
-import { StartButton } from "../../components/StartButton";
-import { ConfirmBackButton } from "../../components/ConfirmBackButton";
+import { Btn } from "../../components/ui/Btn";
+import { TabRow } from "../../components/setup/TabRow";
+import { StickyActionBar } from "../../components/setup/StickyActionBar";
+import { StartButton } from "../../components/setup/StartButton";
+import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
 import { EntriesEditor } from "./components/EntriesEditor";
 import { ModeSelector } from "./components/ModeSelector";
 

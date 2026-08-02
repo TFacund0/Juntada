@@ -1,7 +1,7 @@
 import { S } from "../../../theme/styles";
-import { Avatar } from "../../../components/Avatar";
-import { StartButton } from "../../../components/StartButton";
-import { LeaveToLobbyButton } from "../../../components/LeaveToLobbyButton";
+import { Avatar } from "../../../components/ui/Avatar";
+import { StartButton } from "../../../components/setup/StartButton";
+import { LeaveToLobbyButton } from "../../../components/game-kit/LeaveToLobbyButton";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RoomPublicState } from "@juntada/shared-types";
 import type { TutifrutiRoundState } from "../types";

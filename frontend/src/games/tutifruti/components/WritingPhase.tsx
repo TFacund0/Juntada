@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/Btn";
+import { Btn } from "../../../components/ui/Btn";
 import type { RoundViewProps } from "../../gameTypes";
 import type { TutifrutiRoundState, TutifrutiPrivateRole } from "../types";
 import { RoundBadge } from "./RoundBadge";

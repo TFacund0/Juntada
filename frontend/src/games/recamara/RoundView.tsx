@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./recamara.css";
-import { LeaveToLobbyButton } from "../../components/LeaveToLobbyButton";
-import { StartButton } from "../../components/StartButton";
+import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
+import { StartButton } from "../../components/setup/StartButton";
 import {
   describeFireOutcome,
   describeItemResult,
   ITEM_LABEL,
-  ITEMS_PER_RELOAD,
   type ItemKind,
   type LastItemEvent,
   type LogLine,
@@ -22,8 +21,14 @@ import { OutcomeBanner } from "./components/OutcomeBanner";
 import { RoundAnnounce } from "./components/RoundAnnounce";
 import { ChamberCard } from "./components/ChamberCard";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
-import { frontAngle, randomShellSpot, seatAngle, seatStyle, shuffledBulletIcons } from "./arena";
-import { AIM_MS, SHOT_MS, ITEM_ACTIVATE_MS, ROUND_INTRO_MS } from "./timing";
+import { DirectionRing } from "./components/DirectionRing";
+import { FlashOverlay } from "./components/FlashOverlay";
+import { frontAngle, seatAngle, seatStyle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
+import { ITEM_ACTIVATE_MS, ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
+import { useLogVisible } from "./hooks/logVisibility";
+import { useDuelEntryFlash } from "./hooks/duelTransition";
+import { useShotAnimation } from "./hooks/shotAnimation";
+import { useChamberCountdown } from "./hooks/chamberCountdown";
 import type { RoundViewProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -51,7 +56,12 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // the post-shot reality until the player taps through the result banner
   // — same suspense the local mode gets from computing the shot client-side
   // instead of over the network.
-  const [fireStage, setFireStage] = useState<"idle" | "aiming" | "firing" | "result">("idle");
+  // Gun/recoil/flash/shell-casing mechanics live in useShotAnimation, shared
+  // with LocalGame's version of this same beat — this component only
+  // decides *when* a shot plays (once a new pendingFire.seq arrives from
+  // the server, see the effect below) and what happens once its result
+  // banner is dismissed.
+  const shotAnim = useShotAnimation();
   const [frozenState, setFrozenState] = useState<PublicGameState | null>(null);
   const settledStateRef = useRef<PublicGameState | null>(null);
   const lastFireSeqRef = useRef(0);
@@ -90,17 +100,10 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // itself partway through (aiming -> firing -> result), and depending on
   // it directly would make each of those transitions re-run the effect,
   // whose cleanup would cancel the very timeout chain it just started.
-  const fireStageRef = useRef(fireStage);
+  const fireStageRef = useRef(shotAnim.fireStage);
   useEffect(() => {
-    fireStageRef.current = fireStage;
-  }, [fireStage]);
-
-  const [recoil, setRecoil] = useState(false);
-  const [flash, setFlash] = useState(false);
-  const [gunAngle, setGunAngle] = useState(0);
-  const [lastShell, setLastShell] = useState<ShellKind | null>(null);
-  const [shellSpot, setShellSpot] = useState({ left: 50, top: 50, rot: 0 });
-  const [shellPhase, setShellPhase] = useState<"eject" | "landed">("eject");
+    fireStageRef.current = shotAnim.fireStage;
+  }, [shotAnim.fireStage]);
 
   // Item use: purely decorative on top of state that's already public and
   // already changed server-side — no freezing needed, just a brief "pulse"
@@ -119,19 +122,24 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // number.
   const [endedRoundNumber, setEndedRoundNumber] = useState<number | null>(null);
   const [revealStage, setRevealStage] = useState<"announce" | "chests" | "chamber">("announce");
-  const [introEndsAt, setIntroEndsAt] = useState(0);
   const [revealedCount, setRevealedCount] = useState(0);
   const [readySent, setReadySent] = useState(false);
 
   const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
   const [pendingItem, setPendingItem] = useState<ItemKind | null>(null);
   const [showWinner, setShowWinner] = useState(false);
+  const [logVisible, toggleLogVisible] = useLogVisible();
+  // Same "A disparar" beat LocalGame plays itself before flipping its own
+  // subPhase — here subPhase flips server-side with no transition of its
+  // own, so this holds the switch to the duel view back for the same
+  // beat, flash overlaid on whichever reveal screen is still showing.
+  const { flashing: duelTransition, showDuel } = useDuelEntryFlash(round?.subPhase === "duel", DUEL_TRANSITION_MS);
 
   // A fresh reveal beat (game start, or right after a reload) resets the
   // local chest/ready UI — never mid an in-flight shot animation, so a
   // reload that lands as part of a shot still finishes playing out first.
   useEffect(() => {
-    if (!round || fireStage !== "idle") return;
+    if (!round || shotAnim.fireStage !== "idle") return;
     if (round.roundNumber !== lastRoundNumberRef.current) {
       // 0 is the ref's initial sentinel (never a real round number), so the
       // very first round we ever see never gets a "terminada" beat, only
@@ -148,34 +156,37 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
       // "recoil"/"flash" already on its very first paint, replaying both
       // animations immediately with no shot fired — reading as the shotgun
       // going off by itself right as the new round starts.
-      setRecoil(false);
-      setFlash(false);
-      setLastShell(null);
+      shotAnim.resetForNewRound();
     }
-  }, [round?.roundNumber, fireStage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.roundNumber, shotAnim.fireStage]);
 
   // The chamber card (gun + shell count) moves on by itself — sending
   // ready_for_duel — after ROUND_INTRO_MS, once your own chest is done.
   // Every player gets the same few seconds to actually look at the gun/
-  // shell count, not just whoever taps through fastest.
-  useEffect(() => {
-    if (!round || round.subPhase !== "reveal" || revealStage !== "chamber") return;
-    setIntroEndsAt(Date.now() + ROUND_INTRO_MS);
-    const t = setTimeout(() => {
-      send({ type: "ready_for_duel" });
-      setReadySent(true);
-    }, ROUND_INTRO_MS);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round?.subPhase, revealStage]);
+  // shell count, not just whoever taps through fastest. Shared with
+  // LocalGame's version of this same countdown (there it calls enterDuel
+  // directly instead of sending ready_for_duel) via useChamberCountdown.
+  const introEndsAt = useChamberCountdown(round?.subPhase === "reveal" && revealStage === "chamber", ROUND_INTRO_MS, () => {
+    send({ type: "ready_for_duel" });
+    setReadySent(true);
+  });
 
   // Idle aim: whenever nothing's mid-animation, the gun rests pointing away
-  // from whoever's turn it currently is.
+  // from whoever's turn it currently is. Also the one guaranteed moment the
+  // duel arena settles at rest — recoil/flash only ever get reset to false
+  // elsewhere on a *reload* (see the round-change effect above), so
+  // re-asserting them false here too covers every path into "resting" (in
+  // particular the arena's very first mount into a fresh duel), so it can
+  // never paint recoil/flash already on and immediately replay the
+  // recoil/muzzle-flash animation with no shot actually fired.
   useEffect(() => {
-    if (!round || round.subPhase !== "duel" || fireStage !== "idle") return;
+    if (!round || round.subPhase !== "duel" || shotAnim.fireStage !== "idle") return;
     const currentEngineId = round.state.order[round.state.turnPos];
-    setGunAngle(frontAngle(round.state.order, currentEngineId));
-  }, [round?.subPhase, round?.state.turnPos, round?.state.order, fireStage]);
+    shotAnim.setGunAngle(prev => shortestGunAngle(prev, frontAngle(round.state.order, currentEngineId)));
+    shotAnim.resetRecoilFlash();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round?.subPhase, round?.state.turnPos, round?.state.order, shotAnim.fireStage]);
 
   // A new shot arrived from the server (already fully resolved there) —
   // play it out: swing the gun, fire, hold the result banner, and only
@@ -196,31 +207,10 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
 
       setFrozenState(settledStateRef.current);
       setFrozenLog(prevLogRef.current);
-      setFireStage("aiming");
-      setGunAngle(seatAngle(preShotOrder, targetEngineId));
-
-      const t1 = setTimeout(() => {
-        setFireStage("firing");
-        setRecoil(false);
-        requestAnimationFrame(() => setRecoil(true));
-        if (pf.shellKind === "live") {
-          setFlash(false);
-          requestAnimationFrame(() => setFlash(true));
-        }
-        setLastShell(pf.shellKind);
-        const spot = randomShellSpot();
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            setShellSpot(spot);
-            setShellPhase("landed");
-          }),
-        );
-        setTimeout(() => setFireStage("result"), SHOT_MS);
-      }, AIM_MS);
-
-      return () => clearTimeout(t1);
+      return shotAnim.playShot(seatAngle(preShotOrder, targetEngineId), pf.shellKind);
     }
     if (fireStageRef.current === "idle") settledStateRef.current = round.state;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round?.pendingFire?.seq, round?.state]);
 
   // An item just got used (by whoever's turn it is — everyone watches the
@@ -255,14 +245,13 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // breathing room so the overlay fades in rather than popping the instant
   // the last banner closes.
   useEffect(() => {
-    if (!round?.winnerRoomId || fireStage !== "idle") {
+    if (!round?.winnerRoomId || shotAnim.fireStage !== "idle") {
       setShowWinner(false);
       return;
     }
     const t = setTimeout(() => setShowWinner(true), 900);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round?.winnerRoomId, fireStage]);
+  }, [round?.winnerRoomId, shotAnim.fireStage]);
 
   // Shuffled once per round via useMemo so it doesn't reshuffle on every
   // unrelated re-render (this component re-renders on every server update).
@@ -280,7 +269,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     // on this local transition) — refresh it explicitly so the next shot's
     // freeze snapshot reflects this shot's damage instead of the one before it.
     settledStateRef.current = round.state;
-    setFireStage("idle");
+    shotAnim.finishShot();
     setFrozenState(null);
     setFrozenLog(null);
   };
@@ -306,7 +295,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // snapshot while a shot is animating, the live server state otherwise —
   // so lives/turn/items only ever change on screen once the animation
   // finishes and the player taps through.
-  const busy = fireStage !== "idle";
+  const busy = shotAnim.busy;
   const effectiveState: PublicGameState = busy && frozenState ? frozenState : round.state;
   // Same idea as effectiveState, but for the log — see frozenLog's
   // comment near its declaration.
@@ -314,20 +303,52 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   const myEngineId = round.seatOrder.indexOf(myPlayerId);
   const myPlayer = effectiveState.players.find(p => p.id === myEngineId);
 
-  if (round.subPhase === "reveal" && !busy) {
+  if ((round.subPhase === "reveal" || !showDuel) && !busy) {
+    // Only alive players draw new items on a reload (see
+    // @juntada/recamara-engine's reloadIfNeeded) and only alive players are
+    // required to confirm ready_for_duel (see the backend engine's
+    // readyForDuel) — so this "waiting" list only ever shows who's still in
+    // the duel, and an eliminated player never has to click through their
+    // own (empty) chest/chamber beats either.
+    const alivePlayerIds = new Set(round.state.players.filter(p => p.lives > 0).map(p => round.seatOrder[p.id]));
+    const amAlive = !myPlayer || myPlayer.lives > 0;
+
+    if (!amAlive) {
+      return (
+        <div className="recamara">
+          <div className="table" style={{ textAlign: "center" }}>
+            <p className="mono eyebrow">Estás eliminado — mirando la partida</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+              {round.seatOrder
+                .filter(id => alivePlayerIds.has(id))
+                .map(id => (
+                  <p key={id} style={{ margin: 0 }}>
+                    {round.readyForDuel.includes(id) ? "✅" : "⏳"} {nameFor(id)}
+                  </p>
+                ))}
+            </div>
+          </div>
+          {duelTransition && <FlashOverlay text="A disparar" />}
+        </div>
+      );
+    }
+
     if (readySent) {
       return (
         <div className="recamara">
           <div className="table" style={{ textAlign: "center" }}>
             <p className="mono eyebrow">Esperando a los demás</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
-              {round.seatOrder.map(id => (
-                <p key={id} style={{ margin: 0 }}>
-                  {round.readyForDuel.includes(id) ? "✅" : "⏳"} {nameFor(id)}
-                </p>
-              ))}
+              {round.seatOrder
+                .filter(id => alivePlayerIds.has(id))
+                .map(id => (
+                  <p key={id} style={{ margin: 0 }}>
+                    {round.readyForDuel.includes(id) ? "✅" : "⏳"} {nameFor(id)}
+                  </p>
+                ))}
             </div>
           </div>
+          {duelTransition && <FlashOverlay text="A disparar" />}
         </div>
       );
     }
@@ -350,13 +371,13 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     // Beat 2: your own chest, items only — nothing about the gun/shells
     // here on purpose (that's its own separate screen next).
     if (revealStage === "chests") {
-      const myNewItems = myPlayer?.items.slice(-ITEMS_PER_RELOAD) ?? [];
+      const myNewItems = myPlayer?.lastGrantedItems ?? [];
       const chestDone = revealedCount >= myNewItems.length;
       return (
         <div className="recamara">
           <div className="table">
             <ChestReveal
-              player={myPlayer ?? { id: myEngineId, name: "Vos", lives: 0, items: [] }}
+              player={myPlayer ?? { id: myEngineId, name: "Vos", lives: 0, items: [], lastGrantedItems: [] }}
               newItems={myNewItems}
               revealedCount={revealedCount}
               onReveal={() => setRevealedCount(c => c + 1)}
@@ -447,22 +468,23 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         </div>
 
         <div className={`arena${busy ? " busy" : ""}`}>
-          <div className="gun-aim" style={{ transform: `translate(-50%, -50%) rotate(${gunAngle}deg)` }}>
-            <div className={`shotgun${recoil ? " recoil" : ""}${effectiveState.sawedOff ? " sawed" : ""}`}>
+          <DirectionRing direction={effectiveState.direction} />
+          <div className="gun-aim" style={{ transform: `translate(-50%, -50%) rotate(${shotAnim.gunAngle}deg)` }}>
+            <div className={`shotgun${shotAnim.recoil ? " recoil" : ""}${effectiveState.sawedOff ? " sawed" : ""}`}>
               <div className="stock" />
               <div className="barrel" />
-              <div className={`muzzle${flash ? " flash" : ""}`} />
+              <div className={`muzzle${shotAnim.flash ? " flash" : ""}`} />
             </div>
           </div>
 
-          {lastShell && (
+          {shotAnim.lastShell && (
             <div
-              className={`last-shell ${lastShell}`}
-              title={lastShell === "live" ? "Última bala: real" : "Última bala: falsa"}
+              className={`last-shell ${shotAnim.lastShell}`}
+              title={shotAnim.lastShell === "live" ? "Última bala: real" : "Última bala: falsa"}
               style={{
-                left: `${shellPhase === "eject" ? 50 : shellSpot.left}%`,
-                top: `${shellPhase === "eject" ? 50 : shellSpot.top}%`,
-                transform: `translate(-50%, -50%) rotate(${shellPhase === "eject" ? 0 : shellSpot.rot}deg)`,
+                left: `${shotAnim.shellPhase === "eject" ? 50 : shotAnim.shellSpot.left}%`,
+                top: `${shotAnim.shellPhase === "eject" ? 50 : shotAnim.shellSpot.top}%`,
+                transform: `translate(-50%, -50%) rotate(${shotAnim.shellPhase === "eject" ? 0 : shotAnim.shellSpot.rot}deg)`,
               }}
             />
           )}
@@ -483,9 +505,13 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         </div>
 
         <div className="log">
-          {effectiveLog.map((l, i) => (
-            <div key={i} className={`line${l.cls ? ` ${l.cls}` : ""}`} dangerouslySetInnerHTML={{ __html: l.text }} />
-          ))}
+          <button type="button" className="log-toggle" onClick={toggleLogVisible}>
+            {logVisible ? "Ocultar registro ▾" : "Mostrar registro ▸"}
+          </button>
+          {logVisible &&
+            effectiveLog.map((l, i) => (
+              <div key={i} className={`line${l.cls ? ` ${l.cls}` : ""}`} dangerouslySetInnerHTML={{ __html: l.text }} />
+            ))}
         </div>
 
         {isMyTurn && (
@@ -522,7 +548,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         )}
       </div>
 
-      {fireStage === "result" &&
+      {shotAnim.fireStage === "result" &&
         round.pendingFire &&
         (() => {
           const outcome = describeFireOutcome(round.pendingFire, nameFor);

@@ -1,0 +1,79 @@
+// Shared shapes for RoundView's (online) room.round/room.config — split out
+// so each phase screen (RoundPhaseScreen, VotingPhaseScreen, etc.) can import
+// them without redeclaring. Mirrors backend/src/games/impostor/engine.ts's
+// getPublicRoundView.
+export interface ImpostorRoundState {
+  categoryLabel: string;
+  categoryIcon: string;
+  impostorCount: number;
+  timerEnd: number | null;
+  discussionEnd: number | null;
+  turnOrder: string[];
+  turnIndex: number;
+  clues: Record<string, string>;
+  votes: Record<string, string>;
+  matchEliminated: string[];
+  eliminated: string | null;
+  wasImpostor?: boolean;
+  tally?: Record<string, number>;
+  impostors?: string[];
+  matchOver: boolean;
+  winner: "innocents" | "impostors" | null;
+  abortedReason?: "impostor_disconnected";
+  votesDiscarded?: boolean;
+  tieBrokenRandomly?: boolean;
+  restartedReason?: "word_pool_exhausted";
+  skipVotes: number;
+  skipVoterIds: string[];
+  skipVotesNeeded: number;
+  rerollCount: number;
+  revoteCandidates: string[] | null;
+  revoteCount: number;
+  // Only present when config.discussionMode is "chat" (see engine.ts's
+  // getPublicRoundView) — absent entirely for a "voice" match instead of an
+  // always-empty array, so the UI can key its "is chat on" check off
+  // presence rather than duplicating the config check.
+  chat?: { playerId: string; name: string; text: string; ts: number }[];
+}
+
+// Snapshot pushed onto room.roundHistory once a vote resolves (see engine.ts's
+// tallyVotes/abortMatchImpostorLeft) — a different, smaller shape than the
+// live public round view above since the round itself is gone by then.
+export interface ImpostorHistoryEntry {
+  word: string;
+  categoryLabel: string;
+  categoryIcon: string;
+  impostors: string[];
+  eliminated: string | null;
+  wasImpostor?: boolean;
+  tally: Record<string, number>;
+  matchOver: boolean;
+  winner: "innocents" | "impostors" | null;
+  abortedReason?: "impostor_disconnected";
+  votesDiscarded?: boolean;
+  tieBrokenRandomly?: boolean;
+}
+
+// Only the fields the UI actually reads, out of the full ImpostorConfig
+// backend/src/games/impostor/engine.ts defines.
+export interface ImpostorConfigState {
+  writtenClues: boolean;
+  hintsEnabled: boolean;
+  clueTime: number;
+  discussionTime: number;
+  discussionUnlimited: boolean;
+  showCategory: boolean;
+  discussionMode: "voice" | "chat";
+}
+
+// The broader shape ConfigPanel.tsx (the host-only rules editor) reads/
+// writes — a superset of ImpostorConfigState above, which only covers what
+// the in-round screens themselves need. Kept separate so RoundPhaseScreen
+// et al. don't have to know about host-only concerns like numImpostors or
+// turnOrder.
+export interface ImpostorConfigPanelState extends ImpostorConfigState {
+  numImpostors: number;
+  revealOnElimination: boolean;
+  enabledCategories: Record<string, boolean>;
+  turnOrder: string[];
+}

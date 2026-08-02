@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Timer } from "../../../components/Timer";
+import { Timer } from "../../../components/game-kit/Timer";
 
 // Beat 3 of "reveal" — the chamber card (gun + real/falso shell count as
 // shuffled 🔴/🟡 icons, see shuffledBulletIcons in arena.ts), held up for a

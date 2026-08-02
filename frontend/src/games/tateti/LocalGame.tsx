@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { StartButton } from "../../components/StartButton";
-import { ConfirmBackButton } from "../../components/ConfirmBackButton";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { Btn } from "../../components/ui/Btn";
+import { StartButton } from "../../components/setup/StartButton";
+import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
+import { ConfirmDialog } from "../../components/dialogs/ConfirmDialog";
 import { Board } from "./components/Board";
 import { checkWinner } from "@juntada/tateti-board";
 

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../../theme/styles";
-import { Btn } from "../../components/Btn";
-import { Avatar } from "../../components/Avatar";
-import { SetupTabs, type SetupTab } from "../../components/SetupTabs";
-import { StickyActionBar } from "../../components/StickyActionBar";
-import { StartButton } from "../../components/StartButton";
-import { BackButton } from "../../components/BackButton";
-import { MinPlayersHint } from "../../components/MinPlayersHint";
+import { Btn } from "../../components/ui/Btn";
+import { Avatar } from "../../components/ui/Avatar";
+import { SetupTabs, type SetupTab } from "../../components/setup/SetupTabs";
+import { StickyActionBar } from "../../components/setup/StickyActionBar";
+import { StartButton } from "../../components/setup/StartButton";
+import { BackButton } from "../../components/game-kit/BackButton";
+import { MinPlayersHint } from "../../components/game-kit/MinPlayersHint";
 import { buildDeck, buildDefaultDescriptions, cardKey, getDescription } from "./deck";
 import type { Card } from "./deck";
 import { CardView, DeckStack } from "./components/CardView";
@@ -14,11 +14,11 @@ import { AssignPicker } from "./components/AssignPicker";
 import { DescriptionToggle } from "./components/DescriptionToggle";
 import { DescriptionsEditor } from "./components/DescriptionsEditor";
 import { ScoreToggleButton } from "./components/ScoreToggleButton";
-import { AddPlayerForm } from "../../components/AddPlayerForm";
+import { AddPlayerForm } from "../../components/game-kit/AddPlayerForm";
 import { EndMatchButton } from "./components/EndMatchButton";
-import { ErrorBanner } from "../../components/ErrorBanner";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
 import { useFlashError } from "../../hooks/useFlashError";
-import { nextPlayerName } from "../../utils/playerNames";
+import { nextPlayerName } from "../../utils/nextPlayerName";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LIMÓN LIMÓN — un solo dispositivo en el centro de la ronda, jugando con un

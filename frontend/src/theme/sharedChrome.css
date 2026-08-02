@@ -1,13 +1,17 @@
-/* Shared cross-game chrome tokens — CodeDisplay, QRDialog, Btn's "success"/
-   "ghost" variants (see theme/styles.ts's S.btn), and anything else common
-   to every game read these CSS vars instead of hardcoding a color. A themed
-   game (see gameTheme on GameDef, theme/gameThemes.ts) overrides just a
-   handful of base vars via inline style on App.tsx's root — everything
-   else here derives from those automatically (color-mix), so adding a new
-   themed game never means hunting down more hardcoded colors across these
-   shared components one at a time.
-   Defaults below are this app's normal look — what every non-themed game
-   already gets, unchanged. */
+/* Tokens de "chrome" compartidos entre juegos — CodeDisplay, QRDialog, las
+   variantes "success"/"ghost" de Btn (ver S.btn en theme/styles.ts), y
+   cualquier otra cosa común a todo juego leen estas variables CSS en vez de
+   hardcodear un color. Un juego con tema propio (ver gameTheme en GameDef,
+   theme/gameThemes.ts) sobreescribe solo un puñado de variables base vía
+   estilo inline en <html> (ver hooks/useGameTheme.ts) — puesto ahí, y no en
+   la raíz de App.tsx, para que también las herede cualquier componente
+   compartido portado a document.body (StickyActionBar, Toast, los modales
+   de sala/grupo) — todo lo demás acá deriva de esas automáticamente
+   (color-mix), así que agregar un juego con tema propio nunca implica salir
+   a cazar más colores hardcodeados en estos componentes compartidos uno por
+   uno.
+   Los valores por defecto de abajo son el look normal de esta app — lo que
+   ya recibe, sin cambios, todo juego sin tema propio. */
 :root {
   --jt-accent: #7f77dd;
   --jt-accent-strong: #afa9ec;
@@ -18,28 +22,229 @@
   --jt-accent-border: color-mix(in srgb, var(--jt-accent) 30%, transparent);
   --jt-accent-border-soft: color-mix(in srgb, var(--jt-accent) 40%, transparent);
 
-  /* The primary "start/confirm" call-to-action gradient (StartButton, e.g.
-     "Iniciar ronda") — its own base color, independent of --jt-accent,
-     since that CTA is green by default across every game regardless of
-     that game's own accent. A theme that wants its CTA to match its accent
-     instead (recamara does) overrides these three explicitly. */
+  /* El gradiente principal del call-to-action "empezar/confirmar"
+     (StartButton, ej. "Iniciar ronda") — tiene su propio color base,
+     independiente de --jt-accent, ya que ese CTA es verde por defecto en
+     todo juego sin importar el acento propio de ese juego. Un tema que
+     quiera que su CTA combine con su acento en vez de eso (recamara lo
+     hace) sobreescribe estas tres variables explícitamente. */
   --jt-cta-from: #1d9e75;
   --jt-cta-to: #0f6e56;
   --jt-cta-shadow: rgba(29, 158, 117, 0.3);
 
-  /* The app's own plain background — StickyActionBar's fade-to-bg gradient
-     reads this instead of hardcoding #0f0c1d, so the strip behind a pinned
-     "Iniciar ronda"-style button actually fades into a themed background
-     instead of always fading into the untheemed one. */
+  /* El fondo plano propio de la app — el gradiente de fade-to-bg de
+     StickyActionBar lee esto en vez de hardcodear #0f0c1d, así la franja
+     detrás de un botón fijo estilo "Iniciar ronda" realmente se funde con
+     un fondo con tema propio en vez de fundirse siempre con el fondo sin
+     tema. */
   --jt-bg: #0f0c1d;
 
-  /* theme/styles.ts's S.card/S.label/S.muted — the generic card/label/
-     muted-text look used everywhere (lobby player list, setup screens,
-     etc). Defaults here are those components' exact current colors, so
-     wiring them in is a no-op until a theme overrides them. */
+  /* El look genérico de card/label/texto-muted de S.card/S.label/S.muted en
+     theme/styles.ts (usado en todos lados: lista de jugadores del lobby,
+     pantallas de setup, etc). Los valores por defecto acá son exactamente
+     los colores actuales de esos componentes, así que conectarlos es un
+     no-op hasta que un tema los sobreescriba. */
   --jt-card-bg: rgba(255, 255, 255, 0.04);
   --jt-card-border: rgba(127, 119, 221, 0.18);
   --jt-row-border: rgba(127, 119, 221, 0.08);
   --jt-label: #7f77dd;
   --jt-muted-text: #6b6490;
+
+  /* Ámbar de "aviso" (no destructivo, no de acento) — comparte el mismo
+     valor exacto ConfirmDialog (tone="back") y DevNoticeDialog, dos
+     dialogs.css hermanos con el mismo propósito (glow de "esto es una
+     advertencia leve/informativa"), así que vive tokenizado acá en vez de
+     repetido en los dos. */
+  --jt-warn-glow: rgba(226, 196, 74, 0.22);
+
+  /* Rojo/ámbar de estado compartidos por cualquier cartel de error o aviso
+     de la UI (ErrorBanner, el nudge de NamePillEditor, el badge "En
+     mantenimiento" de GamePicker) — antes cada uno hardcodeaba su propio
+     rgba(226,75,74,...)/#E2C44A suelto. */
+  --jt-danger-text: #f09595;
+  --jt-danger-bg: rgba(226, 75, 74, 0.1);
+  --jt-danger-border: rgba(226, 75, 74, 0.3);
+  --jt-warn-text: #e2c44a;
+}
+
+/* Compensa el navbar fijo (AppHeader, gameId/groupFlow) en las pantallas de
+   juego/elegir-modo — antes era un `paddingTop: 64` fijo por `style` inline
+   que no podía crecer por @media, así que a partir de los 900px (donde el
+   logo/ícono del navbar pasa de 36px a 44px, ver .jt-ingame-logo en
+   AppHeader.css) el navbar terminaba más alto que ese padding y tapaba las
+   primeras filas de contenido. Un tamaño puesto por `style` nunca puede
+   perder contra una regla de hoja de estilos (ni siquiera dentro de un
+   @media), así que este ajuste tiene que vivir en una clase, no inline. */
+.jt-content-pad-top {
+  padding-top: 68px;
+}
+
+@media (min-width: 900px) {
+  .jt-content-pad-top {
+    padding-top: 78px;
+  }
+}
+
+/* Chip de "cerrar" compartido por todo modal/diálogo nuevo (RoomEntryModal,
+   GroupEntryModal, GameRules) — antes cada uno definía el mismo cuadrado de
+   30px/fondo-acento-suave/borde/hover a mano, con una sola diferencia real
+   entre ellos (girar 90° al hover o no). Ese "solo cambia el nombre de la
+   clase" es la señal clásica de que el estilo va acá, no repetido tres
+   veces. El posicionamiento (position:absolute + top/right para un modal,
+   o nada para un ícono dentro de un header con flex) sigue viviendo en el
+   CSS de cada uno, porque eso sí depende de dónde vive cada botón. */
+.jt-close-chip {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.3));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.1));
+  color: var(--jt-accent-strong, #afa9ec);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.jt-close-chip:hover {
+  transform: scale(1.08) rotate(90deg);
+  filter: brightness(1.2);
+}
+
+.jt-close-chip:active {
+  transform: scale(0.92) rotate(90deg);
+}
+
+/* Variante circular sin giro — GroupEntryModal, para diferenciarse del
+   cuadrado con giro de RoomEntryModal (ver el motivo visual de cada uno). */
+.jt-close-chip--circle {
+  border-radius: 50%;
+}
+
+.jt-close-chip--circle:hover {
+  transform: scale(1.08);
+}
+
+.jt-close-chip--circle:active {
+  transform: scale(0.92);
+}
+
+/* Glow radial de fondo compartido por toda card de diálogo "informativa"
+   (ConfirmDialog, GameRules, DevNoticeDialog) — antes cada una repetía la
+   misma estructura (::before absoluto, franja de altura fija arriba,
+   radial-gradient 60% 100% con el mismo segundo stop en 75%), cambiando
+   solo el color y, a veces, la altura. Ambos se sacan a variables acá en
+   vez de repetir el bloque entero por card. QRScannerDialog/RoomEntryModal
+   quedan afuera a propósito: ahí el glow cubre toda la card (no una franja)
+   o es un haz diagonal, una forma genuinamente distinta, no una copia con
+   otro color. */
+.jt-card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.jt-card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -40% -20% auto -20%;
+  height: var(--jt-glow-height, 200px);
+  background: radial-gradient(
+    60% 100% at 50% 0%,
+    var(--jt-glow-color, color-mix(in srgb, var(--jt-accent, #7f77dd) 26%, transparent)),
+    transparent 75%
+  );
+  pointer-events: none;
+}
+
+/* Entrada animada compartida por todo menú desplegable chico (perfil, menú
+   de grupo del navbar) — vive acá (no en AppHeader.css) porque quien la usa
+   son GroupMenuDropdown.css/ProfilePanel.css, no AppHeader.css; antes vivía
+   ahí solo porque AppHeader.tsx resulta que siempre está montado, así que
+   funcionaba "de prestado" en vez de por ser realmente su dueño. */
+@keyframes jt-dropdown-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Spinner circular compartido (Spinner.tsx) — mismo criterio que el anillo
+   de "Autenticando"/reconectando de SessionRecoveryOverlay, pero genérico
+   para cualquier estado de carga fuera de ese overlay (ej. GameLoading en
+   App.tsx, antes solo un <p>Cargando juego...</p> de texto plano). */
+@keyframes jt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.jt-spinner {
+  border-radius: 50%;
+  border: 3px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.25));
+  border-top-color: var(--jt-accent, #7f77dd);
+  animation: jt-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+/* Levanta + achica al tocar, compartido por cualquier botón/chip clickeable
+   que no tenga ya su propia animación de hover/press (TabRow, chips de
+   categorías, controles de config en general) — antes esos quedaban del
+   todo estáticos salvo el cambio de color de :hover del navegador. La
+   transición vive en el "all 0.15s"/"transition: all" que ya trae S.btn (u
+   otro inline style) vía cascada normal — esta clase solo agrega los
+   estados que un inline style no puede declarar (:hover/:active). */
+.jt-btn-anim:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+}
+
+.jt-btn-anim:active {
+  transform: translateY(0) scale(0.95);
+  filter: brightness(0.98);
+}
+
+/* Scrollbar angosta con el acento de la sala, transparente cuando no hace
+   falta — compartida por cualquier caja con overflow-y:auto propio (antes
+   repetida entera, webkit + Firefox, en cada una de LobbyScreen.css:
+   jt-lobby-col, jt-player-grid, jt-lobby-config-scroll). */
+.jt-thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35)) transparent;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
+  border-radius: 20px;
+}
+
+.jt-thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--jt-accent, #7f77dd);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-btn-anim:hover,
+  .jt-btn-anim:active {
+    transform: none;
+  }
 }

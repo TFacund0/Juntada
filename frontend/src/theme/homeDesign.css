@@ -1,0 +1,222 @@
+/* Utilidades visuales para la pantalla de inicio (Hero + GamePicker) —
+   trasplantadas del rediseño hecho en Lovable, adaptadas a las mismas
+   variables --jt-accent-* que ya usa el resto de la app (theme/sharedChrome.css)
+   en vez de una paleta nueva. Nada acá se usa dentro de un juego. */
+
+.jt-text-gradient {
+  background: linear-gradient(100deg, var(--jt-accent-strong, #afa9ec) 0%, var(--jt-accent, #7f77dd) 45%, #5dcaa5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.jt-cta-gradient {
+  background: linear-gradient(135deg, var(--jt-cta-from, #1d9e75), var(--jt-cta-to, #0f6e56));
+  box-shadow: 0 14px 34px -14px var(--jt-cta-shadow, rgba(29, 158, 117, 0.4));
+}
+
+.jt-glow-hover {
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.jt-glow-hover:hover {
+  transform: translateY(-4px);
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.45));
+  box-shadow: 0 24px 60px -22px color-mix(in srgb, var(--jt-accent, #7f77dd) 55%, transparent);
+}
+
+@keyframes jt-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+@keyframes jt-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(24px, -18px, 0) scale(1.08);
+  }
+}
+
+@keyframes jt-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes jt-shine {
+  from {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-18deg);
+  }
+}
+
+@keyframes jt-ping {
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.jt-animate-float {
+  animation: jt-float 6s ease-in-out infinite;
+}
+
+.jt-animate-drift {
+  animation: jt-drift 18s ease-in-out infinite;
+}
+
+.jt-animate-rise {
+  animation: jt-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.jt-animate-ping {
+  animation: jt-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Responsive de la pantalla de inicio (Hero + GamePicker) — el resto de la
+   app se queda en el ancho fijo de S.wrap (480px, pensado para el juego en
+   sí), pero el home escala como una landing real en pantallas más anchas,
+   igual que el diseño de referencia (max-w-6xl + grid-cols crecientes). */
+.jt-home-wrap {
+  max-width: 480px;
+  transition: max-width 200ms ease;
+}
+
+.jt-hero-section {
+  padding: 40px 0 40px;
+}
+
+.jt-hero-copy {
+  max-width: 420px;
+}
+
+.jt-hero-title {
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.jt-hero-sub {
+  font-size: 14px;
+}
+
+.jt-hero-cta {
+  padding: 13px 32px !important;
+  font-size: 15px !important;
+}
+
+@media (min-width: 640px) {
+  .jt-hero-section {
+    padding-top: 56px;
+  }
+
+  .jt-hero-copy {
+    max-width: 672px;
+  }
+
+  .jt-hero-title {
+    font-size: 44px;
+  }
+
+  .jt-hero-sub {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 640px) {
+  .jt-home-wrap {
+    max-width: 660px;
+  }
+}
+
+/* Tope fijo en px (no "vw") a propósito: "vw" cuenta el ancho del
+   scrollbar en la mayoría de los navegadores, así que un ancho basado en vw
+   termina siendo un poco más ancho que lo que realmente se ve en pantalla y
+   corre todo el contenido unos píxeles de más respecto al centro real de la
+   ventana. 1300px ya cubre bien el ~80% de los anchos de pantalla típicos
+   (1920/1440/1366) sin ese efecto. */
+@media (min-width: 900px) {
+  .jt-home-wrap {
+    max-width: 1140px;
+  }
+}
+
+.jt-game-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .jt-game-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+}
+
+/* Las cards de "Destacados" usan un thumb 16/10 y tipografía más grande que
+   el resto (ver GamePicker.tsx) para destacarse en desktop, pero en mobile
+   (mismo grid de 2 columnas angostas) eso las hacía desproporcionadamente
+   altas. Estas overrides las achican un poco sin igualarlas del todo a las
+   cards normales — siguen leyéndose como "las importantes" pero ya no
+   comen media pantalla. Solo hasta el breakpoint de 3 columnas: ahí arriba
+   ya tienen ancho de sobra y las medidas base (inline, ver GamePicker.tsx)
+   vuelven a aplicar. */
+@media (max-width: 639px) {
+  .jt-game-thumb--featured {
+    aspect-ratio: 3 / 2 !important;
+    font-size: 38px !important;
+  }
+
+  .jt-game-title--featured {
+    font-size: 15px !important;
+  }
+
+  .jt-game-tagline--featured {
+    font-size: 11.5px !important;
+  }
+
+  .jt-game-body--featured {
+    padding: 10px 12px 12px !important;
+  }
+}
+
+/* Tope en 4 columnas (igual que el diseño de referencia: grid-cols-2
+   sm:grid-cols-3 lg:grid-cols-4) — 5 achicaba demasiado las cards en
+   pantallas grandes. */
+@media (min-width: 900px) {
+  .jt-game-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-animate-float,
+  .jt-animate-drift,
+  .jt-animate-rise,
+  .jt-animate-ping {
+    animation: none !important;
+  }
+  .jt-glow-hover {
+    transition: none !important;
+  }
+}
