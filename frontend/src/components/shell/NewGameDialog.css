@@ -43,7 +43,9 @@
   background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
   color: var(--jt-muted-text, #a49dc9);
   cursor: pointer;
-  transition: transform 200ms ease, color 200ms ease;
+  transition:
+    transform 200ms ease,
+    color 200ms ease;
 }
 
 .jt-newgame-close-btn:hover {
