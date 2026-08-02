@@ -82,6 +82,12 @@ export function SessionRecoveryOverlay({
   onGoToMenu: () => void;
   onCreateNew?: () => void;
 }) {
+  // contextLabel es "sala" (femenino) o "grupo" (masculino) — ver
+  // reconnectContext en useMultiplayerGameShell.ts. El texto tenía "la"
+  // pisado a mano, así que "grupo" salía como "reconectando a la grupo".
+  const isMasculine = contextLabel === "grupo";
+  const contextArticle = isMasculine ? "al" : "a la";
+  const contextArticleCap = isMasculine ? "El" : "La";
   const isActionable = ACTIONABLE_MODES.includes(mode);
   // Screen-reader users land wherever focus already was (nowhere useful,
   // usually — this gate just took over the whole screen) unless something
@@ -192,7 +198,7 @@ export function SessionRecoveryOverlay({
             <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#fff" }}>Autenticando</p>
             <p style={{ margin: "6px 0 0", fontSize: 14, color: "rgba(255,255,255,0.5)" }}>
               {attempt
-                ? `Reconectando a la ${contextLabel}... (${attempt}${maxAttempts ? `/${maxAttempts}` : ""})`
+                ? `Reconectando ${contextArticle} ${contextLabel}... (${attempt}${maxAttempts ? `/${maxAttempts}` : ""})`
                 : "Verificando sesión..."}
             </p>
           </>
@@ -216,7 +222,9 @@ export function SessionRecoveryOverlay({
               </svg>
             </IconCircle>
             <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#5DCAA5" }}>Reconectado</p>
-            <p style={{ margin: "6px 0 0", fontSize: 14, color: "rgba(255,255,255,0.5)" }}>Volviendo a la {contextLabel}...</p>
+            <p style={{ margin: "6px 0 0", fontSize: 14, color: "rgba(255,255,255,0.5)" }}>
+              Volviendo {contextArticle} {contextLabel}...
+            </p>
           </>
         )}
 
@@ -276,7 +284,7 @@ export function SessionRecoveryOverlay({
                 color: "#fff",
               }}
             >
-              La {contextLabel} ya no existe
+              {contextArticleCap} {contextLabel} ya no existe
             </p>
             <p
               className="session-recovery-line"

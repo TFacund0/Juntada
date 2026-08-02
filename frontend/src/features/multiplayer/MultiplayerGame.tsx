@@ -132,10 +132,30 @@ export interface MultiplayerGameProps {
   // for as long as the real create/join round-trip takes instead of a fixed
   // timer that doesn't know the network's actual latency.
   onTransitionSettled?: () => void;
+  // App.tsx's own curtain state (see useCurtainTransition) — passed through
+  // so the ScreenFade instances below (group/lobby/round) can skip their own
+  // enter animation while runTransition's curtain is already covering the
+  // exact same transition (a themed game's "Crear partida"/"Unirse" landing
+  // on the lobby). Without this, that curtain and this shell's own
+  // ScreenFade played at once, same "double reload" look that
+  // App.tsx's top-level ScreenFade already guards against for
+  // goBack/goHome — this covers the entry side of that same bug.
+  curtain?: "none" | "in" | "out";
 }
 
 export function MultiplayerGame(props: MultiplayerGameProps) {
-  const { playerName, onSwitchToGroup, onLeaveGroup, onExitRoomEntry, onGoHome, runTransition = action => action() } = props;
+  const {
+    playerName,
+    onSwitchToGroup,
+    onLeaveGroup,
+    onExitRoomEntry,
+    onGoHome,
+    runTransition = action => action(),
+    curtain = "none",
+  } = props;
+  // Computed once instead of repeating `curtain !== "none"` at each of the
+  // three <ScreenFade> below (see the `curtain` prop doc above for why).
+  const skipFade = curtain !== "none";
   const {
     connectionPhase,
     setConnectionPhase,
@@ -321,7 +341,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // ── GROUP (attached to a group, no active instance) ──
   if (connectionPhase === "group" && group)
     return (
-      <ScreenFade transitionKey="group">
+      <ScreenFade transitionKey="group" skipAnimation={skipFade}>
         <GroupScreen
           reconnectBanner={reconnectBanner}
           group={group}
@@ -365,7 +385,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // ── LOBBY ── (either a standalone room or a group instance's lobby)
   if (connectionPhase === "lobby" && room) {
     return (
-      <ScreenFade transitionKey="lobby">
+      <ScreenFade transitionKey="lobby" skipAnimation={skipFade}>
         <LobbyScreen
           room={room}
           myPlayerId={me?.playerId}
@@ -405,7 +425,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // inválida, etc.) es un caso genérico común a cualquier juego.
   if (!["menu", "create", "join", "lobby", "group"].includes(connectionPhase) && room && activeGame) {
     return (
-      <ScreenFade transitionKey="round">
+      <ScreenFade transitionKey="round" skipAnimation={skipFade}>
         <RoundScreen
           activeGame={activeGame}
           roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}

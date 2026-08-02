@@ -171,7 +171,7 @@ export default function App() {
           <>
             {showRules && (game?.rules?.length ?? 0) > 0 && <GameRules rules={game!.rules} onClose={() => setShowRules(false)} />}
 
-            <ScreenFade transitionKey={stepKey} direction={stepDirection}>
+            <ScreenFade transitionKey={stepKey} direction={stepDirection} skipAnimation={curtain !== "none"}>
               {/* ── Paso 1: elegir juego (crear/unirse a un grupo vive en el "+" del header) ── */}
               {!gameId && !groupFlow && (
                 <div>
@@ -232,6 +232,7 @@ export default function App() {
                   // it as `themedOverride` instead of relying on this closure.
                   runTransition={(action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme))}
                   onTransitionSettled={settleAsyncCurtain}
+                  curtain={curtain}
                 />
               )}
             </ScreenFade>

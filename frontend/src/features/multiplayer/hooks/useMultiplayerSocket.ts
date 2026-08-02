@@ -497,9 +497,18 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // Manual retry after the automatic loop gave up (see reconnectFailed) —
   // resets the attempt count/backoff so the player gets a fresh full run
   // of retries rather than picking up where the exhausted loop left off.
+  //
+  // setReconnecting(true) here is optimistic: `connect()` only flips it
+  // (via ws.onclose) once the *new* socket itself drops, so without this
+  // there was a gap — reconnectFailed already false, reconnecting still
+  // false — where overlayMode fell through to "none", unmounting the gate
+  // and flashing the game underneath for a frame before the socket's first
+  // event brought "Autenticando" back. onReconnected() clears it the moment
+  // this attempt actually lands, same as every other path into "connecting".
   const retryConnection = useCallback(() => {
     setReconnectFailed(false);
     setReconnectAttempt(0);
+    setReconnecting(true);
     connect();
   }, [connect]);
 
@@ -552,6 +561,13 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       const stale = ws?.readyState === WebSocket.OPEN && Date.now() - lastMessageAtRef.current > PING_AFTER_IDLE_MS;
       if (ws?.readyState !== WebSocket.OPEN) {
         if (reconnectRef.current) clearTimeout(reconnectRef.current);
+        // Same optimistic flag as retryConnection: if the socket died while
+        // the tab was backgrounded but its throttled onclose hasn't actually
+        // fired yet, reconnecting is still false here — without this, the
+        // overlay would briefly drop (overlayMode falls through to "none")
+        // right as the player switches back, flashing the stale game screen
+        // for a frame before onclose/onReconnected catches up.
+        setReconnecting(true);
         connect();
       } else if (stale) {
         ws.close();
