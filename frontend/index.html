@@ -33,6 +33,21 @@
         background: #0f0c1d;
         color: #e8e4f0;
       }
+      /* Sin barra de scroll general (la página sigue scrolleando con rueda,
+         touch o teclado) — puesto en el <style> inline, parseado antes que
+         cualquier CSS/JS del bundle, para que la barra nativa nunca llegue a
+         pintarse ni un frame al entrar a una pantalla nueva. */
+      html,
+      body {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+      }
       input,
       button,
       select,
