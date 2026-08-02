@@ -7,3 +7,7 @@ frontend/dist/
 Thumbs.db
 .vscode/
 image.png
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

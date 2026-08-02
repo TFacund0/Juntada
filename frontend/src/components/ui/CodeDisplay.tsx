@@ -36,6 +36,7 @@ export function CodeDisplay({ code, compact = false, label = "SALA" }: CodeDispl
         <div>
           <p style={{ fontSize: 10, letterSpacing: "0.14em", color: "var(--jt-accent)", margin: 0, fontWeight: 700 }}>CÓDIGO</p>
           <p
+            data-testid="code-display"
             style={{
               fontSize: 20,
               fontWeight: 800,
@@ -70,6 +71,7 @@ export function CodeDisplay({ code, compact = false, label = "SALA" }: CodeDispl
         CÓDIGO DE {label}
       </p>
       <p
+        data-testid="code-display"
         style={{
           fontSize: 36,
           fontWeight: 800,
