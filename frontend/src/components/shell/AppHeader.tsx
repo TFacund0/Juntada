@@ -11,6 +11,11 @@ interface AppHeaderProps {
   gameId: string | null;
   mode: "local" | "multi" | null;
   groupFlow: boolean;
+  // Con esto (y gameId) es como goBack (useAppNavigation) decide si "Volver"
+  // manda de vuelta a la pantalla de grupo en vez de salir del juego — el
+  // ícono/tooltip acá reflejan la misma condición para no prometer una
+  // acción con la flecha y hacer otra al tocarla.
+  groupAttached: boolean;
   game: GameDef | null | undefined;
   accentColor: string;
   mutedColor: string;
@@ -120,6 +125,7 @@ export function AppHeader({
   gameId,
   mode,
   groupFlow,
+  groupAttached,
   game,
   accentColor,
   mutedColor,
@@ -135,6 +141,11 @@ export function AppHeader({
   onToggleRules,
 }: AppHeaderProps) {
   const isHome = !gameId && !groupFlow;
+  // Misma condición que goBack (useAppNavigation): con un grupo activo y una
+  // instancia puntual en pantalla, "Volver" no sale del juego, manda de
+  // vuelta a la pantalla de grupo.
+  const backGoesToGroup = groupAttached && !!gameId;
+  const backLabel = backGoesToGroup ? "Volver al grupo" : "Volver";
 
   if (isHome) {
     // fixed (no sticky) — sticky depende de la altura del padre y de que
@@ -307,7 +318,7 @@ export function AppHeader({
                 {showRules ? <CloseIcon size={18} /> : <HelpIcon />}
               </button>
             )}
-            <button onClick={onBack} className="jt-nav-icon-btn" style={navIconBtn(accentColor)} aria-label="Volver" title="Volver">
+            <button onClick={onBack} className="jt-nav-icon-btn" style={navIconBtn(accentColor)} aria-label={backLabel} title={backLabel}>
               <BackArrowIcon size={18} />
             </button>
             <button

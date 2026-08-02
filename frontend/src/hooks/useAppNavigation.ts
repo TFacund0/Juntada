@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { GAME_LIST, getGame } from "../games/registry";
 import { isGameAvailable } from "../games/maintenance";
 import { clearMultiplayerSession } from "../features/multiplayer/hooks/useMultiplayerSocket";
-import { roomHasProgress } from "../components/ui/ReturnToGroupButton";
+import { roomHasProgress } from "../features/multiplayer/utils/returnToGroup";
 import { useCurtainTransition } from "./useCurtainTransition";
 import { saveActive } from "./useActiveSession";
 import type { JoinLink } from "../features/multiplayer/utils/joinLink";
@@ -100,9 +100,8 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
   // to drive the body/theme-color sync effect in useGameTheme (App.tsx).
   const inGameView = game ? (game.localOnly ? isGameAvailable(game) : mode === "local" || (mode === "multi" && inRoom)) : false;
   // Lets goBack decide whether delegating to returnToGroupRef (see below)
-  // would actually interrupt a round in progress — the same question
-  // ReturnToGroupButton asks for its own in-screen control, via the same
-  // shared roomHasProgress check, instead of silently leaving either way.
+  // would actually interrupt a round in progress (roomHasProgress) instead
+  // of silently leaving either way.
   const [roomPhase, setRoomPhase] = useState<string | null>(null);
   const handleRoomGameType = useCallback(
     (roomGameType: string | null) => {

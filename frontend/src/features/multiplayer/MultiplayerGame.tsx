@@ -61,9 +61,8 @@ export interface MultiplayerGameProps {
   // Lets the parent decide whether returning to the group (its global
   // "Volver" header button, see App.tsx's goBack) would actually interrupt
   // something — anything other than "lobby" means a round is genuinely in
-  // progress (see components/ReturnToGroupButton's roomHasProgress, the
-  // same check this room's own in-screen "Volver al grupo" button uses).
-  // null when there's no active instance.
+  // progress (see utils/returnToGroup's roomHasProgress). Null when there's
+  // no active instance.
   onRoomPhaseChange?: (roomPhase: string | null) => void;
   // Fires once the player has fully left the group (not just an instance
   // under it) — the group's own "menu" screen is indistinguishable from the
@@ -171,8 +170,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     setShowQR,
     showScanner,
     setShowScanner,
-    showCreateInstance,
-    setShowCreateInstance,
     pendingJoinCode,
     joinInstance,
     confirmLeaveGroup,
@@ -195,7 +192,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     createRoom,
     joinRoom,
     updateConfig,
-    leaveInstance,
     reconnectContext,
     rejoinHostName,
   } = useMultiplayerGameShell(props);
@@ -345,13 +341,10 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             setOpenPlayerMenu(null);
           }}
           playableGames={playableGames()}
-          showCreateInstance={showCreateInstance}
-          onToggleCreateInstance={() => setShowCreateInstance(v => !v)}
           onCreateInstance={gameIdToCreate => {
             const targetGame = getGame(gameIdToCreate);
             runTransition(() => {
               send({ type: "create_instance", gameType: gameIdToCreate });
-              setShowCreateInstance(false);
             }, Boolean(targetGame?.gameTheme));
           }}
           pendingJoinCode={pendingJoinCode}
@@ -398,7 +391,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           }}
           updateConfig={updateConfig}
           onStartRound={() => send({ type: "start_round" })}
-          onLeaveInstance={leaveInstance}
           error={error}
           errorKey={errorKey}
         />
@@ -422,9 +414,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           reconnectBanner={reconnectBanner}
           error={error}
           errorKey={errorKey}
-          groupCode={room.groupCode}
-          roomPhase={room.phase}
-          onLeaveInstance={leaveInstance}
         />
       </ScreenFade>
     );

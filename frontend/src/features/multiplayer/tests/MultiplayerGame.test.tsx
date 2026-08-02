@@ -177,7 +177,11 @@ describe("MultiplayerGame — group flow", () => {
       }),
     );
 
-    expect(await screen.findByText("GRP01")).toBeInTheDocument();
+    // GroupScreen renderiza el código dos veces (chip compacto de desktop +
+    // card grande de mobile) y CSS decide cuál se ve según el ancho de
+    // pantalla — jsdom no evalúa @media, así que ambas están siempre en el
+    // DOM en este entorno de test.
+    expect((await screen.findAllByText("GRP01")).length).toBeGreaterThan(0);
     expect(screen.getByText("Los pibes")).toBeInTheDocument();
     expect(screen.getByText("Nadie abrió una partida todavía.")).toBeInTheDocument();
   });

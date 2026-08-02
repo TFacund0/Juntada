@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-import { ReturnToGroupButton } from "../../../components/ui/ReturnToGroupButton";
 import { Toast } from "../../../components/ui/Toast";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { GameLoadErrorBoundary } from "../../../components/shell/GameLoadErrorBoundary";
@@ -13,6 +12,11 @@ import type { GameDef, RoundViewProps } from "../../../games/gameTypes";
 // screen's state (the error banner shown here is generic — a rejected
 // action, wrong turn, etc — common to any game, not something each
 // RoundView repeats itself).
+//
+// "Volver al grupo" durante una ronda no vive acá — es la flecha "Volver"
+// del navbar (AppHeader), que ya delega a la misma acción (goBack en
+// hooks/useAppNavigation.ts, vía returnToGroupRef) con su propia
+// confirmación cuando corresponde.
 export function RoundScreen({
   activeGame,
   roundViewProps,
@@ -21,9 +25,6 @@ export function RoundScreen({
   reconnectBanner,
   error,
   errorKey,
-  groupCode,
-  roomPhase,
-  onLeaveInstance,
 }: {
   activeGame: GameDef;
   roundViewProps: RoundViewProps;
@@ -32,11 +33,6 @@ export function RoundScreen({
   reconnectBanner: ReactNode;
   error: string;
   errorKey: number;
-  // A standalone room has no group screen to return to — ReturnToGroupButton
-  // itself renders nothing when this is null.
-  groupCode: string | null;
-  roomPhase: string;
-  onLeaveInstance: () => void;
 }) {
   return (
     <div>
@@ -49,8 +45,6 @@ export function RoundScreen({
           {activeGame.RoundView && <activeGame.RoundView {...roundViewProps} />}
         </Suspense>
       </GameLoadErrorBoundary>
-
-      <ReturnToGroupButton groupCode={groupCode} roomPhase={roomPhase} onLeave={onLeaveInstance} />
     </div>
   );
 }

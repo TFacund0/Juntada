@@ -1,5 +1,5 @@
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
-import { RETURN_TO_GROUP_CONFIRM } from "../ui/ReturnToGroupButton";
+import { RETURN_TO_GROUP_CONFIRM } from "../../features/multiplayer/utils/returnToGroup";
 
 /**
  * Los cuatro `ConfirmDialog` de nivel-app (volver/resetear/salir/volver-al-

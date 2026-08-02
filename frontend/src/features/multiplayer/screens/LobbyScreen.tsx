@@ -9,12 +9,11 @@ import { SetupTabs } from "../../../components/setup/SetupTabs";
 import { Toast } from "../../../components/ui/Toast";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { StartButton } from "../../../components/setup/StartButton";
-import { ReturnToGroupButton } from "../../../components/ui/ReturnToGroupButton";
 import { GameLoadErrorBoundary } from "../../../components/shell/GameLoadErrorBoundary";
 import { PlayerChip } from "../components/PlayerChip";
 import type { GameDef } from "../../../games/gameTypes";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
-import { buildRoomJoinUrl } from "../utils/joinLink";
+import { buildRoomJoinUrl, buildGroupJoinUrl } from "../utils/joinLink";
 import "./LobbyScreen.css";
 
 // Breakpoint de dos columnas — tiene que coincidir con el min-width:900px
@@ -57,7 +56,6 @@ export function LobbyScreen({
   onKickPlayer,
   updateConfig,
   onStartRound,
-  onLeaveInstance,
   error,
   errorKey,
 }: {
@@ -79,7 +77,6 @@ export function LobbyScreen({
   onKickPlayer: (id: string) => void;
   updateConfig: (patch: Record<string, unknown>) => void;
   onStartRound: () => void;
-  onLeaveInstance: () => void;
   error: string;
   errorKey: number;
 }) {
@@ -176,11 +173,14 @@ export function LobbyScreen({
 
       <div className="jt-lobby-grid jt-lobby-breakout">
         <div className="jt-lobby-col jt-thin-scrollbar" ref={colRef}>
-          {/* A group instance isn't meant to be joined by raw code — group
-              membership (join_instance from the group screen) is how people
-              find it. A standalone room still shares its code here, since
-              that's its only invite mechanism. */}
-          {room.groupCode === null && (
+          {/* Una instancia de grupo no se une por el código de la sala en sí
+              — quien invita comparte el código del GRUPO, y desde ahí entra
+              a la partida abierta (join_instance en GroupScreen). Por eso
+              acá mostramos ese código de grupo, no el de la sala, para que
+              la invitación siga siendo posible sin salir del lobby. Una
+              sala independiente (sin grupo) comparte su propio código, que
+              es su único mecanismo de invitación. */}
+          {room.groupCode === null ? (
             <>
               <CodeDisplay code={room.code} />
               <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 10 }} className="jt-animate-rise">
@@ -205,6 +205,35 @@ export function LobbyScreen({
                   title="Compartir enlace de invitación"
                   subtitle={`${room.name ? room.name + " · " : ""}Sala ${room.code} · ${activeGame?.label ?? ""}`}
                   value={buildRoomJoinUrl(room.gameType, room.code)}
+                  onClose={() => setShowShareLink(false)}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <CodeDisplay code={room.groupCode} label="GRUPO" />
+              <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 10 }} className="jt-animate-rise">
+                <button onClick={() => onShowQR(true)} className="jt-lobby-link-btn">
+                  ▦ Ver QR
+                </button>
+                <button onClick={() => setShowShareLink(true)} className="jt-lobby-link-btn">
+                  ↗ Compartir enlace
+                </button>
+              </div>
+              {showQR && (
+                <QRDialog
+                  title="Escaneá para unirte al grupo"
+                  subtitle={`Grupo ${room.groupCode}`}
+                  value={buildGroupJoinUrl(room.groupCode)}
+                  onClose={() => onShowQR(false)}
+                  showShare={false}
+                />
+              )}
+              {showShareLink && (
+                <ShareLinkDialog
+                  title="Compartir enlace de invitación"
+                  subtitle={`Grupo ${room.groupCode}`}
+                  value={buildGroupJoinUrl(room.groupCode)}
                   onClose={() => setShowShareLink(false)}
                 />
               )}
@@ -331,8 +360,6 @@ export function LobbyScreen({
           </div>,
           document.body,
         )}
-
-      <ReturnToGroupButton groupCode={room.groupCode} roomPhase={room.phase} onLeave={onLeaveInstance} />
 
       <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
     </div>
