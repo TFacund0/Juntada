@@ -19,6 +19,11 @@ export default defineConfig({
         // WebSocket, which this never touches — nothing multiplayer-related
         // is cached, only static assets.
         globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
+        // React Router runs client-side routes like /group/:code that don't
+        // exist as real files — without this, a deep link or page refresh on
+        // one of those in production falls through to the static host's
+        // default 404 instead of loading the SPA shell.
+        navigateFallback: "/index.html",
         // A waiting service worker otherwise only takes over once every tab
         // is closed, so a deploy could sit "installed but inactive" for a
         // long time — the app keeps serving the previous bundle until then.

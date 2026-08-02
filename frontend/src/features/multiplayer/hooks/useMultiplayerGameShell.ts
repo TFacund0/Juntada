@@ -25,6 +25,8 @@ export function useMultiplayerGameShell({
   initialGroupIntent,
   onGameTypeChange,
   onRoomPhaseChange,
+  onRoomCodeChange,
+  onGroupCodeChange,
   onLeaveGroup,
   onGroupAttachedChange,
   onExposeReturnToGroup,
@@ -248,6 +250,19 @@ export function useMultiplayerGameShell({
   useEffect(() => {
     onRoomPhaseChange?.(room?.phase ?? null);
   }, [room?.phase, onRoomPhaseChange]);
+
+  // The server-assigned code is only known once a room/group actually
+  // exists (after create/join lands) — App.tsx uses this to put the real
+  // code in the URL (replacing the code-less /room/:gameId or /group route
+  // used while still on the create/join form) so the address bar becomes
+  // shareable from that point on.
+  useEffect(() => {
+    onRoomCodeChange?.(room?.code ?? null);
+  }, [room?.code, onRoomCodeChange]);
+
+  useEffect(() => {
+    onGroupCodeChange?.(group?.code ?? null);
+  }, [group?.code, onGroupCodeChange]);
 
   // Live preview of a standalone room as soon as the code is fully typed —
   // read-only lookup, no commitment (see checkRoomCode/room_preview on the

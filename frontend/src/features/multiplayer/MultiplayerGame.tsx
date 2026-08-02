@@ -114,6 +114,14 @@ export interface MultiplayerGameProps {
   // progress (see utils/returnToGroup's roomHasProgress). Null when there's
   // no active instance.
   onRoomPhaseChange?: (roomPhase: string | null) => void;
+  // Only meaningful for entryKind "room" — fires with the server-assigned
+  // code once a room actually exists (create/join landed), null once there's
+  // none. Lets the parent put the real code in the URL (see onGroupCodeChange
+  // below for the group equivalent).
+  onRoomCodeChange?: (code: string | null) => void;
+  // Only meaningful for entryKind "group" — same idea as onRoomCodeChange,
+  // for the group's own code.
+  onGroupCodeChange?: (code: string | null) => void;
   // Fires once the player has fully left the group (not just an instance
   // under it) — the group's own "menu" screen is indistinguishable from the
   // very first screen before ever connecting, so App.tsx needs this signal
