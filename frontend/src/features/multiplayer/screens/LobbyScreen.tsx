@@ -8,6 +8,7 @@ import { ShareLinkDialog } from "../../../components/dialogs/ShareLinkDialog";
 import { SetupTabs } from "../../../components/setup/SetupTabs";
 import { Toast } from "../../../components/ui/Toast";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
+import { ShareArrowIcon } from "../../../components/ui/icons";
 import { StartButton } from "../../../components/setup/StartButton";
 import { GameLoadErrorBoundary } from "../../../components/shell/GameLoadErrorBoundary";
 import { PlayerChip } from "../components/PlayerChip";
@@ -188,7 +189,7 @@ export function LobbyScreen({
                   ▦ Ver QR
                 </button>
                 <button onClick={() => setShowShareLink(true)} className="jt-lobby-link-btn">
-                  ↗ Compartir enlace
+                  <ShareArrowIcon /> Compartir enlace
                 </button>
               </div>
               {showQR && (
@@ -217,7 +218,7 @@ export function LobbyScreen({
                   ▦ Ver QR
                 </button>
                 <button onClick={() => setShowShareLink(true)} className="jt-lobby-link-btn">
-                  ↗ Compartir enlace
+                  <ShareArrowIcon /> Compartir enlace
                 </button>
               </div>
               {showQR && (

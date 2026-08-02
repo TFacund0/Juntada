@@ -58,6 +58,73 @@ export function BackArrowIcon({ size = 18, color = "currentColor", strokeWidth =
   );
 }
 
+/** Flecha diagonal — botón "Compartir enlace" de LobbyScreen. */
+export function ShareArrowIcon({ size = 16, color = "currentColor", strokeWidth = 2 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: "block" }}
+    >
+      <line x1="7" y1="17" x2="17" y2="7" />
+      <polyline points="7 7 17 7 17 17" />
+    </svg>
+  );
+}
+
+/** "+" — ícono del trigger "Nueva partida" en GroupScreen (mobile). */
+export function PlusIcon({ size = 18, color = "currentColor", strokeWidth = 2.5 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: "block" }}
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+/** Corona — badge de "Anfitrión" sobre el avatar en GroupScreen. */
+export function CrownIcon({ size = 12, color = "currentColor", strokeWidth = 2 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: "block" }}
+    >
+      {/* El path original (pico más arriba que la base) deja más aire arriba
+          que abajo dentro del viewBox de 24×24 — se nota en un badge chico
+          como jt-group-host-badge, donde queda todo el ícono. Se traslada
+          1px hacia arriba para centrar el bounding box real (5..21) en el
+          viewBox en vez de dejarlo pegado hacia abajo. */}
+      <g transform="translate(0 -1)">
+        <path d="m2 18 2-11 5 4 3-6 3 6 5-4 2 11z" />
+        <line x1="4" y1="21" x2="20" y2="21" />
+      </g>
+    </svg>
+  );
+}
+
 /** Ícono de alerta — ConfirmDialog (tone="exit") y ErrorBanner. */
 export function AlertIcon({ size = 22, color = "currentColor", strokeWidth = 2 }: IconProps) {
   return (

@@ -73,6 +73,19 @@ type CategoryFilter = "todos" | GameCategory;
 interface GamePickerProps {
   games: GameDef[];
   onPick: (id: string) => void;
+  /**
+   * `false` oculta los tabs "Disponibles/Próximamente" y muestra siempre
+   * solo los disponibles — usado por NewGameDialog, donde no tiene sentido
+   * ofrecer "Próximamente" dentro de un grupo ya armado. Default `true`
+   * (comportamiento del catálogo del menú principal, sin tocar).
+   */
+  showAvailabilityFilter?: boolean;
+  /**
+   * `false` hace que "Destacados" use el mismo tamaño de card que el resto
+   * de las categorías en vez de la grilla grande — usado por NewGameDialog.
+   * Default `true` (comportamiento del menú principal, sin tocar).
+   */
+  featuredLayout?: boolean;
 }
 
 /**
@@ -82,7 +95,7 @@ interface GamePickerProps {
  * se agregan más juegos — ver el campo `category` en `games/gameTypes.ts`
  * que cada juego adopta.
  */
-export function GamePicker({ games, onPick }: GamePickerProps) {
+export function GamePicker({ games, onPick, showAvailabilityFilter = true, featuredLayout = true }: GamePickerProps) {
   const [query, setQuery] = useState("");
   // Toda categoría arranca expandida; colapsar una solo oculta su grilla,
   // nunca saca esos juegos de un match de búsqueda más abajo.
@@ -107,9 +120,9 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
   };
 
   const availableGames = useMemo(() => {
-    if (availFilter === "soon") return games.filter(g => g.comingSoon && !isUnderMaintenance(g));
+    if (showAvailabilityFilter && availFilter === "soon") return games.filter(g => g.comingSoon && !isUnderMaintenance(g));
     return games.filter(g => !g.comingSoon || isUnderMaintenance(g));
-  }, [games, availFilter]);
+  }, [games, availFilter, showAvailabilityFilter]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -143,20 +156,22 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar juego…" className="jt-search-field-input" />
         </label>
 
-        <div className="jt-avail-tabs" role="tablist" aria-label="Estado de los juegos">
-          {(Object.keys(AVAILABILITY_LABEL) as AvailabilityFilter[]).map(key => (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={availFilter === key}
-              className="jt-avail-chip"
-              onClick={() => setAvailFilter(key)}
-              style={availChipStyle(availFilter === key)}
-            >
-              {AVAILABILITY_LABEL[key]}
-            </button>
-          ))}
-        </div>
+        {showAvailabilityFilter && (
+          <div className="jt-avail-tabs" role="tablist" aria-label="Estado de los juegos">
+            {(Object.keys(AVAILABILITY_LABEL) as AvailabilityFilter[]).map(key => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={availFilter === key}
+                className="jt-avail-chip"
+                onClick={() => setAvailFilter(key)}
+                style={availChipStyle(availFilter === key)}
+              >
+                {AVAILABILITY_LABEL[key]}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="jt-cat-chip-row">
@@ -181,7 +196,7 @@ export function GamePicker({ games, onPick }: GamePickerProps) {
             open={!collapsed.has(section.cat)}
             onToggle={() => toggleCategory(section.cat)}
           >
-            <GameGrid games={section.items} onSelect={setPreviewGame} featured={section.cat === "destacados"} />
+            <GameGrid games={section.items} onSelect={setPreviewGame} featured={featuredLayout && section.cat === "destacados"} />
           </CategorySection>
         ))
       ) : filtered.length > 0 ? (
