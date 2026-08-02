@@ -59,8 +59,6 @@ Organizados en subcarpetas por para qué sirven, no alfabéticamente:
 - `CodeDisplay` — la visualización grande del código de sala/grupo.
 - `QRCode` — el renderizado crudo del QR (usado por `dialogs/QRDialog`).
 - `ScreenFade` — wrapper de transición fade entre pantallas.
-- `ReturnToGroupButton` — la salida online de "volver al grupo" para una
-  instancia de grupo.
 
 ## `game-kit/` — piezas de setup/ronda reusadas solo por `games/**`
 

@@ -151,6 +151,7 @@ export default function App() {
             gameId={gameId}
             mode={mode}
             groupFlow={groupFlow}
+            groupAttached={groupAttached}
             game={game}
             accentColor={accentColor}
             mutedColor={mutedColor}

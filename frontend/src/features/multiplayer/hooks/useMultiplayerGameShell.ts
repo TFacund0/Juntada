@@ -71,7 +71,6 @@ export function useMultiplayerGameShell({
   const [editingName, setEditingName] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [showCreateInstance, setShowCreateInstance] = useState(false);
   // Tracks a join_instance in flight so the tapped button can show
   // "Uniéndose..." instead of looking like nothing happened — and, since
   // send() silently drops the message if the socket isn't OPEN at the exact
@@ -118,9 +117,9 @@ export function useMultiplayerGameShell({
     },
     [],
   );
-  // Leaving mid-game silently forfeits whatever's in progress — the confirm
-  // for that (and for the equivalent lobby case, which has nothing to lose
-  // yet) lives in the shared ReturnToGroupButton itself now, not here.
+  // Leaving the group outright — separate confirm from "volver al grupo"
+  // (the navbar's "Volver" arrow, see useAppNavigation's goBack), which only
+  // steps back to the group screen without leaving it.
   const [confirmLeaveGroup, setConfirmLeaveGroup] = useState(false);
   // Host-only per-player actions (transfer host / kick) live behind a small
   // "⋮" menu instead of two always-visible buttons — only one open at a
@@ -410,8 +409,6 @@ export function useMultiplayerGameShell({
     setShowQR,
     showScanner,
     setShowScanner,
-    showCreateInstance,
-    setShowCreateInstance,
     pendingJoinCode,
     joinInstance,
     confirmLeaveGroup,
@@ -434,7 +431,6 @@ export function useMultiplayerGameShell({
     createRoom,
     joinRoom,
     updateConfig,
-    leaveInstance,
     reconnectContext,
     rejoinHostName,
   };
