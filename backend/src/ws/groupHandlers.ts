@@ -31,6 +31,7 @@ const {
   sendPrivateInfo,
   broadcastGroupState,
   broadcastRoundReveal,
+  appendChatMessage,
 } = require("./messaging");
 const { syncPhaseTimer, cleanupRoomIfEmpty, releaseStaleIdentity, PLAYER_OFFLINE_TIMEOUT_MS } = require("./shared");
 
@@ -217,6 +218,17 @@ function kickMember(ws: WS, msg: Extract<ClientMessage, { type: "kick_member" }>
   else broadcastGroupState(group);
 }
 
+// Free-text chat scoped to the whole group — persists across whatever
+// instance (if any) each member currently has open, unlike sendRoomChat.
+function sendGroupChat(ws: WS, msg: Extract<ClientMessage, { type: "send_group_chat" }>, info: ClientInfo): void {
+  const group = groups.get(info.groupCode ?? "");
+  if (!group || !info.playerId) return;
+  const member = group.members.find(m => m.id === info.playerId);
+  if (!member) return;
+  appendChatMessage(group.chat, member.id, member.name, msg.text);
+  broadcastGroupState(group);
+}
+
 function scheduleGroupMemberKick(groupCode: string, playerId: string): void {
   setTimeout(() => {
     const group = groups.get(groupCode);
@@ -241,6 +253,7 @@ module.exports = {
   leaveInstance,
   leaveGroup,
   kickMember,
+  sendGroupChat,
   leavePlayerFromInstance,
   scheduleGroupMemberKick,
 };

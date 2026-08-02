@@ -8,8 +8,58 @@ import { GroupScreen } from "./screens/GroupScreen";
 import { LobbyScreen } from "./screens/LobbyScreen";
 import { RoundScreen } from "./screens/RoundScreen";
 import { SessionRecoveryOverlay } from "./screens/SessionRecoveryOverlay";
+import { FloatingChat } from "./components/FloatingChat";
+import type { ChatChannel } from "./components/FloatingChat";
 import { ScreenFade } from "../../components/ui/ScreenFade";
 import { useMultiplayerGameShell, playableGames } from "./hooks/useMultiplayerGameShell";
+import type { GroupPublicState, RoomPublicState } from "@juntada/shared-types";
+
+// Shared by the group/lobby/round FloatingChat subtitles below — kept as one
+// spot instead of repeating the singular/plural ternary at each call site.
+function countLabel(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
+// The two chat channels FloatingChat can show — built here (not inside the
+// component) since neither needs anything from render scope beyond its own
+// arguments, and keeping them free functions makes the "what goes into a
+// channel" logic testable/reusable independent of where each is mounted
+// below (group screen has only one; lobby/round can have both at once).
+function buildGroupChannel(
+  group: GroupPublicState,
+  groupMe: { playerId: string } | null,
+  send: (msg: Record<string, unknown>) => void,
+): ChatChannel {
+  return {
+    id: "group",
+    tabLabel: "Grupo",
+    title: "Chat del grupo",
+    subtitle: `${group.name} · ${countLabel(group.members.length, "persona", "personas")}`,
+    accent: "group",
+    messages: group.chat,
+    myPlayerId: groupMe?.playerId,
+    onSend: text => send({ type: "send_group_chat", text }),
+  };
+}
+
+function buildRoomChannel(
+  room: RoomPublicState,
+  roomTitle: string,
+  me: { playerId: string } | null,
+  send: (msg: Record<string, unknown>) => void,
+): ChatChannel {
+  return {
+    id: "room",
+    tabLabel: "Sala",
+    title: roomTitle,
+    subtitle: `${room.name} · ${countLabel(room.players.length, "jugador", "jugadores")}`,
+    accent: "room",
+    messages: room.chat,
+    myPlayerId: me?.playerId,
+    onSend: text => send({ type: "send_room_chat", text }),
+    quickReactions: true,
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:
@@ -341,80 +391,92 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // ── GROUP (attached to a group, no active instance) ──
   if (connectionPhase === "group" && group)
     return (
-      <ScreenFade transitionKey="group" skipAnimation={skipFade}>
-        <GroupScreen
-          reconnectBanner={reconnectBanner}
-          group={group}
-          myPlayerId={me?.playerId}
-          isGroupHost={isGroupHost}
-          showQR={showQR}
-          onShowQR={setShowQR}
-          openPlayerMenu={openPlayerMenu}
-          onTogglePlayerMenu={setOpenPlayerMenu}
-          playerMenuRef={playerMenuRef}
-          onTransferHost={id => {
-            send({ type: "transfer_host", targetId: id });
-            setOpenPlayerMenu(null);
-          }}
-          onKickMember={id => {
-            send({ type: "kick_member", targetId: id });
-            setOpenPlayerMenu(null);
-          }}
-          playableGames={playableGames()}
-          onCreateInstance={gameIdToCreate => {
-            const targetGame = getGame(gameIdToCreate);
-            runTransition(() => {
-              send({ type: "create_instance", gameType: gameIdToCreate });
-            }, Boolean(targetGame?.gameTheme));
-          }}
-          pendingJoinCode={pendingJoinCode}
-          onJoinInstance={joinInstance}
-          confirmLeaveGroup={confirmLeaveGroup}
-          onConfirmLeaveGroup={() => setConfirmLeaveGroup(true)}
-          onLeaveGroup={() => {
-            send({ type: "leave_group" });
-            setConfirmLeaveGroup(false);
-          }}
-          onCancelLeaveGroup={() => setConfirmLeaveGroup(false)}
-          error={error}
-          errorKey={errorKey}
-        />
-      </ScreenFade>
+      <>
+        <ScreenFade transitionKey="group" skipAnimation={skipFade}>
+          <GroupScreen
+            reconnectBanner={reconnectBanner}
+            group={group}
+            myPlayerId={me?.playerId}
+            isGroupHost={isGroupHost}
+            showQR={showQR}
+            onShowQR={setShowQR}
+            openPlayerMenu={openPlayerMenu}
+            onTogglePlayerMenu={setOpenPlayerMenu}
+            playerMenuRef={playerMenuRef}
+            onTransferHost={id => {
+              send({ type: "transfer_host", targetId: id });
+              setOpenPlayerMenu(null);
+            }}
+            onKickMember={id => {
+              send({ type: "kick_member", targetId: id });
+              setOpenPlayerMenu(null);
+            }}
+            playableGames={playableGames()}
+            onCreateInstance={gameIdToCreate => {
+              const targetGame = getGame(gameIdToCreate);
+              runTransition(() => {
+                send({ type: "create_instance", gameType: gameIdToCreate });
+              }, Boolean(targetGame?.gameTheme));
+            }}
+            pendingJoinCode={pendingJoinCode}
+            onJoinInstance={joinInstance}
+            confirmLeaveGroup={confirmLeaveGroup}
+            onConfirmLeaveGroup={() => setConfirmLeaveGroup(true)}
+            onLeaveGroup={() => {
+              send({ type: "leave_group" });
+              setConfirmLeaveGroup(false);
+            }}
+            onCancelLeaveGroup={() => setConfirmLeaveGroup(false)}
+            error={error}
+            errorKey={errorKey}
+          />
+        </ScreenFade>
+        <FloatingChat channels={[buildGroupChannel(group, groupMe, send)]} />
+      </>
     );
 
   // ── LOBBY ── (either a standalone room or a group instance's lobby)
   if (connectionPhase === "lobby" && room) {
     return (
-      <ScreenFade transitionKey="lobby" skipAnimation={skipFade}>
-        <LobbyScreen
-          room={room}
-          myPlayerId={me?.playerId}
-          isHost={isHost}
-          activeGame={activeGame}
-          statusToast={statusToast}
-          onStatusToastExpire={() => setStatusToast(null)}
-          reconnectBanner={reconnectBanner}
-          showQR={showQR}
-          onShowQR={setShowQR}
-          lobbyTab={lobbyTab}
-          onLobbyTabChange={setLobbyTab}
-          openPlayerMenu={openPlayerMenu}
-          onTogglePlayerMenu={setOpenPlayerMenu}
-          playerMenuRef={playerMenuRef}
-          onTransferHost={id => {
-            send({ type: "transfer_host", targetId: id });
-            setOpenPlayerMenu(null);
-          }}
-          onKickPlayer={id => {
-            send({ type: "kick_player", targetId: id });
-            setOpenPlayerMenu(null);
-          }}
-          updateConfig={updateConfig}
-          onStartRound={() => send({ type: "start_round" })}
-          error={error}
-          errorKey={errorKey}
+      <>
+        <ScreenFade transitionKey="lobby" skipAnimation={skipFade}>
+          <LobbyScreen
+            room={room}
+            myPlayerId={me?.playerId}
+            isHost={isHost}
+            activeGame={activeGame}
+            statusToast={statusToast}
+            onStatusToastExpire={() => setStatusToast(null)}
+            reconnectBanner={reconnectBanner}
+            showQR={showQR}
+            onShowQR={setShowQR}
+            lobbyTab={lobbyTab}
+            onLobbyTabChange={setLobbyTab}
+            openPlayerMenu={openPlayerMenu}
+            onTogglePlayerMenu={setOpenPlayerMenu}
+            playerMenuRef={playerMenuRef}
+            onTransferHost={id => {
+              send({ type: "transfer_host", targetId: id });
+              setOpenPlayerMenu(null);
+            }}
+            onKickPlayer={id => {
+              send({ type: "kick_player", targetId: id });
+              setOpenPlayerMenu(null);
+            }}
+            updateConfig={updateConfig}
+            onStartRound={() => send({ type: "start_round" })}
+            error={error}
+            errorKey={errorKey}
+          />
+        </ScreenFade>
+        <FloatingChat
+          channels={[
+            ...(room.groupCode && group ? [buildGroupChannel(group, groupMe, send)] : []),
+            buildRoomChannel(room, "Chat de la sala", me, send),
+          ]}
+          defaultChannelId="room"
         />
-      </ScreenFade>
+      </>
     );
   }
 
@@ -425,17 +487,26 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // inválida, etc.) es un caso genérico común a cualquier juego.
   if (!["menu", "create", "join", "lobby", "group"].includes(connectionPhase) && room && activeGame) {
     return (
-      <ScreenFade transitionKey="round" skipAnimation={skipFade}>
-        <RoundScreen
-          activeGame={activeGame}
-          roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
-          statusToast={statusToast}
-          onStatusToastExpire={() => setStatusToast(null)}
-          reconnectBanner={reconnectBanner}
-          error={error}
-          errorKey={errorKey}
+      <>
+        <ScreenFade transitionKey="round" skipAnimation={skipFade}>
+          <RoundScreen
+            activeGame={activeGame}
+            roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
+            statusToast={statusToast}
+            onStatusToastExpire={() => setStatusToast(null)}
+            reconnectBanner={reconnectBanner}
+            error={error}
+            errorKey={errorKey}
+          />
+        </ScreenFade>
+        <FloatingChat
+          channels={[
+            ...(room.groupCode && group ? [buildGroupChannel(group, groupMe, send)] : []),
+            buildRoomChannel(room, activeGame.label ?? "Chat de la partida", me, send),
+          ]}
+          defaultChannelId="room"
         />
-      </ScreenFade>
+      </>
     );
   }
 

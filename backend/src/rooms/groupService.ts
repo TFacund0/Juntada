@@ -43,6 +43,7 @@ function createGroup(ws: WebSocket, { playerName, groupName }: { playerName?: st
     name: groupName || "Grupo sin nombre",
     hostId: playerId,
     members: [{ id: playerId, name: playerName || "Anfitrión", online: true }],
+    chat: [],
   };
   groups.set(code, group);
   clients.set(ws, { groupCode: code, roomCode: null, playerId });

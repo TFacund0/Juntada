@@ -470,6 +470,14 @@
   flex-shrink: 0;
   background: var(--jt-surface, #171329);
   border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  overflow: hidden;
+}
+
+.jt-group-open-card-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 /* Punto "en vivo" — mismo indicador que jt-group-member-status (online),
@@ -771,6 +779,14 @@
   font-size: 17px;
   flex-shrink: 0;
   background: var(--jt-surface, #171329);
+  overflow: hidden;
+}
+
+.jt-group-game-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .jt-group-game-body {

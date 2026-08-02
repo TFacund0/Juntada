@@ -36,6 +36,7 @@ function makeRoom(
     },
     usedWords: {},
     roundHistory: [],
+    chat: [],
   };
 }
 

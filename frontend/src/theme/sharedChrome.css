@@ -216,30 +216,21 @@
   filter: brightness(0.98);
 }
 
-/* Scrollbar angosta con el acento de la sala, transparente cuando no hace
-   falta — compartida por cualquier caja con overflow-y:auto propio (antes
-   repetida entera, webkit + Firefox, en cada una de LobbyScreen.css:
-   jt-lobby-col, jt-player-grid, jt-lobby-config-scroll). */
+/* Scroll invisible: la caja sigue scrolleando (rueda, touch, teclado) pero
+   sin barra visible — evita el parpadeo de la barra nativa apareciendo y
+   desapareciendo (flash sin estilo) al entrar a la sala, en jt-lobby-col,
+   jt-player-grid y jt-lobby-config-scroll (LobbyScreen.css). Antes esta
+   clase dibujaba una barra angosta con el acento de la sala; se reemplaza
+   por completo en vez de solo ajustar el timing. */
 .jt-thin-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35)) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .jt-thin-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.jt-thin-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.jt-thin-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
-  border-radius: 20px;
-}
-
-.jt-thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--jt-accent, #7f77dd);
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
