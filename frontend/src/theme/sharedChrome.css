@@ -3,10 +3,13 @@
    cualquier otra cosa común a todo juego leen estas variables CSS en vez de
    hardcodear un color. Un juego con tema propio (ver gameTheme en GameDef,
    theme/gameThemes.ts) sobreescribe solo un puñado de variables base vía
-   estilo inline en la raíz de App.tsx — todo lo demás acá deriva de esas
-   automáticamente (color-mix), así que agregar un juego con tema propio
-   nunca implica salir a cazar más colores hardcodeados en estos componentes
-   compartidos uno por uno.
+   estilo inline en <html> (ver hooks/useGameTheme.ts) — puesto ahí, y no en
+   la raíz de App.tsx, para que también las herede cualquier componente
+   compartido portado a document.body (StickyActionBar, Toast, los modales
+   de sala/grupo) — todo lo demás acá deriva de esas automáticamente
+   (color-mix), así que agregar un juego con tema propio nunca implica salir
+   a cazar más colores hardcodeados en estos componentes compartidos uno por
+   uno.
    Los valores por defecto de abajo son el look normal de esta app — lo que
    ya recibe, sin cambios, todo juego sin tema propio. */
 :root {

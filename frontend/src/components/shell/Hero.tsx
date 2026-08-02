@@ -1,70 +1,82 @@
+/**
+ * Blobs animados de fondo de la pantalla de inicio — separados de `Hero` (no
+ * anidados dentro suyo) porque `Hero` vive dentro del `<ScreenFade>` de
+ * App.tsx, que anima con `transform` los primeros 0.32s de cada pantalla. Un
+ * `transform` en un ancestro atrapa cualquier `position: fixed` de acá
+ * adentro (lo posiciona relativo a ese ancestro en vez de al viewport)
+ * durante ese instante, y cuando la animación termina y el `transform`
+ * desaparece (a propósito, ver el comentario de screenTransitions.css), el
+ * fixed "salta" de golpe de un marco de referencia al otro — dos
+ * movimientos distintos y notorios en menos de un segundo. `App.tsx` renderiza
+ * esto como hermano de `<ScreenFade>` (no como descendiente) para esquivar
+ * el problema sin recurrir a un portal a document.body, que rompería el
+ * z-index:-1 de acá abajo (ver por qué en el comentario de más adelante).
+ */
+export function HeroBackdrop() {
+  return (
+    <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" }}>
+      <div
+        className="jt-animate-drift"
+        style={{
+          position: "absolute",
+          left: "5%",
+          top: "-15%",
+          width: "34vw",
+          height: "34vw",
+          maxWidth: 420,
+          maxHeight: 420,
+          minWidth: 220,
+          minHeight: 220,
+          borderRadius: "50%",
+          background: "color-mix(in srgb, var(--jt-accent, #7f77dd) 28%, transparent)",
+          filter: "blur(90px)",
+        }}
+      />
+      <div
+        className="jt-animate-drift"
+        style={{
+          position: "absolute",
+          right: "5%",
+          top: "0%",
+          width: "30vw",
+          height: "30vw",
+          maxWidth: 380,
+          maxHeight: 380,
+          minWidth: 190,
+          minHeight: 190,
+          borderRadius: "50%",
+          background: "color-mix(in srgb, #1d9e75 24%, transparent)",
+          filter: "blur(100px)",
+          animationDelay: "-6s",
+        }}
+      />
+      {/* Trama de puntos que "lava" todo el ancho de la sección, atenuada
+          hacia los bordes con una máscara radial — sin esto, los dos
+          blobs de arriba quedan pegados a los costados y el centro de
+          pantallas anchas se ve sin color. */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.35,
+          backgroundImage: "radial-gradient(color-mix(in srgb, var(--jt-accent, #7f77dd) 35%, transparent) 1px, transparent 1px)",
+          backgroundSize: "26px 26px",
+          maskImage: "radial-gradient(70% 60% at 50% 0%, black, transparent)",
+          WebkitMaskImage: "radial-gradient(70% 60% at 50% 0%, black, transparent)",
+        }}
+      />
+    </div>
+  );
+}
+
 // Banner de la pantalla de inicio — encabeza la grilla de juegos (GamePicker)
-// con blobs animados de fondo y un CTA que baja hasta la grilla. Puramente
-// visual: no conoce reglas de ningún juego, solo recibe cuántos hay
-// disponibles.
+// con un CTA que baja hasta la grilla. Puramente visual: no conoce reglas de
+// ningún juego, solo recibe cuántos hay disponibles. Su fondo animado vive
+// en `HeroBackdrop` de acá arriba, renderizado aparte por App.tsx — ver el
+// comentario ahí.
 export function Hero({ gameCount }: { gameCount: number }) {
   return (
     <section className="jt-hero-section" style={{ position: "relative", overflow: "hidden" }}>
-      {/* fixed (no absolute) para que el fondo cubra toda la ventana de
-          punta a punta, no solo el ancho angosto del texto del Hero
-          (jt-home-wrap lo centra). inset:0 solo (sin width/height en vw)
-          a propósito: "vw" incluye el ancho del scrollbar en la mayoría de
-          los navegadores, así que 100vw es más ancho que lo que realmente
-          se ve y corre todo unos px de más — inset:0 en un elemento fixed
-          ya cubre el viewport real sin ese problema. */}
-      <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" }}>
-        <div
-          className="jt-animate-drift"
-          style={{
-            position: "absolute",
-            left: "5%",
-            top: "-15%",
-            width: "34vw",
-            height: "34vw",
-            maxWidth: 420,
-            maxHeight: 420,
-            minWidth: 220,
-            minHeight: 220,
-            borderRadius: "50%",
-            background: "color-mix(in srgb, var(--jt-accent, #7f77dd) 28%, transparent)",
-            filter: "blur(90px)",
-          }}
-        />
-        <div
-          className="jt-animate-drift"
-          style={{
-            position: "absolute",
-            right: "5%",
-            top: "0%",
-            width: "30vw",
-            height: "30vw",
-            maxWidth: 380,
-            maxHeight: 380,
-            minWidth: 190,
-            minHeight: 190,
-            borderRadius: "50%",
-            background: "color-mix(in srgb, #1d9e75 24%, transparent)",
-            filter: "blur(100px)",
-            animationDelay: "-6s",
-          }}
-        />
-        {/* Trama de puntos que "lava" todo el ancho de la sección, atenuada
-            hacia los bordes con una máscara radial — sin esto, los dos
-            blobs de arriba quedan pegados a los costados y el centro de
-            pantallas anchas se ve sin color. */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.35,
-            backgroundImage: "radial-gradient(color-mix(in srgb, var(--jt-accent, #7f77dd) 35%, transparent) 1px, transparent 1px)",
-            backgroundSize: "26px 26px",
-            maskImage: "radial-gradient(70% 60% at 50% 0%, black, transparent)",
-            WebkitMaskImage: "radial-gradient(70% 60% at 50% 0%, black, transparent)",
-          }}
-        />
-      </div>
-
       <div className="jt-animate-rise jt-hero-copy" style={{ textAlign: "center", margin: "0 auto" }}>
         <span
           style={{

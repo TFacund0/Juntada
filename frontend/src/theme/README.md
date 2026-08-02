@@ -40,10 +40,14 @@ aplica todo lo que se describe acá.
 1. El juego setea `gameTheme: "impostor"` en su `GameDef`.
 2. `useGameTheme.ts` busca `GAME_THEMES.impostor` y calcula las variables
    CSS `--jt-*` + los colores de acento/muted del header a partir de eso.
-3. `App.tsx` aplica esas variables en su elemento raíz mientras ese juego
-   está en pantalla (`inGameView`) — todo componente compartido que lea
-   `--jt-*` (en vez de un color hardcodeado) adopta la nueva paleta
-   automáticamente, sin necesidad de un branching por componente.
+3. Ese mismo hook aplica esas variables como estilo inline en `<html>`
+   (`document.documentElement`) mientras ese juego está en pantalla
+   (`inGameView`) — no en el div raíz de `App.tsx`, para que también las
+   herede cualquier componente compartido portado a `document.body`
+   (`StickyActionBar`, la barra de "Iniciar ronda" del lobby, `Toast`, los
+   modales de sala/grupo). Todo componente compartido que lea `--jt-*` (en
+   vez de un color hardcodeado) adopta la nueva paleta automáticamente, sin
+   necesidad de un branching por componente.
 4. Cualquier cosa que las pantallas _propias_ del juego necesiten más allá
    de eso (ej. colores hardcodeados dentro de sus propios componentes) es
    responsabilidad de ese mismo juego — ver los archivos propios de ese
