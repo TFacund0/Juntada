@@ -1,3 +1,4 @@
+import { getGame } from "../../games/registry";
 import { extractScannedCode } from "./utils/joinLink";
 import { RoomEntryModal } from "./screens/RoomEntryModal";
 import { RoomEntryCard } from "./screens/RoomEntryCard";
@@ -112,11 +113,20 @@ export interface MultiplayerGameProps {
   // the group screen (the server's leave_instance is a no-op with nothing
   // attached), so mashing "Volver" repeatedly just leaves the player there.
   onExposeReturnToGroup?: (fn: () => void) => void;
-  // Wraps "Crear partida"/"Unirse" so every game gets the same fade-to-black
-  // transition on the way into the room as it already gets entering online
-  // mode itself — App.tsx passes its withAsyncCurtain helper here. Defaults
-  // to calling the action straight through (e.g. in tests without App.tsx).
-  runTransition?: (action: () => void) => void;
+  // Wraps "Crear partida"/"Unirse" so a themed game (see gameTheme on
+  // GameDef) gets the same fade-to-black transition on the way into the
+  // room as it already gets entering online mode itself — App.tsx passes
+  // its withAsyncCurtain helper here. Defaults to calling the action straight
+  // through, so every other game's plain "create/join" stays instant (its
+  // own <ScreenFade> already covers that transition, see LobbyScreen/
+  // RoundScreen below — stacking the curtain on top of that too, for every
+  // game, made the two animations run at once and look like a stutter).
+  // `themedOverride`: App.tsx's own closure only knows the *route's* game
+  // (fixed upfront for entryKind "room") — a group's create/join-instance
+  // targets a game picked from inside the group screen itself, so callers
+  // here pass the target game's own themed-ness explicitly instead of
+  // leaving App.tsx to guess from a gameId that hasn't caught up yet.
+  runTransition?: (action: () => void, themedOverride?: boolean) => void;
   // Paired with runTransition: fires once whatever runTransition's curtain
   // was covering actually resolved (the room/group arrived, or the attempt
   // failed) — see the effect below. Lets the curtain in App.tsx stay down
@@ -219,7 +229,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           overlayMode === "gone" && !groupMe
             ? () => {
                 leave();
-                createRoom();
+                runTransition(createRoom, Boolean(selectedGame?.gameTheme));
               }
             : undefined
         }
@@ -338,10 +348,11 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           showCreateInstance={showCreateInstance}
           onToggleCreateInstance={() => setShowCreateInstance(v => !v)}
           onCreateInstance={gameIdToCreate => {
+            const targetGame = getGame(gameIdToCreate);
             runTransition(() => {
               send({ type: "create_instance", gameType: gameIdToCreate });
               setShowCreateInstance(false);
-            });
+            }, Boolean(targetGame?.gameTheme));
           }}
           pendingJoinCode={pendingJoinCode}
           onJoinInstance={joinInstance}

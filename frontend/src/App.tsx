@@ -7,7 +7,7 @@ import type { GameDef } from "./games/gameTypes";
 import { isGameAvailable } from "./games/maintenance";
 import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
 import { GamePicker } from "./components/shell/GamePicker";
-import { Hero } from "./components/shell/Hero";
+import { Hero, HeroBackdrop } from "./components/shell/Hero";
 import { GameRules } from "./components/shell/GameRules";
 import { AppConfirmDialogs } from "./components/shell/AppConfirmDialogs";
 import { AppBackdrop } from "./components/shell/AppBackdrop";
@@ -17,7 +17,7 @@ import { NameOnboardingScreen } from "./components/shell/NameOnboardingScreen";
 import { ScreenFade } from "./components/ui/ScreenFade";
 import { Spinner } from "./components/ui/Spinner";
 import { AppHeader } from "./components/shell/AppHeader";
-import { ModePicker } from "./components/shell/ModePicker";
+import { ModePicker, ModePickerBackdrop } from "./components/shell/ModePicker";
 import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/utils/playerName";
 import { loadActive } from "./hooks/useActiveSession";
 import { useValidJoinLink } from "./features/multiplayer/hooks/useValidJoinLink";
@@ -192,7 +192,10 @@ export default function App() {
 
               {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
               {gameId && !mode && game && isGameAvailable(game) && !game.localOnly && (
-                <ModePicker onSelectMulti={() => setMode("multi")} onSelectLocal={() => withCurtain(() => setMode("local"))} />
+                <ModePicker
+                  onSelectMulti={() => setMode("multi")}
+                  onSelectLocal={() => withCurtain(() => setMode("local"), Boolean(game?.gameTheme))}
+                />
               )}
 
               {/* ── Paso 3: jugar ── */}
@@ -226,7 +229,7 @@ export default function App() {
                   // join fires. Callers there know the target game synchronously
                   // (the picker's own gameId, or the instance's gameType) and pass
                   // it as `themedOverride` instead of relying on this closure.
-                  runTransition={action => withAsyncCurtain(action)}
+                  runTransition={(action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme))}
                   onTransitionSettled={settleAsyncCurtain}
                 />
               )}
@@ -243,6 +246,11 @@ export default function App() {
         if (stepKey === "picker") {
           return (
             <div style={{ position: "relative", zIndex: 1 }}>
+              {/* Hermano de <ScreenFade> (dentro de `rest`), no descendiente
+                  suyo — ver el comentario en HeroBackdrop (Hero.tsx) sobre
+                  por qué un fondo `position: fixed` no puede vivir adentro
+                  del wrapper que ScreenFade anima con `transform`. */}
+              <HeroBackdrop />
               {/* El navbar (fondo sticky) va suelto, sin jt-home-wrap acá —
                   es él mismo quien centra su contenido interno con esa clase
                   (ver AppHeader), así su fondo llega a los bordes reales de
@@ -273,6 +281,9 @@ export default function App() {
         if (stepKey.startsWith("modepicker-")) {
           return (
             <div className="jt-mode-wrap jt-content-pad-top" style={{ margin: "0 auto", position: "relative", zIndex: 1 }}>
+              {/* Hermano de <ScreenFade> (dentro de `rest`), no descendiente
+                  suyo — mismo motivo que HeroBackdrop arriba. */}
+              <ModePickerBackdrop />
               {header}
               {rest}
             </div>

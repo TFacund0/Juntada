@@ -81,6 +81,7 @@ export function useMultiplayerGameShell({
   const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const pendingJoinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const joinInstance = (roomCode: string) => {
+    const targetGame = getGame(group?.instances.find(i => i.roomCode === roomCode)?.gameType ?? "");
     runTransition(() => {
       setPendingJoinCode(roomCode);
       send({ type: "join_instance", roomCode });
@@ -92,7 +93,7 @@ export function useMultiplayerGameShell({
         setPendingJoinCode(null);
         setError("No se pudo unir a la partida — probá de nuevo");
       }, 8000);
-    });
+    }, Boolean(targetGame?.gameTheme));
   };
   // Cleared once the join actually succeeds — connectionPhase moves off
   // "group" (into "lobby"). Deliberately not cleared on a generic error:

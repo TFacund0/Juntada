@@ -17,12 +17,14 @@ tiene el propio del shell multijugador (`useMultiplayerSocket`).
   que sí conoce multijugador, vive en
   `features/multiplayer/hooks/useValidJoinLink.ts`, no acá.)
 - **`useCurtainTransition.ts`** — el fundido a negro que se reproduce al
-  entrar/salir de cualquier juego, para que el cambio de pantalla nunca se
-  vea como un corte brusco (un juego con tema propio además cambia la
-  paleta detrás de esta misma cortina). Dos variantes: `withCurtain`
-  (acciones locales instantáneas) y `withAsyncCurtain` (crear/unirse
-  online, que espera un viaje de ida y vuelta al servidor antes de levantar
-  la cortina).
+  entrar/salir de un juego con tema propio, para que el cambio de paleta de
+  toda la app pase tapado en vez de como un corte brusco. Reservado a juegos
+  con tema propio a propósito: la pantalla de destino ya reproduce su propia
+  entrada vía `<ScreenFade>`, así que sumar esta cortina para _todo_ juego
+  hacía que las dos animaciones corrieran pisadas (ver el comentario del
+  archivo). Dos variantes: `withCurtain` (acciones locales instantáneas) y
+  `withAsyncCurtain` (crear/unirse online, que espera un viaje de ida y
+  vuelta al servidor antes de levantar la cortina).
 - **`useFlashError.ts`** — un mensaje de error/validación transitorio:
   setearlo incrementa una `key` (para que la animación de destello de
   `ErrorBanner` se repita incluso con un mensaje idéntico repetido) y se
