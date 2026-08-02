@@ -1,10 +1,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { GAME_LIST, getGame } from "../games/registry";
 import { isGameAvailable } from "../games/maintenance";
 import { clearMultiplayerSession } from "../features/multiplayer/hooks/useMultiplayerSocket";
 import { roomHasProgress } from "../features/multiplayer/utils/returnToGroup";
 import { useCurtainTransition } from "./useCurtainTransition";
 import { saveActive } from "./useActiveSession";
+import { parseRoute } from "./appRoutes";
+import { useUrlSync } from "./useUrlSync";
 import type { JoinLink } from "../features/multiplayer/utils/joinLink";
 
 /**
@@ -18,16 +21,28 @@ import type { JoinLink } from "../features/multiplayer/utils/joinLink";
  * final.
  */
 export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gameId: string; mode: "local" | "multi" } | null) {
+  const location = useLocation();
+  // Snapshot once — a direct visit/refresh of a route like /game/:id or
+  // /room/:gameId/:code should seed the initial state below the same way a
+  // join link or a restored session does; later navigations are handled by
+  // the sync effect further down, not by re-reading this.
+  const [routeInit] = useState(() => parseRoute(location.pathname));
   const linkGameId = validJoinLink?.kind === "room" ? validJoinLink.gameId : null;
-  const [gameId, setGameId] = useState<string | null>(linkGameId ?? restored?.gameId ?? null);
-  const [mode, setMode] = useState<"local" | "multi" | null>(validJoinLink ? "multi" : (restored?.mode ?? null));
+  const [gameId, setGameId] = useState<string | null>(routeInit.gameId ?? linkGameId ?? restored?.gameId ?? null);
+  const [mode, setMode] = useState<"local" | "multi" | null>(routeInit.mode ?? (validJoinLink ? "multi" : (restored?.mode ?? null)));
   // "Crear o unirme a un grupo" (or scanning a group's join link) skips
   // straight to the multiplayer shell with no game chosen yet — the group
   // screen lets any member open/join independent game instances. Not
   // persisted across a backgrounded tab like a normal session (see
   // saveActive in App.tsx): once inside an instance, its gameType drives
   // onGameTypeChange and normal session restore (rejoin_group) takes over.
-  const [groupFlow, setGroupFlow] = useState(() => validJoinLink?.kind === "group");
+  const [groupFlow, setGroupFlow] = useState(() => routeInit.groupFlow || validJoinLink?.kind === "group");
+  // The server-assigned room/group code, once known (see onRoomCodeChange/
+  // onGroupCodeChange below) — kept separate from gameId/mode/groupFlow so
+  // the URL can start code-less (/room/:gameId, /group) while still on the
+  // create/join form, then upgrade in place once create/join actually lands.
+  const [roomCode, setRoomCode] = useState<string | null>(routeInit.mode === "multi" && !routeInit.groupFlow ? routeInit.code : null);
+  const [groupCode, setGroupCode] = useState<string | null>(routeInit.groupFlow ? routeInit.code : null);
   // Which tab the multiplayer shell should land on when entering via the
   // home screen's compact group menu (tap "+" → Crear grupo / Unirme a un
   // grupo) — lets it skip the neutral menu screen and go straight there.
@@ -167,6 +182,7 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
       // to "elegí cómo jugar" instead of asking to confirm losing nothing.
       clearMultiplayerSession();
       setMode(null);
+      setRoomCode(null);
     } else {
       // Reskin never turns on until "Modo local" or an actual online room
       // (see inGameView/inRoom above) — with no mode chosen yet there was
@@ -185,9 +201,13 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     withCurtain(() => {
       if (mode === "multi") clearMultiplayerSession();
       setMode(null);
+      setRoomCode(null);
       // Group flow jumps straight from home into multi mode with no "pick
       // mode" step in between, so going back from it goes straight home too.
-      if (groupFlow) setGroupFlow(false);
+      if (groupFlow) {
+        setGroupFlow(false);
+        setGroupCode(null);
+      }
       setShowBackConfirm(false);
     }, themeIsLive);
   };
@@ -198,6 +218,8 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
       setGameId(null);
       setMode(null);
       setGroupFlow(false);
+      setRoomCode(null);
+      setGroupCode(null);
       setShowRules(false);
       setShowExitConfirm(false);
       setGroupAttached(false);
@@ -209,6 +231,7 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     // gameId, well before "Modo local"/an actual room turns its theme on.
     setGameId(id);
     setMode(null);
+    setRoomCode(null);
     setShowRules(false);
   };
 
@@ -216,6 +239,7 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     setGameId(null);
     setGroupIntent(intent);
     setGroupFlow(true);
+    setGroupCode(null);
     setMode("multi");
     setShowRules(false);
     setShowGroupMenu(false);
@@ -255,6 +279,14 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     prevStepKeyRef.current = stepKey;
   }, [stepKey]);
 
+  // Whether goBack() (right above) would show a confirmation dialog rather
+  // than silently act — i.e. whether there's a live match/lobby, or a group
+  // membership, that a stray browser "back" shouldn't be able to drop
+  // unconfirmed. Passed to useUrlSync, which is the one that actually acts
+  // on it (see there for why/how).
+  const midRound = groupAttached ? (gameId ? roomHasProgress(roomPhase) : true) : mode === "local" || (mode === "multi" && inRoom);
+  useUrlSync(gameId, mode, groupFlow, roomCode, groupCode, midRound, goBack);
+
   return {
     gameId,
     setGameId,
@@ -265,6 +297,8 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     groupIntent,
     pendingGroupJoinCode,
     switchToGroupJoin,
+    setRoomCode,
+    setGroupCode,
     groupAttached,
     setGroupAttached,
     exposeReturnToGroup,

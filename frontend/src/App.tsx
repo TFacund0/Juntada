@@ -52,6 +52,8 @@ export default function App() {
     groupIntent,
     pendingGroupJoinCode,
     switchToGroupJoin,
+    setRoomCode,
+    setGroupCode,
     groupAttached,
     setGroupAttached,
     exposeReturnToGroup,
@@ -217,6 +219,8 @@ export default function App() {
                   initialGroupIntent={groupIntent}
                   onGameTypeChange={handleRoomGameType}
                   onRoomPhaseChange={setRoomPhase}
+                  onRoomCodeChange={setRoomCode}
+                  onGroupCodeChange={setGroupCode}
                   onLeaveGroup={goHome}
                   onExitRoomEntry={goBack}
                   onGoHome={goHome}

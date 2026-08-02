@@ -58,6 +58,17 @@ if (env.REDIS_URL) {
 
 const enabled = redis !== null;
 
+// For /health (see http/routes.ts) — reads ioredis's own connection state
+// rather than issuing a round-trip PING on every health check. "disabled"
+// means REDIS_URL isn't set at all (the everything-in-memory mode this file
+// already supports); "ok" means connected; "degraded" means REDIS_URL is
+// set but the connection isn't currently ready (a snapshot save/load would
+// silently no-op or fail right now — see saveSnapshot/loadSnapshot above).
+function redisHealth(): "disabled" | "ok" | "degraded" {
+  if (!redis) return "disabled";
+  return redis.status === "ready" ? "ok" : "degraded";
+}
+
 async function saveSnapshot(): Promise<void> {
   if (!redis) return;
   const payload = JSON.stringify({
@@ -149,4 +160,4 @@ function stopSnapshotLoop(): void {
   }
 }
 
-module.exports = { saveSnapshot, loadSnapshot, startSnapshotLoop, stopSnapshotLoop, enabled };
+module.exports = { saveSnapshot, loadSnapshot, startSnapshotLoop, stopSnapshotLoop, enabled, redisHealth };
