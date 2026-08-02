@@ -15,6 +15,12 @@ export default defineConfig({
   // colliding on a random room/group code by coincidence.
   fullyParallel: false,
   workers: 1,
+  // "html" writes playwright-report/ (traces, screenshots per failed step) —
+  // CI uploads that folder as an artifact on failure (see ci.yml); "list" is
+  // just the same terminal output used when running locally. `open: "never"`
+  // stops the html reporter from trying to launch a browser tab after a
+  // local run.
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://localhost:5173",
     trace: "on-first-retry",
