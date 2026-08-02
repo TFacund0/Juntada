@@ -283,9 +283,12 @@
   transform: translateY(-1px) scale(0.99);
 }
 
-/* Brillo diagonal que cruza el botón al pasar el mouse — mismo recurso que
-   jt-shine en las cards del catálogo (GamePicker.css), replicado acá en vez
-   de compartir la clase porque este botón no es una card de juego. */
+/* Brillo diagonal que cruza el botón al pasar el mouse — mismas reglas de
+   posicionamiento que .jt-shine en las cards del catálogo (GamePicker.css),
+   repetidas acá porque este botón no es una .jt-game-card y por lo tanto no
+   matchea su selector `.jt-game-card .jt-shine`; la animación en sí
+   (@keyframes jt-shine, definida una sola vez en theme/homeDesign.css) SÍ se
+   reutiliza tal cual en vez de redefinirla con otra curva. */
 .jt-group-newgame-trigger-shine {
   position: absolute;
   inset: 0;
@@ -301,20 +304,11 @@
   width: 35%;
   background: color-mix(in srgb, var(--jt-accent-strong, #afa9ec) 18%, transparent);
   filter: blur(10px);
-  transform: translateX(-40%) skewX(-18deg);
+  transform: translateX(-120%) skewX(-18deg);
 }
 
 .jt-group-newgame-trigger:hover .jt-group-newgame-trigger-shine::after {
-  animation: jt-group-newgame-shine 900ms ease-out;
-}
-
-@keyframes jt-group-newgame-shine {
-  from {
-    transform: translateX(-40%) skewX(-18deg);
-  }
-  to {
-    transform: translateX(340%) skewX(-18deg);
-  }
+  animation: jt-shine 900ms ease-out;
 }
 
 .jt-group-newgame-trigger-icon {

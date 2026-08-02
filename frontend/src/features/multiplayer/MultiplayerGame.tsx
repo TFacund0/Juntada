@@ -153,6 +153,9 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     runTransition = action => action(),
     curtain = "none",
   } = props;
+  // Computed once instead of repeating `curtain !== "none"` at each of the
+  // three <ScreenFade> below (see the `curtain` prop doc above for why).
+  const skipFade = curtain !== "none";
   const {
     connectionPhase,
     setConnectionPhase,
@@ -338,7 +341,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // ── GROUP (attached to a group, no active instance) ──
   if (connectionPhase === "group" && group)
     return (
-      <ScreenFade transitionKey="group" skipAnimation={curtain !== "none"}>
+      <ScreenFade transitionKey="group" skipAnimation={skipFade}>
         <GroupScreen
           reconnectBanner={reconnectBanner}
           group={group}
@@ -382,7 +385,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // ── LOBBY ── (either a standalone room or a group instance's lobby)
   if (connectionPhase === "lobby" && room) {
     return (
-      <ScreenFade transitionKey="lobby" skipAnimation={curtain !== "none"}>
+      <ScreenFade transitionKey="lobby" skipAnimation={skipFade}>
         <LobbyScreen
           room={room}
           myPlayerId={me?.playerId}
@@ -422,7 +425,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // inválida, etc.) es un caso genérico común a cualquier juego.
   if (!["menu", "create", "join", "lobby", "group"].includes(connectionPhase) && room && activeGame) {
     return (
-      <ScreenFade transitionKey="round" skipAnimation={curtain !== "none"}>
+      <ScreenFade transitionKey="round" skipAnimation={skipFade}>
         <RoundScreen
           activeGame={activeGame}
           roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
