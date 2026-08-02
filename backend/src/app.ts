@@ -8,6 +8,7 @@ import { env } from "./env";
 const express = require("express");
 const cors = require("cors");
 const compression = require("compression");
+const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const { createServer } = require("http");
 const { registerRoutes } = require("./http/routes");
@@ -36,6 +37,16 @@ function createApp(): Server {
   // directly. Left permissive unless CORS_ORIGIN is set, since local dev runs
   // the Vite frontend on a different port than the backend.
   app.use(cors(env.CORS_ORIGIN ? { origin: env.CORS_ORIGIN } : undefined));
+  // Baseline security headers (X-Content-Type-Options, frame-ancestors 'self',
+  // Referrer-Policy, etc.) at zero behavior risk — EXCEPT the
+  // Content-Security-Policy helmet enables by default, which is turned off
+  // here on purpose: its default style-src has no 'unsafe-inline', and this
+  // app's React components set `style={{...}}` everywhere (real inline
+  // style="..." attributes in the DOM) — enabling it as-is would silently
+  // strip every bit of inline styling in production. Revisit with a proper
+  // CSP (nonces or nailing down every directive this app actually needs)
+  // as its own dedicated piece of work, not bundled into "add helmet".
+  app.use(helmet({ contentSecurityPolicy: false }));
   // The built frontend (JS/CSS/HTML) is served straight from this Express
   // app with no CDN in front of it (see render.yaml) — without this, none
   // of it is compressed in transit, which matters most on the slow
