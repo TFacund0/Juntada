@@ -4,9 +4,17 @@ import type { Room } from "@juntada/shared-types";
 
 const path = require("path");
 const { rooms } = require("../state/roomStore") as { rooms: Map<string, Room> };
+const { redisHealth } = require("../state/persistence") as { redisHealth: () => "disabled" | "ok" | "degraded" };
 
 function registerRoutes(app: Express): void {
-  app.get("/health", (_req, res) => res.json({ ok: true, rooms: rooms.size }));
+  app.get("/health", (_req, res) => {
+    const redis = redisHealth();
+    // "disabled" (no REDIS_URL — everything-in-memory is the intended setup)
+    // is healthy; "degraded" (REDIS_URL is set but not actually connected)
+    // is the one case that should flip `ok` to false, since it means an
+    // active game would silently lose its persistence on the next restart.
+    res.json({ ok: redis !== "degraded", rooms: rooms.size, redis });
+  });
 
   // Servir el frontend buildeado
   const distDir = path.join(__dirname, "..", "..", "..", "frontend", "dist");

@@ -36,6 +36,23 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // React/ReactDOM/React Router barely ever change between deploys,
+        // unlike the app's own code — splitting them into their own chunk
+        // means a returning player's browser reuses this from cache (it's
+        // content-hashed and served with an immutable Cache-Control header,
+        // see backend/src/http/routes.ts) across most deploys, only
+        // re-downloading the actual app-shell chunk that changed. Without
+        // this split, any change anywhere invalidates one giant chunk that
+        // also happens to be the one Vite already flags as oversized.
+        manualChunks(id) {
+          if (id.includes("node_modules") && /[\\/]react/.test(id)) return "vendor-react";
+        },
+      },
+    },
+  },
   server: {
     host: true,
     port: 5173,
