@@ -18,6 +18,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     round: null,
     usedWords: {},
     roundHistory: [],
+    chat: [],
   };
 }
 

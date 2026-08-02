@@ -3,7 +3,7 @@
 // The room-level fields here are generic; anything about "what's happening
 // in this round" is delegated to the room's game engine.
 
-import type { Room, RoomPublicState, Group, GroupPublicState, ServerMessage, ErrorCode } from "@juntada/shared-types";
+import type { Room, RoomPublicState, Group, GroupPublicState, ServerMessage, ErrorCode, ChatMessage } from "@juntada/shared-types";
 import type { ClientInfo } from "../state/roomStore";
 import type { GameEngine } from "../games/engineTypes";
 
@@ -82,7 +82,19 @@ function getRoomPublicState(room: Room): RoomPublicState {
     round: engine?.getPublicRoundView(room) ?? null,
     usedWords: room.usedWords,
     roundHistory: room.roundHistory,
+    chat: room.chat,
   };
+}
+
+// Side-channel chat (room or group) is unbounded input over a long-lived
+// session — cap how much history is kept so a chatty group night doesn't
+// grow either array (and the state payload broadcast on every message)
+// forever. Well past what anyone scrolls back to in a floating chat bubble.
+const MAX_CHAT_HISTORY = 200;
+
+function appendChatMessage(log: ChatMessage[], playerId: string, playerName: string, text: string): void {
+  log.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, playerId, playerName, text, ts: Date.now() });
+  if (log.length > MAX_CHAT_HISTORY) log.splice(0, log.length - MAX_CHAT_HISTORY);
 }
 
 // The group's open instances, summarized just enough for a join button —
@@ -109,6 +121,7 @@ function getGroupPublicState(group: Group): GroupPublicState {
     members: group.members,
     maxMembers: MAX_MEMBERS_PER_GROUP,
     instances,
+    chat: group.chat,
   };
 }
 
@@ -144,4 +157,5 @@ module.exports = {
   broadcastState,
   broadcastGroupState,
   broadcastRoundReveal,
+  appendChatMessage,
 };

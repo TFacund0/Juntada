@@ -51,6 +51,12 @@ const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   draw_fill: { limit: 50, windowMs: 10_000 },
   draw_clear: { limit: 10, windowMs: 10_000 },
   draw_undo: { limit: 20, windowMs: 10_000 },
+  // Chat is typed by hand, so real usage never comes close to this — just
+  // enough headroom over the blanket GLOBAL_MESSAGE_LIMIT below (which every
+  // other action in a round also shares) that a burst of messages doesn't
+  // eat into a player's budget for actual game actions.
+  send_room_chat: { limit: 20, windowMs: 10_000 },
+  send_group_chat: { limit: 20, windowMs: 10_000 },
 };
 
 // Blanket per-connection limit covering every message type with no dedicated

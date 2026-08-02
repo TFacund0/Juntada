@@ -29,6 +29,7 @@ const {
   broadcastState,
   broadcastGroupState,
   broadcastRoundReveal,
+  appendChatMessage,
 } = require("./messaging");
 const { stopTimer, syncPhaseTimer, broadcastToRoom, releaseStaleIdentity, PLAYER_OFFLINE_TIMEOUT_MS } = require("./shared");
 
@@ -173,6 +174,19 @@ function gameAction(actionType: string) {
   };
 }
 
+// Free-text chat scoped to whatever instance the sender is currently
+// attached to — independent of any game mechanic, unlike gameAction's
+// send_chat_message (only some engines accept that, and only mid-round).
+// Cleared with the instance: rejoining a fresh game starts a clean log.
+function sendRoomChat(ws: WS, msg: Extract<ClientMessage, { type: "send_room_chat" }>, info: ClientInfo): void {
+  const room = rooms.get(info.roomCode ?? "");
+  if (!room || !info.playerId) return;
+  const player = room.players.find((p: Room["players"][number]) => p.id === info.playerId);
+  if (!player) return;
+  appendChatMessage(room.chat, player.id, player.name, msg.text);
+  broadcastState(room);
+}
+
 // Any player can send the room back to the lobby (not just the host) — same
 // as leaving an instance, this only interrupts the current match for
 // everyone, it doesn't touch anyone's membership or host status, so there's
@@ -267,6 +281,7 @@ module.exports = {
   updateConfig,
   startRoundHandler,
   gameAction,
+  sendRoomChat,
   backToLobby,
   kickPlayer,
   schedulePlayerKick,

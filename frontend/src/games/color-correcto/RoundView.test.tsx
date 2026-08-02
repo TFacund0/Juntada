@@ -42,6 +42,7 @@ function makeRoom(
     },
     usedWords: {},
     roundHistory: Array.from({ length: roundHistoryLength }, () => ({})),
+    chat: [],
   };
 }
 
