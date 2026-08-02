@@ -68,6 +68,7 @@ export function NamePillEditor({ name, onSave, avatarSize = 26, editing: editing
               className="jt-name-pill-input"
               placeholder="Tu nombre"
               autoFocus
+              maxLength={40}
               value={draft}
               onChange={e => {
                 setDraft(e.target.value);
