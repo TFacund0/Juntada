@@ -41,6 +41,7 @@ function makeRoom(overrides: Record<string, unknown> = {}) {
     round: null,
     usedWords: {},
     roundHistory: [],
+    chat: [],
     ...overrides,
   };
 }
@@ -173,6 +174,7 @@ describe("MultiplayerGame — group flow", () => {
           members: [{ id: "p1", name: "Ana", online: true }],
           maxMembers: 8,
           instances: [],
+          chat: [],
         },
       }),
     );
@@ -299,6 +301,7 @@ describe("MultiplayerGame — cold start (persisted session on mount)", () => {
           members: [{ id: "p1", name: "Ana", online: true }],
           maxMembers: 8,
           instances: [],
+          chat: [],
         },
       }),
     );

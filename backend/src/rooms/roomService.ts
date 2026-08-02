@@ -59,6 +59,7 @@ function createRoom(
     round: null,
     usedWords: {},
     roundHistory: [],
+    chat: [],
   };
   rooms.set(code, room);
   clients.set(ws, { groupCode: null, roomCode: code, playerId });
@@ -89,6 +90,7 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
     round: null,
     usedWords: {},
     roundHistory: [],
+    chat: [],
   };
   rooms.set(code, room);
   return { room };

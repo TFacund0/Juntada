@@ -59,6 +59,7 @@ function makeRoom(roundOverrides: Record<string, unknown> = {}): RoomPublicState
     round: makeRound(roundOverrides),
     usedWords: {},
     roundHistory: [],
+    chat: [],
   };
 }
 

@@ -139,7 +139,7 @@ export function GroupScreen({
                       style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
                     >
                       <span className="jt-group-open-card-icon">
-                        {g?.icon ?? "🎮"}
+                        {g?.logo ? <img src={g.logo} alt={g.label} className="jt-group-open-card-logo" /> : (g?.icon ?? "🎮")}
                         {joinable && <span className="jt-group-open-card-live" aria-hidden />}
                       </span>
                       <div className="jt-group-row-body">
@@ -226,7 +226,9 @@ export function GroupScreen({
             <div className="jt-group-games-grid">
               {playableGames.map(g => (
                 <button key={g.id} onClick={() => setPreviewGame(g)} className="jt-group-game-card">
-                  <span className="jt-group-game-icon">{g.icon}</span>
+                  <span className="jt-group-game-icon">
+                    {g.logo ? <img src={g.logo} alt={g.label} className="jt-group-game-logo" /> : g.icon}
+                  </span>
                   <span className="jt-group-game-body">
                     <p className="jt-group-game-title">{g.label}</p>
                     {g.minPlayers && <p className="jt-group-game-meta">Desde {g.minPlayers} jugadores</p>}

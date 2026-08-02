@@ -125,6 +125,19 @@ export const SCHEMAS = {
     type: z.literal("send_chat_message"),
     text: z.string().trim().min(1).max(300),
   }),
+  // Free-text side-channel chat — independent of any game mechanic (unlike
+  // send_chat_message above, which only some engines accept mid-round). One
+  // for whichever game instance the sender is currently attached to, one for
+  // the group screen itself; see the floating chat bubble in
+  // features/multiplayer.
+  send_room_chat: z.object({
+    type: z.literal("send_room_chat"),
+    text: z.string().trim().min(1).max(300),
+  }),
+  send_group_chat: z.object({
+    type: z.literal("send_group_chat"),
+    text: z.string().trim().min(1).max(300),
+  }),
   // Shared by Sintonía (a 0-100 dial value) and Encuentra el Color Correcto
   // (a "#rrggbb" hex string) — each engine's own handleAction re-validates
   // the shape it actually expects and rejects the other's, so a permissive
@@ -315,6 +328,17 @@ export type ClientMessage = z.infer<(typeof SCHEMAS)[ClientMessageType]>;
 // own shape for them, which isn't tied down yet (planned for a later phase,
 // once the engines themselves migrate to TS one at a time).
 
+// A free-text side-channel message — either room-scoped (in-game chat,
+// cleared with the instance) or group-scoped (persists across whatever
+// instance is open). See send_room_chat/send_group_chat above.
+export interface ChatMessage {
+  id: string;
+  playerId: string;
+  playerName: string;
+  text: string;
+  ts: number;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -346,6 +370,7 @@ export interface Room {
   round: unknown;
   usedWords: Record<string, unknown>;
   roundHistory: unknown[];
+  chat: ChatMessage[];
 }
 
 export interface RoomPublicState {
@@ -361,6 +386,7 @@ export interface RoomPublicState {
   round: unknown;
   usedWords: Record<string, unknown>;
   roundHistory: unknown[];
+  chat: ChatMessage[];
 }
 
 // ─── Group ───────────────────────────────────────────────────────────────────
@@ -379,6 +405,7 @@ export interface Group {
   name: string;
   hostId: string; // the group's creator — mostly informational, doesn't gate instance actions
   members: GroupMember[];
+  chat: ChatMessage[];
 }
 
 // One open game instance, as seen from the group screen — enough to show a
@@ -399,6 +426,7 @@ export interface GroupPublicState {
   members: GroupMember[];
   maxMembers: number;
   instances: GroupInstanceSummary[];
+  chat: ChatMessage[];
 }
 
 // ─── Server → Client ─────────────────────────────────────────────────────────

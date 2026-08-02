@@ -42,6 +42,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
     },
     usedWords: {},
     roundHistory: [],
+    chat: [],
   };
 }
 
