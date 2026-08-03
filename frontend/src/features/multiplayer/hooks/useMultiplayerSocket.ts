@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import type { ClientMessage, RoomPublicState, GroupPublicState, ErrorCode } from "@juntada/shared-types";
+import type { ClientMessage, RoomPublicState, GroupPublicState, ServerMessage } from "@juntada/shared-types";
 import { useFlashError } from "../../../hooks/useFlashError";
 
 // What SessionRecoveryOverlay should show, if anything — computed from the
@@ -114,22 +114,25 @@ export function clearMultiplayerSession(): void {
 }
 
 // The server messages this hook reacts to (see backend/src/ws/messaging.ts
-// and each engine's getRevealMessage) — private_role and word_reveal payload
-// shapes are per-engine, not yet a clean discriminated union (see
-// @juntada/shared-types's ServerMessage comment), so they stay loose here too.
+// and each engine's getRevealMessage). Field shapes are pulled from
+// @juntada/shared-types's ServerMessage via Extract, so they can't drift from
+// the backend's actual payloads — but ServerMessage's own catch-all member
+// (private_role/word_reveal aren't a clean discriminated union yet) would
+// blunt narrowing on every branch below if used directly, so it's excluded
+// here and those two stay hand-typed as before.
 type InboundMessage =
-  | { type: "joined"; playerId: string; roomCode: string; room: RoomPublicState }
-  | { type: "state"; room: RoomPublicState }
-  | { type: "group_joined"; playerId: string; groupCode: string; group: GroupPublicState }
-  | { type: "group_state"; group: GroupPublicState }
-  | { type: "left_instance" }
-  | { type: "left_group" }
+  | Extract<ServerMessage, { type: "joined" }>
+  | Extract<ServerMessage, { type: "state" }>
+  | Extract<ServerMessage, { type: "group_joined" }>
+  | Extract<ServerMessage, { type: "group_state" }>
+  | Extract<ServerMessage, { type: "left_instance" }>
+  | Extract<ServerMessage, { type: "left_group" }>
   | { type: "private_role"; [key: string]: unknown }
   | { type: "word_reveal"; [key: string]: unknown }
-  | { type: "error"; code: ErrorCode; message: string }
-  | { type: "kicked" }
-  | { type: "kicked_from_group" }
-  | { type: "room_preview"; code: string; found: boolean; name?: string; gameType?: string; isGroupCode?: boolean };
+  | Extract<ServerMessage, { type: "error" }>
+  | Extract<ServerMessage, { type: "kicked" }>
+  | Extract<ServerMessage, { type: "kicked_from_group" }>
+  | Extract<ServerMessage, { type: "room_preview" }>;
 
 // Encapsulates the WebSocket connection lifecycle (connect, reconnect/rejoin,
 // message dispatch) so the UI component only deals with plain state.
@@ -256,6 +259,14 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // would sit on "Autenticando" forever instead of falling through to the
   // group screen.
   const groupJoinedFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Same "wait a beat for joined before flipping the visible phase" idea as
+  // groupJoinedFallbackRef, but for a hot reconnect rather than cold start:
+  // meRef survives a dropped socket, so a rejoin_group that still has a
+  // remembered room is expected to get a "joined" right behind group_joined.
+  // Without this, the two arriving as separate WS message events (not
+  // guaranteed to land in the same React batch) flashes the group screen
+  // before "joined" replaces it with the room.
+  const groupPhaseFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     coldStartRef.current = coldStart;
   }, [coldStart]);
@@ -362,6 +373,10 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
             clearTimeout(groupJoinedFallbackRef.current);
             groupJoinedFallbackRef.current = null;
           }
+          if (groupPhaseFallbackRef.current) {
+            clearTimeout(groupPhaseFallbackRef.current);
+            groupPhaseFallbackRef.current = null;
+          }
           setMe({ playerId: msg.playerId, roomCode: msg.roomCode });
           setRoom(msg.room);
           setConnectionPhase(msg.room.phase);
@@ -379,13 +394,18 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
           setGroup(msg.group);
           // A rejoin_group may be immediately followed by a "joined" for a
           // still-live instance — don't force the group screen if that's
-          // about to happen; only switch phase here if we're not already
-          // sitting on a room (a plain group_state update from the group
-          // screen itself takes this branch too, harmlessly).
-          setRoom(prevRoom => {
-            if (!prevRoom) setConnectionPhase("group");
-            return prevRoom;
-          });
+          // about to happen. A plain group_state-triggering group_joined from
+          // the group screen itself has no remembered room (meRef is null),
+          // so it resolves immediately; a hot reconnect that still remembers
+          // a room waits for "joined" instead of flashing the group screen.
+          if (!roomRef.current && !meRef.current) {
+            setConnectionPhase("group");
+          } else if (!roomRef.current) {
+            if (groupPhaseFallbackRef.current) clearTimeout(groupPhaseFallbackRef.current);
+            groupPhaseFallbackRef.current = setTimeout(() => {
+              if (!roomRef.current) setConnectionPhase("group");
+            }, GROUP_JOINED_FALLBACK_MS);
+          }
           clearError();
           onReconnected();
           settleGroupColdStart();
@@ -432,12 +452,19 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
             setReconnectFailed(false);
             setRejoinChoicePending(false);
             setSessionGone(true);
-          } else if (!roomRef.current && !groupMeRef.current) {
+          } else if (!roomRef.current && !(groupSessionEnabled && groupMeRef.current)) {
             // Failed before ever landing in a room/group — a fresh join
             // with a bad code, typed by the user on the join screen. Never
             // leave the UI stuck: drop the stale session and send them back
             // to the menu instead of an infinite "Conectando..." with
-            // nothing to rejoin.
+            // nothing to rejoin. groupMeRef alone isn't enough to rule this
+            // out: a standalone room screen (entryKind "room") can still
+            // have an unrelated group session sitting untouched in state
+            // (see groupSessionEnabled above) — without the same gate here,
+            // a bad room code on that screen falls through to the generic
+            // "already in something" branch below and leaves the error
+            // banner up with connectionPhase stuck instead of resetting to
+            // the join form.
             setMe(null);
             setRoom(null);
             setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
@@ -587,6 +614,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
       if (groupJoinedFallbackRef.current) clearTimeout(groupJoinedFallbackRef.current);
+      if (groupPhaseFallbackRef.current) clearTimeout(groupPhaseFallbackRef.current);
     },
     [],
   );
@@ -608,6 +636,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     if (reconnectRef.current) clearTimeout(reconnectRef.current);
     if (reconnectedBannerRef.current) clearTimeout(reconnectedBannerRef.current);
     if (groupJoinedFallbackRef.current) clearTimeout(groupJoinedFallbackRef.current);
+    if (groupPhaseFallbackRef.current) clearTimeout(groupPhaseFallbackRef.current);
     setMe(null);
     setRoom(null);
     setMyRole(null);
