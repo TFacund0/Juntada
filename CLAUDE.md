@@ -44,5 +44,5 @@ estas reglas en el prompt. Para contexto de arquitectura/stack/juegos, ver
 ### Pull requests (a `staging` o `main`)
 
 - Mismo criterio que los commits: **profesionales, conventional, en español**. Título corto siguiendo el mismo formato `tipo(scope): resumen`; cuerpo con el template de `.github/pull_request_template.md` (Descripción / Tipo de cambio / Checklist), todo en español.
-- La sección "Checklist" del template debe reflejar lo que realmente se verificó (lint, typecheck, tests, docs) — no tildarlo de memoria.
+- La sección "Checklist" del template debe reflejar lo que realmente se verificó (lint, typecheck, tests, docs) — no tildarlo de memoria, y además todo tiene que ser en markdown.
 - Igual que los commits: nunca abrir una PR sin que el usuario lo pida explícitamente.
