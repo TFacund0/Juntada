@@ -18,6 +18,35 @@ async function newPlayerPage(browser: Browser, name: string): Promise<Page> {
   return context.newPage();
 }
 
+// Turn order is randomized server-side, and whose turn it is only becomes
+// visible on each page once the server's broadcast lands — a single pass
+// over the pages can legitimately find nobody ready yet (slower CI runner,
+// network round-trip not landed), so this keeps polling with a short pause
+// between empty passes instead of giving up after exactly `pages.length`
+// checks. A fixed-count single-pass loop reliably worked locally but hung
+// every subsequent `.click()` for a button that would never appear once a
+// pass came up empty in CI — this polls until all clues are in or a real
+// timeout elapses, and fails loudly instead of hanging.
+async function submitAllClues(pages: Page[]): Promise<void> {
+  let submitted = 0;
+  const deadline = Date.now() + 30_000;
+  while (submitted < pages.length && Date.now() < deadline) {
+    let foundThisPass = false;
+    for (const p of pages) {
+      const submit = p.getByRole("button", { name: "Enviar palabra" });
+      if (await submit.isVisible().catch(() => false)) {
+        await p.getByPlaceholder("Escribí tu palabra...").fill(`pista-${submitted}`);
+        await submit.click();
+        submitted++;
+        foundThisPass = true;
+        break;
+      }
+    }
+    if (!foundThisPass) await pages[0].waitForTimeout(300);
+  }
+  expect(submitted, "no se pudieron enviar las 3 pistas a tiempo").toBe(pages.length);
+}
+
 async function enterOnlineRoom(page: Page, code?: string): Promise<void> {
   await page.goto("/");
   await page.getByText("El Impostor", { exact: true }).click();
@@ -54,22 +83,8 @@ async function playThroughToElimination(host: Page, guests: Page[], names: strin
     await p.getByRole("button", { name: "Empezar pistas" }).click();
   }
 
-  // Turn order is randomized server-side — poll every page until its
-  // "Enviar palabra" becomes visible, submit, repeat until all 3 are done.
   const discussionReady = host.getByRole("button", { name: "Listo para votar" });
-  for (let i = 0; i < all.length; i++) {
-    let submitted = false;
-    for (const p of all) {
-      const submit = p.getByRole("button", { name: "Enviar palabra" });
-      if (await submit.isVisible().catch(() => false)) {
-        await p.getByPlaceholder("Escribí tu palabra...").fill(`pista-${i}`);
-        await submit.click();
-        submitted = true;
-        break;
-      }
-    }
-    if (!submitted) break;
-  }
+  await submitAllClues(all);
   await expect(discussionReady).toBeVisible({ timeout: 15000 });
 
   for (const p of all) {
@@ -147,16 +162,7 @@ base("el input del chat de discusión de Impostor no queda tapado por la barra d
     for (const p of [ana, beto, cami]) {
       await p.getByRole("button", { name: "Empezar pistas" }).click();
     }
-    for (let i = 0; i < 3; i++) {
-      for (const p of [ana, beto, cami]) {
-        const submit = p.getByRole("button", { name: "Enviar palabra" });
-        if (await submit.isVisible().catch(() => false)) {
-          await p.getByPlaceholder("Escribí tu palabra...").fill(`pista-${i}`);
-          await submit.click();
-          break;
-        }
-      }
-    }
+    await submitAllClues([ana, beto, cami]);
 
     const chatInput = ana.getByPlaceholder("Escribí un mensaje...");
     await expect(chatInput).toBeVisible({ timeout: 15000 });

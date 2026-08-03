@@ -37,6 +37,17 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:5173",
     trace: "on-first-retry",
+    // ubuntu-latest's default /dev/shm is 64MB — too small for Chromium's
+    // shared memory once a real WebSocket/multi-context spec is running,
+    // and it fails silently: no crash, no error, the renderer just stops
+    // producing any output (confirmed via a CI trace that went completely
+    // dark — no network activity, no console logs, no screencast frames —
+    // for the rest of the test right after the socket opened). Chrome
+    // falls back to /tmp instead of /dev/shm with this flag, same as
+    // Playwright's own Docker images do internally. No effect locally.
+    launchOptions: {
+      args: ["--disable-dev-shm-usage"],
+    },
   },
   webServer: [
     {
