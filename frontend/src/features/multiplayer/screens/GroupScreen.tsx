@@ -1,4 +1,4 @@
-import { useState, type RefObject } from "react";
+import { useState } from "react";
 import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
@@ -8,8 +8,9 @@ import { QRDialog } from "../../../components/dialogs/QRDialog";
 import { ConfirmDialog } from "../../../components/dialogs/ConfirmDialog";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { GameDetailDialog } from "../../../components/shell/GameDetailDialog";
-import { CrownIcon, PlusIcon } from "../../../components/ui/icons";
+import { CrownIcon, PlusIcon, ShareArrowIcon } from "../../../components/ui/icons";
 import { NewGameDialog } from "../../../components/shell/NewGameDialog";
+import { MemberActionsDialog } from "../components/MemberActionsDialog";
 import { getGame } from "../../../games/registry";
 import type { GameDef } from "../../../games/gameTypes";
 import type { GroupPublicState } from "@juntada/shared-types";
@@ -28,7 +29,6 @@ export function GroupScreen({
   onShowQR,
   openPlayerMenu,
   onTogglePlayerMenu,
-  playerMenuRef,
   onTransferHost,
   onKickMember,
   playableGames,
@@ -49,7 +49,6 @@ export function GroupScreen({
   onShowQR: (show: boolean) => void;
   openPlayerMenu: string | null;
   onTogglePlayerMenu: (id: string | null) => void;
-  playerMenuRef: RefObject<HTMLDivElement>;
   onTransferHost: (id: string) => void;
   onKickMember: (id: string) => void;
   playableGames: GameDef[];
@@ -68,8 +67,8 @@ export function GroupScreen({
   // juego desde el catálogo del home (ver GamePicker) — acá "Jugar" crea la
   // instancia dentro del grupo en vez de navegar a un juego local/nuevo.
   const [previewGame, setPreviewGame] = useState<GameDef | null>(null);
-  // Solo mobile (ver .jt-group-newgame-trigger) — en desktop la grilla de
-  // "Nueva partida" ya vive suelta en la columna derecha.
+  // Solo mobile (ver .jt-group-games-section, tile "Nueva partida") — en
+  // desktop la grilla de "Nueva partida" ya vive suelta en la columna derecha.
   const [showNewGamePicker, setShowNewGamePicker] = useState(false);
   const onlineCount = group.members.filter(m => m.online).length;
 
@@ -100,7 +99,7 @@ export function GroupScreen({
           {linkCopied ? "Copiado" : "Copiar link"}
         </button>
         <button className="jt-group-share-btn" onClick={() => onShowQR(true)} aria-label="Invitar por QR">
-          ↗
+          <ShareArrowIcon size={18} />
         </button>
       </div>
 
@@ -162,6 +161,30 @@ export function GroupScreen({
             )}
           </div>
 
+          {/* Solo mobile (ver .jt-group-games-section) — en desktop "Nueva
+              partida" ya vive suelta en la columna derecha (jt-group-col--newgame). */}
+          <div className="jt-group-open-section jt-group-games-section">
+            <p className="jt-group-open-title">Juegos</p>
+            <div className="jt-group-games-scroll">
+              <button type="button" className="jt-group-games-tile jt-group-games-tile--new" onClick={() => setShowNewGamePicker(true)}>
+                <span className="jt-group-games-tile-icon jt-group-games-tile-icon--new">
+                  <PlusIcon size={20} color="#fff" />
+                </span>
+                <span className="jt-group-games-tile-label">Nueva partida</span>
+              </button>
+              {playableGames
+                .filter(g => g.category === "destacados")
+                .map(g => (
+                  <button key={g.id} type="button" className="jt-group-games-tile" onClick={() => setPreviewGame(g)}>
+                    <span className="jt-group-games-tile-icon">
+                      {g.logo ? <img src={g.logo} alt={g.label} className="jt-group-games-tile-logo" /> : g.icon}
+                    </span>
+                    <span className="jt-group-games-tile-label">{g.label}</span>
+                  </button>
+                ))}
+            </div>
+          </div>
+
           <div className="jt-group-open-section">
             <p className="jt-group-open-title">
               Integrantes <span className="jt-group-section-count">· {group.members.length}</span>
@@ -170,27 +193,13 @@ export function GroupScreen({
               {group.members.map((m, i) => (
                 <div key={m.id} className="jt-group-member-chip jt-animate-rise" style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}>
                   {isGroupHost && m.id !== myPlayerId && (
-                    <div ref={openPlayerMenu === m.id ? playerMenuRef : undefined} className="jt-group-member-menu">
-                      <button
-                        onClick={() => onTogglePlayerMenu(openPlayerMenu === m.id ? null : m.id)}
-                        aria-label={`Opciones para ${m.name}`}
-                        className="jt-group-member-menu-btn"
-                      >
-                        ⋮
-                      </button>
-                      {openPlayerMenu === m.id && (
-                        <div style={{ ...S.dropdownMenu, width: 170 }}>
-                          {m.online && (
-                            <button onClick={() => onTransferHost(m.id)} style={S.dropdownMenuItem}>
-                              👑 Hacer anfitrión
-                            </button>
-                          )}
-                          <button onClick={() => onKickMember(m.id)} style={{ ...S.dropdownMenuItem, color: "#F09595" }}>
-                            🚫 Expulsar
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => onTogglePlayerMenu(m.id)}
+                      aria-label={`Opciones para ${m.name}`}
+                      className="jt-group-member-menu-btn"
+                    >
+                      ⋮
+                    </button>
                   )}
                   <div className="jt-group-member-avatar-wrap">
                     <Avatar name={m.name} size={46} />
@@ -234,6 +243,27 @@ export function GroupScreen({
         </div>
       </div>
 
+      {openPlayerMenu &&
+        (() => {
+          const menuMember = group.members.find(m => m.id === openPlayerMenu);
+          if (!menuMember) return null;
+          return (
+            <MemberActionsDialog
+              memberName={menuMember.name}
+              memberOnline={menuMember.online}
+              onTransferHost={() => {
+                onTransferHost(menuMember.id);
+                onTogglePlayerMenu(null);
+              }}
+              onKickMember={() => {
+                onKickMember(menuMember.id);
+                onTogglePlayerMenu(null);
+              }}
+              onClose={() => onTogglePlayerMenu(null)}
+            />
+          );
+        })()}
+
       {previewGame && (
         <GameDetailDialog
           game={previewGame}
@@ -266,17 +296,6 @@ export function GroupScreen({
         // LobbyScreen.tsx.
         createPortal(
           <div className="jt-group-bottom-bar jt-group-breakout">
-            <button type="button" className="jt-group-newgame-trigger" onClick={() => setShowNewGamePicker(true)}>
-              <span className="jt-group-newgame-trigger-shine" aria-hidden />
-              <span className="jt-group-newgame-trigger-icon" aria-hidden>
-                <PlusIcon size={14} color="#fff" />
-              </span>
-              <span className="jt-group-newgame-trigger-body">
-                <span className="jt-group-newgame-trigger-title">Nueva partida</span>
-                <span className="jt-group-newgame-trigger-hint">Elegí entre todos los juegos</span>
-              </span>
-            </button>
-
             <div className="jt-group-leave-row">
               <button className="jt-group-leave-btn" onClick={onConfirmLeaveGroup}>
                 Salir del grupo

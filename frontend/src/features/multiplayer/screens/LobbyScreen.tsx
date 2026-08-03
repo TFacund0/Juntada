@@ -1,4 +1,3 @@
-import type { RefObject } from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
@@ -51,7 +50,6 @@ export function LobbyScreen({
   onLobbyTabChange,
   openPlayerMenu,
   onTogglePlayerMenu,
-  playerMenuRef,
   onTransferHost,
   onKickPlayer,
   updateConfig,
@@ -71,7 +69,6 @@ export function LobbyScreen({
   onLobbyTabChange: (tab: "players" | "config") => void;
   openPlayerMenu: string | null;
   onTogglePlayerMenu: (id: string | null) => void;
-  playerMenuRef: RefObject<HTMLDivElement>;
   onTransferHost: (id: string) => void;
   onKickPlayer: (id: string) => void;
   updateConfig: (patch: Record<string, unknown>) => void;
@@ -265,7 +262,6 @@ export function LobbyScreen({
                         isHostPlayer={seat.player.id === room.hostId}
                         canManage={isHost && seat.player.id !== myPlayerId}
                         menuOpen={openPlayerMenu === seat.player.id}
-                        menuRef={playerMenuRef}
                         onToggleMenu={onTogglePlayerMenu}
                         onTransferHost={onTransferHost}
                         onKickPlayer={onKickPlayer}

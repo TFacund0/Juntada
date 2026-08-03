@@ -18,11 +18,11 @@
 }
 
 /* Espacio reservado al pie en mobile para que el contenido (ErrorBanner
-   incluido) no quede tapado detrás de la barra fija de "Nueva
-   partida"/"Salir del grupo" — ver .jt-group-bottom-bar más abajo. */
+   incluido) no quede tapado detrás de la barra fija de "Salir del grupo" —
+   ver .jt-group-bottom-bar más abajo. */
 @media (max-width: 899px) {
   .jt-group-root {
-    padding-bottom: 136px;
+    padding-bottom: 80px;
   }
 }
 
@@ -167,11 +167,13 @@
 .jt-group-share-btn {
   width: 48px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
   border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
   border-radius: 999px;
   color: var(--jt-accent-strong, #afa9ec);
-  font-size: 16px;
   cursor: pointer;
   transition:
     transform 200ms ease,
@@ -239,146 +241,116 @@
   margin: 0 0 10px;
 }
 
-/* Trigger "Nueva partida" — mobile only, abre NewGameDialog. Ícono relleno
-   (no solo con borde) + título/subtítulo apilados debajo, en vez de una fila
-   ícono-texto: centrado así se lee como una pieza propia, no como una fila
-   de lista más. El halo pulsante detrás + el brillo diagonal al hover le dan
-   algo de vida sin competir con "Partidas abiertas"/"Integrantes", que sí
-   son datos. */
-.jt-group-newgame-trigger {
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
+/* Tira de "Juegos" — mobile only (ver .jt-group-col--newgame para el
+   equivalente de desktop). Primer tile fijo "Nueva partida" (abre
+   NewGameDialog, el catálogo completo) + un tile cuadrado por cada juego
+   destacado (abre GameDetailDialog, igual que sus equivalentes de la
+   columna derecha en desktop) — scrolleables en horizontal en vez de una
+   grilla, para no competir en altura con "Partidas abiertas"/"Integrantes"
+   que sí son listas verticales de estado. */
+.jt-group-games-section {
+  display: block;
+}
+
+@media (min-width: 900px) {
+  .jt-group-games-section {
+    display: none;
+  }
+}
+
+.jt-group-games-scroll {
   display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 10px;
-  width: 100%;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  margin: 0 -2px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.jt-group-games-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.jt-group-games-tile {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  width: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   box-sizing: border-box;
-  padding: 11px 16px;
-  border-radius: 14px;
-  border: 1.5px dashed var(--jt-accent-border-soft, rgba(127, 119, 221, 0.4));
-  background: radial-gradient(
-    120% 200% at 50% -30%,
-    color-mix(in srgb, var(--jt-accent, #7f77dd) 16%, transparent),
-    var(--jt-accent-soft, rgba(127, 119, 221, 0.05)) 70%
-  );
+  padding: 12px 8px 10px;
+  border-radius: 16px;
+  background: var(--jt-card-bg, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
   font-family: inherit;
   text-align: center;
   cursor: pointer;
   transition:
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 220ms ease;
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.jt-group-newgame-trigger:hover {
-  transform: translateY(-3px);
-  border-style: solid;
-  border-color: var(--jt-accent, #7f77dd);
-  box-shadow: 0 16px 36px -20px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
+.jt-group-games-tile:active {
+  transform: translateY(-1px) scale(0.98);
 }
 
-.jt-group-newgame-trigger:active {
-  transform: translateY(-1px) scale(0.99);
+.jt-group-games-tile--new {
+  border-style: dashed;
+  border-color: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.4));
+  background: radial-gradient(
+    120% 160% at 50% -20%,
+    color-mix(in srgb, var(--jt-accent, #7f77dd) 16%, transparent),
+    var(--jt-accent-soft, rgba(127, 119, 221, 0.05)) 70%
+  );
 }
 
-/* Brillo diagonal que cruza el botón al pasar el mouse — mismas reglas de
-   posicionamiento que .jt-shine en las cards del catálogo (GamePicker.css),
-   repetidas acá porque este botón no es una .jt-game-card y por lo tanto no
-   matchea su selector `.jt-game-card .jt-shine`; la animación en sí
-   (@keyframes jt-shine, definida una sola vez en theme/homeDesign.css) SÍ se
-   reutiliza tal cual en vez de redefinirla con otra curva. */
-.jt-group-newgame-trigger-shine {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.jt-group-newgame-trigger-shine::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  left: -60%;
-  width: 35%;
-  background: color-mix(in srgb, var(--jt-accent-strong, #afa9ec) 18%, transparent);
-  filter: blur(10px);
-  transform: translateX(-120%) skewX(-18deg);
-}
-
-.jt-group-newgame-trigger:hover .jt-group-newgame-trigger-shine::after {
-  animation: jt-shine 900ms ease-out;
-}
-
-.jt-group-newgame-trigger-icon {
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
+.jt-group-games-tile-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  font-size: 17px;
+  flex-shrink: 0;
+  background: var(--jt-surface, #171329);
+  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
+  overflow: hidden;
+}
+
+.jt-group-games-tile-icon--new {
+  border: none;
   background: linear-gradient(135deg, var(--jt-accent, #7f77dd), var(--jt-accent-strong, #afa9ec));
   box-shadow: 0 4px 12px -3px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
-  animation: jt-group-newgame-icon-pulse 2600ms ease-in-out infinite;
 }
 
-.jt-group-newgame-trigger:hover .jt-group-newgame-trigger-icon {
-  animation-play-state: paused;
+.jt-group-games-tile-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
-@keyframes jt-group-newgame-icon-pulse {
-  0%,
-  100% {
-    box-shadow: 0 6px 18px -4px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent);
-  }
-  50% {
-    box-shadow:
-      0 6px 18px -4px color-mix(in srgb, var(--jt-accent, #7f77dd) 65%, transparent),
-      0 0 0 6px color-mix(in srgb, var(--jt-accent, #7f77dd) 14%, transparent);
-  }
-}
-
-.jt-group-newgame-trigger-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0px;
+.jt-group-games-tile-label {
+  width: 100%;
   min-width: 0;
-}
-
-.jt-group-newgame-trigger-title {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: normal;
-  text-transform: none;
+  font-size: 11px;
+  font-weight: 700;
   color: #fff;
-}
-
-.jt-group-newgame-trigger-hint {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--jt-muted-text, #a49dc9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .jt-group-newgame-trigger,
-  .jt-group-newgame-trigger-icon {
-    animation: none;
-  }
-  .jt-group-newgame-trigger:hover .jt-group-newgame-trigger-shine::after {
-    animation: none;
-  }
-}
-
-@media (min-width: 900px) {
-  .jt-group-newgame-trigger {
-    display: none;
+  .jt-group-games-tile {
+    transition: none !important;
   }
 }
 
@@ -683,27 +655,31 @@
   white-space: nowrap;
 }
 
-.jt-group-member-menu {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-}
-
+/* Trigger "⋮" de las acciones de un integrante — abre MemberActionsDialog
+   (diálogo centrado, no un dropdown anclado acá: ver ese componente para el
+   porqué). Posicionado directo en la esquina del chip. Fondo con tinte de
+   acento (no el gris casi idéntico al de la card) + ancho de toque real de
+   32px (el círculo visual queda en 24px): contra el fondo oscuro del chip,
+   un botón del mismo tono que su propio contenedor se leía como si no
+   estuviera, más aún en un chip de mobile de apenas ~80-100px de ancho. */
 .jt-group-member-menu-btn {
-  width: 24px;
-  height: 24px;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.3));
-  background: var(--jt-surface, #171329);
-  color: var(--jt-muted-text, #a49dc9);
-  font-size: 14px;
+  border: 1.5px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.5));
+  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.16));
+  color: #fff;
+  font-size: 16px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   transition:
     background 200ms ease,
     border-color 200ms ease,
@@ -712,7 +688,7 @@
 }
 
 .jt-group-member-menu-btn:hover {
-  background: var(--jt-accent-soft, rgba(127, 119, 221, 0.2));
+  background: var(--jt-accent, #7f77dd);
   border-color: var(--jt-accent, #7f77dd);
   color: #fff;
   transform: scale(1.08);
@@ -809,14 +785,13 @@
   color: var(--jt-muted-text, #6b6490);
 }
 
-/* Barra inferior — agrupa "Nueva partida" y "Salir del grupo", portada a
-   document.body (ver GroupScreen.tsx) para poder ser realmente
-   `position: fixed` en mobile: queda pegada al fondo de la ventana pase lo
-   que pase con el scroll del resto de la pantalla, ambos botones siempre a
-   mano. En desktop no hace falta fijarla — jt-group-newgame-trigger ni se
-   renderiza ahí (ver su propio @media), así que queda como un bloque más al
-   pie del flujo normal; jt-group-breakout (misma clase que el resto de la
-   pantalla) le da el mismo ancho centrado que la grilla de arriba. */
+/* Barra inferior — "Salir del grupo", portada a document.body (ver
+   GroupScreen.tsx) para poder ser realmente `position: fixed` en mobile:
+   queda pegada al fondo de la ventana pase lo que pase con el scroll del
+   resto de la pantalla. En desktop no hace falta fijarla, así que queda
+   como un bloque más al pie del flujo normal; jt-group-breakout (misma
+   clase que el resto de la pantalla) le da el mismo ancho centrado que la
+   grilla de arriba. */
 .jt-group-bottom-bar {
   display: flex;
   flex-direction: column;
