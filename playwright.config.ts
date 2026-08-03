@@ -15,6 +15,12 @@ export default defineConfig({
   // colliding on a random room/group code by coincidence.
   fullyParallel: false,
   workers: 1,
+  // Default (30s) is tight for specs that drive 2-3 real BrowserContexts
+  // through actual WebSocket room flows (join, config, several rounds of
+  // clue-giving, voting) — headless CI runners are slower/less parallel
+  // than a local dev machine, so the same spec that finishes in ~15-20s
+  // locally can blow past 30s in CI and fail on nothing but scheduling.
+  timeout: process.env.CI ? 60_000 : 30_000,
   // "html" writes playwright-report/ (traces, screenshots per failed step) —
   // CI uploads that folder as an artifact on failure (see ci.yml); "list" is
   // just the same terminal output used when running locally. `open: "never"`
