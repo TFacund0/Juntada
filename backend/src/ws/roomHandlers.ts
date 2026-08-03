@@ -31,7 +31,14 @@ const {
   broadcastRoundReveal,
   appendChatMessage,
 } = require("./messaging");
-const { stopTimer, syncPhaseTimer, broadcastToRoom, releaseStaleIdentity, PLAYER_OFFLINE_TIMEOUT_MS } = require("./shared");
+const {
+  stopTimer,
+  syncPhaseTimer,
+  broadcastToRoom,
+  releaseStaleIdentity,
+  cleanupRoomIfEmpty,
+  PLAYER_OFFLINE_TIMEOUT_MS,
+} = require("./shared");
 
 function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>): void {
   const prevInfo = clients.get(ws);
@@ -209,9 +216,28 @@ function backToLobby(ws: WS, msg: ClientMessage, info: ClientInfo): void {
 
 function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>, info: ClientInfo): void {
   const room = rooms.get(info.roomCode ?? "");
-  if (!room || room.hostId !== info.playerId) return;
+  if (!room || room.hostId !== info.playerId || msg.targetId === info.playerId) return;
   roomService.kickPlayer(room, msg.targetId);
   logger.info({ roomCode: room.code, targetId: msg.targetId, byHostId: info.playerId }, "player kicked");
+
+  broadcastToRoom(room, (ws2: WS, i2: ClientInfo) => {
+    if (i2.playerId === msg.targetId) {
+      sendTo(ws2, { type: "kicked" });
+      clients.set(ws2, { groupCode: room.groupCode, roomCode: null, playerId: i2.playerId });
+    }
+  });
+
+  // A kick can empty the room outright (last remaining non-host player
+  // kicked, or — since nothing else here stops it — a host who somehow
+  // targets their own playerId elsewhere). Unlike a disconnect, no socket
+  // ever goes through handleDisconnect for this, so scheduleRoomCleanup's
+  // grace-period timer never gets scheduled either — without this, an empty
+  // room from this path sat in `rooms` forever, counting against
+  // MAX_TOTAL_ROOMS with nobody left who could ever trigger its cleanup.
+  if (room.players.length === 0) {
+    cleanupRoomIfEmpty(room);
+    return;
+  }
 
   // The kick can be exactly what a phase was waiting on (e.g. it was the
   // last player who hadn't voted/readied) — re-check right away, the same
@@ -221,18 +247,13 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
   engine?.maybeAdvance(room);
 
   broadcastToRoom(room, (ws2: WS, i2: ClientInfo) => {
-    if (i2.playerId === msg.targetId) {
-      sendTo(ws2, { type: "kicked" });
-      clients.set(ws2, { groupCode: room.groupCode, roomCode: null, playerId: i2.playerId });
-    } else {
-      sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
-      // The kick (via maybeAdvance above) can itself trigger a phase change
-      // that affects what each remaining player should privately see (e.g.
-      // quien-soy's suggest/vote phases reassigning words or moving on to
-      // the next vote target) — resend private info so nobody's stuck
-      // showing stale options until their next action or a manual refresh.
-      if (i2.playerId) sendPrivateInfo(ws2, room, i2.playerId);
-    }
+    sendTo(ws2, { type: "state", room: getRoomPublicState(room) });
+    // The kick (via maybeAdvance above) can itself trigger a phase change
+    // that affects what each remaining player should privately see (e.g.
+    // quien-soy's suggest/vote phases reassigning words or moving on to
+    // the next vote target) — resend private info so nobody's stuck
+    // showing stale options until their next action or a manual refresh.
+    if (i2.playerId) sendPrivateInfo(ws2, room, i2.playerId);
   });
   if (room.phase === "result") broadcastRoundReveal(room);
   syncPhaseTimer(room);

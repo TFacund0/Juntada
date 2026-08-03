@@ -61,3 +61,26 @@ test("scheduleOfflineReaction does nothing if the player reconnected before the 
   t.mock.timers.tick(60_000);
   assert.equal(room.phase, "drawing", "reconnecting in time should cancel the reaction");
 });
+
+test("repeated disconnects within the grace period only ever end the turn once, not once per call", (t: any) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { room, drawerId } = makeDrawingRoom();
+  room.players.find((p: any) => p.id === drawerId).online = false;
+
+  // A flaky connection re-scheduling on every drop used to stack a fresh,
+  // untracked setTimeout each time instead of replacing the pending one —
+  // once the grace period ran out, every stacked timer fired in turn and
+  // called the engine's onPlayerOffline reaction again for each one.
+  scheduleOfflineReaction(room.code, drawerId);
+  t.mock.timers.tick(10_000);
+  scheduleOfflineReaction(room.code, drawerId);
+  t.mock.timers.tick(10_000);
+  scheduleOfflineReaction(room.code, drawerId);
+
+  t.mock.timers.tick(60_000);
+  assert.equal(room.phase, "reveal", "the (single) reaction should have ended the drawer's turn");
+
+  const phaseAfterFirstReaction = room.phase;
+  t.mock.timers.tick(60_000);
+  assert.equal(room.phase, phaseAfterFirstReaction, "no further stacked timer should still be pending to fire again");
+});
