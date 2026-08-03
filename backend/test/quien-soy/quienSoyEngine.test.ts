@@ -275,6 +275,31 @@ test("asking a question is turn-holder-only, and the turn only advances once eve
   assert.notEqual(room.round.turnQueue[0], turnPlayer, "turn moved on");
 });
 
+test("conceding is refused while a question is still pending, instead of orphaning it and skipping the next player's turn", () => {
+  const room = makeRoom();
+  startCategoriesRound(room);
+  const turnPlayer = room.round.turnQueue[0];
+  const others = room.players.map((p: TestPlayer) => p.id).filter((id: string) => id !== turnPlayer);
+
+  engine.handleAction(room, turnPlayer, "ask_question", { text: "¿Sos famoso?" });
+  assert.ok(room.round.pendingQuestion);
+
+  // Conceding here used to succeed (only submitGuess guarded against a
+  // pending question, not concede) — it moved the turn on immediately while
+  // leaving pendingQuestion pointing at the player who just left, so once
+  // the rest of the table finished answering it, finishTurn ran a second
+  // time on whoever the turn had already passed to, skipping them entirely.
+  const concedeWithPending = engine.handleAction(room, turnPlayer, "concede");
+  assert.equal(concedeWithPending.handled, false);
+  assert.ok(room.round.pendingQuestion, "the question should still be pending");
+  assert.equal(room.round.turnQueue[0], turnPlayer, "turn should not have moved");
+
+  others.forEach((id: string) => engine.handleAction(room, id, "answer_question", { answer: "skip" }));
+  assert.equal(room.round.pendingQuestion, null);
+  assert.equal(room.round.qaLog.length, 1, "the turn should only have advanced once");
+  assert.notEqual(room.round.turnQueue[0], turnPlayer, "turn moved on exactly once, to the real next player");
+});
+
 test("a correct guess solves the round for that player and removes them from the queue", () => {
   const room = makeRoom();
   startCategoriesRound(room);
