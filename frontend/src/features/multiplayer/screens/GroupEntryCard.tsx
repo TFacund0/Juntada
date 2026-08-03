@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Btn } from "../../../components/ui/Btn";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { NamePillEditor } from "../../../components/shell/NamePillEditor";
@@ -38,7 +37,6 @@ function randomGroupName(): string {
  */
 export function GroupEntryCard({
   connectionPhase,
-  reconnectBanner,
   error,
   errorKey,
   playerName,
@@ -58,7 +56,6 @@ export function GroupEntryCard({
   submitting,
 }: {
   connectionPhase: string;
-  reconnectBanner: ReactNode;
   error: string;
   errorKey: number;
   playerName: string;
@@ -90,7 +87,6 @@ export function GroupEntryCard({
         <NamePillEditor name={playerName} onSave={onSaveName} avatarSize={20} editing={editingName} onEditingChange={onEditingChange} />
       </div>
 
-      {reconnectBanner}
       <ErrorBanner message={error} flashKey={errorKey} variant="block" />
 
       <div className="jt-group-tabs" role="tablist">

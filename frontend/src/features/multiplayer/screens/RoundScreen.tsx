@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { Toast } from "../../../components/ui/Toast";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
@@ -22,7 +21,6 @@ export function RoundScreen({
   roundViewProps,
   statusToast,
   onStatusToastExpire,
-  reconnectBanner,
   error,
   errorKey,
 }: {
@@ -30,14 +28,12 @@ export function RoundScreen({
   roundViewProps: RoundViewProps;
   statusToast: string | null;
   onStatusToastExpire: () => void;
-  reconnectBanner: ReactNode;
   error: string;
   errorKey: number;
 }) {
   return (
     <div>
       <Toast message={statusToast} onExpire={onStatusToastExpire} />
-      {reconnectBanner}
       <ErrorBanner message={error} flashKey={errorKey} variant="block" />
 
       <GameLoadErrorBoundary key={activeGame.id}>

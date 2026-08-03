@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { Btn } from "../ui/Btn";
 import { DialogFrame } from "./DialogFrame";
 import { QRCode } from "../ui/QRCode";
+import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 
 interface QRDialogProps {
   title: string;
@@ -23,7 +23,7 @@ const canShare = typeof (navigator as { share?: unknown }).share === "function";
 
 /** Muestra un código de sala/grupo como QR, opcionalmente con un botón de compartir/copiar link. */
 export function QRDialog({ title, subtitle, value, onClose, showShare = true }: QRDialogProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy: copyLink } = useCopyToClipboard(2000);
 
   // Los navegadores mobile reciben la hoja nativa de compartir (WhatsApp,
   // SMS, etc.) cuando está disponible; en todo el resto cae a copiar el
@@ -38,13 +38,7 @@ export function QRDialog({ title, subtitle, value, onClose, showShare = true }: 
       }
       return;
     }
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* portapapeles no disponible — el QR/código de arriba igual funcionan */
-    }
+    copyLink(value);
   };
 
   return (

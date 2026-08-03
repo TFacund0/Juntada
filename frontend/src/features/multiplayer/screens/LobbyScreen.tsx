@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
@@ -45,7 +45,6 @@ export function LobbyScreen({
   activeGame,
   statusToast,
   onStatusToastExpire,
-  reconnectBanner,
   showQR,
   onShowQR,
   lobbyTab,
@@ -66,7 +65,6 @@ export function LobbyScreen({
   activeGame: GameDef | undefined;
   statusToast: string | null;
   onStatusToastExpire: () => void;
-  reconnectBanner: ReactNode;
   showQR: boolean;
   onShowQR: (show: boolean) => void;
   lobbyTab: "players" | "config";
@@ -170,7 +168,6 @@ export function LobbyScreen({
     <div className={`jt-lobby-root${isHost ? " jt-lobby-host-pad" : ""}`}>
       <div className="jt-lobby-glow jt-lobby-glow--a jt-animate-drift" aria-hidden="true" />
       <Toast message={statusToast} onExpire={onStatusToastExpire} />
-      {reconnectBanner}
 
       <div className="jt-lobby-grid jt-lobby-breakout">
         <div className="jt-lobby-col jt-thin-scrollbar" ref={colRef}>

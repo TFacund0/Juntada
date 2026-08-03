@@ -110,6 +110,20 @@ describe("inbound messages", () => {
     expect(result.current.connectionPhase).toBe("join"); // unchanged — it was already a menu-family phase
   });
 
+  test("'error' on a standalone room screen (entryKind 'room') resets to the join form even with a stale, unrelated group session in localStorage", () => {
+    localStorage.setItem("impostorgame:session", JSON.stringify({ group: { playerId: "old", groupCode: "OLDGR" } }));
+    const { result } = renderHook(() => useMultiplayerSocket({ entryKind: "room" }));
+    act(() => result.current.setConnectionPhase("join"));
+    act(() => result.current.connect());
+    const ws = lastSocket();
+    act(() => ws.simulateOpen());
+
+    act(() => ws.simulateMessage({ type: "error", code: "JOIN_ROOM_FAILED", message: "No existe ninguna sala con ese código" }));
+
+    expect(result.current.error).toBe("No existe ninguna sala con ese código");
+    expect(result.current.connectionPhase).toBe("join"); // not stuck behind the stale group's "already in something" branch
+  });
+
   test("'error' while restoring a since-expired session (still on 'menu') doesn't force navigation", () => {
     const { result } = renderHook(() => useMultiplayerSocket());
     act(() => result.current.connect());

@@ -197,22 +197,22 @@ function kickMember(ws: WS, msg: Extract<ClientMessage, { type: "kick_member" }>
   if (!group || group.hostId !== info.playerId || msg.targetId === info.playerId) return;
   if (!group.members.some(m => m.id === msg.targetId)) return;
 
-  for (const i2 of clients.values()) {
-    if (i2.groupCode === group.code && i2.roomCode && i2.playerId === msg.targetId) {
-      leavePlayerFromInstance(i2.roomCode, msg.targetId, group);
-      break;
-    }
+  // A single pass over `clients` handles both steps for whichever entry
+  // matches the target's playerId: drop them from whatever instance they're
+  // in, then reset their own ClientInfo and notify them. Two separate
+  // passes used to do this instead — each silently relying on the "one
+  // playerId = one ws" invariant on its own, and inconsistently with each
+  // other (the first `break`d after the first match; the second kept going
+  // and would've reset/notified every matching entry, not just one).
+  for (const [ws2, i2] of clients) {
+    if (i2.playerId !== msg.targetId) continue;
+    if (i2.groupCode === group.code && i2.roomCode) leavePlayerFromInstance(i2.roomCode, msg.targetId, group);
+    clients.set(ws2, { groupCode: null, roomCode: null, playerId: msg.targetId });
+    sendTo(ws2, { type: "kicked_from_group" });
   }
 
   groupService.leaveGroup(group, msg.targetId);
   logger.info({ groupCode: group.code, targetId: msg.targetId, byHostId: info.playerId }, "member kicked from group");
-
-  for (const [ws2, i2] of clients) {
-    if (i2.playerId === msg.targetId) {
-      clients.set(ws2, { groupCode: null, roomCode: null, playerId: msg.targetId });
-      sendTo(ws2, { type: "kicked_from_group" });
-    }
-  }
 
   if (group.members.length === 0) groups.delete(group.code);
   else broadcastGroupState(group);

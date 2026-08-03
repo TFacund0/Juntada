@@ -72,7 +72,7 @@ function broadcastToRoom(room: Room, message: (ws2: WS, info: ClientInfo) => voi
 // optional onPlayerOffline, e.g. skipping whoever's turn it is) would punish
 // a normal, brief disconnect the same as someone who's actually gone. This
 // gives them real time to come back before it costs them anything, while
-// still being far shorter than the 5-minute grace period before an offline
+// still being far shorter than the 10-minute grace period before an offline
 // player is auto-kicked outright (schedulePlayerKick, ./roomHandlers.ts) —
 // that one only ever removes them from the room; this one only ever reacts
 // to them still being mid-turn.
@@ -89,8 +89,24 @@ const OFFLINE_REACTION_DELAY_MS = 60 * 1000;
 // scheduleGroupMemberKick.
 const PLAYER_OFFLINE_TIMEOUT_MS = 10 * 60 * 1000;
 
+// Keyed by "roomCode:playerId" — a flaky connection can disconnect and
+// reconnect several times within OFFLINE_REACTION_DELAY_MS while a round is
+// live, and unlike syncPhaseTimer's single `timers` slot per room, each call
+// used to just fire a bare setTimeout with nothing tracking it. That let
+// several of these stack up for the same player, so if they ended up
+// actually offline when the first one fired, every later duplicate fired
+// engine.onPlayerOffline again too — most engines happen to no-op a repeat
+// call today (the turn's already moved on), but nothing guarantees that for
+// a future engine.
+const offlineReactionTimers = new Map<string, NodeJS.Timeout>();
+
 function scheduleOfflineReaction(roomCode: string, playerId: string): void {
-  setTimeout(() => {
+  const key = `${roomCode}:${playerId}`;
+  const existing = offlineReactionTimers.get(key);
+  if (existing) clearTimeout(existing);
+
+  const t = setTimeout(() => {
+    offlineReactionTimers.delete(key);
     const room = rooms.get(roomCode);
     if (!room) return;
     const player = room.players.find(p => p.id === playerId);
@@ -102,7 +118,9 @@ function scheduleOfflineReaction(roomCode: string, playerId: string): void {
     broadcastToRoom(room, ws2 => sendTo(ws2, { type: "state", room: getRoomPublicState(room) }));
     if (room.phase === "result") broadcastRoundReveal(room);
     syncPhaseTimer(room);
-  }, OFFLINE_REACTION_DELAY_MS).unref();
+  }, OFFLINE_REACTION_DELAY_MS);
+  t.unref();
+  offlineReactionTimers.set(key, t);
 }
 
 // Deletes a game instance once nobody's left in it — otherwise it'd sit

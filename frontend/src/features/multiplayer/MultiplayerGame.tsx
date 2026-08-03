@@ -310,8 +310,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       />
     );
 
-  const reconnectBanner: null = null;
-
   // ── AUTO-CREATING A STANDALONE ROOM ── (see the auto-create effect above —
   // no form for this case, just a brief loading state while the room spins up)
   // ── MENU ──
@@ -334,7 +332,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
         <GroupEntryModal onClose={() => onLeaveGroup?.()}>
           <GroupEntryCard
             connectionPhase={connectionPhase}
-            reconnectBanner={reconnectBanner}
             error={error}
             errorKey={errorKey}
             playerName={playerName}
@@ -366,7 +363,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       <RoomEntryModal onClose={onExitRoomEntry ?? leave}>
         <RoomEntryCard
           connectionPhase={connectionPhase}
-          reconnectBanner={reconnectBanner}
           error={error}
           errorKey={errorKey}
           playerName={playerName}
@@ -402,7 +398,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       <>
         <ScreenFade transitionKey="group" skipAnimation={skipFade}>
           <GroupScreen
-            reconnectBanner={reconnectBanner}
             group={group}
             myPlayerId={me?.playerId}
             isGroupHost={isGroupHost}
@@ -455,7 +450,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             activeGame={activeGame}
             statusToast={statusToast}
             onStatusToastExpire={() => setStatusToast(null)}
-            reconnectBanner={reconnectBanner}
             showQR={showQR}
             onShowQR={setShowQR}
             lobbyTab={lobbyTab}
@@ -502,7 +496,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
             statusToast={statusToast}
             onStatusToastExpire={() => setStatusToast(null)}
-            reconnectBanner={reconnectBanner}
             error={error}
             errorKey={errorKey}
           />

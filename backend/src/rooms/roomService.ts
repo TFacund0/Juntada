@@ -190,7 +190,7 @@ function removePlayer(room: Room, playerId: string): void {
 // ...) — a brief network blip or a backgrounded tab (which reconnects
 // within seconds via the client's own retry loop) would silently skip them,
 // and if they were the deciding vote the round could advance without them
-// ever getting a say. The existing 5-minute auto-kick grace period
+// ever getting a say. The existing 10-minute auto-kick grace period
 // (schedulePlayerKick, ws/roomHandlers.ts) already re-runs maybeAdvance once
 // a still-offline player is actually removed — that's the only path that
 // should let the rest of the room move on without them.
@@ -214,7 +214,7 @@ function markOffline(room: Room, playerId: string): void {
   // anything as permanent as losing host, only that reconnect grace period
   // reconnectDelayMs on the client is built around. reassignHostIfNeeded
   // still runs on the paths that mean they're actually, finally gone:
-  // kickPlayer/removePlayer, including the 5-minute auto-kick timeout.
+  // kickPlayer/removePlayer, including the 10-minute auto-kick timeout.
 }
 
 function isRoomFullyOffline(room: Room): boolean {

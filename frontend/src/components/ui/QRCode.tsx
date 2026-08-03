@@ -24,15 +24,25 @@ export function QRCode({ value, size = 220 }: QRCodeProps) {
 
   useEffect(() => {
     if (!canvasRef.current) return;
+    // A fast-changing `value`/`size` (e.g. a room code still resolving) can
+    // fire this twice in quick succession — without this flag, an older
+    // toCanvas call resolving/rejecting after a newer one would stomp the
+    // error state (or draw a stale QR into a canvas that no longer matches
+    // this effect's own value) with its own outdated result.
+    let cancelled = false;
     setError(null);
     QRCodeLib.toCanvas(canvasRef.current, value, {
       width: size,
       margin: 1,
       color: { dark: "#171329", light: "#f2f0fb" },
     }).catch(() => {
+      if (cancelled) return;
       setError("No se pudo generar el QR");
       setErrorKey(k => k + 1);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [value, size]);
 
   if (error) return <ErrorBanner message={error} flashKey={errorKey} variant="inline" />;

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useClickOutside } from "../../hooks/useClickOutside";
 import "./GroupMenuDropdown.css";
 
 /**
@@ -12,15 +13,7 @@ import "./GroupMenuDropdown.css";
 export function GroupMenuDropdown({ onStartGroupFlow }: { onStartGroupFlow: (intent: "create" | "join") => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [open]);
+  useClickOutside(ref, open, () => setOpen(false));
 
   const pick = (intent: "create" | "join") => {
     setOpen(false);

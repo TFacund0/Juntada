@@ -1,4 +1,5 @@
-import { useState, type ReactNode, type RefObject } from "react";
+import { useState, type RefObject } from "react";
+import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
 import { Avatar } from "../../../components/ui/Avatar";
@@ -20,7 +21,6 @@ import "./GroupScreen.css";
 // instance" picker. Covers connectionPhase "group" — extracted verbatim out
 // of MultiplayerGame.tsx, which still owns all of this screen's state.
 export function GroupScreen({
-  reconnectBanner,
   group,
   myPlayerId,
   isGroupHost,
@@ -42,7 +42,6 @@ export function GroupScreen({
   error,
   errorKey,
 }: {
-  reconnectBanner: ReactNode;
   group: GroupPublicState;
   myPlayerId: string | undefined;
   isGroupHost: boolean;
@@ -64,7 +63,7 @@ export function GroupScreen({
   error: string;
   errorKey: number;
 }) {
-  const [linkCopied, setLinkCopied] = useState(false);
+  const { copied: linkCopied, copy: copyLinkToClipboard } = useCopyToClipboard();
   // Mismo vistazo (arte, descripción, "¿Cómo se juega?") que al elegir un
   // juego desde el catálogo del home (ver GamePicker) — acá "Jugar" crea la
   // instancia dentro del grupo en vez de navegar a un juego local/nuevo.
@@ -74,16 +73,11 @@ export function GroupScreen({
   const [showNewGamePicker, setShowNewGamePicker] = useState(false);
   const onlineCount = group.members.filter(m => m.online).length;
 
-  const copyLink = () => {
-    navigator.clipboard?.writeText(buildGroupJoinUrl(group.code)).catch(() => {});
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 1500);
-  };
+  const copyLink = () => copyLinkToClipboard(buildGroupJoinUrl(group.code));
 
   return (
     <div className="jt-group-root jt-group-breakout">
       <div className="jt-group-glow" />
-      {reconnectBanner}
 
       <div className="jt-group-header">
         <div>

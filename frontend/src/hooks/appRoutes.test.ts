@@ -34,6 +34,13 @@ describe("appRoutes", () => {
     test("an unrecognized path falls back to home", () => {
       expect(parseRoute("/something/else")).toEqual({ gameId: null, mode: null, groupFlow: false, code: null });
     });
+
+    test("a trailing slash is treated the same as the same path without it", () => {
+      expect(parseRoute("/room/impostor/ABC12/")).toEqual({ gameId: "impostor", mode: "multi", groupFlow: false, code: "ABC12" });
+      expect(parseRoute("/game/impostor/local/")).toEqual({ gameId: "impostor", mode: "local", groupFlow: false, code: null });
+      expect(parseRoute("/group/")).toEqual({ gameId: null, mode: "multi", groupFlow: true, code: null });
+      expect(parseRoute("/")).toEqual({ gameId: null, mode: null, groupFlow: false, code: null }); // root alone stays untouched
+    });
   });
 
   describe("buildPath", () => {
@@ -75,6 +82,22 @@ describe("appRoutes", () => {
         const parsed = parseRoute(path);
         expect(buildPath(parsed.gameId, parsed.mode, parsed.groupFlow, parsed.code, parsed.code)).toBe(path);
       }
+    });
+
+    // useAppNavigation keeps roomCode/groupCode as two independent pieces of
+    // state, not one shared "code" like the generic round-trip above passes
+    // to both params — a player who was in a standalone room earlier in the
+    // session, then switches to the group flow, can have both populated at
+    // once for real. groupFlow winning (see the test above) has to hold with
+    // two actually-different codes, not just when they happen to be equal.
+    test("group flow wins with independently different roomCode/groupCode still set", () => {
+      expect(buildPath("impostor", "multi", true, "ABC12", "XYZ89")).toBe("/group/XYZ89");
+      expect(parseRoute(buildPath("impostor", "multi", true, "ABC12", "XYZ89"))).toEqual({
+        gameId: null,
+        mode: "multi",
+        groupFlow: true,
+        code: "XYZ89",
+      });
     });
   });
 });

@@ -3,6 +3,7 @@ import { getGame, GAME_LIST } from "../../../games/registry";
 import { isGameAvailable } from "../../../games/maintenance";
 import type { GameDef } from "../../../games/gameTypes";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
+import { useClickOutside } from "../../../hooks/useClickOutside";
 import type { MultiplayerGameProps } from "../MultiplayerGame";
 
 export function playableGames(): GameDef[] {
@@ -126,7 +127,7 @@ export function useMultiplayerGameShell({
   // Host-only per-player actions (transfer host / kick) live behind a small
   // "⋮" menu instead of two always-visible buttons — only one open at a
   // time, keyed by playerId. Closed on outside click, same pattern as the
-  // home screen's "+" group menu (see App.tsx's groupMenuRef).
+  // home screen's profile menu (see useAppNavigation's profileMenuRef).
   const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
   const playerMenuRef = useRef<HTMLDivElement>(null);
   // Some games' lobby has enough going on (player list + a meatier
@@ -198,14 +199,7 @@ export function useMultiplayerGameShell({
     };
   }, [room]);
 
-  useEffect(() => {
-    if (!openPlayerMenu) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (playerMenuRef.current && !playerMenuRef.current.contains(e.target as Node)) setOpenPlayerMenu(null);
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [openPlayerMenu]);
+  useClickOutside(playerMenuRef, Boolean(openPlayerMenu), () => setOpenPlayerMenu(null));
 
   const inGroup = entryKind === "group";
 
