@@ -1,5 +1,7 @@
 import { lazy } from "react";
 import type { GameDef } from "../gameTypes";
+import logo from "./assets/logo.webp";
+import backgroundImage from "./assets/background.webp";
 
 // Juego de dibujo estilo Pictionary con nombre propio (para evitar
 // conflictos de marca registrada): un jugador dibuja una palabra secreta y
@@ -12,6 +14,8 @@ export const rayadoLibreGame: GameDef = {
   id: "rayado-libre",
   label: "Rayado Libre",
   icon: "🎨",
+  logo,
+  backgroundImage,
   description:
     "Un jugador dibuja una palabra secreta y el resto del grupo intenta adivinarla escribiendo en el chat antes de que se acabe el tiempo.",
   minPlayers: 3,

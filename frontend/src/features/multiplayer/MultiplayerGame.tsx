@@ -254,7 +254,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     setConfirmLeaveGroup,
     openPlayerMenu,
     setOpenPlayerMenu,
-    playerMenuRef,
     lobbyTab,
     setLobbyTab,
     statusToast,
@@ -405,7 +404,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             onShowQR={setShowQR}
             openPlayerMenu={openPlayerMenu}
             onTogglePlayerMenu={setOpenPlayerMenu}
-            playerMenuRef={playerMenuRef}
             onTransferHost={id => {
               send({ type: "transfer_host", targetId: id });
               setOpenPlayerMenu(null);
@@ -456,7 +454,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             onLobbyTabChange={setLobbyTab}
             openPlayerMenu={openPlayerMenu}
             onTogglePlayerMenu={setOpenPlayerMenu}
-            playerMenuRef={playerMenuRef}
             onTransferHost={id => {
               send({ type: "transfer_host", targetId: id });
               setOpenPlayerMenu(null);

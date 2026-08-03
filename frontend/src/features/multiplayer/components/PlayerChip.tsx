@@ -1,6 +1,6 @@
-import type { RefObject } from "react";
 import { S } from "../../../theme/styles";
 import { Avatar } from "../../../components/ui/Avatar";
+import { MemberActionsDialog } from "./MemberActionsDialog";
 import type { PublicPlayer } from "@juntada/shared-types";
 
 /**
@@ -14,7 +14,6 @@ export function PlayerChip({
   isHostPlayer,
   canManage,
   menuOpen,
-  menuRef,
   onToggleMenu,
   onTransferHost,
   onKickPlayer,
@@ -25,7 +24,6 @@ export function PlayerChip({
   isHostPlayer: boolean;
   canManage: boolean;
   menuOpen: boolean;
-  menuRef: RefObject<HTMLDivElement>;
   onToggleMenu: (id: string | null) => void;
   onTransferHost: (id: string) => void;
   onKickPlayer: (id: string) => void;
@@ -90,9 +88,9 @@ export function PlayerChip({
         </div>
       )}
       {canManage && (
-        <div ref={menuOpen ? menuRef : undefined} style={{ position: "absolute", top: 6, right: 6 }}>
+        <div style={{ position: "absolute", top: 6, right: 6 }}>
           <button
-            onClick={() => onToggleMenu(menuOpen ? null : player.id)}
+            onClick={() => onToggleMenu(player.id)}
             aria-label={`Opciones para ${player.name}`}
             style={{
               display: "flex",
@@ -115,16 +113,19 @@ export function PlayerChip({
             ⋮
           </button>
           {menuOpen && (
-            <div style={{ ...S.dropdownMenu, width: 170 }}>
-              {player.online && (
-                <button onClick={() => onTransferHost(player.id)} style={S.dropdownMenuItem}>
-                  👑 Hacer anfitrión
-                </button>
-              )}
-              <button onClick={() => onKickPlayer(player.id)} style={{ ...S.dropdownMenuItem, color: "#F09595" }}>
-                🚫 Expulsar
-              </button>
-            </div>
+            <MemberActionsDialog
+              memberName={player.name}
+              memberOnline={player.online}
+              onTransferHost={() => {
+                onTransferHost(player.id);
+                onToggleMenu(null);
+              }}
+              onKickMember={() => {
+                onKickPlayer(player.id);
+                onToggleMenu(null);
+              }}
+              onClose={() => onToggleMenu(null)}
+            />
           )}
         </div>
       )}

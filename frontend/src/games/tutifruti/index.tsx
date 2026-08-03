@@ -1,6 +1,8 @@
 import { lazy } from "react";
 import { DEFAULT_CATEGORIES } from "@juntada/tutifruti-data";
 import type { GameDef } from "../gameTypes";
+import logo from "./assets/logo.webp";
+import backgroundImage from "./assets/background.webp";
 
 // Dynamic import() creates its own chunk even though this metadata object is
 // imported eagerly by the registry — this keeps every game's actual code out
@@ -18,6 +20,8 @@ export const tutifrutiGame: GameDef = {
   id: "tutifruti",
   label: "Tutifrutti",
   icon: "🍉",
+  logo,
+  backgroundImage,
   description:
     "Sale una letra al azar y todos completan categorías (país, animal, color...) con una palabra que empiece con esa letra, contrarreloj.",
   minPlayers: 2,

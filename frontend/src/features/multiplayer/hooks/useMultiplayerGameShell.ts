@@ -3,7 +3,6 @@ import { getGame, GAME_LIST } from "../../../games/registry";
 import { isGameAvailable } from "../../../games/maintenance";
 import type { GameDef } from "../../../games/gameTypes";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
-import { useClickOutside } from "../../../hooks/useClickOutside";
 import type { MultiplayerGameProps } from "../MultiplayerGame";
 
 export function playableGames(): GameDef[] {
@@ -120,16 +119,38 @@ export function useMultiplayerGameShell({
     },
     [],
   );
+  // Same safety net as joinInstance above, for create_room/create_group and
+  // join_room/join_group: if the socket drops (or the server never answers)
+  // before a "joined"/"group_joined"/"error" comes back, ws.onclose stays
+  // silent — it only reconnects/reports once a session (me/groupMe) already
+  // exists, which isn't true yet mid-handshake (see useMultiplayerSocket's
+  // onclose). Without this, "Creando..."/"Uniéndose..." would stay on
+  // screen forever instead of surfacing a retryable error.
+  const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearSubmitTimeout = () => {
+    if (submitTimeoutRef.current) {
+      clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = null;
+    }
+  };
+  const armSubmitTimeout = (message: string) => {
+    clearSubmitTimeout();
+    submitTimeoutRef.current = setTimeout(() => {
+      submitTimeoutRef.current = null;
+      setSubmitting(false);
+      setError(message);
+    }, 8000);
+  };
+  useEffect(() => clearSubmitTimeout, []);
   // Leaving the group outright — separate confirm from "volver al grupo"
   // (the navbar's "Volver" arrow, see useAppNavigation's goBack), which only
   // steps back to the group screen without leaving it.
   const [confirmLeaveGroup, setConfirmLeaveGroup] = useState(false);
   // Host-only per-player actions (transfer host / kick) live behind a small
   // "⋮" menu instead of two always-visible buttons — only one open at a
-  // time, keyed by playerId. Closed on outside click, same pattern as the
-  // home screen's profile menu (see useAppNavigation's profileMenuRef).
+  // time, keyed by playerId. Opens a centered MemberActionsDialog, which
+  // closes itself on overlay click/Cancel.
   const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
-  const playerMenuRef = useRef<HTMLDivElement>(null);
   // Some games' lobby has enough going on (player list + a meatier
   // ConfigPanel) that stacking both under one scroll reads as cluttered —
   // split them into top-level tabs instead, mirroring local mode's own
@@ -198,8 +219,6 @@ export function useMultiplayerGameShell({
       players: Object.fromEntries(room.players.map(p => [p.id, p.name])),
     };
   }, [room]);
-
-  useClickOutside(playerMenuRef, Boolean(openPlayerMenu), () => setOpenPlayerMenu(null));
 
   const inGroup = entryKind === "group";
 
@@ -301,6 +320,7 @@ export function useMultiplayerGameShell({
     // banner from view for that whole stretch.
     onTransitionSettled?.();
     setSubmitting(false);
+    clearSubmitTimeout();
   }, [error, onTransitionSettled]);
 
   // The other half of settling the curtain: a successful create/join lands
@@ -312,6 +332,7 @@ export function useMultiplayerGameShell({
     if (!["menu", "create", "join"].includes(connectionPhase)) {
       onTransitionSettled?.();
       setSubmitting(false);
+      clearSubmitTimeout();
     }
   }, [connectionPhase, onTransitionSettled]);
 
@@ -356,6 +377,7 @@ export function useMultiplayerGameShell({
         );
       }
     });
+    armSubmitTimeout(inGroup ? "No se pudo crear el grupo — probá de nuevo" : "No se pudo crear la partida — probá de nuevo");
   };
 
   const joinRoom = () => {
@@ -370,6 +392,7 @@ export function useMultiplayerGameShell({
         }),
       ),
     );
+    armSubmitTimeout(inGroup ? "No se pudo unir al grupo — probá de nuevo" : "No se pudo unir a la partida — probá de nuevo");
   };
 
   const updateConfig = (patch: Record<string, unknown>) => {
@@ -433,7 +456,6 @@ export function useMultiplayerGameShell({
     setConfirmLeaveGroup,
     openPlayerMenu,
     setOpenPlayerMenu,
-    playerMenuRef,
     lobbyTab,
     setLobbyTab,
     statusToast,
