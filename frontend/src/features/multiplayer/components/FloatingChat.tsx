@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ChatMessage } from "@juntada/shared-types";
 import { Avatar } from "../../../components/ui/Avatar";
 import "./FloatingChat.css";
@@ -41,10 +42,17 @@ function formatTime(ts: number): string {
 
 /**
  * Burbuja flotante arrastrable que se expande a un panel de chat centrado.
- * Vive montada como hermana de la pantalla activa (grupo/lobby/partida) en
+ * Se usa como hermana de la pantalla activa (grupo/lobby/partida) en
  * MultiplayerGame.tsx — nunca bloquea esa pantalla mientras está cerrada, y
  * al tocarla cubre el centro con el chat sin navegar a ningún otro lado; la
  * ✕ simplemente vuelve a lo que ya estaba montado debajo.
+ *
+ * Todo el componente (burbuja + overlay) se portea a document.body por el
+ * mismo motivo que StickyActionBar: el `transform` de ScreenFade en un
+ * ancestro atrapa cualquier `position: fixed` de acá adentro, así que sin
+ * portal esto quedaría compitiendo en z-index solo contra sus hermanos
+ * dentro de esa pantalla — nunca contra un StickyActionBar, que sí escapa a
+ * document.body.
  *
  * Soporta más de un `channel` (grupo + sala a la vez, cuando la partida
  * actual pertenece a un grupo) mostrando tabs arriba del panel — un jugador
@@ -139,7 +147,7 @@ export function FloatingChat({ channels, defaultChannelId }: FloatingChatProps) 
     ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" }
     : { right: DEFAULT_POS.right, bottom: DEFAULT_POS.bottom };
 
-  return (
+  return createPortal(
     <>
       <button
         ref={bubbleRef}
@@ -245,6 +253,7 @@ export function FloatingChat({ channels, defaultChannelId }: FloatingChatProps) 
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body,
   );
 }
