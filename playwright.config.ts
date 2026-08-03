@@ -20,7 +20,14 @@ export default defineConfig({
   // clue-giving, voting) — headless CI runners are slower/less parallel
   // than a local dev machine, so the same spec that finishes in ~15-20s
   // locally can blow past 30s in CI and fail on nothing but scheduling.
-  timeout: process.env.CI ? 60_000 : 30_000,
+  // 60s wasn't enough either (still timing out on ubuntu-latest's shared
+  // 2-vCPU runner), so this leaves real headroom instead of nudging it up
+  // again one bump at a time.
+  timeout: process.env.CI ? 90_000 : 30_000,
+  // One retry only in CI: these specs are long real-socket flows on a
+  // shared runner, so a genuine one-off scheduling hiccup shouldn't fail
+  // the whole job — but a real regression still fails on the 2nd attempt.
+  retries: process.env.CI ? 1 : 0,
   // "html" writes playwright-report/ (traces, screenshots per failed step) —
   // CI uploads that folder as an artifact on failure (see ci.yml); "list" is
   // just the same terminal output used when running locally. `open: "never"`
