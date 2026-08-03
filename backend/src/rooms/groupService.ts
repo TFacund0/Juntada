@@ -98,7 +98,12 @@ function rejoinGroup(ws: WebSocket, { groupCode, playerId }: { groupCode: string
 function leaveGroup(group: Group, playerId: string): void {
   group.members = group.members.filter(m => m.id !== playerId);
   if (group.hostId === playerId) {
-    const candidate = pickHostReplacement(group.members, playerId) ?? group.members[0];
+    // playerId is already gone from group.members by this point, so
+    // pickHostReplacement only ever returns undefined here when the group
+    // is now empty outright — same as roomService's reassignHostIfNeeded,
+    // which leaves hostId as-is in that case too (the group/room is about
+    // to be deleted by the caller either way, see leaveGroup's callers).
+    const candidate = pickHostReplacement(group.members, playerId);
     if (candidate) group.hostId = candidate.id;
   }
 }
