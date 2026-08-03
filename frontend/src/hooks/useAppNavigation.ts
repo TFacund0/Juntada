@@ -5,6 +5,7 @@ import { isGameAvailable } from "../games/maintenance";
 import { clearMultiplayerSession } from "../features/multiplayer/hooks/useMultiplayerSocket";
 import { roomHasProgress } from "../features/multiplayer/utils/returnToGroup";
 import { useCurtainTransition } from "./useCurtainTransition";
+import { useClickOutside } from "./useClickOutside";
 import { saveActive } from "./useActiveSession";
 import { parseRoute } from "./appRoutes";
 import { useUrlSync } from "./useUrlSync";
@@ -83,8 +84,13 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
   const exposeLocalGameReset = useCallback((fn: () => void) => {
     localGameResetRef.current = fn;
   }, []);
-  const [showGroupMenu, setShowGroupMenu] = useState(false);
-  const groupMenuRef = useRef<HTMLDivElement>(null);
+  // Despite the name, this drives the profile/avatar dropdown in the header
+  // (AppHeader's jt-home-profile-wrap/ProfilePanel) — the actual "crear/
+  // unirme a un grupo" menu is GroupMenuDropdown, a self-contained sibling
+  // component with its own state. Two unrelated triggers sitting next to
+  // each other in the same navbar, easy to conflate by name alone.
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [showRules, setShowRules] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   // "Volver" from inside a chosen mode (local or online) is one tap away
@@ -118,6 +124,20 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
   // would actually interrupt a round in progress (roomHasProgress) instead
   // of silently leaving either way.
   const [roomPhase, setRoomPhase] = useState<string | null>(null);
+  // Read via a ref (not `gameId` directly) so this callback's identity stays
+  // stable across the very setGameId calls it makes — MultiplayerGame's
+  // shell effect that calls this on room.gameType change also uses it as its
+  // cleanup (see there), so if this identity changed on every gameId update,
+  // that cleanup/effect pair would fire back-to-back with stale/fresh
+  // closures each render, alternately setting gameId back to null and
+  // forward to the room's real game — an infinite ping-pong ("Maximum update
+  // depth exceeded") that showed up as the header/theme visibly flicking
+  // between "Juntada" and the game's own title on every entry into a themed
+  // game from a group.
+  const gameIdRef = useRef(gameId);
+  useEffect(() => {
+    gameIdRef.current = gameId;
+  }, [gameId]);
   const handleRoomGameType = useCallback(
     (roomGameType: string | null) => {
       setInRoom(roomGameType !== null);
@@ -128,23 +148,16 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
         if (groupFlow) setGameId(null);
         return;
       }
-      if (roomGameType !== gameId && getGame(roomGameType)) setGameId(roomGameType);
+      if (roomGameType !== gameIdRef.current && getGame(roomGameType)) setGameId(roomGameType);
     },
-    [groupFlow, gameId],
+    [groupFlow],
   );
 
   useEffect(() => {
     saveActive(mode === "multi" && gameId ? { gameId, mode } : null);
   }, [gameId, mode]);
 
-  useEffect(() => {
-    if (!showGroupMenu) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (groupMenuRef.current && !groupMenuRef.current.contains(e.target as Node)) setShowGroupMenu(false);
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [showGroupMenu]);
+  useClickOutside(profileMenuRef, showProfileMenu, () => setShowProfileMenu(false));
 
   const [showReturnToGroupConfirm, setShowReturnToGroupConfirm] = useState(false);
   const goBack = () => {
@@ -242,7 +255,7 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     setGroupCode(null);
     setMode("multi");
     setShowRules(false);
-    setShowGroupMenu(false);
+    setShowProfileMenu(false);
   };
 
   // Identifica qué "paso" de arriba está en pantalla — cambia con cada
@@ -304,9 +317,9 @@ export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gam
     exposeReturnToGroup,
     exposeLocalGameBack,
     exposeLocalGameReset,
-    showGroupMenu,
-    setShowGroupMenu,
-    groupMenuRef,
+    showProfileMenu,
+    setShowProfileMenu,
+    profileMenuRef,
     showRules,
     setShowRules,
     showExitConfirm,

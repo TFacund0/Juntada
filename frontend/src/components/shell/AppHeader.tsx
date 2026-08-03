@@ -23,9 +23,9 @@ interface AppHeaderProps {
   onSavePlayerName: (name: string) => void;
   onBack: () => void;
   onExit: () => void;
-  showGroupMenu: boolean;
-  onToggleGroupMenu: () => void;
-  groupMenuRef: RefObject<HTMLDivElement>;
+  showProfileMenu: boolean;
+  onToggleProfileMenu: () => void;
+  profileMenuRef: RefObject<HTMLDivElement>;
   onStartGroupFlow: (intent: "create" | "join") => void;
   showRules: boolean;
   onToggleRules: () => void;
@@ -133,9 +133,9 @@ export function AppHeader({
   onSavePlayerName,
   onBack,
   onExit,
-  showGroupMenu,
-  onToggleGroupMenu,
-  groupMenuRef,
+  showProfileMenu,
+  onToggleProfileMenu,
+  profileMenuRef,
   onStartGroupFlow,
   showRules,
   onToggleRules,
@@ -218,11 +218,11 @@ export function AppHeader({
                   superpone con nada. */}
               <GroupMenuDropdown onStartGroupFlow={onStartGroupFlow} />
             </nav>
-            <div ref={groupMenuRef} className="jt-home-profile-wrap" style={{ position: "relative", flexShrink: 0 }}>
-              <button onClick={onToggleGroupMenu} className="jt-profile-trigger" aria-label="Tu perfil" title="Tu perfil">
+            <div ref={profileMenuRef} className="jt-home-profile-wrap" style={{ position: "relative", flexShrink: 0 }}>
+              <button onClick={onToggleProfileMenu} className="jt-profile-trigger" aria-label="Tu perfil" title="Tu perfil">
                 <Avatar name={playerName} size={30} />
               </button>
-              {showGroupMenu && (
+              {showProfileMenu && (
                 <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 5 }}>
                   <ProfilePanel playerName={playerName} onSavePlayerName={onSavePlayerName} />
                 </div>
