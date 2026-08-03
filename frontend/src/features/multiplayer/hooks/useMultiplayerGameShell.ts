@@ -25,6 +25,8 @@ export function useMultiplayerGameShell({
   initialGroupIntent,
   onGameTypeChange,
   onRoomPhaseChange,
+  onRoomCodeChange,
+  onGroupCodeChange,
   onLeaveGroup,
   onGroupAttachedChange,
   onExposeReturnToGroup,
@@ -117,16 +119,38 @@ export function useMultiplayerGameShell({
     },
     [],
   );
+  // Same safety net as joinInstance above, for create_room/create_group and
+  // join_room/join_group: if the socket drops (or the server never answers)
+  // before a "joined"/"group_joined"/"error" comes back, ws.onclose stays
+  // silent — it only reconnects/reports once a session (me/groupMe) already
+  // exists, which isn't true yet mid-handshake (see useMultiplayerSocket's
+  // onclose). Without this, "Creando..."/"Uniéndose..." would stay on
+  // screen forever instead of surfacing a retryable error.
+  const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearSubmitTimeout = () => {
+    if (submitTimeoutRef.current) {
+      clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = null;
+    }
+  };
+  const armSubmitTimeout = (message: string) => {
+    clearSubmitTimeout();
+    submitTimeoutRef.current = setTimeout(() => {
+      submitTimeoutRef.current = null;
+      setSubmitting(false);
+      setError(message);
+    }, 8000);
+  };
+  useEffect(() => clearSubmitTimeout, []);
   // Leaving the group outright — separate confirm from "volver al grupo"
   // (the navbar's "Volver" arrow, see useAppNavigation's goBack), which only
   // steps back to the group screen without leaving it.
   const [confirmLeaveGroup, setConfirmLeaveGroup] = useState(false);
   // Host-only per-player actions (transfer host / kick) live behind a small
   // "⋮" menu instead of two always-visible buttons — only one open at a
-  // time, keyed by playerId. Closed on outside click, same pattern as the
-  // home screen's "+" group menu (see App.tsx's groupMenuRef).
+  // time, keyed by playerId. Opens a centered MemberActionsDialog, which
+  // closes itself on overlay click/Cancel.
   const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
-  const playerMenuRef = useRef<HTMLDivElement>(null);
   // Some games' lobby has enough going on (player list + a meatier
   // ConfigPanel) that stacking both under one scroll reads as cluttered —
   // split them into top-level tabs instead, mirroring local mode's own
@@ -196,15 +220,6 @@ export function useMultiplayerGameShell({
     };
   }, [room]);
 
-  useEffect(() => {
-    if (!openPlayerMenu) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (playerMenuRef.current && !playerMenuRef.current.contains(e.target as Node)) setOpenPlayerMenu(null);
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [openPlayerMenu]);
-
   const inGroup = entryKind === "group";
 
   // Scanned a "join this room/group" QR/link — the code is already known
@@ -240,14 +255,36 @@ export function useMultiplayerGameShell({
 
   // The server's room.gameType is the only source of truth for which game
   // is actually active — surface it upward as soon as it's known, and clear
-  // it back to null once there's no active instance (group screen).
+  // it back to null once there's no active instance (group screen). The
+  // cleanup matters as much as the effect itself: "Volver" from inside a
+  // room unmounts this whole shell directly (App.tsx's goBack/confirmGoBack)
+  // without ever going through `leave()`'s `setRoom(null)`, so without this
+  // cleanup the parent's `inRoom` flag stayed stuck at `true` past the
+  // unmount — the next time the player re-entered online mode for the same
+  // themed game, useAppNavigation's `inGameView` briefly read stale-true and
+  // useGameTheme flashed that game's theme colors for a commit before the
+  // fresh shell's own effect corrected it.
   useEffect(() => {
     onGameTypeChange?.(room?.gameType ?? null);
+    return () => onGameTypeChange?.(null);
   }, [room?.gameType, onGameTypeChange]);
 
   useEffect(() => {
     onRoomPhaseChange?.(room?.phase ?? null);
   }, [room?.phase, onRoomPhaseChange]);
+
+  // The server-assigned code is only known once a room/group actually
+  // exists (after create/join lands) — App.tsx uses this to put the real
+  // code in the URL (replacing the code-less /room/:gameId or /group route
+  // used while still on the create/join form) so the address bar becomes
+  // shareable from that point on.
+  useEffect(() => {
+    onRoomCodeChange?.(room?.code ?? null);
+  }, [room?.code, onRoomCodeChange]);
+
+  useEffect(() => {
+    onGroupCodeChange?.(group?.code ?? null);
+  }, [group?.code, onGroupCodeChange]);
 
   // Live preview of a standalone room as soon as the code is fully typed —
   // read-only lookup, no commitment (see checkRoomCode/room_preview on the
@@ -283,6 +320,7 @@ export function useMultiplayerGameShell({
     // banner from view for that whole stretch.
     onTransitionSettled?.();
     setSubmitting(false);
+    clearSubmitTimeout();
   }, [error, onTransitionSettled]);
 
   // The other half of settling the curtain: a successful create/join lands
@@ -294,6 +332,7 @@ export function useMultiplayerGameShell({
     if (!["menu", "create", "join"].includes(connectionPhase)) {
       onTransitionSettled?.();
       setSubmitting(false);
+      clearSubmitTimeout();
     }
   }, [connectionPhase, onTransitionSettled]);
 
@@ -338,6 +377,7 @@ export function useMultiplayerGameShell({
         );
       }
     });
+    armSubmitTimeout(inGroup ? "No se pudo crear el grupo — probá de nuevo" : "No se pudo crear la partida — probá de nuevo");
   };
 
   const joinRoom = () => {
@@ -352,6 +392,7 @@ export function useMultiplayerGameShell({
         }),
       ),
     );
+    armSubmitTimeout(inGroup ? "No se pudo unir al grupo — probá de nuevo" : "No se pudo unir a la partida — probá de nuevo");
   };
 
   const updateConfig = (patch: Record<string, unknown>) => {
@@ -415,7 +456,6 @@ export function useMultiplayerGameShell({
     setConfirmLeaveGroup,
     openPlayerMenu,
     setOpenPlayerMenu,
-    playerMenuRef,
     lobbyTab,
     setLobbyTab,
     statusToast,

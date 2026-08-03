@@ -460,7 +460,14 @@ function submitGuess(room: Room, playerId: string, payload: Record<string, unkno
 function concede(room: Room, playerId: string): { handled: boolean; rerolled?: true } {
   if (!room.round || room.phase !== "playing") return { handled: false };
   const r = round(room);
-  if (r.turnQueue[0] !== playerId) return { handled: false };
+  // Same guard as submitGuess: with a question still pending, this player's
+  // turn hasn't actually ended yet (answerQuestion is what calls finishTurn
+  // once every response is in) — without it, conceding here orphaned
+  // r.pendingQuestion pointing at a turn that finishTurn had already moved
+  // past, so the next answerQuestion to settle it called finishTurn a
+  // second time on whoever's turn it legitimately was by then, skipping
+  // them entirely.
+  if (r.turnQueue[0] !== playerId || r.pendingQuestion) return { handled: false };
   r.results.push({ playerId, outcome: "conceded", lap: r.lapNumber });
   finishTurn(room, false);
   return { handled: true, rerolled: true };

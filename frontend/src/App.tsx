@@ -19,11 +19,15 @@ import { Spinner } from "./components/ui/Spinner";
 import { AppHeader } from "./components/shell/AppHeader";
 import { ModePicker, ModePickerBackdrop } from "./components/shell/ModePicker";
 import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/utils/playerName";
+import { getGame } from "./games/registry";
 import { loadActive } from "./hooks/useActiveSession";
 import { useValidJoinLink } from "./features/multiplayer/hooks/useValidJoinLink";
 import { useGameTheme } from "./hooks/useGameTheme";
 import { useAppNavigation } from "./hooks/useAppNavigation";
 import { setAppInGame } from "./hooks/appActivity";
+import { readLocalFlag, setLocalFlag } from "./utils/localFlag";
+
+const DEV_NOTICE_SEEN_KEY = "impostorgame:devNoticeSeen";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROOT APP — landing = elegir juego, luego elegir modo (local/multi) para ese
@@ -41,7 +45,13 @@ function GameLoading() {
 
 export default function App() {
   const validJoinLink = useValidJoinLink();
-  const restored = validJoinLink ? null : loadActive();
+  const restoredRaw = validJoinLink ? null : loadActive();
+  // A session persisted before a deploy that removed/renamed the game, or
+  // put it into maintenance, would otherwise restore straight into a
+  // ModePicker/local match for a game that's no longer selectable from the
+  // home screen at all — go home instead in that case.
+  const restoredGame = restoredRaw ? getGame(restoredRaw.gameId) : undefined;
+  const restored = restoredRaw && restoredGame && isGameAvailable(restoredGame) ? restoredRaw : null;
   const nav = useAppNavigation(validJoinLink, restored);
   const {
     gameId,
@@ -52,14 +62,16 @@ export default function App() {
     groupIntent,
     pendingGroupJoinCode,
     switchToGroupJoin,
+    setRoomCode,
+    setGroupCode,
     groupAttached,
     setGroupAttached,
     exposeReturnToGroup,
     exposeLocalGameBack,
     exposeLocalGameReset,
-    showGroupMenu,
-    setShowGroupMenu,
-    groupMenuRef,
+    showProfileMenu,
+    setShowProfileMenu,
+    profileMenuRef,
     showRules,
     setShowRules,
     showExitConfirm,
@@ -89,20 +101,10 @@ export default function App() {
     GAME_LIST,
   } = nav;
 
-  const [showDevNotice, setShowDevNotice] = useState(() => {
-    try {
-      return !localStorage.getItem("impostorgame:devNoticeSeen");
-    } catch {
-      return false;
-    }
-  });
+  const [showDevNotice, setShowDevNotice] = useState(() => !readLocalFlag(DEV_NOTICE_SEEN_KEY));
 
   const dismissDevNotice = () => {
-    try {
-      localStorage.setItem("impostorgame:devNoticeSeen", "1");
-    } catch {
-      /* storage unavailable */
-    }
+    setLocalFlag(DEV_NOTICE_SEEN_KEY);
     setShowDevNotice(false);
   };
 
@@ -159,9 +161,9 @@ export default function App() {
             onSavePlayerName={savePlayerName}
             onBack={goBack}
             onExit={() => setShowExitConfirm(true)}
-            showGroupMenu={showGroupMenu}
-            onToggleGroupMenu={() => setShowGroupMenu(v => !v)}
-            groupMenuRef={groupMenuRef}
+            showProfileMenu={showProfileMenu}
+            onToggleProfileMenu={() => setShowProfileMenu(v => !v)}
+            profileMenuRef={profileMenuRef}
             onStartGroupFlow={startGroupFlow}
             showRules={showRules}
             onToggleRules={() => setShowRules(v => !v)}
@@ -217,6 +219,8 @@ export default function App() {
                   initialGroupIntent={groupIntent}
                   onGameTypeChange={handleRoomGameType}
                   onRoomPhaseChange={setRoomPhase}
+                  onRoomCodeChange={setRoomCode}
+                  onGroupCodeChange={setGroupCode}
                   onLeaveGroup={goHome}
                   onExitRoomEntry={goBack}
                   onGoHome={goHome}

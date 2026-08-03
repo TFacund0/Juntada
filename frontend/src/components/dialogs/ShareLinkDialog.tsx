@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { Btn } from "../ui/Btn";
 import { DialogFrame } from "./DialogFrame";
+import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 
 interface ShareLinkDialogProps {
   title: string;
@@ -19,17 +19,7 @@ const canShare = typeof (navigator as { share?: unknown }).share === "function";
  * soporta — misma acción de "compartir" que ya existía, separada acá del QR.
  */
 export function ShareLinkDialog({ title, subtitle, value, onClose }: ShareLinkDialogProps) {
-  const [copied, setCopied] = useState(false);
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* portapapeles no disponible — el link igual queda visible para copiarlo a mano */
-    }
-  };
+  const { copied, copy: copyLink } = useCopyToClipboard();
 
   const share = async () => {
     try {
@@ -49,7 +39,7 @@ export function ShareLinkDialog({ title, subtitle, value, onClose }: ShareLinkDi
       <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>{title}</p>
       {subtitle && <p style={{ color: "var(--jt-muted)", fontSize: 13, margin: "0 0 18px", lineHeight: 1.4 }}>{subtitle}</p>}
       <div
-        onClick={copyLink}
+        onClick={() => copyLink(value)}
         style={{
           cursor: "pointer",
           padding: "14px 16px",

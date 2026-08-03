@@ -73,7 +73,7 @@ function startRound(room: Room): { success?: true; error?: string } {
 // checked "jugar de nuevo" (player_ready), start the rematch automatically.
 // Also the only place that ever re-runs once a player is actually removed
 // (see roomHandlers.ts's schedulePlayerKick, called after the standard
-// 5-minute disconnect grace period) — a strict 1v1 game has no way to
+// 10-minute disconnect grace period) — a strict 1v1 game has no way to
 // continue, or even to resolve a pending rematch/reset vote, with only one
 // player left, so both cases get handled here instead of leaving the
 // remaining player staring at a "esperando a X" that can never resolve.

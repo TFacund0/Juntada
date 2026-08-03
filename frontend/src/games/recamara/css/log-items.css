@@ -133,7 +133,7 @@
   border-radius: 8px;
   text-align: center;
   box-shadow: var(--rec-shadow);
-  z-index: 60;
+  z-index: var(--jt-z-log-raised, 60);
   pointer-events: none;
   animation: rec-tooltip-in 0.15s ease-out;
 }
@@ -147,7 +147,7 @@
   transform: translateX(-50%);
   border: 6px solid transparent;
   border-top-color: var(--rec-live);
-  z-index: 60;
+  z-index: var(--jt-z-log-raised, 60);
   pointer-events: none;
 }
 

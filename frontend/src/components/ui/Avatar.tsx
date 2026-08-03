@@ -11,6 +11,15 @@ interface AvatarProps {
  * WS no relacionado (lo cual pasa en casi cada acción de un jugador en una
  * sala multijugador) no vuelva a renderizar cada avatar de la lista, solo
  * aquellos cuyas props realmente cambiaron.
+ *
+ * El div raíz es `inline-flex`, no `flex` a secas: `flex` es un box de
+ * nivel bloque, así que cuando se usa solo (sin nombre al lado, ej. un
+ * header de diálogo centrado) ignora el `text-align: center` del padre y
+ * queda pegado al borde izquierdo — el bug recurrente de "el avatar y el
+ * nombre no quedan alineados". `inline-flex` sigue centrando las iniciales
+ * puertas adentro y sigue comportándose igual como flex item dentro de
+ * cualquier fila (avatar + texto), pero además respeta el `text-align`
+ * heredado cuando es el único elemento centrado de un bloque.
  */
 export const Avatar = memo(function Avatar({ name, size = 40 }: AvatarProps) {
   const initials =
@@ -31,7 +40,7 @@ export const Avatar = memo(function Avatar({ name, size = 40 }: AvatarProps) {
         borderRadius: "50%",
         background: bg,
         color: "#fff",
-        display: "flex",
+        display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         fontWeight: 700,

@@ -114,6 +114,14 @@ export interface MultiplayerGameProps {
   // progress (see utils/returnToGroup's roomHasProgress). Null when there's
   // no active instance.
   onRoomPhaseChange?: (roomPhase: string | null) => void;
+  // Only meaningful for entryKind "room" — fires with the server-assigned
+  // code once a room actually exists (create/join landed), null once there's
+  // none. Lets the parent put the real code in the URL (see onGroupCodeChange
+  // below for the group equivalent).
+  onRoomCodeChange?: (code: string | null) => void;
+  // Only meaningful for entryKind "group" — same idea as onRoomCodeChange,
+  // for the group's own code.
+  onGroupCodeChange?: (code: string | null) => void;
   // Fires once the player has fully left the group (not just an instance
   // under it) — the group's own "menu" screen is indistinguishable from the
   // very first screen before ever connecting, so App.tsx needs this signal
@@ -246,7 +254,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     setConfirmLeaveGroup,
     openPlayerMenu,
     setOpenPlayerMenu,
-    playerMenuRef,
     lobbyTab,
     setLobbyTab,
     statusToast,
@@ -302,8 +309,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       />
     );
 
-  const reconnectBanner: null = null;
-
   // ── AUTO-CREATING A STANDALONE ROOM ── (see the auto-create effect above —
   // no form for this case, just a brief loading state while the room spins up)
   // ── MENU ──
@@ -326,7 +331,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
         <GroupEntryModal onClose={() => onLeaveGroup?.()}>
           <GroupEntryCard
             connectionPhase={connectionPhase}
-            reconnectBanner={reconnectBanner}
             error={error}
             errorKey={errorKey}
             playerName={playerName}
@@ -358,7 +362,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       <RoomEntryModal onClose={onExitRoomEntry ?? leave}>
         <RoomEntryCard
           connectionPhase={connectionPhase}
-          reconnectBanner={reconnectBanner}
           error={error}
           errorKey={errorKey}
           playerName={playerName}
@@ -394,7 +397,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
       <>
         <ScreenFade transitionKey="group" skipAnimation={skipFade}>
           <GroupScreen
-            reconnectBanner={reconnectBanner}
             group={group}
             myPlayerId={me?.playerId}
             isGroupHost={isGroupHost}
@@ -402,7 +404,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             onShowQR={setShowQR}
             openPlayerMenu={openPlayerMenu}
             onTogglePlayerMenu={setOpenPlayerMenu}
-            playerMenuRef={playerMenuRef}
             onTransferHost={id => {
               send({ type: "transfer_host", targetId: id });
               setOpenPlayerMenu(null);
@@ -447,14 +448,12 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             activeGame={activeGame}
             statusToast={statusToast}
             onStatusToastExpire={() => setStatusToast(null)}
-            reconnectBanner={reconnectBanner}
             showQR={showQR}
             onShowQR={setShowQR}
             lobbyTab={lobbyTab}
             onLobbyTabChange={setLobbyTab}
             openPlayerMenu={openPlayerMenu}
             onTogglePlayerMenu={setOpenPlayerMenu}
-            playerMenuRef={playerMenuRef}
             onTransferHost={id => {
               send({ type: "transfer_host", targetId: id });
               setOpenPlayerMenu(null);
@@ -494,7 +493,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
             statusToast={statusToast}
             onStatusToastExpire={() => setStatusToast(null)}
-            reconnectBanner={reconnectBanner}
             error={error}
             errorKey={errorKey}
           />

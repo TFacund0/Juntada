@@ -78,7 +78,7 @@ export function DialogFrame({
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
-        zIndex: 1000,
+        zIndex: "var(--jt-z-dialog, 1000)",
       }}
     >
       <div

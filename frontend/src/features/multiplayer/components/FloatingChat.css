@@ -5,7 +5,7 @@
 
 .jt-chatbubble {
   position: fixed;
-  z-index: 900;
+  z-index: var(--jt-z-chat-bubble, 900);
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -98,18 +98,13 @@
 .jt-chatoverlay {
   position: fixed;
   inset: 0;
-  z-index: 950;
+  z-index: var(--jt-z-chat-sheet, 950);
   background: rgba(15, 12, 29, 0.72);
   backdrop-filter: blur(3px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-}
-
-@media (min-width: 720px) {
-  .jt-chatoverlay {
-    align-items: center;
-  }
+  padding: 16px;
 }
 
 .jt-chatsheet {
@@ -118,20 +113,11 @@
   height: min(78vh, 640px);
   background: var(--jt-surface, #171329);
   border: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
-  border-bottom: none;
-  border-radius: 20px 20px 0 0;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: jt-chatsheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@media (min-width: 720px) {
-  .jt-chatsheet {
-    border-radius: 20px;
-    border-bottom: 1px solid var(--jt-card-border, rgba(127, 119, 221, 0.18));
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  }
 }
 
 @keyframes jt-chatsheet-in {

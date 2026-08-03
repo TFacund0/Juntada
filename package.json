@@ -10,13 +10,14 @@
   "scripts": {
     "dev:backend": "pnpm --filter @juntada/backend dev",
     "dev:frontend": "pnpm --filter @juntada/frontend dev",
-    "dev": "pnpm dev:backend && pnpm dev:frontend",
+    "dev": "pnpm --parallel -r --if-present run dev",
     "build:frontend": "pnpm --filter @juntada/frontend build",
     "start": "pnpm --filter @juntada/backend start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "test:e2e": "playwright test",
     "prepare": "husky"
   },
   "license": "UNLICENSED",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^26.1.1",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",

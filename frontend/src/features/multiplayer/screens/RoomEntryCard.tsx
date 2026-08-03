@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Btn } from "../../../components/ui/Btn";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { NamePillEditor } from "../../../components/shell/NamePillEditor";
@@ -21,7 +20,6 @@ import "./RoomEntryCard.css";
  */
 export function RoomEntryCard({
   connectionPhase,
-  reconnectBanner,
   error,
   errorKey,
   playerName,
@@ -42,7 +40,6 @@ export function RoomEntryCard({
   submitting,
 }: {
   connectionPhase: string;
-  reconnectBanner: ReactNode;
   error: string;
   errorKey: number;
   playerName: string;
@@ -81,7 +78,6 @@ export function RoomEntryCard({
         <NamePillEditor name={playerName} onSave={onSaveName} avatarSize={20} editing={editingName} onEditingChange={onEditingChange} />
       </div>
 
-      {reconnectBanner}
       <ErrorBanner message={error} flashKey={errorKey} variant="block" />
 
       <div className="jt-room-tabs" role="tablist">

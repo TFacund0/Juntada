@@ -43,7 +43,7 @@ export function NameOnboardingScreen({ onSave }: NameOnboardingScreenProps) {
                 value={nameDraft}
                 onChange={e => setNameDraft(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === "Enter") save();
+                  if (e.key === "Enter" && nameDraft.trim()) save();
                 }}
               />
               <p style={{ ...S.muted, textAlign: "center" }} className="jt-onboarding-hint">

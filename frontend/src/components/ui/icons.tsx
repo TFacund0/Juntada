@@ -125,6 +125,27 @@ export function CrownIcon({ size = 12, color = "currentColor", strokeWidth = 2 }
   );
 }
 
+/** Expulsar integrante — menú de opciones de GroupScreen. */
+export function UserMinusIcon({ size = 14, color = "currentColor", strokeWidth = 2 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: "block" }}
+    >
+      <path d="M13 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="7" cy="7" r="4" />
+      <line x1="17" y1="11" x2="23" y2="11" />
+    </svg>
+  );
+}
+
 /** Ícono de alerta — ConfirmDialog (tone="exit") y ErrorBanner. */
 export function AlertIcon({ size = 22, color = "currentColor", strokeWidth = 2 }: IconProps) {
   return (

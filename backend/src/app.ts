@@ -8,10 +8,27 @@ import { env } from "./env";
 const express = require("express");
 const cors = require("cors");
 const compression = require("compression");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const { createServer } = require("http");
 const { registerRoutes } = require("./http/routes");
 const { attachWebSocketServer } = require("./ws/server");
 const { Sentry, enabled: sentryEnabled } = require("./sentry");
+
+// Every route here is either /health or serving the built frontend (see
+// http/routes.ts) — there's no state-changing HTTP endpoint to protect
+// individually the way ws/server.ts's RATE_LIMITS does per message type.
+// This is just a blanket floor against a basic flood (a script hammering
+// /health, or scraping every static asset in a loop): generous enough that
+// a real page load — index.html plus its JS/CSS bundles — never comes close,
+// since those are also cached aggressively by the browser after the first
+// hit (see routes.ts's Cache-Control headers).
+const httpRateLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function createApp(): Server {
   const app = express();
@@ -20,11 +37,22 @@ function createApp(): Server {
   // directly. Left permissive unless CORS_ORIGIN is set, since local dev runs
   // the Vite frontend on a different port than the backend.
   app.use(cors(env.CORS_ORIGIN ? { origin: env.CORS_ORIGIN } : undefined));
+  // Baseline security headers (X-Content-Type-Options, frame-ancestors 'self',
+  // Referrer-Policy, etc.) at zero behavior risk — EXCEPT the
+  // Content-Security-Policy helmet enables by default, which is turned off
+  // here on purpose: its default style-src has no 'unsafe-inline', and this
+  // app's React components set `style={{...}}` everywhere (real inline
+  // style="..." attributes in the DOM) — enabling it as-is would silently
+  // strip every bit of inline styling in production. Revisit with a proper
+  // CSP (nonces or nailing down every directive this app actually needs)
+  // as its own dedicated piece of work, not bundled into "add helmet".
+  app.use(helmet({ contentSecurityPolicy: false }));
   // The built frontend (JS/CSS/HTML) is served straight from this Express
   // app with no CDN in front of it (see render.yaml) — without this, none
   // of it is compressed in transit, which matters most on the slow
   // connections this app is meant to be resilient to.
   app.use(compression());
+  app.use(httpRateLimiter);
   app.use(express.json());
   registerRoutes(app);
   // Must be wired after every route so it only catches what the routes

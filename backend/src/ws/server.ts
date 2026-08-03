@@ -137,7 +137,7 @@ function attachWebSocketServer(httpServer: Server) {
     }
     connectionsPerIp.set(ip, openFromIp);
 
-    clients.set(ws, { roomCode: null, playerId: null });
+    clients.set(ws, { groupCode: null, roomCode: null, playerId: null });
     ws.isAlive = true;
     ws.on("pong", () => {
       ws.isAlive = true;
@@ -162,6 +162,17 @@ function attachWebSocketServer(httpServer: Server) {
 
       const { ok, data, error } = validateMessage(msg);
       if (!ok) {
+        // Charged against the same blanket budget as any other untyped
+        // message below — without this, a message with an unknown type or a
+        // known type but corrupt payload always failed validateMessage
+        // before ever reaching a rate-limit check, so it could be sent as
+        // fast as the client liked (still cheap per-message — JSON.parse +
+        // a schema safeParse — but with nothing capping the rate) while a
+        // well-formed message of the same type gets throttled.
+        if (!isAllowed(`${ip}:global`, GLOBAL_MESSAGE_LIMIT.limit, GLOBAL_MESSAGE_LIMIT.windowMs)) {
+          sendError(ws, "RATE_LIMITED", "Estás yendo muy rápido, esperá un momento");
+          return;
+        }
         sendError(ws, "VALIDATION_ERROR", error);
         return;
       }

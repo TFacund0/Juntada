@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { S } from "../../../../theme/styles";
 import { Btn } from "../../../../components/ui/Btn";
-import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
+import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../../components/setup/StickyActionBar";
 import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
 import { RingTimerLive } from "../shared/RingTimer";
 import { DiscussionChat } from "./DiscussionChat";
@@ -52,7 +52,7 @@ export function DiscussionPhaseScreen({ room, myPlayer, send, round, config }: D
   const myReadyState = myPlayer?.ready;
   return (
     <PhaseTransition phaseKey="discussion">
-      <div style={{ paddingBottom: 88 }}>
+      <div style={{ paddingBottom: STICKY_ACTION_BAR_CLEARANCE }}>
         <style>{actionBtnStyle}</style>
 
         {!config.discussionUnlimited ? (

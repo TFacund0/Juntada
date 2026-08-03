@@ -1,4 +1,3 @@
-import type { ReactNode, RefObject } from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
@@ -45,14 +44,12 @@ export function LobbyScreen({
   activeGame,
   statusToast,
   onStatusToastExpire,
-  reconnectBanner,
   showQR,
   onShowQR,
   lobbyTab,
   onLobbyTabChange,
   openPlayerMenu,
   onTogglePlayerMenu,
-  playerMenuRef,
   onTransferHost,
   onKickPlayer,
   updateConfig,
@@ -66,14 +63,12 @@ export function LobbyScreen({
   activeGame: GameDef | undefined;
   statusToast: string | null;
   onStatusToastExpire: () => void;
-  reconnectBanner: ReactNode;
   showQR: boolean;
   onShowQR: (show: boolean) => void;
   lobbyTab: "players" | "config";
   onLobbyTabChange: (tab: "players" | "config") => void;
   openPlayerMenu: string | null;
   onTogglePlayerMenu: (id: string | null) => void;
-  playerMenuRef: RefObject<HTMLDivElement>;
   onTransferHost: (id: string) => void;
   onKickPlayer: (id: string) => void;
   updateConfig: (patch: Record<string, unknown>) => void;
@@ -170,7 +165,6 @@ export function LobbyScreen({
     <div className={`jt-lobby-root${isHost ? " jt-lobby-host-pad" : ""}`}>
       <div className="jt-lobby-glow jt-lobby-glow--a jt-animate-drift" aria-hidden="true" />
       <Toast message={statusToast} onExpire={onStatusToastExpire} />
-      {reconnectBanner}
 
       <div className="jt-lobby-grid jt-lobby-breakout">
         <div className="jt-lobby-col jt-thin-scrollbar" ref={colRef}>
@@ -268,7 +262,6 @@ export function LobbyScreen({
                         isHostPlayer={seat.player.id === room.hostId}
                         canManage={isHost && seat.player.id !== myPlayerId}
                         menuOpen={openPlayerMenu === seat.player.id}
-                        menuRef={playerMenuRef}
                         onToggleMenu={onTogglePlayerMenu}
                         onTransferHost={onTransferHost}
                         onKickPlayer={onKickPlayer}

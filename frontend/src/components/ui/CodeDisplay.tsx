@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 
 interface CodeDisplayProps {
   code: string;
@@ -10,12 +10,8 @@ interface CodeDisplayProps {
 
 /** Visualización grande del código de sala/grupo — tocarlo lo copia al portapapeles. */
 export function CodeDisplay({ code, compact = false, label = "SALA" }: CodeDisplayProps) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard?.writeText(code).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
+  const { copied, copy: copyToClipboard } = useCopyToClipboard();
+  const copy = () => copyToClipboard(code);
 
   if (compact) {
     return (
@@ -36,6 +32,7 @@ export function CodeDisplay({ code, compact = false, label = "SALA" }: CodeDispl
         <div>
           <p style={{ fontSize: 10, letterSpacing: "0.14em", color: "var(--jt-accent)", margin: 0, fontWeight: 700 }}>CÓDIGO</p>
           <p
+            data-testid="code-display"
             style={{
               fontSize: 20,
               fontWeight: 800,
@@ -70,6 +67,7 @@ export function CodeDisplay({ code, compact = false, label = "SALA" }: CodeDispl
         CÓDIGO DE {label}
       </p>
       <p
+        data-testid="code-display"
         style={{
           fontSize: 36,
           fontWeight: 800,

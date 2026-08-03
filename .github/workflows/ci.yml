@@ -43,3 +43,15 @@ jobs:
 
       - name: Build frontend
         run: pnpm build:frontend
+
+      # E2E (Playwright) no corre en CI: los specs que abren varios
+      # BrowserContexts con sockets reales (e2e/chat-visibilidad-online.spec.ts,
+      # e2e/flujo-dos-jugadores-grupo.spec.ts) cuelgan el renderer de
+      # chrome-headless-shell en el runner de ubuntu-latest sin ningún error
+      # — la traza queda en silencio total (sin red, consola ni video) justo
+      # después de que el WebSocket abre. Se investigó a fondo (trace de una
+      # corrida real: el socket conecta bien, el clic se ejecuta, y ahí el
+      # renderer deja de responder) sin encontrar la causa ni con
+      # --disable-dev-shm-usage (que Playwright ya agrega por defecto). Los
+      # specs siguen viviendo en e2e/ y corren bien en local — correrlos ahí
+      # (`pnpm test:e2e`) antes de mergear cambios de multiplayer/chat.
