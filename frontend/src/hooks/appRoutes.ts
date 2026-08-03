@@ -19,16 +19,24 @@ export interface ParsedRoute {
 }
 
 export function parseRoute(pathname: string): ParsedRoute {
-  const localMatch = pathname.match(/^\/game\/([^/]+)\/local$/);
+  // A trailing slash (hand-edited URL, some proxy/middleware normalizing it
+  // in) isn't a path this scheme ever produces itself (buildPath never
+  // appends one) but none of the regexes below tolerate it either — every
+  // one of them anchors on `$` right after the last segment, so e.g.
+  // "/room/impostor/" silently fell through to the `home` fallback instead
+  // of being treated the same as "/room/impostor".
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+  const localMatch = path.match(/^\/game\/([^/]+)\/local$/);
   if (localMatch) return { gameId: localMatch[1], mode: "local", groupFlow: false, code: null };
 
-  const gameMatch = pathname.match(/^\/game\/([^/]+)$/);
+  const gameMatch = path.match(/^\/game\/([^/]+)$/);
   if (gameMatch) return { gameId: gameMatch[1], mode: null, groupFlow: false, code: null };
 
-  const roomMatch = pathname.match(/^\/room\/([^/]+)(?:\/([^/]+))?$/);
+  const roomMatch = path.match(/^\/room\/([^/]+)(?:\/([^/]+))?$/);
   if (roomMatch) return { gameId: roomMatch[1], mode: "multi", groupFlow: false, code: roomMatch[2] ?? null };
 
-  const groupMatch = pathname.match(/^\/group(?:\/([^/]+))?$/);
+  const groupMatch = path.match(/^\/group(?:\/([^/]+))?$/);
   if (groupMatch) return { gameId: null, mode: "multi", groupFlow: true, code: groupMatch[1] ?? null };
 
   return { gameId: null, mode: null, groupFlow: false, code: null };
