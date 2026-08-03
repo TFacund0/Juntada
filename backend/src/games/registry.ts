@@ -26,7 +26,7 @@
 //                         let maybeAdvance take it from there.
 //
 // Generic room concerns (players, host, connect/kick/config) live in
-// src/rooms/roomService.js and never need to change when a new game is added.
+// src/rooms/roomService.ts and never need to change when a new game is added.
 
 import type { GameEngine } from "./engineTypes";
 

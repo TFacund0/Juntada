@@ -243,7 +243,7 @@ function advanceToNextTurn(room: Room): void {
   startTurnChoosing(room, r.turnQueue[0]);
 }
 
-// The drawer disconnecting for good (kicked, or the 5-minute auto-kick) mid-
+// The drawer disconnecting for good (kicked, or the 10-minute auto-kick) mid-
 // turn leaves nothing honest left to finish — nobody else can draw for them,
 // so skip straight to the next turn instead of waiting out a timer that can
 // never resolve normally.

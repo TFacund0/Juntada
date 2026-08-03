@@ -211,7 +211,7 @@ const engine: GameEngine = {
   getRevealMessage,
   // maybeAdvance here is entirely turn-skip (no vote/ready count to protect
   // from a premature exclusion), so it's safe to also run it immediately on
-  // disconnect instead of waiting out the 5-minute auto-kick grace period —
+  // disconnect instead of waiting out the 10-minute auto-kick grace period —
   // same reasoning as impostor's onPlayerOffline.
   onPlayerOffline: maybeAdvance,
 };

@@ -4,9 +4,8 @@
 // backend imports it at runtime to validate every inbound message
 // (backend/src/ws/validation.ts), and ClientMessage below is derived straight
 // from it via z.infer so the type can never drift from what's actually
-// enforced. Everything else here (Room/Player/ServerMessage) is currently
-// hand-written to match backend/src/ws/messaging.js — as that file migrates
-// to TS it should import these instead of re-declaring the shapes.
+// enforced. Everything else here (Room/Player/ServerMessage) is hand-written
+// to match backend/src/ws/messaging.ts, which imports these directly.
 
 import { z } from "zod";
 

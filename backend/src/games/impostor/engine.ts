@@ -517,7 +517,7 @@ function maybeAdvance(room: Room): void {
 
   // Merely offline isn't enough to abort — that just means they dropped and
   // might reconnect any second (see roomHandlers.ts's schedulePlayerKick,
-  // which gives every disconnected player a 5-minute grace period before
+  // which gives every disconnected player a 10-minute grace period before
   // actually removing them from room.players). Only a genuinely *gone*
   // impostor (kicked, by timeout or by the host) makes the round impossible
   // to finish honestly.
@@ -758,7 +758,7 @@ function getPhaseTimerEnd(room: Room): number | null {
   return null;
 }
 
-// Turn order can't wait out the 5-minute auto-kick grace period just because
+// Turn order can't wait out the 10-minute auto-kick grace period just because
 // it's currently the disconnected player's turn — unlike a vote/ready
 // count, skipping a turn costs them nothing permanent (the comment on
 // skipOfflineTurns above still applies: they get their turn back next lap
