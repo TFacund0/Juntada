@@ -5,7 +5,7 @@
 
 .jt-chatbubble {
   position: fixed;
-  z-index: 900;
+  z-index: var(--jt-z-chat-bubble, 900);
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -98,7 +98,7 @@
 .jt-chatoverlay {
   position: fixed;
   inset: 0;
-  z-index: 950;
+  z-index: var(--jt-z-chat-sheet, 950);
   background: rgba(15, 12, 29, 0.72);
   backdrop-filter: blur(3px);
   display: flex;

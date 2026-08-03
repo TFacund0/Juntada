@@ -68,7 +68,7 @@ function GuessFlash({ correct }: { correct: boolean }) {
           position: "fixed",
           top: "50%",
           left: "50%",
-          zIndex: 2000,
+          zIndex: "var(--jt-z-round-overlay, 500)",
           pointerEvents: "none",
           background: `color-mix(in srgb, ${color} 15%, transparent)`,
           border: `1px solid color-mix(in srgb, ${color} 50%, transparent)`,

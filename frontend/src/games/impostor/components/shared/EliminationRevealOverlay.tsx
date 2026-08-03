@@ -40,7 +40,7 @@ function RevealModal({ borderColor, onContinue, children }: { borderColor: strin
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
-        zIndex: 1000,
+        zIndex: "var(--jt-z-round-overlay, 500)",
         animation: "reveal-overlay-fade 0.2s ease-out",
       }}
     >

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { S } from "../../../../theme/styles";
 import { Btn } from "../../../../components/ui/Btn";
+import { STICKY_ACTION_BAR_CLEARANCE } from "../../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../../gameTypes";
 
 interface DiscussionChatProps {
@@ -31,7 +32,7 @@ export function DiscussionChat({ chat, myPlayerId, send }: DiscussionChatProps) 
   };
 
   return (
-    <div style={S.card}>
+    <div style={{ ...S.card, marginBottom: STICKY_ACTION_BAR_CLEARANCE }}>
       <style>{`
         .impostor-discussion-chat-scroll {
           scrollbar-width: none;
