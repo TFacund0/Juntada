@@ -65,6 +65,26 @@
   --jt-danger-bg: rgba(226, 75, 74, 0.1);
   --jt-danger-border: rgba(226, 75, 74, 0.3);
   --jt-warn-text: #e2c44a;
+
+  /* Escala de z-index compartida por toda la app. El chat flotante
+     (FloatingChat) queda arriba de los overlays de fin-de-ronda (elimination
+     reveal de impostor, guess flash de quien-soy) a propósito, para que
+     nunca quede tapado durante una partida — esos overlays no necesitan un
+     z-index alto para sus animaciones, solo ganarle a sus hermanos dentro
+     de su propia pantalla. Diálogos/toasts/recuperación de sesión siguen
+     por encima del chat así pueden taparlo cuando corresponde. */
+  --jt-z-sticky-bar: 10;
+  --jt-z-header: 20;
+  --jt-z-modal-catch: 40;
+  --jt-z-log-raised: 60;
+  --jt-z-fullscreen-flash: 200;
+  --jt-z-round-overlay: 500;
+  --jt-z-chat-bubble: 900;
+  --jt-z-chat-sheet: 950;
+  --jt-z-dialog: 1000;
+  --jt-z-toast: 2000;
+  --jt-z-app-update: 3000;
+  --jt-z-curtain: 9999;
 }
 
 /* Compensa el navbar fijo (AppHeader, gameId/groupFlow) en las pantallas de

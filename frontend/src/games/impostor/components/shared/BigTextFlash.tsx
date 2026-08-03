@@ -16,7 +16,7 @@ export function BigTextFlash({ eyebrow, text }: BigTextFlashProps) {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 200,
+        zIndex: "var(--jt-z-fullscreen-flash, 200)",
         background: "#0a0a0a",
         display: "flex",
         alignItems: "center",

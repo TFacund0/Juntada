@@ -1,5 +1,6 @@
 import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
+import { STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import { Timer } from "../../../components/game-kit/Timer";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { TURN_SECONDS } from "@juntada/rayado-libre-scoring";
@@ -116,7 +117,7 @@ export function DrawingPhaseScreen({
           (alreadyGuessed ? (
             <p style={{ ...S.muted, textAlign: "center" }}>Ya adivinaste esta ronda — esperá a que termine el turno.</p>
           ) : (
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, paddingBottom: STICKY_ACTION_BAR_CLEARANCE }}>
               <input
                 style={{ ...S.input, flex: 1 }}
                 placeholder="Tu respuesta..."

@@ -107,7 +107,7 @@ export function SessionRecoveryOverlay({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 2000,
+        zIndex: "var(--jt-z-toast, 2000)",
         background: "#0f0c1d",
         display: "flex",
         flexDirection: "column",

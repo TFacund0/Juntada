@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { GAME_THEMES, type GameTheme } from "../theme/gameThemes";
 import type { GameDef } from "../games/gameTypes";
 
@@ -63,8 +63,14 @@ export function useGameTheme(game: GameDef | null | undefined, inGameView: boole
    * sincronizado acá en vez de en `index.html` porque el tema solo se conoce
    * en tiempo de ejecución, y se resetea al desmontar para que salir del
    * juego con tema propio no deje el tinte puesto para la próxima pantalla.
+   *
+   * `useLayoutEffect`, no `useEffect`: un `useEffect` corre (y limpia) recién
+   * después de que el navegador ya pintó el commit que lo disparó, así que
+   * salir de un juego con tema propio (ej. Impostor, rojo) dejaba un frame
+   * pintable con la pantalla nueva ya montada pero el fondo/tema-color viejo
+   * todavía puesto — un flash intermitente del color del juego anterior.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     const bg = (activeTheme?.app.background as string | undefined) ?? "#0f0c1d";
     document.body.style.background = bg;
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bg);
@@ -86,8 +92,14 @@ export function useGameTheme(game: GameDef | null | undefined, inGameView: boole
    * las variables vuelven a los valores por defecto de `:root` en
    * `sharedChrome.css` (el look normal de la app, para todo juego sin tema
    * propio).
+   *
+   * `useLayoutEffect` por el mismo motivo que el efecto de arriba: limpiar
+   * estas variables recién después del pintado dejaba pasar un frame con la
+   * pantalla siguiente ya montada pero `--jt-accent`/`--jt-bg` todavía en el
+   * color del tema anterior — ese es el flash rojo intermitente al salir de
+   * Impostor hacia cualquier pantalla compartida (ModePicker → sala online).
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!activeTheme) return;
     const root = document.documentElement.style;
     const vars = chromeVarsFor(activeTheme);

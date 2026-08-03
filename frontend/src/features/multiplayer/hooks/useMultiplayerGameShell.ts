@@ -242,9 +242,18 @@ export function useMultiplayerGameShell({
 
   // The server's room.gameType is the only source of truth for which game
   // is actually active — surface it upward as soon as it's known, and clear
-  // it back to null once there's no active instance (group screen).
+  // it back to null once there's no active instance (group screen). The
+  // cleanup matters as much as the effect itself: "Volver" from inside a
+  // room unmounts this whole shell directly (App.tsx's goBack/confirmGoBack)
+  // without ever going through `leave()`'s `setRoom(null)`, so without this
+  // cleanup the parent's `inRoom` flag stayed stuck at `true` past the
+  // unmount — the next time the player re-entered online mode for the same
+  // themed game, useAppNavigation's `inGameView` briefly read stale-true and
+  // useGameTheme flashed that game's theme colors for a commit before the
+  // fresh shell's own effect corrected it.
   useEffect(() => {
     onGameTypeChange?.(room?.gameType ?? null);
+    return () => onGameTypeChange?.(null);
   }, [room?.gameType, onGameTypeChange]);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 .jt-app-update-overlay {
   position: fixed;
   inset: 0;
-  z-index: 3000;
+  z-index: var(--jt-z-app-update, 3000);
   background: #0f0c1d;
   display: flex;
   flex-direction: column;
