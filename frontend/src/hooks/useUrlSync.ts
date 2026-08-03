@@ -52,18 +52,25 @@ export function useUrlSync(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId, mode, groupFlow, roomCode, groupCode]);
 
-  // Pushes the checkpoint entry described above exactly once per "entering
-  // something worth protecting" — not tied to the path-sync effect above,
-  // since midRound can flip true without the path itself changing (e.g. an
-  // online room's phase moving from "lobby" to an actual round doesn't
-  // change /room/:gameId/:code at all).
+  // Pushes the checkpoint entry described above the first time midRound ever
+  // turns true — not tied to the path-sync effect above, since midRound can
+  // flip true without the path itself changing (e.g. an online room's phase
+  // moving from "lobby" to an actual round doesn't change /room/:gameId/:code
+  // at all).
+  //
+  // This only ever fires once per mount, not once per round: the popstate
+  // listener below already re-pushes the same checkpoint on top of history
+  // every time a stray back gesture consumes it while midRound is true, so
+  // that one entry keeps the "something to land on" layer alive indefinitely
+  // on its own. Re-pushing on every false→true cycle (leaving then re-
+  // entering a round) used to stack a fresh, never-consumed entry each time
+  // instead, so a player who played several rounds needed one "back" tap per
+  // round just to leave the app.
   const hadCheckpointRef = useRef(false);
   useEffect(() => {
     if (midRound && !hadCheckpointRef.current) {
       navigate(expectedPathRef.current, { replace: false });
       hadCheckpointRef.current = true;
-    } else if (!midRound) {
-      hadCheckpointRef.current = false;
     }
   }, [midRound, navigate]);
 
