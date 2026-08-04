@@ -202,6 +202,31 @@ function drawLiveSegment(ctx: CanvasRenderingContext2D, from: [number, number], 
 }
 
 /**
+ * Compara dos {@link DrawAction} por valor — usado por `paintIncremental`
+ * (ver {@link Canvas}) para decidir si `strokes` sigue siendo una extensión
+ * simple de lo ya pintado, sin depender de identidad de objeto (que no
+ * sobrevive un viaje por WebSocket: cada mensaje llega deserializado con
+ * `JSON.parse`, que crea objetos nuevos aunque el contenido sea igual).
+ *
+ * @param a Primera acción a comparar.
+ * @param b Segunda acción a comparar.
+ * @returns `true` si representan exactamente el mismo trazo, relleno o clear.
+ */
+function actionsEqual(a: DrawAction, b: DrawAction): boolean {
+  if (a === b) return true;
+  if (a.type !== b.type) return false;
+  if (a.type === "stroke" && b.type === "stroke") {
+    if (a.color !== b.color || a.size !== b.size || a.strokeId !== b.strokeId || a.points.length !== b.points.length) return false;
+    for (let i = 0; i < a.points.length; i++) {
+      if (a.points[i][0] !== b.points[i][0] || a.points[i][1] !== b.points[i][1]) return false;
+    }
+    return true;
+  }
+  if (a.type === "fill" && b.type === "fill") return a.x === b.x && a.y === b.y && a.color === b.color;
+  return a.type === "clear"; // ambos son "clear" acá (mismo `type`, sin más campos que comparar)
+}
+
+/**
  * Interpreta y pinta una única acción del historial de dibujo (`stroke`,
  * `fill` o `clear`) sobre el contexto dado.
  *
@@ -275,7 +300,13 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
    * @param toPaint Historial actual a reflejar en pantalla.
    */
   const paintIncremental = (ctx: CanvasRenderingContext2D, prev: DrawAction[], toPaint: DrawAction[]) => {
-    const isIncrementalExtension = toPaint.length >= prev.length && prev.every((action, i) => action === toPaint[i]);
+    // Comparación por valor, no por referencia: en el modo online `strokes`
+    // llega serializado por WebSocket (JSON.parse en cada mensaje genera
+    // objetos nuevos aunque el contenido no cambió), así que `===` daba
+    // siempre `false` y forzaba el repintado completo (blanqueo + replay de
+    // todo el historial) en cada chunk de red mientras se dibujaba — visible
+    // como un parpadeo del trazo.
+    const isIncrementalExtension = toPaint.length >= prev.length && prev.every((action, i) => actionsEqual(action, toPaint[i]));
     if (!isIncrementalExtension) {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
