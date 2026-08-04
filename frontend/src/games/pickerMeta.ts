@@ -17,7 +17,7 @@ export const PICKER_META: Record<string, { tagline: string; minutes: string; pla
   "quien-soy": { tagline: "Adiviná tu personaje con preguntas.", minutes: "12 min", players: "2-16 jugadores" },
   "limon-limon": { tagline: "Ritmo, memoria y nervios de acero.", minutes: "8 min", players: "2-16 jugadores" },
   "torneo-futbol": { tagline: "Armá tu equipo y jugá el campeonato.", minutes: "20 min", players: "2-16 jugadores" },
-  "rayado-libre": { tagline: "Dibujen, adivinen y ríanse un rato.", minutes: "15 min", players: "3-16 jugadores" },
+  "rayado-libre": { tagline: "Dibujen, adivinen y ríanse un rato.", minutes: "15 min", players: "2-16 jugadores" },
   recamara: { tagline: "Ruleta rusa de preguntas y prendas.", minutes: "10 min", players: "2-16 jugadores" },
   ahorcado: { tagline: "Adiviná la palabra letra por letra.", minutes: "10 min", players: "2-16 jugadores" },
   bomba: { tagline: "Pasala antes de que explote.", minutes: "10 min", players: "3-16 jugadores" },

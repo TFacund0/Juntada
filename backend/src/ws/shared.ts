@@ -52,9 +52,7 @@ function syncPhaseTimer(room: Room): void {
     if (!r || r.phase !== expectedPhase) return;
     const eng = getEngine(r.gameType);
     eng?.forceReadyAndAdvance?.(r);
-    broadcastToRoom(r, ws2 => {
-      sendTo(ws2, { type: "state", room: getRoomPublicState(r) });
-    });
+    broadcastStateAndPrivateInfo(r);
     if (r.phase === "result") broadcastRoundReveal(r);
     syncPhaseTimer(r);
   }, delay);
@@ -65,6 +63,24 @@ function broadcastToRoom(room: Room, message: (ws2: WS, info: ClientInfo) => voi
   for (const [ws2, i2] of clients) {
     if (i2.roomCode === room.code && ws2.readyState === WebSocket.OPEN) message(ws2, i2);
   }
+}
+
+// The public "state" plus each player's own "private_role" — every place
+// that changes a room's phase/round needs both (a phase change can hand a
+// player fresh private info: a new secret word, a reassigned role, ...), so
+// this is the one place that pairs them instead of every call site
+// re-deriving the same two-message broadcast. Resolves the engine and the
+// public state once per call (not once per player) — an N-player room used
+// to redo both inside the per-client loop.
+function broadcastStateAndPrivateInfo(room: Room): void {
+  const engine = getEngine(room.gameType);
+  const stateMessage = { type: "state" as const, room: getRoomPublicState(room) };
+  broadcastToRoom(room, (ws2, i2) => {
+    sendTo(ws2, stateMessage);
+    if (!i2.playerId) return;
+    const view = engine?.getPrivateView(room, i2.playerId);
+    if (view) sendTo(ws2, { type: "private_role", ...view });
+  });
 }
 
 // A player might just be flipping back to a chat app to answer a text, or
@@ -191,6 +207,7 @@ module.exports = {
   stopTimer,
   syncPhaseTimer,
   broadcastToRoom,
+  broadcastStateAndPrivateInfo,
   cleanupRoomIfEmpty,
   releaseStaleIdentity,
   scheduleOfflineReaction,

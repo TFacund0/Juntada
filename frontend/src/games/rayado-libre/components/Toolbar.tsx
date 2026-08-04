@@ -9,14 +9,19 @@ interface ToolbarProps {
   onChange: (tool: Tool) => void;
   onClear: () => void;
   onUndo: () => void;
+  /** Sin el `S.card` propio — para cuando un padre ya lo envuelve junto al
+   * canvas en un único tablero (ver DrawingPhaseScreen), en vez de quedar
+   * como una tarjeta separada debajo. Default false: el modo local sigue
+   * viéndose exactamente igual que antes. */
+  bare?: boolean;
 }
 
 // Fixed palette (no free color picker) and a handful of stroke sizes — kept
 // deliberately small so it fits comfortably on a phone screen above/below
 // the board without scrolling.
-export function Toolbar({ tool, onChange, onClear, onUndo }: ToolbarProps) {
+export function Toolbar({ tool, onChange, onClear, onUndo, bare = false }: ToolbarProps) {
   return (
-    <div style={{ ...S.card, marginTop: 10 }}>
+    <div style={bare ? undefined : { ...S.card, marginTop: 10 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         {PALETTE.map(color => (
           <button

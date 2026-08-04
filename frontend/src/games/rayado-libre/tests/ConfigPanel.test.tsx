@@ -66,4 +66,14 @@ describe("Rayado Libre ConfigPanel", () => {
     await user.click(screen.getByRole("button", { name: "5" }));
     expect(updateConfig).toHaveBeenCalledWith({ totalRounds: 5 });
   });
+
+  test("adding a custom word sends the full updated list", async () => {
+    const user = userEvent.setup();
+    const updateConfig = vi.fn();
+    render(<ConfigPanel room={makeRoom({ customWords: ["Ya existente"] })} updateConfig={updateConfig} />);
+
+    await user.type(screen.getByPlaceholderText("Escribí una palabra o frase corta"), "Nueva");
+    await user.click(screen.getByText("Agregar"));
+    expect(updateConfig).toHaveBeenCalledWith({ customWords: ["Ya existente", "Nueva"] });
+  });
 });

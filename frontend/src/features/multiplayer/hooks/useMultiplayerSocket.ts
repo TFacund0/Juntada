@@ -437,21 +437,40 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
         } else if (msg.type === "word_reveal") {
           setWordReveal(msg);
         } else if (msg.type === "error") {
-          flashError(msg.message);
           if (msg.code === "REJOIN_FAILED" || msg.code === "REJOIN_GROUP_FAILED") {
-            // The room/group this session pointed at is gone — not a flaky
-            // connection, nothing left to retry. Covers both a cold start
-            // (reload after the host ended the game) and a live drop that
-            // reconnects into a room that ended while this player was
-            // offline. Deliberately doesn't clear me/groupMe here (that's
-            // what tells the "gone" overlay whether to say "sala" or
-            // "grupo") — the actual session/localStorage cleanup happens
-            // once the player dismisses it via leave().
+            // The room/group this session pointed at is gone. Two very
+            // different situations share this error code:
+            //   - a live drop reconnecting mid-session (the player was
+            //     actively in the room/group when it vanished) — worth an
+            //     explicit "gone" overlay, since dropping them silently
+            //     would be disorienting.
+            //   - a silent background auto-rejoin on mount (coldStart), from
+            //     a session left over in localStorage from a much earlier
+            //     visit whose room/group was already cleaned up server-side
+            //     — the player never asked to reconnect to anything, so
+            //     blocking their "crear sala nueva" flow with a "ya no
+            //     existe" screen (or even a flash toast) makes no sense.
+            //     Just forget the stale session and let them land on the
+            //     normal menu.
+            if (coldStartRef.current) {
+              setMe(null);
+              setRoom(null);
+              setGroupMe(null);
+              setGroup(null);
+              setConnectionPhase("menu");
+              setColdStart(false);
+            } else {
+              flashError(msg.message);
+              // Deliberately doesn't clear me/groupMe here (that's what
+              // tells the "gone" overlay whether to say "sala" or "grupo")
+              // — the actual session/localStorage cleanup happens once the
+              // player dismisses it via leave().
+              setSessionGone(true);
+            }
             setReconnecting(false);
             setReconnectAttempt(0);
             setReconnectFailed(false);
             setRejoinChoicePending(false);
-            setSessionGone(true);
           } else if (!roomRef.current && !(groupSessionEnabled && groupMeRef.current)) {
             // Failed before ever landing in a room/group — a fresh join
             // with a bad code, typed by the user on the join screen. Never
@@ -465,11 +484,13 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
             // "already in something" branch below and leaves the error
             // banner up with connectionPhase stuck instead of resetting to
             // the join form.
+            flashError(msg.message);
             setMe(null);
             setRoom(null);
             setConnectionPhase(prev => (prev === "menu" || prev === "create" || prev === "join" ? prev : "join"));
             setColdStart(false);
           } else {
+            flashError(msg.message);
             setColdStart(false);
           }
         } else if (msg.type === "room_preview") {

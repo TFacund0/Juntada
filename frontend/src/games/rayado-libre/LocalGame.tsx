@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { RevealCountdown, useRevealCountdown } from "../../components/game-kit/RevealCountdown";
+import { useRevealCountdown } from "../../components/game-kit/RevealCountdown";
 import type { SetupTab } from "../../components/setup/SetupTabs";
 import { useFlashError } from "../../hooks/useFlashError";
 import { shuffle } from "@juntada/core-utils";
@@ -13,6 +13,7 @@ import { WordRevealScreen } from "./components/WordRevealScreen";
 import { LocalDrawingScreen } from "./components/LocalDrawingScreen";
 import { LocalRevealScreen } from "./components/LocalRevealScreen";
 import { LocalResultScreen } from "./components/LocalResultScreen";
+import { InkSweepReveal } from "./components/InkSweepReveal";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RAYADO LIBRE — modo local: pantalla compartida + juez manual. Un solo
@@ -31,12 +32,19 @@ import { LocalResultScreen } from "./components/LocalResultScreen";
 // Same pool/pick algorithm the backend engine uses (see
 // @juntada/rayado-libre-data) — this just adapts it to LocalGame's plain
 // ref-array bookkeeping instead of room.usedWords, so the two can't drift.
-function pickThreeWords(activeCatKeys: string[], usedWordsRef: { current: string[] }): string[] {
-  const pool = activeWordPool(CATEGORIES, activeCatKeys);
+// `customWords` folds in the host's own words the same way the engine does
+// (see engine.ts's own pickThreeWords), on top of the active categories.
+function pickThreeWords(activeCatKeys: string[], usedWordsRef: { current: string[] }, customWords: string[]): string[] {
+  const pool = [...activeWordPool(CATEGORIES, activeCatKeys), ...customWords];
   const { words, resetUsed } = pickThreeWordsFromPool(pool, usedWordsRef.current);
   if (resetUsed) usedWordsRef.current = [];
   return words;
 }
+
+// Costo en segundos de pedir otra palabra a mitad de turno — mismo valor y
+// misma razón que REROLL_TIME_PENALTY_SECONDS en el motor online (ver
+// engine.ts): se descuenta del timer en vez de arrancar uno nuevo.
+const REROLL_TIME_PENALTY_SECONDS = 15;
 
 export function LocalGame() {
   const [phase, setPhase] = useState<LocalGamePhase>("setup");
@@ -52,6 +60,7 @@ export function LocalGame() {
     Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {} as Record<string, boolean>),
   );
   const [totalRounds, setTotalRounds] = useState(3);
+  const [customWords, setCustomWords] = useState<string[]>([]);
 
   const [turnQueue, setTurnQueue] = useState<number[]>([]);
   const [totalTurns, setTotalTurns] = useState(0);
@@ -64,6 +73,7 @@ export function LocalGame() {
   const [correctGuessers, setCorrectGuessers] = useState<number[]>([]);
   const [lastTurnPoints, setLastTurnPoints] = useState<Record<number, number>>({});
   const [strokes, setStrokes] = useState<DrawAction[]>([]);
+  const [rerollUsed, setRerollUsed] = useState(false);
   const [tool, setTool] = useState<Tool>({ mode: "draw", color: "#1a1a1a", size: 10 });
   const [drawingStartedAt, setDrawingStartedAt] = useState<number | null>(null);
   const hintOrderRef = useRef<number[]>([]);
@@ -103,7 +113,7 @@ export function LocalGame() {
   const activeCatKeys = Object.keys(enabledCategories).filter(k => enabledCategories[k]);
 
   const startTurn = (id: number) => {
-    const choices = pickThreeWords(activeCatKeys, usedWordsRef);
+    const choices = pickThreeWords(activeCatKeys, usedWordsRef, customWords);
     setDrawerId(id);
     setWordChoices(choices);
     setWord(null);
@@ -112,6 +122,7 @@ export function LocalGame() {
     setCorrectGuessers([]);
     setTimerEnd(null);
     setLastTurnPoints({});
+    setRerollUsed(false);
     setPhase("wordReveal");
   };
 
@@ -138,6 +149,22 @@ export function LocalGame() {
 
   const finishTurn = () => {
     setPhase("reveal");
+  };
+
+  // Réplica a mano de "reroll_word" del motor online (ver su comentario en
+  // engine.ts): solo antes de que alguien acierte, solo una vez por turno,
+  // penalizando el timer en vez de arrancar uno nuevo.
+  const rerollWord = () => {
+    if (rerollUsed || correctGuessers.length > 0 || !word) return;
+    usedWordsRef.current = [...usedWordsRef.current, word];
+    const candidates = pickThreeWords(activeCatKeys, usedWordsRef, customWords);
+    const newWord = candidates.find(w => w !== word) ?? candidates[0];
+    setWord(newWord);
+    setStrokes([]);
+    setTimerEnd(t => (t == null ? t : Math.max(Date.now(), t - REROLL_TIME_PENALTY_SECONDS * 1000)));
+    setDrawingStartedAt(Date.now());
+    hintOrderRef.current = buildHintOrder(newWord);
+    setRerollUsed(true);
   };
 
   const goToNextTurn = () => {
@@ -214,6 +241,8 @@ export function LocalGame() {
         setEnabledCategories={setEnabledCategories}
         totalRounds={totalRounds}
         setTotalRounds={setTotalRounds}
+        customWords={customWords}
+        setCustomWords={setCustomWords}
         activeCatKeys={activeCatKeys}
         startGame={startGame}
       />
@@ -252,6 +281,8 @@ export function LocalGame() {
         correctGuessers={correctGuessers}
         lastTurnPoints={lastTurnPoints}
         markCorrect={markCorrect}
+        rerollAvailable={!rerollUsed && correctGuessers.length === 0}
+        onReroll={rerollWord}
       />
     );
   }
@@ -274,6 +305,6 @@ export function LocalGame() {
   }
 
   // ── RESULT ──
-  if (revealCount > 0) return <RevealCountdown count={revealCount} label="Revelando la tabla final..." />;
+  if (revealCount > 0) return <InkSweepReveal count={revealCount} label="Revelando la tabla final..." />;
   return <LocalResultScreen players={players} scores={scores} backToSetup={backToSetup} />;
 }

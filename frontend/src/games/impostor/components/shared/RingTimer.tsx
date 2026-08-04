@@ -1,4 +1,5 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo } from "react";
+import { useCountdownSeconds, timerUrgencyColor } from "../../../../components/game-kit/useCountdownSeconds";
 
 const RADIUS = 88;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -20,7 +21,7 @@ interface RingTimerProps {
 export function RingTimer({ timeLeft, total, label = "Tiempo" }: RingTimerProps) {
   const urgent = timeLeft > 0 && timeLeft <= 5;
   const progress = total > 0 ? Math.max(0, Math.min(1, timeLeft / total)) : 0;
-  const color = timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5";
+  const color = timerUrgencyColor(timeLeft);
 
   return (
     <div
@@ -85,30 +86,6 @@ export function RingTimer({ timeLeft, total, label = "Tiempo" }: RingTimerProps)
       </div>
     </div>
   );
-}
-
-// Online only ever has an end timestamp (the server owns the clock), not a
-// locally-ticked seconds count like LocalGame's own timeLeft state — ticks
-// its own countdown from that timestamp (same approach as the shared Timer
-// component) every 500ms. Shared by RingTimerLive below (feeds the result
-// into the ring) and anywhere else that just needs the raw number without
-// the full ring visual (e.g. a countdown inline inside an alert banner).
-export function useCountdownSeconds(timerEnd: number, total?: number): { secs: number; total: number } {
-  const [secs, setSecs] = useState(0);
-  const totalRef = useRef(total || 1);
-
-  useEffect(() => {
-    totalRef.current = total || Math.max(1, Math.ceil((timerEnd - Date.now()) / 1000));
-  }, [timerEnd, total]);
-
-  useEffect(() => {
-    const tick = () => setSecs(Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000)));
-    tick();
-    const id = setInterval(tick, 500);
-    return () => clearInterval(id);
-  }, [timerEnd]);
-
-  return { secs, total: totalRef.current };
 }
 
 interface RingTimerLiveProps {

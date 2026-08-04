@@ -64,18 +64,26 @@ const FLUSH_INTERVAL_MS = 60;
  * @param canvas Elemento canvas sobre el que se está dibujando.
  * @param clientX Coordenada X del evento de puntero, relativa al viewport.
  * @param clientY Coordenada Y del evento de puntero, relativa al viewport.
- * @returns El punto `[x, y]` en coordenadas del tablero, o `null` si el
- * canvas está momentáneamente medido a tamaño cero (por ejemplo, en medio de
- * una transición de fase o antes de que el layout se estabilice) — dividir
- * por un ancho/alto cero produciría puntos `NaN` que el schema del servidor
- * rechazaría en silencio, descartando el trazo sin avisarle a quien dibuja.
+ * @returns El punto `[x, y]` en coordenadas del tablero (recortado a sus
+ * límites — ver nota abajo), o `null` si el canvas está momentáneamente
+ * medido a tamaño cero (por ejemplo, en medio de una transición de fase o
+ * antes de que el layout se estabilice) — dividir por un ancho/alto cero
+ * produciría puntos `NaN` que el schema del servidor rechazaría en
+ * silencio, descartando el trazo sin avisarle a quien dibuja.
  */
 function toCanvasCoords(canvas: HTMLCanvasElement, clientX: number, clientY: number): [number, number] | null {
   const rect = canvas.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return null;
   const x = ((clientX - rect.left) / rect.width) * CANVAS_WIDTH;
   const y = ((clientY - rect.top) / rect.height) * CANVAS_HEIGHT;
-  return [x, y];
+  // `setPointerCapture` (ver handlePointerDown) hace que el puntero siga
+  // mandando `pointermove` aunque salga del canvas, y por spec suprime
+  // `pointerleave` mientras dura la captura — sin este recorte, arrastrar el
+  // cursor fuera del tablero mid-trazo generaba puntos negativos o mayores a
+  // CANVAS_WIDTH/HEIGHT, que se guardaban igual (el schema del servidor solo
+  // valida que sean números finitos, no que estén dentro del tablero) y se
+  // veían como el trazo "saltando" hacia afuera y volviendo de golpe.
+  return [Math.min(Math.max(x, 0), CANVAS_WIDTH), Math.min(Math.max(y, 0), CANVAS_HEIGHT)];
 }
 
 /**
@@ -171,6 +179,54 @@ function hexToRgba(color: string): [number, number, number, number] {
 }
 
 /**
+ * Pinta un único segmento de línea directamente, sin pasar por el historial
+ * de `strokes` — usado para el pintado local optimista de quien dibuja (ver
+ * {@link Canvas.handlePointerMove}), que no puede esperar a que el punto
+ * vuelva confirmado por el servidor para aparecer en pantalla.
+ *
+ * @param ctx Contexto 2D del canvas destino.
+ * @param from Punto de origen del segmento, en coordenadas del tablero.
+ * @param to Punto de destino del segmento, en coordenadas del tablero.
+ * @param color Color del trazo.
+ * @param size Grosor de línea.
+ */
+function drawLiveSegment(ctx: CanvasRenderingContext2D, from: [number, number], to: [number, number], color: string, size: number): void {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(from[0], from[1]);
+  ctx.lineTo(to[0], to[1]);
+  ctx.stroke();
+}
+
+/**
+ * Compara dos {@link DrawAction} por valor — usado por `paintIncremental`
+ * (ver {@link Canvas}) para decidir si `strokes` sigue siendo una extensión
+ * simple de lo ya pintado, sin depender de identidad de objeto (que no
+ * sobrevive un viaje por WebSocket: cada mensaje llega deserializado con
+ * `JSON.parse`, que crea objetos nuevos aunque el contenido sea igual).
+ *
+ * @param a Primera acción a comparar.
+ * @param b Segunda acción a comparar.
+ * @returns `true` si representan exactamente el mismo trazo, relleno o clear.
+ */
+function actionsEqual(a: DrawAction, b: DrawAction): boolean {
+  if (a === b) return true;
+  if (a.type !== b.type) return false;
+  if (a.type === "stroke" && b.type === "stroke") {
+    if (a.color !== b.color || a.size !== b.size || a.strokeId !== b.strokeId || a.points.length !== b.points.length) return false;
+    for (let i = 0; i < a.points.length; i++) {
+      if (a.points[i][0] !== b.points[i][0] || a.points[i][1] !== b.points[i][1]) return false;
+    }
+    return true;
+  }
+  if (a.type === "fill" && b.type === "fill") return a.x === b.x && a.y === b.y && a.color === b.color;
+  return a.type === "clear"; // ambos son "clear" acá (mismo `type`, sin más campos que comparar)
+}
+
+/**
  * Interpreta y pinta una única acción del historial de dibujo (`stroke`,
  * `fill` o `clear`) sobre el contexto dado.
  *
@@ -184,7 +240,10 @@ function hexToRgba(color: string): [number, number, number, number] {
 function paintAction(ctx: CanvasRenderingContext2D, action: DrawAction): void {
   if (action.type === "stroke") drawStrokeAction(ctx, action);
   else if (action.type === "fill") floodFill(ctx, action.x, action.y, action.color);
-  else if (action.type === "clear") ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  else if (action.type === "clear") {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
 }
 
 /**
@@ -203,6 +262,14 @@ function paintAction(ctx: CanvasRenderingContext2D, action: DrawAction): void {
  */
 export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // El contexto no cambia mientras el <canvas> vive — cachearlo evita pedirlo
+  // de nuevo en cada `pointermove` (decenas por segundo mientras se dibuja),
+  // el hot path más caliente de este componente.
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const getCtx = () => {
+    if (!ctxRef.current) ctxRef.current = canvasRef.current?.getContext("2d") ?? null;
+    return ctxRef.current;
+  };
   const drawingRef = useRef(false);
   const pendingPointsRef = useRef<[number, number][]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -233,7 +300,13 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
    * @param toPaint Historial actual a reflejar en pantalla.
    */
   const paintIncremental = (ctx: CanvasRenderingContext2D, prev: DrawAction[], toPaint: DrawAction[]) => {
-    const isIncrementalExtension = toPaint.length >= prev.length && prev.every((action, i) => action === toPaint[i]);
+    // Comparación por valor, no por referencia: en el modo online `strokes`
+    // llega serializado por WebSocket (JSON.parse en cada mensaje genera
+    // objetos nuevos aunque el contenido no cambió), así que `===` daba
+    // siempre `false` y forzaba el repintado completo (blanqueo + replay de
+    // todo el historial) en cada chunk de red mientras se dibujaba — visible
+    // como un parpadeo del trazo.
+    const isIncrementalExtension = toPaint.length >= prev.length && prev.every((action, i) => actionsEqual(action, toPaint[i]));
     if (!isIncrementalExtension) {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -257,8 +330,7 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
       pendingPaintStrokesRef.current = null;
       if (!toPaint) return;
 
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
+      const ctx = getCtx();
       if (!ctx) return;
 
       paintIncremental(ctx, paintedStrokesRef.current, toPaint);
@@ -268,7 +340,17 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
 
   useEffect(
     () => () => {
-      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+      // Resetear a `null` (no solo cancelar) es necesario para que sobreviva
+      // al doble efecto de StrictMode en dev: monta → corre este cleanup
+      // simulando un desmonte → vuelve a montar. Sin el reseteo, ese cleanup
+      // cancela el primer rAF programado pero deja `rafIdRef.current`
+      // apuntando a un id ya cancelado (no `null`), y el guard de arriba
+      // ("ya hay uno programado") bloquea cualquier pintado para siempre —
+      // los trazos se registraban pero nunca se veían en pantalla.
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
     },
     [],
   );
@@ -309,12 +391,24 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
     flushTimerRef.current = setInterval(flush, FLUSH_INTERVAL_MS);
   };
 
+  // Pintado local optimista: quien dibuja ve cada segmento en el instante en
+  // que mueve el puntero, en vez de esperar a que el chunk viaje al servidor
+  // y vuelva confirmado por `strokes` (esa ida y vuelta es la que hacía sentir
+  // el trazo "atrasado"). El repintado por `strokes` sigue pasando igual una
+  // vez confirmado — redibuja el mismo segmento encima, inofensivo con los
+  // colores opacos que usa esta paleta.
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!drawingRef.current) return;
+    if (!drawingRef.current || !tool) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const ctx = getCtx();
+    if (!canvas || !ctx) return;
     const coords = toCanvasCoords(canvas, e.clientX, e.clientY);
     if (!coords) return;
+    const prev = pendingPointsRef.current[pendingPointsRef.current.length - 1];
+    if (tool.mode !== "fill" && prev) {
+      const color = tool.mode === "erase" ? ERASE_COLOR : tool.color;
+      drawLiveSegment(ctx, prev, coords, color, tool.size);
+    }
     pendingPointsRef.current.push(coords);
   };
 
@@ -346,6 +440,11 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
         touchAction: "none",
         cursor: interactive ? (tool?.mode === "fill" ? "crosshair" : "crosshair") : "default",
         display: "block",
+        // El canvas arranca con píxeles transparentes hasta que llega la
+        // primera acción "clear" del historial (ver paintAction) — sin este
+        // fondo, el tablero deja ver el fondo oscuro del tema por detrás y
+        // el trazo por defecto (casi negro) queda invisible encima.
+        background: "#ffffff",
       }}
     />
   );

@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useRef } from "react";
+import { timerUrgencyColor } from "./useCountdownSeconds";
 
 interface TimerProps {
   timerEnd: number;
@@ -31,7 +32,7 @@ export const Timer = memo(function Timer({ timerEnd, total, label = "Tiempo" }: 
     return () => clearInterval(id);
   }, [timerEnd]);
 
-  const color = secs < 15 ? "#E24B4A" : secs < 30 ? "#EF9F27" : "#5DCAA5";
+  const color = timerUrgencyColor(secs);
   const pct = secs > 0 ? Math.round((secs / totalRef.current) * 100) : 0;
 
   return (

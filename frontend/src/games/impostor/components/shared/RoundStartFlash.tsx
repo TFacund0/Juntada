@@ -1,4 +1,4 @@
-import { BigTextFlash } from "./BigTextFlash";
+import { BigTextFlash } from "../../../../components/game-kit/BigTextFlash";
 
 // Bridges into a fresh round of reveals — see BigTextFlash for the shared
 // shell/animation. Different copy/palette from VoteResultsFlash on purpose,

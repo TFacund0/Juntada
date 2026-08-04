@@ -1,7 +1,9 @@
-import { S } from "../../../theme/styles";
-import { Btn } from "../../../components/ui/Btn";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
+import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
 import type { LocalPlayer } from "../types/localGame";
+import { TurnHeader } from "./TurnHeader";
+import { WordChoiceFan } from "./WordChoiceFan";
+import { PassDeviceCard } from "./PassDeviceCard";
 
 interface WordRevealScreenProps {
   turnNumber: number;
@@ -25,32 +27,16 @@ export function WordRevealScreen({
 }: WordRevealScreenProps) {
   return (
     <PhaseTransition phaseKey="wordReveal">
-      <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <p style={{ fontSize: 13, color: "#9089c0" }}>
-            Turno {turnNumber}/{totalTurns}
-          </p>
-          <p style={{ fontSize: 16, fontWeight: 800, color: "#AFA9EC", margin: "6px 0" }}>Le toca dibujar a {drawer?.name}</p>
-          <p style={{ fontSize: 13, color: "#9089c0" }}>Pasale el dispositivo — el resto no tiene que ver la pantalla todavía</p>
-        </div>
-
-        {!choicesRevealed ? (
-          <Btn variant="primary" onClick={revealChoices}>
-            Ya tengo el dispositivo — ver mis palabras
-          </Btn>
-        ) : (
-          <div style={S.card}>
-            <span style={S.label}>Elegí qué vas a dibujar</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-              {wordChoices.map(w => (
-                <Btn key={w} variant="success" onClick={() => chooseWord(w)}>
-                  {w}
-                </Btn>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      <GameScreenLayout
+        top={<TurnHeader turnNumber={turnNumber} totalTurns={totalTurns} />}
+        center={
+          !choicesRevealed ? (
+            <PassDeviceCard drawerName={drawer?.name ?? "?"} onReady={revealChoices} />
+          ) : (
+            <WordChoiceFan words={wordChoices} onChoose={chooseWord} />
+          )
+        }
+      />
     </PhaseTransition>
   );
 }

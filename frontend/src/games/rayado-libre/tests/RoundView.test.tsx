@@ -79,7 +79,8 @@ describe("Rayado Libre RoundView — choosing phase", () => {
       />,
     );
 
-    expect(screen.getByText(/Ana está eligiendo la palabra/)).toBeInTheDocument();
+    expect(screen.getByText("Ana")).toBeInTheDocument();
+    expect(screen.getByText(/está eligiendo la palabra/)).toBeInTheDocument();
   });
 });
 
@@ -141,6 +142,53 @@ describe("Rayado Libre RoundView — drawing phase", () => {
     expect(word).toHaveStyle({ visibility: "visible" });
     await user.click(screen.getByRole("button", { name: "Ocultar palabra" }));
     expect(word).toHaveStyle({ visibility: "hidden" });
+  });
+
+  test("the drawer can reroll the word before anyone has guessed", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn();
+    render(
+      <RoundView
+        room={makeRoom("drawing")}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, word: "Perro" }}
+        wordReveal={null}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    await user.click(screen.getByText(/Pedir otra palabra/));
+    expect(send).toHaveBeenCalledWith({ type: "reroll_word" });
+  });
+
+  test("the reroll button is hidden once it was already used, or once someone has guessed", () => {
+    const { rerender } = render(
+      <RoundView
+        room={makeRoom("drawing", { rerollUsed: true })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, word: "Perro" }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
+
+    rerender(
+      <RoundView
+        room={makeRoom("drawing", { correctGuessers: ["p2"] })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, word: "Perro" }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
   });
 });
 
