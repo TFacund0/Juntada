@@ -88,4 +88,20 @@ export const GAME_THEMES: Record<string, GameTheme> = {
     surface: "#161616",
     muted: "#a8a29e",
   },
+  // Tomado del anillo arcoíris del logo (rojo→naranja→verde→azul→violeta)
+  // sobre un trazo de tinta navy. El fondo del chrome se mantiene oscuro (en
+  // vez del papel claro del logo) para no pelear contra los componentes
+  // compartidos que asumen texto claro sobre fondo oscuro — el look "papel"
+  // se reserva a las cards propias del juego.
+  "rayado-libre": {
+    app: {
+      background: "#171522",
+      color: "#f2eee2",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    },
+    accent: "#2e8bff",
+    accentStrong: "#a855f7",
+    surface: "#1d1a2e",
+    muted: "#8c87ac",
+  },
 };

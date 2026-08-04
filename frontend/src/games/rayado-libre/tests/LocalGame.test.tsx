@@ -12,11 +12,12 @@ describe("Rayado Libre LocalGame", () => {
     expect(screen.getByText("Empezar a jugar")).toBeEnabled();
   });
 
-  test("disables 'Empezar a jugar' below the 3-player minimum", async () => {
+  test("disables 'Empezar a jugar' below the 2-player minimum", async () => {
     render(<LocalGame />);
     const user = userEvent.setup();
     const removeButtons = screen.getAllByText("×");
     await user.click(removeButtons[0]);
+    await user.click(screen.getAllByText("×")[0]);
     expect(screen.getByText("Empezar a jugar")).toBeDisabled();
   });
 
@@ -26,6 +27,19 @@ describe("Rayado Libre LocalGame", () => {
     await user.click(screen.getByText("Configuración"));
     await user.click(screen.getByText("Ninguna"));
     expect(screen.getByText("Empezar a jugar")).toBeDisabled();
+  });
+
+  test("adding a custom word re-enables 'Empezar a jugar' even with every category off", async () => {
+    render(<LocalGame />);
+    const user = userEvent.setup();
+    await user.click(screen.getByText("Configuración"));
+    await user.click(screen.getByText("Ninguna"));
+    expect(screen.getByText("Empezar a jugar")).toBeDisabled();
+
+    await user.type(screen.getByPlaceholderText("Escribí una palabra o frase corta"), "Chiste interno");
+    await user.click(screen.getByText("Agregar"));
+    expect(screen.getByText("Chiste interno")).toBeInTheDocument();
+    expect(screen.getByText("Empezar a jugar")).toBeEnabled();
   });
 
   test("plays a full turn: choose a word, mark every guesser correct, and reach the reveal", async () => {
@@ -40,7 +54,7 @@ describe("Rayado Libre LocalGame", () => {
     expect(wordButtons.length).toBe(3);
     await user.click(wordButtons[0]);
 
-    expect(screen.getByText(/Tiempo para dibujar/)).toBeInTheDocument();
+    expect(document.querySelector(".rl-circular-timer")).toBeInTheDocument();
     const guessCard = screen.getByText("¿Quién acertó?").closest("div") as HTMLElement;
     const guessButtons = Array.from(guessCard.querySelectorAll("button"));
     // 2 non-drawer players out of 3 total.
@@ -67,5 +81,25 @@ describe("Rayado Libre LocalGame", () => {
     expect(screen.getByText("La palabra era")).toBeInTheDocument();
     await user.click(screen.getByText("Siguiente turno"));
     expect(screen.queryByText("La palabra era")).not.toBeInTheDocument();
+  });
+
+  test("'Pedir otra palabra' swaps the word once, then disappears for the rest of the turn", async () => {
+    render(<LocalGame />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByText("Empezar a jugar"));
+    await user.click(screen.getByText(/Ya tengo el dispositivo/));
+    const choicesCard = screen.getByText("Elegí qué vas a dibujar").parentElement as HTMLElement;
+    await user.click(choicesCard.querySelectorAll("button")[0]);
+
+    const rerollButton = screen.getByText(/Pedir otra palabra/);
+    await user.click(rerollButton);
+    expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
+
+    // The turn keeps going normally after the reroll — marking every
+    // guesser correct still reaches the reveal screen.
+    const guessCard = screen.getByText("¿Quién acertó?").closest("div") as HTMLElement;
+    for (const btn of Array.from(guessCard.querySelectorAll("button"))) await user.click(btn);
+    expect(screen.getByText("La palabra era")).toBeInTheDocument();
   });
 });

@@ -302,11 +302,23 @@ export default function App() {
           // el flujo normal — vive en una clase (theme/sharedChrome.css) y no
           // en `style` porque necesita crecer desde los 900px (el navbar
           // in-game crece ahí también), algo que un padding puesto por
-          // `style` inline no puede hacer.
-          <div className="jt-content-pad-top" style={{ ...S.wrap, position: "relative", zIndex: 1 }}>
-            {header}
-            {rest}
-          </div>
+          // `style` inline no puede hacer. `jt-round-wrap-wide` reemplaza el
+          // `maxWidth: 480` fijo de S.wrap solo mientras el RoundView de un
+          // juego con `wideRoundView` (GameDef) está en pantalla — el lobby/
+          // ConfigPanel de ese mismo juego se queda a 480px como cualquier
+          // otro, ya que no está pensado para ese ancho.
+          (() => {
+            const wide = inGameView && Boolean(game?.wideRoundView);
+            return (
+              <div
+                className={`jt-content-pad-top${wide ? " jt-round-wrap-wide" : ""}`}
+                style={{ ...S.wrap, ...(wide ? { maxWidth: undefined } : null), position: "relative", zIndex: 1 }}
+              >
+                {header}
+                {rest}
+              </div>
+            );
+          })()
         );
       })()}
 

@@ -158,6 +158,7 @@ const HANDLERS: Record<ClientMessageType, Handler> = {
   confirm_eliminate: roomHandlers.gameAction("confirm_eliminate"),
   spin_again: roomHandlers.gameAction("spin_again"),
   choose_word: roomHandlers.gameAction("choose_word"),
+  reroll_word: roomHandlers.gameAction("reroll_word"),
   draw_stroke: roomHandlers.gameAction("draw_stroke"),
   draw_fill: roomHandlers.gameAction("draw_fill"),
   draw_clear: roomHandlers.gameAction("draw_clear"),

@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import { MIN_PLAYERS } from "@juntada/rayado-libre-scoring";
 import type { GameDef } from "../gameTypes";
 import logo from "./assets/logo.webp";
 import backgroundImage from "./assets/background.webp";
@@ -18,8 +19,10 @@ export const rayadoLibreGame: GameDef = {
   backgroundImage,
   description:
     "Un jugador dibuja una palabra secreta y el resto del grupo intenta adivinarla escribiendo en el chat antes de que se acabe el tiempo.",
-  minPlayers: 3,
+  minPlayers: MIN_PLAYERS,
   category: "equipos",
+  gameTheme: "rayado-libre",
+  wideRoundView: true,
   rules: [
     "Por turnos, cada jugador recibe 3 palabras al azar y elige una para dibujar.",
     "Mientras dibuja, el resto escribe sus intentos en el chat.",

@@ -97,4 +97,11 @@ export interface GameDef {
   // transition when this flips on/off so the palette swap never happens as
   // a hard cut. Absent for every game that shares the default look.
   gameTheme?: string;
+  // Deja que el LocalGame/RoundView de este juego crezca más allá de los
+  // 480px fijos que llevan las pantallas de juego por defecto (mobile-first
+  // a propósito para el resto — ver el comentario en App.tsx) — para un
+  // juego cuya pantalla principal (ej. un canvas) realmente aprovecha el
+  // ancho de un monitor en vez de quedar incómodo. Ver `.jt-round-wrap-wide`
+  // en theme/sharedChrome.css.
+  wideRoundView?: boolean;
 }
