@@ -6,10 +6,9 @@ interface BigTextFlashProps {
 // A brief, fully opaque full-screen flash — solid background (not a
 // translucent modal) so nothing behind it bleeds through, and the group's
 // attention lands squarely on this beat instead of a screen just cutting to
-// the next one. Shared by every "big letters" transition moment across
-// LocalGame (VoteResultsFlash, RoundStartFlash) and online's RoundView
-// (replaces the numeric RevealCountdown for the result reveal) — same shell,
-// each caller just supplies its own copy and owns its own mount duration.
+// the next one. Shared across games for their own "big letters" transition
+// moments — same shell, each caller just supplies its own copy and owns its
+// own mount duration.
 export function BigTextFlash({ eyebrow, text }: BigTextFlashProps) {
   return (
     <div
@@ -24,18 +23,18 @@ export function BigTextFlash({ eyebrow, text }: BigTextFlashProps) {
       }}
     >
       <style>{`
-        .impostor-big-text-flash {
+        .jt-big-text-flash {
           text-align: center;
-          animation: impostor-big-text-flash 1.4s ease-in-out both;
+          animation: jt-big-text-flash 1.4s ease-in-out both;
         }
-        @keyframes impostor-big-text-flash {
+        @keyframes jt-big-text-flash {
           0% { opacity: 0; transform: scale(0.85); }
           20% { opacity: 1; transform: scale(1.06); }
           80% { opacity: 1; transform: scale(1); }
           100% { opacity: 0; transform: scale(1.08); }
         }
       `}</style>
-      <div className="impostor-big-text-flash">
+      <div className="jt-big-text-flash">
         {eyebrow && (
           <p
             style={{

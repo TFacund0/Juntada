@@ -24,6 +24,12 @@ import { shuffle } from "@juntada/core-utils";
 import { normalizeWord } from "@juntada/tutifruti-words";
 
 export const TURN_SECONDS = 99;
+
+// Único mínimo de jugadores para el juego: la validación real (backend
+// engine.ts), el gate del lobby (GameDef.minPlayers) y el botón "Empezar a
+// jugar" del modo local (SetupScreen) leen de acá en vez de repetir el
+// número cada uno por su lado.
+export const MIN_PLAYERS = 2;
 export const ZONE_1_FLOOR = 60;
 export const ZONE_1_POINTS = 60;
 export const ZONE_2_FLOOR = 31;

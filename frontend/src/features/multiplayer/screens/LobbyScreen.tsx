@@ -349,13 +349,12 @@ export function LobbyScreen({
         createPortal(
           <div ref={actionBarRef} className="jt-lobby-action-bar jt-lobby-breakout">
             <div className="jt-lobby-action-inner jt-animate-rise" style={{ animationDelay: "160ms" }}>
+              <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
               {startAction}
             </div>
           </div>,
           document.body,
         )}
-
-      <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
     </div>
   );
 }

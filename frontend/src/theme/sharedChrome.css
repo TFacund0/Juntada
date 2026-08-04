@@ -105,6 +105,21 @@
   }
 }
 
+/* Opt-in para el LocalGame/RoundView de un juego con `wideRoundView: true`
+   (GameDef) — crece más allá de los 480px fijos de S.wrap a partir de
+   1024px, el mismo breakpoint que usan los layouts internos en grilla de
+   ese juego (ej. rayado-libre/components/DrawingPhaseScreen.tsx), para que
+   ambos cambios de ancho ocurran juntos en vez de que uno quede huérfano. */
+.jt-round-wrap-wide {
+  max-width: 480px;
+}
+
+@media (min-width: 1024px) {
+  .jt-round-wrap-wide {
+    max-width: 1040px;
+  }
+}
+
 /* Chip de "cerrar" compartido por todo modal/diálogo nuevo (RoomEntryModal,
    GroupEntryModal, GameRules) — antes cada uno definía el mismo cuadrado de
    30px/fondo-acento-suave/borde/hover a mano, con una sola diferencia real

@@ -1,11 +1,13 @@
 import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
+import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RayadoLibreRoundState } from "../types/roundView";
 import { RevealedWordCard } from "./RevealedWordCard";
-import { ChatMessages } from "./ChatMessages";
-import { Scoreboard } from "./Scoreboard";
+import { GuessChatPanel } from "./GuessChatPanel";
+import { RoundScoreboard } from "./RoundScoreboard";
+import { TurnHeader } from "./TurnHeader";
 import { roomScore } from "../utils/roomScore";
 
 interface RevealPhaseScreenProps {
@@ -16,7 +18,12 @@ interface RevealPhaseScreenProps {
   send: RoundViewProps["send"];
 }
 
-/** Fase "reveal": la palabra revelada, el recap del chat, la tabla de puntos y el botón de "listo". */
+/**
+ * Fase "reveal": palabra + tabla de puntos (con un círculo de "listo" por
+ * jugador en la propia fila), el chat completo de la ronda abajo, y el botón
+ * de "listo" fijo al fondo — el chat scrollea por debajo suyo (mismo patrón
+ * de `StickyActionBar` que discussion/impostor).
+ */
 export function RevealPhaseScreen({ room, round, me, myPlayer, send }: RevealPhaseScreenProps) {
   const chatLog = round.chatLog ?? [];
   const roundPoints = round.roundPoints ?? {};
@@ -27,50 +34,47 @@ export function RevealPhaseScreen({ room, round, me, myPlayer, send }: RevealPha
 
   return (
     <PhaseTransition phaseKey="reveal">
-      <p style={{ textAlign: "center", fontSize: 13, color: "#9089c0", marginBottom: 8 }}>
-        Turno {round.turnNumber}/{round.totalTurns}
-      </p>
-      <RevealedWordCard word={round.word ?? ""} />
-
-      <div style={S.card}>
-        <span style={S.label}>Cómo veníamos escribiendo</span>
-        <ChatMessages chatLog={chatLog} players={room.players} />
-      </div>
-
-      <Scoreboard
-        entries={room.players.map(p => ({
-          id: p.id,
-          name: p.name,
-          score: roomScore(room)[p.id] || 0,
-          roundPoints: roundPoints[p.id],
-          isMe: p.id === me?.playerId,
-        }))}
-        title={isLastTurn ? "Tabla final" : "Tabla de puntos"}
-      />
-
-      <div style={{ ...S.card, marginTop: 16 }}>
-        <span style={S.label}>Estado de jugadores</span>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {room.players.map(p => (
-            <div key={p.id} style={{ ...S.pill(p.ready), opacity: p.online ? 1 : 0.55 }}>
-              {p.name}
-              {!p.online ? " · desconectado" : p.ready ? " · listo" : ""}
+      <GameScreenLayout
+        top={<TurnHeader turnNumber={round.turnNumber} totalTurns={round.totalTurns} />}
+        center={
+          <>
+            <RevealedWordCard word={round.word ?? ""} />
+            <RoundScoreboard
+              entries={room.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                score: roomScore(room)[p.id] || 0,
+                roundPoints: roundPoints[p.id],
+                isMe: p.id === me?.playerId,
+                ready: p.ready,
+              }))}
+              title={isLastTurn ? "Tabla final" : "Tabla de puntos"}
+            />
+          </>
+        }
+        bottom={
+          <GuessChatPanel
+            chatLog={chatLog}
+            players={room.players}
+            correctGuessers={round.correctGuessers ?? []}
+            roundPoints={roundPoints}
+            variant="recap"
+          />
+        }
+        stickyBottom={
+          !iAmReady ? (
+            <Btn variant="success" onClick={() => send({ type: "player_ready" })}>
+              {isLastTurn ? "Listo para ver los resultados" : "Listo para el siguiente turno"}
+            </Btn>
+          ) : (
+            <div style={{ ...S.card, textAlign: "center", marginBottom: 0 }}>
+              <p style={{ color: "#5DCAA5" }}>
+                Listo — esperando a los demás ({readyCount}/{onlinePlayers.length})
+              </p>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {!iAmReady ? (
-        <Btn variant="success" onClick={() => send({ type: "player_ready" })} style={{ marginTop: 8 }}>
-          {isLastTurn ? "Listo para ver los resultados" : "Listo para el siguiente turno"}
-        </Btn>
-      ) : (
-        <div style={{ ...S.card, textAlign: "center" }}>
-          <p style={{ color: "#5DCAA5" }}>
-            Listo — esperando a los demás ({readyCount}/{onlinePlayers.length})
-          </p>
-        </div>
-      )}
+          )
+        }
+      />
     </PhaseTransition>
   );
 }

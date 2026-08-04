@@ -1,3 +1,4 @@
+import { MIN_PLAYERS } from "@juntada/rayado-libre-scoring";
 import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
 import { Avatar } from "../../../components/ui/Avatar";
@@ -10,8 +11,7 @@ import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import type { LocalPlayer } from "../types/localGame";
 import { CategoryPicker } from "./CategoryPicker";
 import { RoundsPicker } from "./RoundsPicker";
-
-const MIN_PLAYERS = 3;
+import { CustomWordsEditor } from "./CustomWordsEditor";
 
 interface SetupScreenProps {
   players: LocalPlayer[];
@@ -28,6 +28,8 @@ interface SetupScreenProps {
   setEnabledCategories: (next: Record<string, boolean>) => void;
   totalRounds: number;
   setTotalRounds: (n: number) => void;
+  customWords: string[];
+  setCustomWords: (next: string[]) => void;
   activeCatKeys: string[];
   startGame: () => void;
 }
@@ -48,9 +50,12 @@ export function SetupScreen({
   setEnabledCategories,
   totalRounds,
   setTotalRounds,
+  customWords,
+  setCustomWords,
   activeCatKeys,
   startGame,
 }: SetupScreenProps) {
+  const canStart = players.length >= MIN_PLAYERS && (activeCatKeys.length > 0 || customWords.length > 0);
   return (
     <PhaseTransition phaseKey="setup">
       <div style={{ paddingBottom: 88 }}>
@@ -95,16 +100,20 @@ export function SetupScreen({
               <CategoryPicker enabled={enabledCategories} onChange={setEnabledCategories} />
             </div>
 
+            <CustomWordsEditor words={customWords} onChange={setCustomWords} />
+
             <RoundsPicker value={totalRounds} onChange={setTotalRounds} />
           </>
         )}
 
         <StickyActionBar>
-          <StartButton disabled={players.length < MIN_PLAYERS || activeCatKeys.length === 0} onClick={startGame}>
+          <StartButton disabled={!canStart} onClick={startGame}>
             Empezar a jugar
           </StartButton>
           <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
-          {activeCatKeys.length === 0 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Elegí al menos una categoría</p>}
+          {activeCatKeys.length === 0 && customWords.length === 0 && (
+            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Elegí al menos una categoría o agregá tus propias palabras</p>
+          )}
         </StickyActionBar>
       </div>
     </PhaseTransition>

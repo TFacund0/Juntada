@@ -3,7 +3,7 @@ import { S } from "../../../../theme/styles";
 import { StartButton } from "../../../../components/setup/StartButton";
 import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
-import { BigTextFlash } from "../shared/BigTextFlash";
+import { BigTextFlash } from "../../../../components/game-kit/BigTextFlash";
 import { EliminationRevealOverlay, MatchOutcomeOverlay } from "../shared/EliminationRevealOverlay";
 import { MatchResultHeader } from "../shared/MatchResultHeader";
 import { VotesBreakdownCard } from "../shared/VotesBreakdownCard";

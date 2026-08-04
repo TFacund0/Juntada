@@ -5,7 +5,7 @@ import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
 import { CluesReview } from "../shared/CluesReview";
 import { SuspectGrid } from "../shared/SuspectGrid";
-import { useCountdownSeconds } from "../shared/RingTimer";
+import { useCountdownSeconds } from "../../../../components/game-kit/useCountdownSeconds";
 import { actionBtnStyle } from "../shared/actionBtnStyle";
 import type { RoundViewProps } from "../../../gameTypes";
 import type { ImpostorRoundState } from "../../types/roundView";
