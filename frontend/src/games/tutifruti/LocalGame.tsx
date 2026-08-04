@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./tutifruti.css";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/ui/Btn";
+import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../components/setup/StickyActionBar";
 import { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } from "@juntada/tutifruti-data";
 import { PageNumbers } from "./components/PageNumbers";
 import { LetterReveal } from "./components/LetterReveal";
@@ -38,6 +39,10 @@ export function LocalGame() {
   const [letter, setLetter] = useState<string | null>(null);
   const [usedLetters, setUsedLetters] = useState<string[]>([]);
   const [page, setPage] = useState(0);
+  // Pantalla "solo letra y categorías" — para cuando ya se terminó de armar
+  // la configuración y el grupo solo quiere ver grande lo que hay que
+  // completar, sin la lista de toggles de letras/categorías ocupando lugar.
+  const [focusMode, setFocusMode] = useState(false);
 
   const activeCats = CATEGORIES.filter(c => enabled[c.id]);
   const activeLetters = (LETTERS as string[]).filter(l => enabledLetters[l]);
@@ -57,15 +62,18 @@ export function LocalGame() {
     setUsedLetters(prev => [...prev, picked]);
   };
 
-  return (
-    <div>
+  // Compartido entre la vista normal y el modo visualización — la letra, el
+  // botón de sortear, y el aviso de "no hay letras activas" son exactamente
+  // lo mismo en las dos, solo cambia qué más se muestra alrededor.
+  const letterBlock = (
+    <>
       <LetterReveal
         letter={letter}
         label={letter ? "La letra es..." : "Tocá para sortear una letra"}
         size="hero"
         footer={
           activeCats.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 16 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 28 }}>
               {activeCats.map(cat => (
                 <span key={cat.id} style={S.pill(true)}>
                   {cat.icon} {cat.label}
@@ -75,7 +83,7 @@ export function LocalGame() {
           )
         }
       />
-      <Btn onClick={drawLetter} disabled={activeLetters.length === 0}>
+      <Btn onClick={drawLetter} disabled={activeLetters.length === 0} style={{ marginTop: 10 }}>
         {letter ? "🔀 Nueva letra" : "🎲 Sortear letra"}
       </Btn>
       {activeLetters.length === 0 && (
@@ -83,6 +91,30 @@ export function LocalGame() {
           Activá al menos una letra abajo para poder sortear.
         </p>
       )}
+    </>
+  );
+
+  if (focusMode) {
+    return (
+      <div style={{ paddingBottom: STICKY_ACTION_BAR_CLEARANCE }}>
+        <div className="tf-setup-stage">
+          <div className="tf-setup-hero-wrap">{letterBlock}</div>
+        </div>
+        <StickyActionBar>
+          <Btn variant="ghost" onClick={() => setFocusMode(false)}>
+            ⚙️ Editar configuración
+          </Btn>
+        </StickyActionBar>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {letterBlock}
+      <Btn variant="ghost" onClick={() => setFocusMode(true)} style={{ marginTop: 10 }}>
+        👁️ Solo letra y categorías
+      </Btn>
 
       <div style={{ ...S.card, marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
