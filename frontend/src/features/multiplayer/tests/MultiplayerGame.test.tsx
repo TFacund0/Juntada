@@ -253,8 +253,12 @@ describe("MultiplayerGame — cold start (persisted session on mount)", () => {
     expect(screen.queryByText("Autenticando")).not.toBeInTheDocument();
   });
 
-  test("tells the player plainly when the room no longer exists, instead of a silent toast", async () => {
-    const user = userEvent.setup();
+  test("silently drops a stale persisted session instead of blocking the menu with 'ya no existe'", async () => {
+    // This is the silent background auto-rejoin on mount, not a live drop
+    // mid-session — the player never asked to reconnect to anything (they
+    // may just want to create a brand-new room), so a REJOIN_FAILED here
+    // should just forget the stale session and land on the normal menu
+    // instead of blocking behind a "la sala ya no existe" screen.
     seedPersistedRoomSession();
     render(<MultiplayerGame entryKind="room" gameId={GAME_ID} playerName="Ana" />);
 
@@ -262,12 +266,8 @@ describe("MultiplayerGame — cold start (persisted session on mount)", () => {
     act(() => ws.simulateOpen());
     act(() => ws.simulateMessage({ type: "error", code: "REJOIN_FAILED", message: "La sala ya no existe" }));
 
-    expect(await screen.findByText(/ya no existe/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Volver al inicio" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Volver al inicio" }));
-    // Back at the real menu, not stuck behind the gate or on a bare toast.
     expect(await screen.findByRole("button", { name: "Crear partida" })).toBeInTheDocument();
+    expect(screen.queryByText(/ya no existe/)).not.toBeInTheDocument();
   });
 
   test("group-attached cold start doesn't hang on 'Autenticando' forever when the persisted instance already ended", async () => {
