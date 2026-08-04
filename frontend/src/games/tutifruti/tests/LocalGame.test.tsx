@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -42,5 +42,19 @@ describe("Tutifrutti LocalGame", () => {
 
     const letterCard = screen.getByText("La letra es...").closest("div")!;
     expect(letterCard).not.toHaveTextContent("Nombre");
+  });
+
+  test("focus mode hides the letter/category pickers and 'Editar configuración' brings them back", async () => {
+    const user = userEvent.setup();
+    render(<LocalGame />);
+
+    await user.click(screen.getByRole("button", { name: "👁️ Solo letra y categorías" }));
+
+    expect(screen.getByText("Tocá para sortear una letra")).toBeInTheDocument();
+    expect(screen.queryByText("Letras")).not.toBeInTheDocument();
+    expect(screen.queryByText("Categorías sugeridas")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "⚙️ Editar configuración" }));
+    expect(screen.getByText("Letras")).toBeInTheDocument();
   });
 });

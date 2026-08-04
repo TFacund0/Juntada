@@ -1,6 +1,6 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 import { DEFAULT_CATEGORIES } from "@juntada/tutifruti-data";
-import type { LobbyInfoProps } from "../gameTypes";
+import type { LobbyInfoProps } from "../../gameTypes";
 
 interface Category {
   id: string;
@@ -13,11 +13,15 @@ interface Category {
 export function LobbyInfo({ room }: LobbyInfoProps) {
   const config = room.config as any;
   const customCategories: Category[] = config.customCategories || [];
+  const randomMode = !!config.randomCategoryMode;
   // Custom categories go through the same activeCategories toggle as the
   // default ones (see ConfigPanel.tsx) — showing them unconditionally here
   // meant a host turning one off still left it listed as active for every
-  // non-host player, indefinitely.
+  // non-host player, indefinitely. Doesn't apply in random mode: there the
+  // pool is everything (defaults + custom) regardless of that toggle, see
+  // pickRoundCategories in the backend engine.
   const allActive = [...DEFAULT_CATEGORIES, ...customCategories].filter((c: Category) => config.activeCategories?.[c.id]);
+  const randomCount = Math.max(1, Math.min(config.randomCategoryCount || 6, DEFAULT_CATEGORIES.length + customCategories.length));
 
   return (
     <div style={S.card}>
@@ -30,7 +34,11 @@ export function LobbyInfo({ room }: LobbyInfoProps) {
           Fin de ronda: <strong style={{ color: "#AFA9EC" }}>{config.endMode === "basta" ? "¡Basta!" : `${config.roundTime}s`}</strong>
         </span>
       </div>
-      {allActive.length > 0 ? (
+      {randomMode ? (
+        <p style={S.muted}>
+          Categorías aleatorias: <strong style={{ color: "#AFA9EC" }}>{randomCount}</strong> por ronda
+        </p>
+      ) : allActive.length > 0 ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {allActive.map(cat => (
             <span key={cat.id} style={S.pill(true)}>

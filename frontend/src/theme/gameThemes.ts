@@ -104,4 +104,17 @@ export const GAME_THEMES: Record<string, GameTheme> = {
     surface: "#1d1a2e",
     muted: "#8c87ac",
   },
+  // Tomado del propio logo: degradé azul→violeta→magenta del globo de
+  // diálogo con la "T", sobre un fondo casi negro azulado.
+  tutifruti: {
+    app: {
+      background: "#0d0c1c",
+      color: "#eeeaf9",
+      fontFamily: "'Syne', sans-serif",
+    },
+    accent: "#5b5ce0",
+    accentStrong: "#c94bd6",
+    surface: "#161329",
+    muted: "#8c86b8",
+  },
 };
