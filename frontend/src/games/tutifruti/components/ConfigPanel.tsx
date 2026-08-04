@@ -1,10 +1,10 @@
 import { useState, type CSSProperties } from "react";
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 import { DEFAULT_CATEGORIES, LETTERS } from "@juntada/tutifruti-data";
-import { Btn } from "../../components/ui/Btn";
-import type { ConfigPanelProps } from "../gameTypes";
-import { PageNumbers } from "./components/PageNumbers";
-import { CategoryChip } from "./components/CategoryChip";
+import { Btn } from "../../../components/ui/Btn";
+import type { ConfigPanelProps } from "../../gameTypes";
+import { PageNumbers } from "./PageNumbers";
+import { CategoryChip } from "./CategoryChip";
 
 interface Category {
   id: string;
@@ -35,6 +35,10 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const activeList = allCategories.filter(c => !!config.activeCategories?.[c.id]);
   const activeCount = activeList.length;
   const activeLetterCount = (LETTERS as string[]).filter(l => !!config.enabledLetters?.[l]).length;
+  const randomMode = !!config.randomCategoryMode;
+  const randomPoolSize = allCategories.length;
+  const randomMax = Math.max(1, Math.min(20, randomPoolSize));
+  const randomCount = Math.max(1, Math.min(config.randomCategoryCount || 6, randomMax));
 
   const toggleLetter = (l: string) => {
     updateConfig({ enabledLetters: { ...config.enabledLetters, [l]: !config.enabledLetters?.[l] } });
@@ -82,11 +86,13 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#e8e4f0" }}>
-          {activeCount === 0
-            ? "Ninguna categoría activa"
-            : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}`}
+          {randomMode
+            ? `${randomCount} categoría${randomCount === 1 ? "" : "s"} por ronda (aleatorias)`
+            : activeCount === 0
+              ? "Ninguna categoría activa"
+              : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}`}
         </span>
-        {activeCount > 0 && (
+        {!randomMode && activeCount > 0 && (
           <button
             onClick={() => setShowActive(v => !v)}
             style={{
@@ -103,7 +109,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </button>
         )}
       </div>
-      {showActive && activeCount > 0 && (
+      {!randomMode && showActive && activeCount > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
           {activeList.map(c => (
             <span key={c.id} style={S.pill(true)}>
@@ -173,8 +179,54 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
         <>
           <div style={divider} />
 
+          <span style={S.label}>¿Cómo se eligen las categorías?</span>
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <button
+              onClick={() => updateConfig({ randomCategoryMode: false })}
+              style={{ ...S.btn(!randomMode ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+            >
+              Elegir a mano
+            </button>
+            <button
+              onClick={() => updateConfig({ randomCategoryMode: true })}
+              style={{ ...S.btn(randomMode ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+            >
+              Aleatorias
+            </button>
+          </div>
+          <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+            {randomMode
+              ? "Cada ronda sortea sola una cantidad fija de categorías de entre todas las disponibles (más las que agregues abajo) — una forma más rápida de armar la partida."
+              : "Elegís vos qué categorías entran, tildándolas una por una más abajo."}
+          </p>
+
+          {randomMode && (
+            <>
+              <div style={divider} />
+              <span style={S.label}>Cantidad de categorías por ronda: {randomCount}</span>
+              <p style={{ ...S.muted, margin: "4px 0 8px", lineHeight: 1.4 }}>
+                Cuántas categorías salen sorteadas en cada ronda (de un total de {randomPoolSize} disponibles).
+              </p>
+              <input
+                type="range"
+                min="1"
+                max={randomMax}
+                step="1"
+                value={randomCount}
+                onChange={e => updateConfig({ randomCategoryCount: +e.target.value })}
+                style={{ width: "100%" }}
+              />
+            </>
+          )}
+
+          <div style={divider} />
+
           <span style={S.label}>Agregar categoría</span>
-          <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>Sumá una categoría propia, además de las de abajo.</p>
+          <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
+            {randomMode
+              ? "Sumá una categoría propia — entra al pool del que se sortea cada ronda, junto con todas las de por defecto."
+              : "Sumá una categoría propia, además de las de abajo."}
+          </p>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               style={{ ...S.input, flex: 1 }}
@@ -195,15 +247,17 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
               <div style={divider} />
               <span style={S.label}>Tus categorías</span>
               <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>
-                Las que agregaste vos, siempre a mano sin importar la página.
+                {randomMode
+                  ? "Ya entran todas al sorteo — tocá la × para sacar alguna."
+                  : "Las que agregaste vos, siempre a mano sin importar la página."}
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {customCategories.map(cat => (
                   <CategoryChip
                     key={cat.id}
                     cat={cat}
-                    active={!!config.activeCategories?.[cat.id]}
-                    onToggle={() => toggleCategory(cat.id)}
+                    active={randomMode ? true : !!config.activeCategories?.[cat.id]}
+                    onToggle={randomMode ? () => {} : () => toggleCategory(cat.id)}
                     onRemove={() => removeCustomCategory(cat.id)}
                   />
                 ))}
@@ -211,18 +265,27 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             </>
           )}
 
-          <div style={divider} />
+          {!randomMode && (
+            <>
+              <div style={divider} />
 
-          <span style={S.label}>Categorías</span>
-          <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
-            Tocá una categoría para activarla o desactivarla en la partida.
-          </p>
-          {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {pagedCategories.map(cat => (
-              <CategoryChip key={cat.id} cat={cat} active={!!config.activeCategories?.[cat.id]} onToggle={() => toggleCategory(cat.id)} />
-            ))}
-          </div>
+              <span style={S.label}>Categorías</span>
+              <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+                Tocá una categoría para activarla o desactivarla en la partida.
+              </p>
+              {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {pagedCategories.map(cat => (
+                  <CategoryChip
+                    key={cat.id}
+                    cat={cat}
+                    active={!!config.activeCategories?.[cat.id]}
+                    onToggle={() => toggleCategory(cat.id)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
 

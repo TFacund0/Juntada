@@ -1,0 +1,162 @@
+/* Botón "Cambiar letra" (SetupPhase) — chip circular-ish debajo de la
+   insignia, look distinto del botón "ghost" genérico de S.btn (ese lo usan
+   otras pantallas del juego para acciones secundarias comunes; acá, al ser
+   LA acción secundaria de toda la pantalla, se le da identidad propia). */
+.tf-reroll-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  border: 1px solid var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
+  background: color-mix(in srgb, var(--jt-accent, #5b5ce0) 14%, transparent);
+  color: var(--jt-accent-strong, #c94bd6);
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease,
+    background 0.15s ease;
+}
+
+.tf-reroll-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+
+.tf-reroll-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.tf-reroll-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@keyframes tf-reroll-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tf-reroll-icon {
+  display: inline-block;
+  animation: tf-reroll-spin 0.5s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-reroll-icon {
+    animation: none;
+  }
+  .tf-reroll-btn:hover,
+  .tf-reroll-btn:active {
+    transform: none;
+  }
+}
+
+/* Botón "Confirmar y empezar" (StickyActionBar, SetupPhase) — respiración
+   de glow continua para que la acción principal de la pantalla no se
+   sienta estática mientras espera el toque; el lift al hover/press ya lo
+   aporta la clase compartida .jt-btn-anim (sharedChrome.css). */
+@keyframes tf-confirm-pulse {
+  0%,
+  100% {
+    box-shadow: 0 4px 20px var(--jt-accent-border-soft, rgba(127, 119, 221, 0.35));
+  }
+  50% {
+    box-shadow: 0 6px 32px color-mix(in srgb, var(--jt-accent-strong, #c94bd6) 55%, transparent);
+  }
+}
+
+.tf-confirm-btn {
+  animation: tf-confirm-pulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-confirm-btn {
+    animation: none;
+  }
+}
+
+/* Mismo criterio que .tf-confirm-btn, pero con el verde del CTA
+   (--jt-cta-shadow) en vez del acento del tema — para los StartButton
+   (variant success) como "Nueva ronda"/"Ver resultados finales"/"Nueva
+   partida", donde un glow violeta desentonaría contra el degradé verde del
+   botón. */
+@keyframes tf-startbtn-pulse {
+  0%,
+  100% {
+    box-shadow: 0 4px 20px var(--jt-cta-shadow, rgba(29, 158, 117, 0.3));
+  }
+  50% {
+    box-shadow: 0 6px 32px color-mix(in srgb, var(--jt-cta-from, #1d9e75) 60%, transparent);
+  }
+}
+
+.tf-startbtn-pulse {
+  animation: tf-startbtn-pulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-startbtn-pulse {
+    animation: none;
+  }
+}
+
+/* Botón "¡BASTA!" (WritingPhase) — late leve (como si "quisiera" que lo
+   toquen) más un sacudón corto cada tanto, para que se note como LA acción
+   urgente de la pantalla y no un botón más — mismo criterio que
+   .tf-confirm-btn pero con el rojo de "danger" en vez del acento del tema. */
+@keyframes tf-basta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(226, 75, 74, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(226, 75, 74, 0);
+  }
+}
+
+@keyframes tf-basta-shake {
+  0%,
+  85%,
+  100% {
+    transform: translateX(0);
+  }
+  88% {
+    transform: translateX(-3px);
+  }
+  91% {
+    transform: translateX(3px);
+  }
+  94% {
+    transform: translateX(-2px);
+  }
+  97% {
+    transform: translateX(2px);
+  }
+}
+
+.tf-basta-btn {
+  animation:
+    tf-basta-pulse 1.8s ease-out infinite,
+    tf-basta-shake 3.6s ease-in-out infinite;
+}
+
+/* Sin esto, el shake/pulse (que anima su propio `transform`) le gana cuadro
+   a cuadro al `transform: translateY(-2px)` que .jt-btn-anim:hover intenta
+   aplicar, y el lift al pasar el cursor nunca se llega a ver — pausar acá
+   deja que el hover tome el control de `transform` mientras dura. */
+.tf-basta-btn:hover,
+.tf-basta-btn:active {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-basta-btn {
+    animation: none;
+  }
+}

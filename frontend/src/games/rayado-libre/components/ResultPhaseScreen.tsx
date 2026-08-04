@@ -2,9 +2,14 @@ import { S } from "../../../theme/styles";
 import { StartButton } from "../../../components/setup/StartButton";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
+import { PodiumBoard } from "../../../components/game-kit/PodiumBoard";
 import type { RoundViewProps } from "../../gameTypes";
-import { PodiumBoard } from "./PodiumBoard";
 import { roomScore } from "../utils/roomScore";
+import { RAYADO_RAINBOW } from "../rainbow";
+
+// Mismo criterio que LocalResultScreen — naranja/azul/violeta del anillo en
+// vez del oro/plata/bronce genérico que trae PodiumBoard por defecto.
+const PODIUM_COLORS: [string, string, string] = [RAYADO_RAINBOW[1], RAYADO_RAINBOW[3], RAYADO_RAINBOW[4]];
 
 interface ResultPhaseScreenProps {
   room: RoundViewProps["room"];
@@ -39,6 +44,7 @@ export function ResultPhaseScreen({ room, me, isHost, send }: ResultPhaseScreenP
                 score: roomScore(room)[p.id] || 0,
                 isMe: p.id === me?.playerId,
               }))}
+              colors={PODIUM_COLORS}
             />
           </div>
         }
