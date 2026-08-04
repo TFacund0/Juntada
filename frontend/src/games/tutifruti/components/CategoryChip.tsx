@@ -17,13 +17,16 @@ export function CategoryChip({
 }) {
   return (
     <div
+      className="jt-btn-anim"
       style={{
         display: "flex",
         alignItems: "center",
         borderRadius: 999,
-        border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-        background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-        boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
+        border: active ? "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.6))" : "1px solid rgba(255,255,255,0.12)",
+        background: active
+          ? "linear-gradient(135deg, var(--jt-accent, #7F77DD), var(--jt-accent-strong, #534AB7))"
+          : "rgba(255,255,255,0.04)",
+        boxShadow: active ? "0 3px 14px var(--jt-accent-border-soft, rgba(127,119,221,0.35))" : "none",
         transition: "all 0.15s",
       }}
     >
@@ -36,7 +39,7 @@ export function CategoryChip({
           padding: onRemove ? "10px 6px 10px 16px" : "10px 16px",
           border: "none",
           background: "none",
-          color: active ? "#fff" : "#9089c0",
+          color: active ? "#fff" : "var(--jt-muted-text, #9089c0)",
           fontWeight: 700,
           fontSize: 13,
           cursor: "pointer",

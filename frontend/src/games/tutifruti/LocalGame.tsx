@@ -1,8 +1,11 @@
 import { useState } from "react";
+import "./tutifruti.css";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/ui/Btn";
 import { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } from "@juntada/tutifruti-data";
 import { PageNumbers } from "./components/PageNumbers";
+import { LetterReveal } from "./components/LetterReveal";
+import { CategoryChip } from "./components/CategoryChip";
 
 interface Category {
   id: string;
@@ -56,24 +59,27 @@ export function LocalGame() {
 
   return (
     <div>
-      <div style={{ ...S.cardHighlight, textAlign: "center", padding: "36px 20px" }}>
-        <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 8 }}>{letter ? "La letra es..." : "Tocá para sortear una letra"}</p>
-        <p style={{ fontSize: 64, fontWeight: 800, color: "#AFA9EC", margin: 0, lineHeight: 1 }}>{letter || "?"}</p>
-        {activeCats.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 16 }}>
-            {activeCats.map(cat => (
-              <span key={cat.id} style={S.pill(true)}>
-                {cat.icon} {cat.label}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      <LetterReveal
+        letter={letter}
+        label={letter ? "La letra es..." : "Tocá para sortear una letra"}
+        size="hero"
+        footer={
+          activeCats.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 16 }}>
+              {activeCats.map(cat => (
+                <span key={cat.id} style={S.pill(true)}>
+                  {cat.icon} {cat.label}
+                </span>
+              ))}
+            </div>
+          )
+        }
+      />
       <Btn onClick={drawLetter} disabled={activeLetters.length === 0}>
         {letter ? "🔀 Nueva letra" : "🎲 Sortear letra"}
       </Btn>
       {activeLetters.length === 0 && (
-        <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
+        <p style={{ fontSize: 12, color: "var(--jt-warn-text, #E2C44A)", textAlign: "center", marginTop: 8 }}>
           Activá al menos una letra abajo para poder sortear.
         </p>
       )}
@@ -81,32 +87,34 @@ export function LocalGame() {
       <div style={{ ...S.card, marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={S.label}>Letras</span>
-          <span style={{ fontSize: 12, color: "#9089c0", fontWeight: 700 }}>
+          <span style={{ fontSize: 12, color: "var(--jt-muted-text, #9089c0)", fontWeight: 700 }}>
             {activeLetters.length} activa{activeLetters.length === 1 ? "" : "s"}
           </span>
         </div>
         <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
           Tocá una letra para activarla o desactivarla — ya vienen preseleccionadas las más comunes.
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div className="tf-letter-grid">
           {(LETTERS as string[]).map(l => {
             const active = !!enabledLetters[l];
             return (
               <button
                 key={l}
                 onClick={() => setEnabledLetters(prev => ({ ...prev, [l]: !prev[l] }))}
+                className="jt-btn-anim"
                 style={{
-                  width: 40,
                   height: 40,
                   borderRadius: 10,
-                  border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                  background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-                  color: active ? "#fff" : "#9089c0",
+                  border: active ? "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.6))" : "1px solid rgba(255,255,255,0.12)",
+                  background: active
+                    ? "linear-gradient(135deg, var(--jt-accent, #7F77DD), var(--jt-accent-strong, #534AB7))"
+                    : "rgba(255,255,255,0.04)",
+                  color: active ? "#fff" : "var(--jt-muted-text, #9089c0)",
                   fontWeight: 700,
                   fontSize: 15,
                   cursor: "pointer",
                   fontFamily: "inherit",
-                  boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
+                  boxShadow: active ? "0 3px 14px var(--jt-accent-border-soft, rgba(127,119,221,0.35))" : "none",
                   transition: "all 0.15s",
                 }}
               >
@@ -120,46 +128,26 @@ export function LocalGame() {
       <div style={{ ...S.card, marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={S.label}>Categorías sugeridas</span>
-          <span style={{ fontSize: 12, color: "#9089c0", fontWeight: 700 }}>
+          <span style={{ fontSize: 12, color: "var(--jt-muted-text, #9089c0)", fontWeight: 700 }}>
             {activeCats.length} activa{activeCats.length === 1 ? "" : "s"}
           </span>
         </div>
         <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Tocá una categoría para activarla o desactivarla.</p>
         {activeCats.length === 0 && (
-          <p style={{ fontSize: 12, color: "#E2C44A", margin: "0 0 14px" }}>
+          <p style={{ fontSize: 12, color: "var(--jt-warn-text, #E2C44A)", margin: "0 0 14px" }}>
             No hay ninguna categoría activa — no van a tener nada sugerido para completar con la letra.
           </p>
         )}
         {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          {pagedCategories.map(cat => {
-            const active = !!enabled[cat.id];
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setEnabled(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  padding: "10px 16px",
-                  borderRadius: 999,
-                  border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                  background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-                  color: active ? "#fff" : "#9089c0",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
-                  transition: "all 0.15s",
-                }}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.label}</span>
-              </button>
-            );
-          })}
+          {pagedCategories.map(cat => (
+            <CategoryChip
+              key={cat.id}
+              cat={cat}
+              active={!!enabled[cat.id]}
+              onToggle={() => setEnabled(prev => ({ ...prev, [cat.id]: !prev[cat.id] }))}
+            />
+          ))}
         </div>
       </div>
     </div>

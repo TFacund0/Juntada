@@ -23,6 +23,7 @@ const { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } = require("@juntada/tutifr
   COMMON_LETTERS: string[];
 };
 const { normalizeWord, startsWithLetter } = require("@juntada/tutifruti-words") as typeof import("@juntada/tutifruti-words");
+const { shuffle } = require("@juntada/core-utils") as { shuffle: <T>(arr: readonly T[]) => T[] };
 
 const MIN_PLAYERS = 2;
 
@@ -42,6 +43,12 @@ interface TutifrutiConfig {
   activeCategories: Record<string, boolean>;
   customCategories: Category[];
   enabledLetters: Record<string, boolean>;
+  // Modo rápido: en vez de elegir categorías a mano, cada ronda sortea
+  // `randomCategoryCount` categorías de entre todas las disponibles (ver
+  // pickRoundCategories). No pisa `activeCategories` — el host puede
+  // volver a "elegir a mano" sin perder lo que ya había tildado.
+  randomCategoryMode: boolean;
+  randomCategoryCount: number;
   [key: string]: unknown;
 }
 
@@ -92,6 +99,8 @@ function createConfig(): TutifrutiConfig {
     activeCategories: DEFAULT_CATEGORIES.reduce((a, c) => ({ ...a, [c.id]: false }), {} as Record<string, boolean>),
     customCategories: [], // [{ id, label }]
     enabledLetters: LETTERS.reduce((a, l) => ({ ...a, [l]: COMMON_LETTERS.includes(l) }), {} as Record<string, boolean>),
+    randomCategoryMode: false,
+    randomCategoryCount: 6,
   };
 }
 
@@ -102,6 +111,19 @@ function activeCategories(room: Room): Category[] {
   const defaults = DEFAULT_CATEGORIES.filter(c => enabled && typeof enabled === "object" && enabled[c.id]);
   const custom = Array.isArray(cfg(room).customCategories) ? cfg(room).customCategories : [];
   return [...defaults, ...custom.filter(c => c && c.id && c.label)];
+}
+
+// Categorías realmente usadas para la próxima ronda — en modo aleatorio
+// (randomCategoryMode) ignora los toggles manuales y sortea
+// randomCategoryCount categorías de entre TODAS las disponibles (default +
+// custom), en vez de la selección a mano de activeCategories.
+function pickRoundCategories(room: Room): Category[] {
+  if (!cfg(room).randomCategoryMode) return activeCategories(room);
+  const custom = Array.isArray(cfg(room).customCategories) ? cfg(room).customCategories : [];
+  const pool = [...DEFAULT_CATEGORIES, ...custom.filter(c => c && c.id && c.label)];
+  if (pool.length === 0) return [];
+  const count = Math.max(1, Math.min(Number(cfg(room).randomCategoryCount) || pool.length, pool.length));
+  return shuffle(pool).slice(0, count);
 }
 
 // Same "malformed config can't crash the server" guard as activeCategories.
@@ -133,7 +155,7 @@ function startRound(room: Room): { success?: true; error?: string } {
   if (room.roundHistory.length >= cfg(room).rounds) {
     return { error: "Ya se jugaron todas las rondas configuradas" };
   }
-  const cats = activeCategories(room);
+  const cats = pickRoundCategories(room);
   if (cats.length === 0) return { error: "No hay categorías activas" };
   if (activeLetters(room).length === 0) return { error: "No hay letras activas" };
 

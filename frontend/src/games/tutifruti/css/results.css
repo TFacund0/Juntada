@@ -1,0 +1,64 @@
+/* ── Celebración de FinalStandings — confetti CSS liviano, sin librería ── */
+.tf-confetti-wrap {
+  position: relative;
+  overflow: hidden;
+  min-height: 120px;
+}
+
+.tf-confetti {
+  position: absolute;
+  top: -10px;
+  width: 8px;
+  height: 14px;
+  opacity: 0.85;
+  animation: tf-confetti-fall linear infinite;
+  border-radius: 2px;
+}
+
+@keyframes tf-confetti-fall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(260px) rotate(340deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-confetti {
+    animation: none;
+    display: none;
+  }
+}
+
+/* Fila de podio (top 3) — leve resalte con el degradé del tema. Usada por
+   RoundResult (clasificación intermedia) — FinalStandings usa el
+   PodiumBoard compartido (components/game-kit) en vez de esto. */
+.tf-podium-row {
+  position: relative;
+  animation: tf-stagger-in 0.35s ease-out both;
+}
+
+/* ── Indicador "Ronda X/Y" (RoundBadge) ── */
+/* Título de sección con el degradé del tema, sin card/borde/fondo alrededor
+   — a propósito no es un badge encerrado, y va más grande que el texto
+   muted genérico que usaba antes. */
+.tf-round-badge {
+  text-align: center;
+  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, var(--jt-accent-strong, #c94bd6), var(--jt-accent, #5b5ce0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.tf-round-badge__sep {
+  -webkit-text-fill-color: var(--jt-muted-text, #6b6490);
+  color: var(--jt-muted-text, #6b6490);
+  font-weight: 600;
+}

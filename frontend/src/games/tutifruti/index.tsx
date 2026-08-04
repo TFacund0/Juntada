@@ -8,9 +8,9 @@ import backgroundImage from "./assets/background.webp";
 // imported eagerly by the registry — this keeps every game's actual code out
 // of the initial bundle until the player picks that game (see registry.js).
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
-const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
-const LobbyInfo = lazy(() => import("./LobbyInfo").then(m => ({ default: m.LobbyInfo })));
+const LobbyInfo = lazy(() => import("./components/LobbyInfo").then(m => ({ default: m.LobbyInfo })));
 
 // Tutifrutti / Stop / Basta: se sortea una letra y todos completan a
 // contrarreloj (o hasta que alguien grite "¡Basta!") una lista de categorías
@@ -28,6 +28,8 @@ export const tutifrutiGame: GameDef = {
   category: "destacados",
   maintenance: false,
   tabbedLobby: true,
+  gameTheme: "tutifruti",
+  wideRoundView: true,
   // Same gate the ConfigPanel's own "categoría activa" counter reflects —
   // surfaced here too so it shows up right under "Iniciar ronda" instead of
   // only inside the (possibly not-even-open) Configuración tab. Cross-checks
@@ -37,7 +39,14 @@ export const tutifrutiGame: GameDef = {
   // "active" when ConfigPanel's own counter — and the backend's own
   // start-round gate — would both say zero.
   canStart: room => {
-    const config = room.config as { activeCategories?: Record<string, boolean>; customCategories?: { id: string }[] };
+    const config = room.config as {
+      activeCategories?: Record<string, boolean>;
+      customCategories?: { id: string }[];
+      randomCategoryMode?: boolean;
+    };
+    // En modo aleatorio no hay nada que tildar — el pool de categorías por
+    // defecto nunca está vacío, así que siempre puede arrancar.
+    if (config.randomCategoryMode) return null;
     const active = config.activeCategories ?? {};
     const customIds = Array.isArray(config.customCategories) ? config.customCategories.map(c => c.id) : [];
     const realIds = [...DEFAULT_CATEGORIES.map(c => c.id), ...customIds];

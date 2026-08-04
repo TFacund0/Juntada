@@ -67,6 +67,31 @@ test("startRound picks a letter and enters setup", () => {
   assert.ok(room.round.categories.length > 0);
 });
 
+test("startRound in random category mode picks exactly randomCategoryCount categories, ignoring activeCategories", () => {
+  const room = makeRoom();
+  // No manual category is active — only random mode makes categories
+  // available here, confirming it doesn't fall back to activeCategories.
+  Object.keys(room.config.activeCategories).forEach((id: string) => {
+    room.config.activeCategories[id] = false;
+  });
+  room.config.randomCategoryMode = true;
+  room.config.randomCategoryCount = 3;
+  const res = engine.startRound(room);
+  assert.equal(res.success, true);
+  assert.equal(room.round.categories.length, 3);
+});
+
+test("startRound in random category mode clamps randomCategoryCount to the available pool size", () => {
+  const room = makeRoom();
+  room.config.randomCategoryMode = true;
+  room.config.randomCategoryCount = 999999;
+  const res = engine.startRound(room);
+  assert.equal(res.success, true);
+  assert.ok(room.round.categories.length > 0);
+  const poolSize = Object.keys(room.config.activeCategories).length + room.config.customCategories.length;
+  assert.ok(room.round.categories.length <= poolSize);
+});
+
 test("confirm_letter is host-only", () => {
   const room = makeRoom();
   engine.startRound(room);

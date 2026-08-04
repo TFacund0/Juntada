@@ -1,0 +1,66 @@
+/* Usado por el punto de TimerBadge, ver .tf-timer-chip-urgent más abajo. */
+@keyframes tf-timer-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(226, 75, 74, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(226, 75, 74, 0);
+  }
+}
+
+/* Se queda visible arriba de la pantalla mientras se scrollea el contenido
+   de abajo — mismo offset que .jt-content-pad-top (sharedChrome.css) para
+   no quedar tapado por el navbar fijo, y para que ambos cambien juntos si
+   ese offset cambia. */
+.tf-timer-sticky {
+  position: sticky;
+  top: 68px;
+  z-index: 5;
+}
+
+@media (min-width: 900px) {
+  .tf-timer-sticky {
+    top: 78px;
+  }
+}
+
+.tf-timer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--tf-timer-color, #5dcaa5) 45%, transparent);
+  background: color-mix(in srgb, var(--tf-timer-color, #5dcaa5) 12%, transparent);
+  color: var(--jt-muted-text, #9089c0);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background 0.4s linear,
+    border-color 0.4s linear;
+}
+
+.tf-timer-chip strong {
+  color: var(--tf-timer-color, #5dcaa5);
+  font-weight: 800;
+}
+
+.tf-timer-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tf-timer-color, #5dcaa5);
+  flex-shrink: 0;
+}
+
+.tf-timer-chip-urgent .tf-timer-chip-dot {
+  animation: tf-timer-pulse 1.1s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-timer-chip-urgent .tf-timer-chip-dot {
+    animation: none;
+  }
+}

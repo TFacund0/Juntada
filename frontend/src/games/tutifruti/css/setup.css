@@ -1,0 +1,22 @@
+/* ── Pantalla de Setup (SetupPhase) ── */
+/* La letra queda en el medio de la pantalla (no pegada arriba) — resta el
+   offset del navbar fijo (.jt-content-pad-top) para acercarse al alto real
+   disponible. dvh (con fallback a vh) evita que la barra de direcciones
+   del navegador mobile corra el cálculo. El botón de confirmar no vive acá
+   adentro — se fue a <StickyActionBar>, fijo abajo del viewport (ver
+   SetupPhase.tsx y buttons.css) — así que este contenedor solo necesita
+   centrar la letra en el espacio que le queda, no reservarle lugar a mano. */
+.tf-setup-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 140px);
+  min-height: calc(100dvh - 140px);
+}
+
+.tf-setup-hero-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}

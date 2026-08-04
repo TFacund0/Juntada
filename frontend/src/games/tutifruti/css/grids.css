@@ -1,0 +1,80 @@
+/* Categorías de WritingPhase: siempre apiladas, una debajo de otra — a
+   propósito no es una grilla de columnas (se probó y no se quería, se
+   prefiere completar de arriba hacia abajo en un único orden, incluso en
+   desktop). Solo aire entre filas + separador sutil + entrada escalonada
+   (reusa .tf-stagger). */
+.tf-category-stack > * + * {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--jt-row-border, rgba(127, 119, 221, 0.08));
+}
+
+/* Cards de categoría de ReviewPhase: mismo criterio. */
+.tf-review-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 900px) {
+  .tf-review-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Entrada escalonada de las filas de ReviewPhase — cada card de categoría
+   aparece un poco después de la anterior en vez de todas juntas. También la
+   usa .tf-podium-row (ver results.css). */
+@keyframes tf-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tf-stagger > * {
+  animation: tf-stagger-in 0.3s ease-out both;
+}
+
+.tf-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.tf-stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.tf-stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.tf-stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.tf-stagger > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.tf-stagger > *:nth-child(n + 6) {
+  animation-delay: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tf-stagger > * {
+    animation: none;
+  }
+}
+
+/* Letras/categorías togleables de LocalGame — mismo criterio de grilla que
+   arriba, pensado para el grid de letras (A-Z) y de categorías sugeridas. */
+.tf-letter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .tf-letter-grid {
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  }
+}

@@ -1,33 +1,89 @@
+import { useEffect, useState } from "react";
 import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
+import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../gameTypes";
 import type { TutifrutiRoundState } from "../types";
 import { RoundBadge } from "./RoundBadge";
+import { LetterReveal } from "./LetterReveal";
+
+// Cuánto gira como mínimo la insignia antes de poder revelar la letra
+// nueva, aunque el servidor responda antes — sin esto, en una red rápida el
+// giro casi ni se nota y se pierde el factor sorpresa.
+const MIN_SPIN_MS = 750;
 
 // ── SETUP: letter draw, host can reroll ──
 export function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" | "isHost" | "send">) {
   const round = room.round as TutifrutiRoundState;
+  // El ícono del botón "Cambiar letra" tiene su propia animación de giro,
+  // disparada al toquecito — usar el contador como `key` hace que se repita
+  // en cada click, mismo truco que usa LetterReveal con `key={letter}`.
+  const [rerollTick, setRerollTick] = useState(0);
+  // Mientras `pending`, LetterReveal gira sin mostrar ninguna letra — recién
+  // se apaga cuando pasaron los MIN_SPIN_MS *y* la letra del servidor ya
+  // cambió respecto de la que había al tocar el botón, lo que tarde más.
+  // Así el "factor sorpresa" no depende de la latencia de red: en una
+  // respuesta lenta se espera a que llegue, en una rápida se espera el
+  // mínimo igual.
+  const [pending, setPending] = useState(false);
+  const [minSpinDone, setMinSpinDone] = useState(true);
+  const [letterAtClick, setLetterAtClick] = useState(round.letter);
+
+  useEffect(() => {
+    if (pending && minSpinDone && round.letter !== letterAtClick) setPending(false);
+  }, [pending, minSpinDone, round.letter, letterAtClick]);
+
+  const handleReroll = () => {
+    setRerollTick(t => t + 1);
+    setLetterAtClick(round.letter);
+    setPending(true);
+    setMinSpinDone(false);
+    setTimeout(() => setMinSpinDone(true), MIN_SPIN_MS);
+    send({ type: "confirm_letter", reroll: true });
+  };
+
   return (
-    <div>
-      <RoundBadge round={round} />
-      <div style={{ ...S.cardHighlight, textAlign: "center", padding: "36px 20px" }}>
-        <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 8 }}>La letra es...</p>
-        <p style={{ fontSize: 64, fontWeight: 800, color: "#AFA9EC", margin: 0, lineHeight: 1 }}>{round.letter}</p>
-        {round.rerollsUsed > 0 && (
-          <p style={{ ...S.muted, marginTop: 10 }}>
-            Letra cambiada {round.rerollsUsed} {round.rerollsUsed === 1 ? "vez" : "veces"}
-          </p>
-        )}
-      </div>
-      {isHost ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <Btn onClick={() => send({ type: "confirm_letter" })}>Confirmar y empezar</Btn>
-          <Btn variant="ghost" onClick={() => send({ type: "confirm_letter", reroll: true })}>
-            🔀 Cambiar letra
-          </Btn>
+    <div style={{ paddingBottom: STICKY_ACTION_BAR_CLEARANCE }}>
+      <div className="tf-setup-stage">
+        <RoundBadge round={round} />
+        {/* Ocupa todo el espacio disponible debajo del indicador de ronda y
+            centra la letra ahí adentro — así queda en el medio de la
+            pantalla en vez de pegada arriba. */}
+        <div className="tf-setup-hero-wrap">
+          <LetterReveal
+            letter={round.letter}
+            size="hero"
+            pending={pending}
+            footer={
+              round.rerollsUsed > 0 && (
+                <p style={{ ...S.muted, marginTop: 10 }}>
+                  Letra cambiada {round.rerollsUsed} {round.rerollsUsed === 1 ? "vez" : "veces"}
+                </p>
+              )
+            }
+          />
+          {isHost ? (
+            <button className="tf-reroll-btn" onClick={handleReroll} disabled={pending}>
+              <span key={rerollTick} className="tf-reroll-icon">
+                🔀
+              </span>
+              Cambiar letra
+            </button>
+          ) : (
+            <p style={{ ...S.muted, textAlign: "center", marginTop: 18 }}>Esperando que el anfitrión confirme la letra...</p>
+          )}
         </div>
-      ) : (
-        <p style={{ ...S.muted, textAlign: "center" }}>Esperando que el anfitrión confirme la letra...</p>
+      </div>
+      {isHost && (
+        <StickyActionBar>
+          <Btn
+            onClick={() => send({ type: "confirm_letter" })}
+            className="jt-btn-anim tf-confirm-btn"
+            style={{ borderRadius: 999, padding: "16px 28px", fontSize: 16 }}
+          >
+            Confirmar y empezar
+          </Btn>
+        </StickyActionBar>
       )}
     </div>
   );

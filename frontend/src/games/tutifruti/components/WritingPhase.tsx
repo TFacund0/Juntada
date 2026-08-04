@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
+import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../gameTypes";
 import type { TutifrutiRoundState, TutifrutiPrivateRole } from "../types";
 import { RoundBadge } from "./RoundBadge";
-import { useCountdown } from "./useCountdown";
+import { useCountdown } from "../hooks/useCountdown";
+import { LetterReveal } from "./LetterReveal";
+import { TimerBadge } from "./TimerBadge";
 
 // ── WRITING: fill in categories against the clock or until "basta" ──
 export function WritingPhase({
@@ -77,67 +80,63 @@ export function WritingPhase({
   useEffect(() => () => flushPending(), []);
 
   return (
-    <div>
+    <div style={{ paddingBottom: STICKY_ACTION_BAR_CLEARANCE }}>
       <RoundBadge round={round} />
-      <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-        <p style={{ fontSize: 12, color: "#9089c0", marginBottom: 4 }}>Letra</p>
-        <p style={{ fontSize: 32, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>{round.letter}</p>
-      </div>
-      {round.endMode === "timer" && timeLeft != null && (
-        <div style={S.card}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 12, color: "#9089c0" }}>Tiempo restante</span>
-            <span style={{ fontSize: 20, fontWeight: 800, color: timeLeft < 15 ? "#E24B4A" : timeLeft < 30 ? "#EF9F27" : "#5DCAA5" }}>
-              {timeLeft}s
-            </span>
-          </div>
-        </div>
-      )}
+      <LetterReveal letter={round.letter} label="Letra" size="sm" />
+      {round.endMode === "timer" && timeLeft != null && <TimerBadge label="Tiempo restante" timeLeft={timeLeft} />}
       <div style={S.card}>
         <span style={S.label}>Completá con la letra "{round.letter}"</span>
-        {round.categories.map(cat => (
-          <div key={cat.id} style={{ marginBottom: 10 }}>
-            <span style={{ fontSize: 12, color: "#9089c0", marginBottom: 4, display: "block" }}>
-              {cat.icon ? `${cat.icon} ` : ""}
-              {cat.label}
-            </span>
-            <input
-              style={{ ...S.input, opacity: locked ? 0.5 : 1 }}
-              value={values[cat.id] || ""}
-              onChange={e => onChange(cat.id, e.target.value)}
-              placeholder={`${round.letter}...`}
-              disabled={locked}
-            />
-          </div>
-        ))}
+        <div className="tf-category-stack tf-stagger">
+          {round.categories.map(cat => (
+            <div key={cat.id}>
+              <span style={{ fontSize: 12, color: "var(--jt-muted-text, #9089c0)", marginBottom: 4, display: "block" }}>
+                {cat.icon ? `${cat.icon} ` : ""}
+                {cat.label}
+              </span>
+              <input
+                style={{ ...S.input, opacity: locked ? 0.5 : 1 }}
+                value={values[cat.id] || ""}
+                onChange={e => onChange(cat.id, e.target.value)}
+                placeholder={`${round.letter}...`}
+                disabled={locked}
+              />
+            </div>
+          ))}
+        </div>
       </div>
       {round.endMode === "basta" && (
-        <Btn
-          variant="danger"
-          onClick={() => {
-            flushPending();
-            send({ type: "call_basta" });
-          }}
-        >
-          ¡BASTA!
-        </Btn>
-      )}
-      {round.endMode === "timer" &&
-        (myPlayer?.ready ? (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#5DCAA5", margin: 0 }}>Marcaste que ya terminaste — esperando a los demás</p>
-          </div>
-        ) : (
+        <StickyActionBar>
           <Btn
-            variant="success"
+            variant="danger"
+            className="jt-btn-anim tf-basta-btn"
             onClick={() => {
               flushPending();
-              send({ type: "player_ready" });
+              send({ type: "call_basta" });
             }}
           >
-            Ya terminé
+            ¡BASTA!
           </Btn>
-        ))}
+        </StickyActionBar>
+      )}
+      {round.endMode === "timer" && (
+        <StickyActionBar>
+          {myPlayer?.ready ? (
+            <div style={{ ...S.card, textAlign: "center" }}>
+              <p style={{ color: "#5DCAA5", margin: 0 }}>Marcaste que ya terminaste — esperando a los demás</p>
+            </div>
+          ) : (
+            <Btn
+              variant="success"
+              onClick={() => {
+                flushPending();
+                send({ type: "player_ready" });
+              }}
+            >
+              Ya terminé
+            </Btn>
+          )}
+        </StickyActionBar>
+      )}
       {/* Timer mode already reports progress via readyCount right below "Ya
           terminé" — showing doneCount too said almost the same thing twice
           ("enviaron alguna respuesta" vs "ya terminaron"). Basta mode has no

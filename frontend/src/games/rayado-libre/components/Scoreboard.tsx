@@ -1,20 +1,15 @@
 import { S } from "../../../theme/styles";
 import { Avatar } from "../../../components/ui/Avatar";
+// Misma forma que ya necesitaba PodiumBoard (el podio de fin de partida,
+// ahora compartido en components/game-kit) — una sola definición del tipo
+// en vez de que cada juego declare la suya. Reexportado para que nada que
+// ya importe ScoreboardEntry desde acá (ej. RoundScoreboard.tsx) se rompa.
+import type { ScoreboardEntry } from "../../../components/game-kit/PodiumBoard";
+export type { ScoreboardEntry } from "../../../components/game-kit/PodiumBoard";
 
 // Shared by both LocalGame and RoundView (they used to each carry their own
 // near-identical copy) — takes a plain list of entries instead of a Room or
 // LocalPlayer[] shape, so it doesn't need to know which mode is rendering it.
-export interface ScoreboardEntry {
-  id: string | number;
-  name: string;
-  score: number;
-  // Shows a small "+N" to the left of the total — how much this player
-  // gained just this turn, not their overall standing. Omitted (or 0) shows
-  // nothing extra.
-  roundPoints?: number;
-  isMe?: boolean;
-}
-
 export function Scoreboard({ entries, title = "Tabla de puntos" }: { entries: ScoreboardEntry[]; title?: string }) {
   const ranked = [...entries].sort((a, b) => b.score - a.score);
   return (

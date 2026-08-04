@@ -1,10 +1,14 @@
 import { S } from "../../../theme/styles";
-import { Avatar } from "../../../components/ui/Avatar";
 import { StartButton } from "../../../components/setup/StartButton";
-import { LeaveToLobbyButton } from "../../../components/game-kit/LeaveToLobbyButton";
+import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
+import { PodiumBoard } from "../../../components/game-kit/PodiumBoard";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RoomPublicState } from "@juntada/shared-types";
 import type { TutifrutiRoundState } from "../types";
+
+// Colores fijos de confetti (no leen el tema — el contraste con el fondo
+// importa más acá que combinar con el acento del juego).
+const CONFETTI_COLORS = ["#c94bd6", "#5b5ce0", "#5DCAA5", "#E2C44A", "#2e8bff"];
 
 export function FinalStandings({
   room,
@@ -20,29 +24,33 @@ export function FinalStandings({
   const standings = [...room.players].map(p => ({ ...p, score: score[p.id] || 0 })).sort((a, b) => b.score - a.score);
 
   return (
-    <div>
-      <div style={{ textAlign: "center", padding: "12px 0" }}>
-        <p style={{ ...S.title, fontSize: 26, display: "block" }}>Fin del juego</p>
-      </div>
-      <div style={S.card}>
-        <span style={S.label}>Clasificación final</span>
-        {standings.map((p, i) => (
-          <div
-            key={p.id}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
-          >
-            <span style={{ fontWeight: 800, color: i === 0 ? "#E2C44A" : "#6b6490", width: 20 }}>{i + 1}</span>
-            <Avatar name={p.name} size={30} />
-            <span style={{ flex: 1, fontWeight: 700 }}>{p.name}</span>
-            <span style={{ fontWeight: 800, color: "#5DCAA5" }}>{p.score} pts</span>
-          </div>
+    <div style={{ paddingBottom: isHost ? STICKY_ACTION_BAR_CLEARANCE : undefined }}>
+      <div style={{ textAlign: "center", padding: "12px 0" }} className="tf-confetti-wrap">
+        <p style={{ ...S.title, fontSize: 26, display: "block" }}>
+          <span aria-hidden="true">🏆 </span>Fin del juego
+        </p>
+        {Array.from({ length: 16 }).map((_, i) => (
+          <span
+            key={i}
+            className="tf-confetti"
+            style={{
+              left: `${(i * 100) / 16 + (i % 2 === 0 ? 2 : -2)}%`,
+              background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+              animationDuration: `${1.8 + (i % 5) * 0.3}s`,
+              animationDelay: `${(i % 7) * 0.15}s`,
+            }}
+          />
         ))}
       </div>
-      {isHost && <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>}
+      <PodiumBoard entries={standings} />
       {!isHost && <p style={{ ...S.muted, textAlign: "center" }}>Esperando a que el anfitrión arranque una partida nueva.</p>}
-      {/* Group instances use the shell's persistent "Volver al grupo" link instead.
-          Available to any player, not just the host. */}
-      <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
+      {isHost && (
+        <StickyActionBar>
+          <StartButton className="jt-btn-anim tf-startbtn-pulse" onClick={() => send({ type: "new_game" })}>
+            Nueva partida
+          </StartButton>
+        </StickyActionBar>
+      )}
     </div>
   );
 }
