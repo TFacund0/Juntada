@@ -23,7 +23,13 @@ import { getGame } from "./games/registry";
 import { loadActive } from "./hooks/useActiveSession";
 import { useValidJoinLink } from "./features/multiplayer/hooks/useValidJoinLink";
 import { useGameTheme } from "./hooks/useGameTheme";
-import { useAppNavigation } from "./hooks/useAppNavigation";
+import { useAppSession } from "./hooks/useAppSession";
+import { useGameBridgeRefs } from "./hooks/useGameBridgeRefs";
+import { useAppDialogs } from "./hooks/useAppDialogs";
+import { useHeaderUI } from "./hooks/useHeaderUI";
+import { useBackNavigation } from "./hooks/useBackNavigation";
+import { useStepTransition } from "./hooks/useStepTransition";
+import { useAppShell } from "./hooks/useAppShell";
 import { setAppInGame } from "./hooks/appActivity";
 import { readLocalFlag, setLocalFlag } from "./utils/localFlag";
 
@@ -52,7 +58,42 @@ export default function App() {
   // home screen at all — go home instead in that case.
   const restoredGame = restoredRaw ? getGame(restoredRaw.gameId) : undefined;
   const restored = restoredRaw && restoredGame && isGameAvailable(restoredGame) ? restoredRaw : null;
-  const nav = useAppNavigation(validJoinLink, restored);
+
+  const session = useAppSession(validJoinLink, restored);
+  const bridgeRefs = useGameBridgeRefs();
+  const dialogs = useAppDialogs();
+  const headerUI = useHeaderUI();
+
+  const { goBack } = useBackNavigation({
+    gameId: session.gameId,
+    mode: session.mode,
+    groupFlow: session.groupFlow,
+    roomCode: session.roomCode,
+    groupCode: session.groupCode,
+    groupAttached: session.groupAttached,
+    roomPhase: session.roomPhase,
+    inRoom: session.inRoom,
+    returnToGroupRef: bridgeRefs.returnToGroupRef,
+    localGameMidMatchRef: bridgeRefs.localGameMidMatchRef,
+    setMode: session.setMode,
+    setRoomCode: session.setRoomCode,
+    setGameId: session.setGameId,
+    setShowRules: headerUI.setShowRules,
+    setShowExitConfirm: dialogs.setShowExitConfirm,
+    setShowBackConfirm: dialogs.setShowBackConfirm,
+    setShowLocalResetConfirm: dialogs.setShowLocalResetConfirm,
+    setShowReturnToGroupConfirm: dialogs.setShowReturnToGroupConfirm,
+  });
+
+  const { curtain, withCurtain, withAsyncCurtain, settleAsyncCurtain, stepKey, stepDirection } = useStepTransition({
+    gameId: session.gameId,
+    groupFlow: session.groupFlow,
+    game: session.game,
+    mode: session.mode,
+  });
+
+  const { confirmGoBack, goHome, pickGame, startGroupFlow } = useAppShell(session, dialogs, headerUI, withCurtain);
+
   const {
     gameId,
     setMode,
@@ -66,40 +107,23 @@ export default function App() {
     setGroupCode,
     groupAttached,
     setGroupAttached,
-    exposeReturnToGroup,
-    exposeLocalGameBack,
-    exposeLocalGameReset,
-    showProfileMenu,
-    setShowProfileMenu,
-    profileMenuRef,
-    showRules,
-    setShowRules,
+    inGameView,
+    setRoomPhase,
+    handleRoomGameType,
+    GAME_LIST,
+  } = session;
+  const { exposeReturnToGroup, exposeLocalGameBack, exposeLocalGameReset, localGameResetRef, returnToGroupRef } = bridgeRefs;
+  const {
     showExitConfirm,
     setShowExitConfirm,
     showBackConfirm,
     setShowBackConfirm,
     showLocalResetConfirm,
     setShowLocalResetConfirm,
-    localGameResetRef,
     showReturnToGroupConfirm,
     setShowReturnToGroupConfirm,
-    returnToGroupRef,
-    inGameView,
-    setRoomPhase,
-    handleRoomGameType,
-    curtain,
-    withCurtain,
-    withAsyncCurtain,
-    settleAsyncCurtain,
-    goBack,
-    confirmGoBack,
-    goHome,
-    pickGame,
-    startGroupFlow,
-    stepKey,
-    stepDirection,
-    GAME_LIST,
-  } = nav;
+  } = dialogs;
+  const { showProfileMenu, setShowProfileMenu, profileMenuRef, showRules, setShowRules } = headerUI;
 
   const [showDevNotice, setShowDevNotice] = useState(() => !readLocalFlag(DEV_NOTICE_SEEN_KEY));
 

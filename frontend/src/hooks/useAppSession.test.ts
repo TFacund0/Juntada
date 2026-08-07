@@ -83,6 +83,22 @@ describe("useAppSession", () => {
     expect(second).toBe(first);
   });
 
+  // Same invariant as above, but for the App.tsx wiring rewrite (PR3): the
+  // ref-indirection pattern must also survive re-renders triggered by
+  // completely unrelated state (e.g. mode changing), not just by
+  // handleRoomGameType's own setGameId calls — this is what would actually
+  // break if the wiring passed `gameId` directly instead of the ref, or
+  // widened the dependency array during the rewrite.
+  test("handleRoomGameType keeps a stable identity across re-renders from unrelated state changes", () => {
+    const { result, rerender } = renderAppSession();
+    const first = result.current.handleRoomGameType;
+    act(() => result.current.setMode("local"));
+    rerender();
+    act(() => result.current.setRoomCode("ABCDE"));
+    rerender();
+    expect(result.current.handleRoomGameType).toBe(first);
+  });
+
   test("GAME_LIST is exposed and non-empty", () => {
     const { result } = renderAppSession();
     expect(result.current.GAME_LIST.length).toBeGreaterThan(0);
