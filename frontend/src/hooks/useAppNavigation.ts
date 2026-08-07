@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useMatches } from "react-router-dom";
 import { GAME_LIST, getGame } from "../games/registry";
 import { isGameAvailable } from "../games/maintenance";
 import { clearMultiplayerSession } from "../features/multiplayer/hooks/useMultiplayerSocket";
@@ -7,7 +7,7 @@ import { roomHasProgress } from "../features/multiplayer/utils/returnToGroup";
 import { useCurtainTransition } from "./useCurtainTransition";
 import { useClickOutside } from "./useClickOutside";
 import { saveActive } from "./useActiveSession";
-import { parseRoute } from "./appRoutes";
+import { routeInitFromMatches } from "./appRoutes";
 import { useUrlSync } from "./useUrlSync";
 import type { JoinLink } from "../features/multiplayer/utils/joinLink";
 
@@ -22,12 +22,17 @@ import type { JoinLink } from "../features/multiplayer/utils/joinLink";
  * final.
  */
 export function useAppNavigation(validJoinLink: JoinLink | null, restored: { gameId: string; mode: "local" | "multi" } | null) {
-  const location = useLocation();
+  const matches = useMatches();
   // Snapshot once — a direct visit/refresh of a route like /game/:id or
   // /room/:gameId/:code should seed the initial state below the same way a
   // join link or a restored session does; later navigations are handled by
-  // the sync effect further down, not by re-reading this.
-  const [routeInit] = useState(() => parseRoute(location.pathname));
+  // the sync effect further down, not by re-reading this. useMatches() (not
+  // useLocation/useParams) because App is the layout route's leaf match, so
+  // it sees the full matched route chain — including the specific leaf route
+  // id (see routeInitFromMatches/ROUTES in appRoutes.ts) — the same way for
+  // every path under it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const [routeInit] = useState(() => routeInitFromMatches(matches));
   const linkGameId = validJoinLink?.kind === "room" ? validJoinLink.gameId : null;
   const [gameId, setGameId] = useState<string | null>(routeInit.gameId ?? linkGameId ?? restored?.gameId ?? null);
   const [mode, setMode] = useState<"local" | "multi" | null>(routeInit.mode ?? (validJoinLink ? "multi" : (restored?.mode ?? null)));

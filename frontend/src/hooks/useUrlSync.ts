@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useBlocker } from "react-router-dom";
 import { buildPath } from "./appRoutes";
 
 /**
@@ -28,6 +28,12 @@ import { buildPath } from "./appRoutes";
  * `midRound`/`goBack` are passed in rather than recomputed here so this hook
  * doesn't need to know anything about groups/rooms/local matches — just
  * "is there something a stray back shouldn't drop" and "what to do about it".
+ *
+ * The checkpoint push above is still required with useBlocker: a blocker
+ * only intercepts a POP that actually lands on a same-document history
+ * entry. With nothing but replaces, there is no such entry for it to catch
+ * — so deleting the checkpoint push here would silently break the whole
+ * guard, not just make it redundant.
  */
 export function useUrlSync(
   gameId: string | null,
@@ -74,29 +80,22 @@ export function useUrlSync(
     }
   }, [midRound, navigate]);
 
-  // Recomputed every render (not a dep array) so the popstate listener below
-  // always reads the latest values through the refs, never a stale closure.
-  const midRoundRef = useRef(midRound);
+  // Recomputed every render (not a dep array) so the blocker effect below
+  // always reads the latest goBack through the ref, never a stale closure.
   const goBackRef = useRef(goBack);
   useEffect(() => {
-    midRoundRef.current = midRound;
     goBackRef.current = goBack;
   });
 
-  // The browser's back/forward buttons (or a phone's back gesture) fire a
-  // native "popstate" the moment the address bar's entry actually changes —
-  // by then the navigation already happened, there's no way to preventDefault
-  // it. So instead of trying to block it, this pushes the correct URL right
-  // back on top of history (a plain push, which — unlike history.forward()
-  // — doesn't itself trigger another popstate, so there's no bounce/loop),
-  // then runs goBack() exactly as a "Volver" tap would.
+  // Data-router equivalent of the old manual popstate listener: blocks a
+  // same-document navigation (the checkpoint entry's POP, per the comment
+  // above) while midRound is true, runs goBack() exactly as a "Volver" tap
+  // would, then resets the blocker — which restores the location it was
+  // blocking at, replacing the old manual re-push of expectedPathRef.
+  const blocker = useBlocker(midRound);
   useEffect(() => {
-    const onPopState = () => {
-      if (!midRoundRef.current) return;
-      navigate(expectedPathRef.current, { replace: false });
-      goBackRef.current();
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [navigate]);
+    if (blocker.state !== "blocked") return;
+    goBackRef.current();
+    blocker.reset();
+  }, [blocker]);
 }
