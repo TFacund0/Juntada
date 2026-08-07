@@ -1,23 +1,20 @@
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Outlet } from "react-router-dom";
 import { S } from "./theme/styles";
 import "./theme/curtain.css";
 import "./theme/sharedChrome.css";
 import "./theme/homeDesign.css";
 import type { GameDef } from "./games/gameTypes";
 import { isGameAvailable } from "./games/maintenance";
-import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
-import { GamePicker } from "./components/shell/GamePicker";
-import { Hero, HeroBackdrop } from "./components/shell/Hero";
 import { GameRules } from "./components/shell/GameRules";
 import { AppConfirmDialogs } from "./components/shell/AppConfirmDialogs";
 import { AppBackdrop } from "./components/shell/AppBackdrop";
 import { DevNoticeDialog } from "./components/shell/DevNoticeDialog";
-import { GameLoadErrorBoundary } from "./components/shell/GameLoadErrorBoundary";
 import { NameOnboardingScreen } from "./components/shell/NameOnboardingScreen";
 import { ScreenFade } from "./components/ui/ScreenFade";
-import { Spinner } from "./components/ui/Spinner";
 import { AppHeader } from "./components/shell/AppHeader";
-import { ModePicker, ModePickerBackdrop } from "./components/shell/ModePicker";
+import { HeroBackdrop } from "./components/shell/Hero";
+import { ModePickerBackdrop } from "./components/shell/ModePicker";
 import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/utils/playerName";
 import { getGame } from "./games/registry";
 import { loadActive } from "./hooks/useActiveSession";
@@ -32,22 +29,19 @@ import { useStepTransition } from "./hooks/useStepTransition";
 import { useAppShell } from "./hooks/useAppShell";
 import { setAppInGame } from "./hooks/appActivity";
 import { readLocalFlag, setLocalFlag } from "./utils/localFlag";
+import type { AppOutletContext } from "./pages/AppOutletContext";
 
 const DEV_NOTICE_SEEN_KEY = "impostorgame:devNoticeSeen";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ROOT APP — landing = elegir juego, luego elegir modo (local/multi) para ese
-// juego. No conoce reglas de ningún juego: todo sale de games/registry.js.
+// ROOT APP — pathless PARENT/layout route. Owns the 6 slice-(b) leaf hooks +
+// chrome (AppHeader, AppBackdrop, ScreenFade, AppConfirmDialogs, dev notice,
+// theme sync) exactly once, and hands their combined state down to whichever
+// leaf page is currently matched (frontend/src/pages/) via
+// <Outlet context={...}/> — see AppOutletContext.ts for the exact shape and
+// design.md for why App must stay a single non-remounting parent route
+// (remounting on every path change would destroy this state).
 // ═══════════════════════════════════════════════════════════════════════════════
-
-function GameLoading() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 40 }}>
-      <Spinner />
-      <p style={{ margin: 0, color: "var(--jt-muted-text, #6b6490)", fontSize: 14 }}>Cargando juego...</p>
-    </div>
-  );
-}
 
 export default function App() {
   const validJoinLink = useValidJoinLink();
@@ -159,6 +153,81 @@ export default function App() {
     setAppInGame(inGameView);
   }, [inGameView]);
 
+  // Combined state/callbacks handed down to whichever leaf page is
+  // currently matched — see AppOutletContext.ts for the exact shape each
+  // page under frontend/src/pages/ expects.
+  const outletContext: AppOutletContext = useMemo(
+    () => ({
+      gameId,
+      setGameId: session.setGameId,
+      mode,
+      setMode,
+      game,
+      groupFlow,
+      groupIntent,
+      pendingGroupJoinCode,
+      switchToGroupJoin,
+      setRoomCode,
+      setGroupCode,
+      groupAttached,
+      setGroupAttached,
+      setRoomPhase,
+      handleRoomGameType,
+      GAME_LIST: GAME_LIST as GameDef[],
+      exposeReturnToGroup,
+      exposeLocalGameBack,
+      exposeLocalGameReset,
+      playerName,
+      savePlayerName,
+      validJoinLink,
+      curtain,
+      withCurtain: (action: () => void, themed?: boolean) => withCurtain(action, Boolean(themed)),
+      // withAsyncCurtain's real implementation (useCurtainTransition) calls
+      // `action()` with no arguments — RoomPage/GroupPage (PR1, already
+      // committed) call it with a `(settle) => void` action from
+      // MultiplayerGame's runTransition, exactly like this same call site did
+      // verbatim in the original inline App.tsx before this restructure.
+      // AppOutletContext's declared type matches those callers' broader
+      // signature, so bridging the concrete hook value through needs this
+      // cast — behavior is unchanged from the original.
+      withAsyncCurtain: withAsyncCurtain as AppOutletContext["withAsyncCurtain"],
+      settleAsyncCurtain,
+      pickGame,
+      goHome,
+      goBack,
+    }),
+    [
+      gameId,
+      session.setGameId,
+      mode,
+      setMode,
+      game,
+      groupFlow,
+      groupIntent,
+      pendingGroupJoinCode,
+      switchToGroupJoin,
+      setRoomCode,
+      setGroupCode,
+      groupAttached,
+      setGroupAttached,
+      setRoomPhase,
+      handleRoomGameType,
+      GAME_LIST,
+      exposeReturnToGroup,
+      exposeLocalGameBack,
+      exposeLocalGameReset,
+      playerName,
+      validJoinLink,
+      curtain,
+      withCurtain,
+      withAsyncCurtain,
+      settleAsyncCurtain,
+      pickGame,
+      goHome,
+      goBack,
+    ],
+  );
+
   if (!playerName) return <NameOnboardingScreen onSave={savePlayerName} />;
 
   return (
@@ -198,71 +267,7 @@ export default function App() {
             {showRules && (game?.rules?.length ?? 0) > 0 && <GameRules rules={game!.rules} onClose={() => setShowRules(false)} />}
 
             <ScreenFade transitionKey={stepKey} direction={stepDirection} skipAnimation={curtain !== "none"}>
-              {/* ── Paso 1: elegir juego (crear/unirse a un grupo vive en el "+" del header) ── */}
-              {!gameId && !groupFlow && (
-                <div>
-                  <Hero gameCount={(GAME_LIST as GameDef[]).filter(isGameAvailable).length} />
-                  <div id="jt-games">
-                    <GamePicker games={GAME_LIST as GameDef[]} onPick={pickGame} />
-                  </div>
-                </div>
-              )}
-
-              {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}
-              {gameId && game?.localOnly && isGameAvailable(game) && !mode && (
-                <GameLoadErrorBoundary key={gameId}>
-                  <Suspense fallback={<GameLoading />}>
-                    <game.LocalGame />
-                  </Suspense>
-                </GameLoadErrorBoundary>
-              )}
-
-              {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
-              {gameId && !mode && game && isGameAvailable(game) && !game.localOnly && (
-                <ModePicker
-                  onSelectMulti={() => setMode("multi")}
-                  onSelectLocal={() => withCurtain(() => setMode("local"), Boolean(game?.gameTheme))}
-                />
-              )}
-
-              {/* ── Paso 3: jugar ── */}
-              {mode === "local" && game && (
-                <GameLoadErrorBoundary key={gameId}>
-                  <Suspense fallback={<GameLoading />}>
-                    <game.LocalGame onExposeBack={exposeLocalGameBack} onExposeReset={exposeLocalGameReset} />
-                  </Suspense>
-                </GameLoadErrorBoundary>
-              )}
-              {mode === "multi" && (gameId || groupFlow) && (
-                <MultiplayerGame
-                  entryKind={groupFlow ? "group" : "room"}
-                  gameId={gameId}
-                  playerName={playerName}
-                  onChangeName={savePlayerName}
-                  initialJoinCode={pendingGroupJoinCode ?? validJoinLink?.code}
-                  initialGroupIntent={groupIntent}
-                  onGameTypeChange={handleRoomGameType}
-                  onRoomPhaseChange={setRoomPhase}
-                  onRoomCodeChange={setRoomCode}
-                  onGroupCodeChange={setGroupCode}
-                  onLeaveGroup={goHome}
-                  onExitRoomEntry={goBack}
-                  onGoHome={goHome}
-                  onSwitchToGroup={switchToGroupJoin}
-                  onGroupAttachedChange={setGroupAttached}
-                  onExposeReturnToGroup={exposeReturnToGroup}
-                  // `game` only reflects the *route's* gameId (set upfront for a
-                  // standalone room) — a group instance's game is picked from
-                  // inside the group screen itself, so `game` is still whatever it
-                  // was before (often null) at the exact moment a group create/
-                  // join fires. Callers there know the target game synchronously
-                  // (the picker's own gameId, or the instance's gameType) and pass
-                  // it as `themedOverride` instead of relying on this closure.
-                  runTransition={(action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme))}
-                  onTransitionSettled={settleAsyncCurtain}
-                  curtain={curtain}
-                />
-              )}
+              <Outlet context={outletContext} />
             </ScreenFade>
           </>
         );
