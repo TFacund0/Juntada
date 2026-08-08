@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 // The deck/card is a plain clickable <div>, not a <button> — grab it by its
 // distinctive inline cursor style instead of a role.

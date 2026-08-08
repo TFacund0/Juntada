@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 async function playColorGuess(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Ver el color" }));

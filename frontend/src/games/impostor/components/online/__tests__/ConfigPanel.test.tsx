@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CATEGORIES } from "@juntada/impostor-data";
 import type { RoomPublicState } from "@juntada/shared-types";
-import { ConfigPanel } from "./ConfigPanel";
+import { ConfigPanel } from "../ConfigPanel";
 
 // Host-only config editor rendered in the multiplayer lobby. Every field
 // here is a controlled input wired straight to updateConfig — these tests

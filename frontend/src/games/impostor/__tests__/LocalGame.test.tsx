@@ -2,7 +2,7 @@ import { describe, test, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CATEGORIES } from "@juntada/impostor-data";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

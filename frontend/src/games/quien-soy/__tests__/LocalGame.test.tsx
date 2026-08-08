@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 async function fillWordsAndStart(user: ReturnType<typeof userEvent.setup>, words: string[]) {
   render(<LocalGame />);
