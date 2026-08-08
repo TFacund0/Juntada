@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { RoomPublicState } from "@juntada/shared-types";
-import { LobbyInfo } from "./LobbyInfo";
+import { LobbyInfo } from "../LobbyInfo";
 
 function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicState {
   return {

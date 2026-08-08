@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 // The 9 board cells are unlabeled buttons rendered in index order — grab
 // them fresh each time since the set of enabled ones shrinks as the board fills.
