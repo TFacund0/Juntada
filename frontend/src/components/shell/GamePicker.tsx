@@ -5,45 +5,8 @@ import { isUnderMaintenance, isGameAvailable } from "../../games/maintenance";
 import { PICKER_META } from "../../games/pickerMeta";
 import { S } from "../../theme/styles";
 import { GameDetailDialog } from "./GameDetailDialog";
+import { SearchIcon, ChevronDownIcon } from "../ui/icons";
 import "./GamePicker.css";
-
-// SVGs en línea (Feather-style, trazo) en vez de emoji/glifos de texto —
-// mismo criterio que AppHeader/ModePicker/MenuScreen.
-function SearchIcon() {
-  return (
-    <svg
-      width={16}
-      height={16}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="11" cy="11" r="7" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon({ open }: { open: boolean }) {
-  return (
-    <svg
-      width={14}
-      height={14}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0, transition: "transform 0.15s ease", transform: open ? "rotate(180deg)" : "none" }}
-    >
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
 
 const CATEGORY_LABEL: Record<GameCategory, string> = {
   destacados: "Destacados",
@@ -250,7 +213,15 @@ function CategorySection({ title, count, open, onToggle, children }: CategorySec
           >
             {count} {count === 1 ? "juego" : "juegos"}
           </span>
-          <span style={{ color: "var(--jt-label, #7F77DD)", display: "flex" }}>
+          <span
+            style={{
+              color: "var(--jt-label, #7F77DD)",
+              display: "flex",
+              flexShrink: 0,
+              transition: "transform 0.15s ease",
+              transform: open ? "rotate(180deg)" : "none",
+            }}
+          >
             <ChevronDownIcon open={open} />
           </span>
         </span>
