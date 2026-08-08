@@ -3,8 +3,8 @@ import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
 import { Avatar } from "../../../components/ui/Avatar";
 import type { RoundViewProps } from "../../gameTypes";
-import type { Entrant, Match } from "../types";
-import { ROUND_NAMES } from "../types";
+import type { Entrant, Match } from "../types/roundView";
+import { ROUND_NAMES } from "../types/roundView";
 
 // ── BRACKET EN VIVO: cruces + carga de resultado (solo el anfitrión) ──
 export function BracketPhase({

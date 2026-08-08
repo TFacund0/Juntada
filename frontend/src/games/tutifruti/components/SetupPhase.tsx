@@ -3,7 +3,7 @@ import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../gameTypes";
-import type { TutifrutiRoundState } from "../types";
+import type { TutifrutiRoundState } from "../types/roundView";
 import { RoundBadge } from "./RoundBadge";
 import { LetterReveal } from "./LetterReveal";
 

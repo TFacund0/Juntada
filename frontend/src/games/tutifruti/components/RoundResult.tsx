@@ -4,7 +4,7 @@ import { StartButton } from "../../../components/setup/StartButton";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RoomPublicState } from "@juntada/shared-types";
-import type { TutifrutiRoundState, TutifrutiAnswerBreakdown } from "../types";
+import type { TutifrutiRoundState, TutifrutiAnswerBreakdown } from "../types/roundView";
 import { RoundBadge } from "./RoundBadge";
 
 // ── RESULT: round breakdown + running standings ──

@@ -1,7 +1,7 @@
 import { RevealCountdown, useRevealCountdown } from "../../components/game-kit/RevealCountdown";
 import { PhaseTransition } from "../../components/game-kit/PhaseTransition";
 import type { RoundViewProps } from "../gameTypes";
-import type { Match } from "./types";
+import type { Match } from "./types/roundView";
 import { ChampionPhase } from "./components/ChampionPhase";
 import { BracketPhase } from "./components/BracketPhase";
 

@@ -1,5 +1,5 @@
-import { S } from "../../theme/styles";
-import type { LobbyInfoProps } from "../gameTypes";
+import { S } from "../../../theme/styles";
+import type { LobbyInfoProps } from "../../gameTypes";
 
 interface Entry {
   id: string;

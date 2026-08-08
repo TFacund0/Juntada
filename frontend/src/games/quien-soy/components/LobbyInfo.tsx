@@ -1,6 +1,6 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 import { CATEGORIES } from "@juntada/quien-soy-data";
-import type { LobbyInfoProps } from "../gameTypes";
+import type { LobbyInfoProps } from "../../gameTypes";
 
 // Read-only mirror of ConfigPanel, shown to non-host players in the lobby so
 // they can see what the host is configuring live.

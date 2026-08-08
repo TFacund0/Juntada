@@ -3,8 +3,8 @@ import { StartButton } from "../../../components/setup/StartButton";
 import { LeaveToLobbyButton } from "../../../components/game-kit/LeaveToLobbyButton";
 import { Avatar } from "../../../components/ui/Avatar";
 import type { RoundViewProps } from "../../gameTypes";
-import type { Entrant, Match } from "../types";
-import { ROUND_NAMES } from "../types";
+import type { Entrant, Match } from "../types/roundView";
+import { ROUND_NAMES } from "../types/roundView";
 
 // ── CHAMPION: final standings, top scorer/leakiest defense (if trackGoals),
 // and the full path the bracket took to get here ──

@@ -7,7 +7,7 @@ import type { GameDef } from "../gameTypes";
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
 const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
-const LobbyInfo = lazy(() => import("./LobbyInfo").then(m => ({ default: m.LobbyInfo })));
+const LobbyInfo = lazy(() => import("./components/LobbyInfo").then(m => ({ default: m.LobbyInfo })));
 
 // A configurable spinner: the group loads whatever options they want
 // ("quién arranca", "qué comemos", prendas/consecuencias con descripción, etc.)

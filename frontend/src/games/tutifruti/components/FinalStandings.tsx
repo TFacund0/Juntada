@@ -4,7 +4,7 @@ import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../component
 import { PodiumBoard } from "../../../components/game-kit/PodiumBoard";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RoomPublicState } from "@juntada/shared-types";
-import type { TutifrutiRoundState } from "../types";
+import type { TutifrutiRoundState } from "../types/roundView";
 
 // Colores fijos de confetti (no leen el tema — el contraste con el fondo
 // importa más acá que combinar con el acento del juego).

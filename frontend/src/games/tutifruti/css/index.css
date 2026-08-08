@@ -6,10 +6,10 @@
    puntos de entrada visual). El orden de abajo no es significativo para la
    cascada (ningún selector de dos archivos distintos compite por el mismo
    elemento), se mantiene solo por orden de lectura. */
-@import "./css/letter.css";
-@import "./css/timer.css";
-@import "./css/grids.css";
-@import "./css/results.css";
-@import "./css/transitions.css";
-@import "./css/setup.css";
-@import "./css/buttons.css";
+@import "./letter.css";
+@import "./timer.css";
+@import "./grids.css";
+@import "./results.css";
+@import "./transitions.css";
+@import "./setup.css";
+@import "./buttons.css";

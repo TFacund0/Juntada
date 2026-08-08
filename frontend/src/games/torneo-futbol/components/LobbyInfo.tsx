@@ -1,6 +1,6 @@
-import { S } from "../../theme/styles";
-import { Avatar } from "../../components/ui/Avatar";
-import type { LobbyInfoProps } from "../gameTypes";
+import { S } from "../../../theme/styles";
+import { Avatar } from "../../../components/ui/Avatar";
+import type { LobbyInfoProps } from "../../gameTypes";
 
 // Read-only mirror of the host's "Asignar" tab (see TeamConfigPanel), shown
 // to non-host players in the lobby so they can see which team they (and

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "./tutifruti.css";
+import "./css/index.css";
 import { S } from "../../theme/styles";
 import { Btn } from "../../components/ui/Btn";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../components/setup/StickyActionBar";

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import "./recamara.css";
+import "./css/index.css";
 import {
   createInitialState,
   describeFireOutcome,

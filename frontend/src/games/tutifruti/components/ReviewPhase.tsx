@@ -5,7 +5,7 @@ import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../component
 import { shuffle } from "@juntada/core-utils";
 import { startsWithLetter } from "@juntada/tutifruti-words";
 import type { RoundViewProps } from "../../gameTypes";
-import type { TutifrutiRoundState } from "../types";
+import type { TutifrutiRoundState } from "../types/roundView";
 import { RoundBadge } from "./RoundBadge";
 import { useCountdown } from "../hooks/useCountdown";
 import { LetterReveal } from "./LetterReveal";
