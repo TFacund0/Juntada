@@ -6,6 +6,15 @@ prompt reutilizable para pedir lo mismo sobre cualquier otro juego del
 repo: qué principios seguir, en qué orden, y cómo verificar que nada se
 rompió en cada paso.
 
+> **Nota (convención de tests actualizada)**: este documento originalmente
+> proponía una carpeta `tests/` separada del padre. Esa convención quedó
+> obsoleta — la convención vigente es `__tests__/` como carpeta hermana
+> dentro del mismo directorio que la fuente que testea (no una carpeta
+> `tests/` aparte). Ver `frontend/src/games/README.md` como fuente de
+> verdad actual; el resto de los principios de este documento (motor
+> puro, componentes en `components/`, CSS dividido en `css/`, nada suelto
+> en la raíz) sigue vigente.
+
 ## Objetivo
 
 Que cada juego quede organizado así:
@@ -26,12 +35,14 @@ Que cada juego quede organizado así:
   cualquier cosa sin React (sin `useState`/`useEffect`, sin JSX). La
   diferencia con `hooks/` es exactamente esa: si no usa nada de React, va
   en `utils/`; si es un hook, va en `hooks/`.
-- **Tests en `tests/`**, uno por archivo que testean (`LocalGame.test.tsx`
-  para `LocalGame.tsx`, `engine.test.ts` para el motor, etc.), con imports
-  relativos apuntando afuera de esa carpeta (`../LocalGame`, no
-  `./LocalGame`). Aplicar esto parejo a todos los juegos de una — tener
-  algunos con tests co-ubicados y otros en `tests/` es peor que cualquiera
-  de las dos opciones por separado.
+- **Tests en `__tests__/`** (carpeta hermana dentro del mismo directorio
+  que la fuente que testean, no una carpeta `tests/` separada del padre),
+  uno por archivo que testean (`LocalGame.test.tsx` para `LocalGame.tsx`,
+  `engine.test.ts` para el motor, etc.), con imports relativos apuntando
+  afuera de esa carpeta (`../LocalGame`, no `./LocalGame`). Aplicar esto
+  parejo a todos los juegos de una — tener algunos con tests co-ubicados y
+  otros en carpetas distintas es peor que cualquiera de las dos opciones
+  por separado.
 - **CSS dividido por área** en vez de un solo archivo gigante — un archivo
   por sección visual (tablero/arena, overlays, botones, animaciones,
   etc.), importados desde un `archivo.css` índice.
@@ -61,7 +72,7 @@ Estructura de carpetas de referencia (la que quedó en Recámara):
 ├── hooks/                # useX compartidos entre local y online
 ├── utils/                # helpers puros, sin React
 ├── css/                  # CSS dividido por sección
-└── tests/                # un test por archivo que testea, imports con ../
+└── __tests__/            # un test por archivo que testea, imports con ../
 ```
 
 ## Principios
