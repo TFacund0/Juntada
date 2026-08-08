@@ -2,7 +2,7 @@ import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoomPublicState } from "@juntada/shared-types";
-import { ConfigPanel } from "../components/ConfigPanel";
+import { ConfigPanel } from "./ConfigPanel";
 
 function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicState {
   return {

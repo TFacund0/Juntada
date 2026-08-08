@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DEFAULT_CATEGORIES } from "@juntada/tutifruti-data";
 import type { RoomPublicState } from "@juntada/shared-types";
-import { ConfigPanel } from "../components/ConfigPanel";
+import { ConfigPanel } from "./ConfigPanel";
 
 function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicState {
   return {

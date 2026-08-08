@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "../LocalGame";
+import { LocalGame } from "./LocalGame";
 
 // Reveal now has four beats, each its own screen, in order: a plain "Ronda
 // N" announcement (no button, moves on by itself after ~1.8s), one chest at

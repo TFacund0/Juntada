@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
-import { LocalGame } from "../LocalGame";
+import { LocalGame } from "./LocalGame";
 
 describe("Rayado Libre LocalGame", () => {
   test("renders the setup screen with the 3 default players and start enabled", () => {

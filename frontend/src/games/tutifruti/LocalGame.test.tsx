@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "../LocalGame";
+import { LocalGame } from "./LocalGame";
 
 afterEach(() => vi.restoreAllMocks());
 

@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { PublicPlayer } from "@juntada/shared-types";
-import { GuessChatPanel } from "../components/GuessChatPanel";
+import { GuessChatPanel } from "./GuessChatPanel";
 import type { ChatEntry } from "../types/roundView";
 
 function makePlayers(): PublicPlayer[] {
