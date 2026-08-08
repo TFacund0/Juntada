@@ -2,7 +2,7 @@ import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
-import { RoundView } from "./RoundView";
+import { RoundView } from "../RoundView";
 
 function makePlayers(): PublicPlayer[] {
   return [

@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 async function addEntry(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.type(screen.getByPlaceholderText("Nombre (ej: Juan, o 'Prenda 1')"), name);

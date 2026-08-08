@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LocalGame } from "./LocalGame";
+import { LocalGame } from "../LocalGame";
 
 // Plays one full local round end to end (setup -> roundSetup -> reveal
 // [pick psychic -> psychic picks the spectrum -> reveal target] -> guessTurn
