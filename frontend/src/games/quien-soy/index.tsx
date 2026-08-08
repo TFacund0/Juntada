@@ -7,7 +7,7 @@ import type { GameDef } from "../gameTypes";
 // eliminado. Las palabras pueden salir de categorías predefinidas o de
 // sugerencias escritas y votadas por el propio grupo.
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
-const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
 const LobbyInfo = lazy(() => import("./LobbyInfo").then(m => ({ default: m.LobbyInfo })));
 

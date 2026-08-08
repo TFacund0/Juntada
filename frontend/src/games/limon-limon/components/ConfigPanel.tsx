@@ -1,6 +1,6 @@
-import { TurnOrderEditor } from "../../components/game-kit/TurnOrderEditor";
-import { DescriptionsEditor } from "./components/DescriptionsEditor";
-import type { ConfigPanelProps } from "../gameTypes";
+import { TurnOrderEditor } from "../../../components/game-kit/TurnOrderEditor";
+import { DescriptionsEditor } from "./DescriptionsEditor";
+import type { ConfigPanelProps } from "../../gameTypes";
 
 // Host-only, se muestra en el lobby: define el orden de turno (arranca en
 // orden de llegada, pero se puede reordenar) y el significado de cada carta.

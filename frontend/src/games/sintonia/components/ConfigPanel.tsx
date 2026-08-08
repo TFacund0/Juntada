@@ -1,5 +1,5 @@
-import type { ConfigPanelProps } from "../gameTypes";
-import { PlayModeConfig } from "./components/PlayModeConfig";
+import type { ConfigPanelProps } from "../../gameTypes";
+import { PlayModeConfig } from "./PlayModeConfig";
 
 // Host-only rules editor shown in the multiplayer lobby: whether the game
 // keeps going indefinitely (rotating psychic each round) or ends after a

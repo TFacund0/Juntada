@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
-import { TabRow } from "../../components/setup/TabRow";
-import { EntriesEditor } from "./components/EntriesEditor";
-import { ModeSelector } from "./components/ModeSelector";
-import type { ConfigPanelProps } from "../gameTypes";
+import { S } from "../../../theme/styles";
+import { TabRow } from "../../../components/setup/TabRow";
+import { EntriesEditor } from "./EntriesEditor";
+import { ModeSelector } from "./ModeSelector";
+import type { ConfigPanelProps } from "../../gameTypes";
 
 interface Entry {
   id: string;

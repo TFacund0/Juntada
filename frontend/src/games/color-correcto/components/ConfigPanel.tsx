@@ -1,6 +1,6 @@
-import { S } from "../../theme/styles";
-import type { ConfigPanelProps } from "../gameTypes";
-import { GuessTimerConfig } from "./components/GuessTimerConfig";
+import { S } from "../../../theme/styles";
+import type { ConfigPanelProps } from "../../gameTypes";
+import { GuessTimerConfig } from "./GuessTimerConfig";
 
 // Host-only rules editor shown in the multiplayer lobby: whether the game
 // keeps going indefinitely (running scoreboard) or ends after a fixed

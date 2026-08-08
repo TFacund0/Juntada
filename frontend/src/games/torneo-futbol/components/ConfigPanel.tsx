@@ -1,5 +1,5 @@
-import { TeamConfigPanel } from "./components/TeamConfigPanel";
-import type { ConfigPanelProps } from "../gameTypes";
+import { TeamConfigPanel } from "./TeamConfigPanel";
+import type { ConfigPanelProps } from "../../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TORNEO DE FÚTBOL — panel del anfitrión en el lobby multijugador. Todo el

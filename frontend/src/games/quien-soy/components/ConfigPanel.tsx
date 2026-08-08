@@ -1,6 +1,6 @@
-import { TurnOrderEditor } from "../../components/game-kit/TurnOrderEditor";
-import type { ConfigPanelProps } from "../gameTypes";
-import { WordSourceConfig } from "./components/WordSourceConfig";
+import { TurnOrderEditor } from "../../../components/game-kit/TurnOrderEditor";
+import type { ConfigPanelProps } from "../../gameTypes";
+import { WordSourceConfig } from "./WordSourceConfig";
 
 // Host-only setup shown in the multiplayer lobby: where the words come from
 // (predefined categories vs. player-suggested-and-voted), plus who goes in

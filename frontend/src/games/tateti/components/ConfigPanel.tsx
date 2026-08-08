@@ -1,4 +1,4 @@
-import { S } from "../../theme/styles";
+import { S } from "../../../theme/styles";
 
 // Ta-Te-Ti has no rules to tweak — this just fills the contract's slot in the
 // multiplayer lobby with a short note instead of an empty gap.
