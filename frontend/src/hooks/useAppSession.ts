@@ -3,7 +3,7 @@ import { useMatches } from "react-router-dom";
 import { GAME_LIST, getGame } from "../games/registry";
 import { isGameAvailable } from "../games/maintenance";
 import { saveActive } from "./useActiveSession";
-import { routeInitFromMatches } from "./appRoutes";
+import { routeInitFromMatches } from "../routing/appRoutes";
 import type { JoinLink } from "../features/multiplayer/utils/joinLink";
 
 /**

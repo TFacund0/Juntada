@@ -9,7 +9,7 @@ import { ModePickerPage } from "./ModePickerPage";
 // resolve a localOnly game at this route via a <Navigate> redirect (e.g. to
 // /game/:gameId/local) — that was proven invalid. useUrlSync's state-to-URL
 // sync effect always computes /game/:gameId when mode is null (buildPath in
-// appRoutes.ts), and a localOnly game's `mode` stays null by design (it never
+// routing/appRoutes.ts), and a localOnly game's `mode` stays null by design (it never
 // goes through ModePicker) — so any redirect away from /game/:gameId would
 // bounce forever against that sync effect.
 //

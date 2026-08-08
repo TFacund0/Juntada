@@ -1,12 +1,12 @@
 import type { UIMatch } from "react-router-dom";
 
-// URL shape for the app's top-level navigation state (see useAppNavigation).
-// Kept as pure functions/data, separate from the hook, so the path scheme is
-// defined in exactly one place shared by both directions of the sync:
-// routeInitFromMatches reads it back on a fresh load (direct URL entry/
-// refresh), buildPath is what useAppNavigation's sync effect writes on every
-// change. ROUTES itself is also the single source of truth for the route
-// tree built in routes.tsx.
+// URL shape for the app's top-level navigation state (see useAppSession and
+// useUrlSync). Kept as pure functions/data, separate from the hooks, so the
+// path scheme is defined in exactly one place shared by both directions of
+// the sync: routeInitFromMatches reads it back on a fresh load (direct URL
+// entry/refresh, consumed by useAppSession), buildPath is what useUrlSync's
+// sync effect writes on every change. ROUTES itself is also the single
+// source of truth for the route tree built in routes.tsx.
 //
 //   /                      home (no game picked)
 //   /game/:gameId          game picked, no mode yet (or local-only game)

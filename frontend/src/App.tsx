@@ -27,7 +27,7 @@ import { useHeaderUI } from "./hooks/useHeaderUI";
 import { useBackNavigation } from "./hooks/useBackNavigation";
 import { useStepTransition } from "./hooks/useStepTransition";
 import { useAppShell } from "./hooks/useAppShell";
-import { setAppInGame } from "./hooks/appActivity";
+import { setAppInGame } from "./utils/appActivity";
 import { readLocalFlag, setLocalFlag } from "./utils/localFlag";
 import type { AppOutletContext } from "./pages/AppOutletContext";
 

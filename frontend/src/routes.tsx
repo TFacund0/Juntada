@@ -2,14 +2,14 @@ import type { RouteObject } from "react-router-dom";
 import App from "./App";
 import { JoinRedirect } from "./features/multiplayer/JoinRedirect";
 import { RootLayout } from "./RootLayout";
-import { ROUTES } from "./hooks/appRoutes";
+import { ROUTES } from "./routing/appRoutes";
 import { PickerPage } from "./pages/PickerPage";
 import { GameEntry } from "./pages/GameEntry";
 import { LocalGamePage } from "./pages/LocalGamePage";
 import { RoomPage } from "./pages/RoomPage";
 import { GroupPage } from "./pages/GroupPage";
 
-// Route tree derived from ROUTES (hooks/appRoutes.ts) — the single source of
+// Route tree derived from ROUTES (routing/appRoutes.ts) — the single source of
 // truth for the app's path scheme. App itself stays a single, non-remounting
 // PARENT/layout route (pathless, no `path` of its own): every path under it
 // (/, /game/:gameId, /game/:gameId/local, /room/:gameId/:code?,
@@ -18,7 +18,7 @@ import { GroupPage } from "./pages/GroupPage";
 // than per-route App elements — so App itself stays mounted at the same tree
 // position across all of these path changes instead of remounting.
 //
-// Route ids live on the CHILD routes, NOT on the App parent — appRoutes.ts's
+// Route ids live on the CHILD routes, NOT on the App parent — routing/appRoutes.ts's
 // routeInitFromMatches/matchRouteId reads only the LAST entry in useMatches()
 // (the leaf route), so keeping the id here is what lets direct URL entry and
 // page refresh correctly derive session state on every one of these routes.

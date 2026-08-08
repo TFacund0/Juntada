@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { registerSW } from "virtual:pwa-register";
-import { onceAppIdle } from "./appActivity";
+import { onceAppIdle } from "../utils/appActivity";
 
 // registerType "autoUpdate" (see vite.config.ts) only checks for a new sw.js
 // on navigation — a tab left open for a while (typical mid-game) never
