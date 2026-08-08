@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { S } from "./theme/styles";
 import "./theme/curtain.css";
@@ -13,7 +13,6 @@ import { NameOnboardingScreen } from "./components/shell/NameOnboardingScreen";
 import { ScreenFade } from "./components/ui/ScreenFade";
 import { AppHeader } from "./components/shell/AppHeader";
 import { AppShellLayout } from "./components/shell/AppShellLayout";
-import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/utils/playerName";
 import { getGame } from "./games/registry";
 import { loadActive } from "./hooks/useActiveSession";
 import { useValidJoinLink } from "./features/multiplayer/hooks/useValidJoinLink";
@@ -26,10 +25,9 @@ import { useBackNavigation } from "./hooks/useBackNavigation";
 import { useStepTransition } from "./hooks/useStepTransition";
 import { useAppShell } from "./hooks/useAppShell";
 import { useAppOutletContext } from "./hooks/useAppOutletContext";
+import { useDevNotice } from "./hooks/useDevNotice";
+import { usePlayerName } from "./hooks/usePlayerName";
 import { setAppInGame } from "./utils/appActivity";
-import { readLocalFlag, setLocalFlag } from "./utils/localFlag";
-
-const DEV_NOTICE_SEEN_KEY = "impostorgame:devNoticeSeen";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROOT APP — pathless PARENT/layout route. Owns the 6 slice-(b) leaf hooks +
@@ -102,24 +100,8 @@ export default function App() {
   } = dialogs;
   const { showProfileMenu, setShowProfileMenu, profileMenuRef, showRules, setShowRules } = headerUI;
 
-  const [showDevNotice, setShowDevNotice] = useState(() => !readLocalFlag(DEV_NOTICE_SEEN_KEY));
-
-  const dismissDevNotice = () => {
-    setLocalFlag(DEV_NOTICE_SEEN_KEY);
-    setShowDevNotice(false);
-  };
-
-  // Asked once, right when the app is first opened — saved locally so
-  // nothing downstream (creating/joining a room or group) ever has to ask
-  // for it again. Editable later from the home screen ("Cambiar" link).
-  const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
-
-  const savePlayerName = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setStoredPlayerName(trimmed);
-    setPlayerName(trimmed);
-  };
+  const { showDevNotice, dismissDevNotice } = useDevNotice();
+  const { playerName, savePlayerName } = usePlayerName();
 
   // Whether a themed game's reskin is actually on screen right now — used
   // to drive the body/theme-color sync effect. Computed above the

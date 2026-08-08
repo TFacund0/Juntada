@@ -26,6 +26,12 @@ Organizados en subcarpetas por para qué sirven, no alfabéticamente:
   activo, detrás de toda la app.
 - `AppConfirmDialogs` — los `ConfirmDialog` de nivel-app (volver, resetear
   local, salir, volver-al-grupo) que dispara `App.tsx`/`useAppNavigation`.
+- `AppErrorBoundary` — el fallback de nivel raíz para cualquier error de
+  render no atrapado por un boundary más específico; se monta en `main.tsx`
+  envolviendo `<RouterProvider/>`, así que también atrapa errores del propio
+  `App.tsx`. Distinto de `GameLoadErrorBoundary`: no reintenta recargar
+  automáticamente ante un chunk-404 (a este nivel eso sería un loop de
+  recarga sin salida), solo muestra "Algo salió mal" + un botón "Recargar".
 
 ## `dialogs/` — piezas de modal compartidas
 

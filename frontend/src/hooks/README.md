@@ -21,6 +21,15 @@ hooks de React de verdad.
 - **`useHeaderUI.ts`** — toggles de UI del header (dropdown de perfil /
   reglas), extraído de `useAppNavigation.ts`. Separado de `useAppDialogs`
   porque no son confirmaciones, son simples toggles de visibilidad.
+- **`useDevNotice.ts`** — el aviso único de "app en desarrollo"
+  (`DevNoticeDialog`), extraído de `App.tsx`. Dueño de la bandera
+  `impostorgame:devNoticeSeen` (vía `utils/localFlag.ts`): `dismissDevNotice`
+  la persiste para que no vuelva a aparecer en ese dispositivo.
+- **`usePlayerName.ts`** — el nombre del jugador, extraído de `App.tsx`. Se
+  pregunta una sola vez (`NameOnboardingScreen`) y queda guardado localmente
+  (vía `features/multiplayer/utils/playerName.ts`) para que nada más
+  adelante tenga que volver a pedirlo; editable después desde la pantalla de
+  inicio.
 - **`useAppShell.ts`** — composition root: NO es un wrapper que re-expone
   los hooks hoja (eso ya lo hace `App.tsx` llamándolos directo). Sólo
   implementa las acciones que de verdad cruzan varios de ellos a la vez
