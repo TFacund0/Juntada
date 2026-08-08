@@ -1,7 +1,7 @@
 import type { GameDef } from "../../games/gameTypes";
 import { DialogFrame } from "../dialogs/DialogFrame";
 import { CloseIcon } from "../ui/icons";
-import { GamePicker } from "./GamePicker";
+import { GamePicker } from "./gamePicker/GamePicker";
 import "./NewGameDialog.css";
 
 interface NewGameDialogProps {

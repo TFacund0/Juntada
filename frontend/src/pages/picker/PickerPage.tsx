@@ -1,7 +1,7 @@
 import { useOutletContext } from "react-router-dom";
 import type { GameDef } from "../../games/gameTypes";
 import { isGameAvailable } from "../../games/maintenance";
-import { GamePicker } from "../../components/shell/GamePicker";
+import { GamePicker } from "../../components/shell/gamePicker/GamePicker";
 import { Hero } from "../../components/shell/Hero";
 import type { AppOutletContext } from "../AppOutletContext";
 
