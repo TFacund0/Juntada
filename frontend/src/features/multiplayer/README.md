@@ -59,6 +59,14 @@ vez, mismo `playerId`).
    sin estado: armar/leer el link de "escanear y unirse", y persistir el
    nombre elegido en `localStorage`.
 
+7. **`services/`** — lógica de conexión/sesión extraída de los hooks cuando
+   crece demasiado para vivir ahí (ej. `multiplayerSocketService.ts` para el
+   manejo bajo nivel del WebSocket, `multiplayerSession.ts` para persistencia
+   de sesión). Es un patrón válido para separar responsabilidades dentro de
+   una feature — si otro juego/feature necesita algo similar (lógica de red o
+   sesión que un hook solo no puede seguir cargando con claridad), puede
+   replicar esta misma carpeta `services/`.
+
 ## Si tenés que cambiar algo
 
 - ¿Cambia cómo se ve una pantalla? → el archivo de `screens/` correspondiente.
