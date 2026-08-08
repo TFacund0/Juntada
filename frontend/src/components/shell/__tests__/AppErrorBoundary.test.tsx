@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
-import { AppErrorBoundary } from "./AppErrorBoundary";
+import { AppErrorBoundary } from "../AppErrorBoundary";
 
 function Boom({ message = "boom" }: { message?: string }): never {
   throw new Error(message);

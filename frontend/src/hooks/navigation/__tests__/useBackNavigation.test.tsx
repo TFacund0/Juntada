@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { act, render } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { useBackNavigation } from "./useBackNavigation";
+import { useBackNavigation } from "../useBackNavigation";
 
 const navigateSpy = vi.fn();
 vi.mock("react-router-dom", async () => {

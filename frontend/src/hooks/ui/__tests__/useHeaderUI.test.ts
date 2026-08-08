@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useHeaderUI } from "./useHeaderUI";
+import { useHeaderUI } from "../useHeaderUI";
 
 describe("useHeaderUI", () => {
   test("profile menu and rules toggles start closed", () => {

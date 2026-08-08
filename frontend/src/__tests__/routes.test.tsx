@@ -2,9 +2,9 @@ import { useRef } from "react";
 import { describe, test, expect } from "vitest";
 import { render, act } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider, matchRoutes } from "react-router-dom";
-import { ROUTES } from "./routing/appRoutes";
-import { routeInitFromMatches } from "./routing/appRoutes";
-import { routes } from "./routes";
+import { ROUTES } from "../routing/appRoutes";
+import { routeInitFromMatches } from "../routing/appRoutes";
+import { routes } from "../routes";
 
 // react-router's data router builds an internal fetch Request on every
 // navigate() call for potential loader support, even with no loaders

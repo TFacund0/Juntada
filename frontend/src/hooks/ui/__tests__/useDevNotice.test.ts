@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useDevNotice } from "./useDevNotice";
+import { useDevNotice } from "../useDevNotice";
 
 const KEY = "impostorgame:devNoticeSeen";
 

@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useAppSession } from "./useAppSession";
+import { useAppSession } from "../useAppSession";
 
 // useAppSession only reads the route once via useMatches() at mount, to seed
 // initial state on a direct visit/refresh (see routeInitFromMatches) — every

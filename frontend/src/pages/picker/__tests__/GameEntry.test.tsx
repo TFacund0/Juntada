@@ -1,8 +1,8 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { GameEntry } from "./GameEntry";
-import type { AppOutletContext } from "../AppOutletContext";
-import type { GameDef } from "../../games/gameTypes";
+import { GameEntry } from "../GameEntry";
+import type { AppOutletContext } from "../../AppOutletContext";
+import type { GameDef } from "../../../games/gameTypes";
 
 const params = vi.fn<() => { gameId?: string }>();
 const outletContext = vi.fn<() => Partial<AppOutletContext>>();
@@ -12,12 +12,12 @@ vi.mock("react-router-dom", async () => {
 });
 
 const getGame = vi.fn<(id: string) => GameDef | undefined>();
-vi.mock("../../games/registry", () => ({ getGame: (id: string) => getGame(id) }));
+vi.mock("../../../games/registry", () => ({ getGame: (id: string) => getGame(id) }));
 
-vi.mock("../game/LocalOnlyGamePage", () => ({
+vi.mock("../../game/LocalOnlyGamePage", () => ({
   LocalOnlyGamePage: () => <div data-testid="local-only-page" />,
 }));
-vi.mock("./ModePickerPage", () => ({
+vi.mock("../ModePickerPage", () => ({
   ModePickerPage: () => <div data-testid="mode-picker-page" />,
 }));
 

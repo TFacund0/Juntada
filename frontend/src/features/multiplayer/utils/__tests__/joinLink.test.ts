@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { buildGroupJoinUrl, buildRoomJoinUrl, parseJoinLink, extractScannedCode } from "./joinLink";
+import { buildGroupJoinUrl, buildRoomJoinUrl, parseJoinLink, extractScannedCode } from "../joinLink";
 
 describe("joinLink", () => {
   describe("buildGroupJoinUrl / buildRoomJoinUrl", () => {

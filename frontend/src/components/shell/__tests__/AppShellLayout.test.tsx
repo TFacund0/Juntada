@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { AppShellLayout } from "./AppShellLayout";
-import type { GameDef } from "../../games/gameTypes";
+import { AppShellLayout } from "../AppShellLayout";
+import type { GameDef } from "../../../games/gameTypes";
 
 describe("AppShellLayout", () => {
   test('renders HeroBackdrop and jt-home-wrap wrapper for stepKey "picker"', () => {

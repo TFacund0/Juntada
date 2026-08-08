@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { MockWebSocket } from "../../../test/mockWebSocket";
-import { useMultiplayerSocket, clearMultiplayerSession } from "./useMultiplayerSocket";
+import { MockWebSocket } from "../../../../test/mockWebSocket";
+import { useMultiplayerSocket, clearMultiplayerSession } from "../useMultiplayerSocket";
 
 // The most critical, most shared piece of the frontend (per the codebase's
 // own README/plan notes) — every multiplayer game routes its WS traffic

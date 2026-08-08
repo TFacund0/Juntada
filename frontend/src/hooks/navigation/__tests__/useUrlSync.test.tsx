@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { useUrlSync } from "./useUrlSync";
+import { useUrlSync } from "../useUrlSync";
 
 const navigateSpy = vi.fn();
 vi.mock("react-router-dom", async () => {

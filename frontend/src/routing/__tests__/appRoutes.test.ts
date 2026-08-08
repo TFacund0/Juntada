@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { createMemoryRouter, matchRoutes } from "react-router-dom";
-import { routeInitFromMatches, buildPath, ROUTES } from "./appRoutes";
+import { routeInitFromMatches, buildPath, ROUTES } from "../appRoutes";
 
 // routeInitFromMatches reads useMatches()-shaped data, so these tests build
 // that same data the way the real router does: matchRoutes() against a

@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { usePlayerName } from "./usePlayerName";
+import { usePlayerName } from "../usePlayerName";
 
 const KEY = "impostorgame:playerName";
 

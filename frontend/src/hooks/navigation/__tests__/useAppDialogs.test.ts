@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useAppDialogs } from "./useAppDialogs";
+import { useAppDialogs } from "../useAppDialogs";
 
 describe("useAppDialogs", () => {
   test("all confirmation dialogs start closed", () => {

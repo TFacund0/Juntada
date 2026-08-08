@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useGameBridgeRefs } from "./useGameBridgeRefs";
+import { useGameBridgeRefs } from "../useGameBridgeRefs";
 
 describe("useGameBridgeRefs", () => {
   test("returnToGroupRef defaults to a no-op and updates via exposeReturnToGroup", () => {

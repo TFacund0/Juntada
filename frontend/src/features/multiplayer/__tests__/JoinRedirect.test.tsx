@@ -1,8 +1,8 @@
 import { describe, test, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
-import { JoinRedirect } from "./JoinRedirect";
-import type { JoinLink } from "./utils/joinLink";
+import { JoinRedirect } from "../JoinRedirect";
+import type { JoinLink } from "../utils/joinLink";
 
 // Landing spot standing in for App.tsx (mounted at "/") — surfaces whatever
 // router state JoinRedirect handed it off as plain text, so the assertions
