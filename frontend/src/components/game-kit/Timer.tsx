@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useRef } from "react";
-import { timerUrgencyColor } from "./useCountdownSeconds";
+import { timerUrgencyColor } from "./hooks/useCountdownSeconds";
 
 interface TimerProps {
   timerEnd: number;
