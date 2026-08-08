@@ -17,7 +17,7 @@ import { scoreFor } from "@juntada/sintonia-scoring";
 import { Dial, MARKER_COLORS, markerLabels } from "./components/Dial";
 import { Collapsible } from "../../components/game-kit/Collapsible";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
-import { useFlashError } from "../../hooks/useFlashError";
+import { useFlashError } from "../../hooks/ui/useFlashError";
 import { PlayModeConfig } from "./components/PlayModeConfig";
 
 // ═══════════════════════════════════════════════════════════════════════════════

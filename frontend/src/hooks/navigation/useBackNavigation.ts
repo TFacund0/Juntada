@@ -1,5 +1,5 @@
-import { clearMultiplayerSession } from "../features/multiplayer/hooks/useMultiplayerSocket";
-import { roomHasProgress } from "../features/multiplayer/utils/returnToGroup";
+import { clearMultiplayerSession } from "../../features/multiplayer/hooks/useMultiplayerSocket";
+import { roomHasProgress } from "../../features/multiplayer/utils/returnToGroup";
 import { useUrlSync } from "./useUrlSync";
 
 interface UseBackNavigationArgs {

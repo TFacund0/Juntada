@@ -17,7 +17,7 @@ import { ScoreToggleButton } from "./components/ScoreToggleButton";
 import { AddPlayerForm } from "../../components/game-kit/AddPlayerForm";
 import { EndMatchButton } from "./components/EndMatchButton";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
-import { useFlashError } from "../../hooks/useFlashError";
+import { useFlashError } from "../../hooks/ui/useFlashError";
 import { nextPlayerName } from "../../utils/nextPlayerName";
 
 // ═══════════════════════════════════════════════════════════════════════════════

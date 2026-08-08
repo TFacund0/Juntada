@@ -1,7 +1,7 @@
-import { clearMultiplayerSession } from "../features/multiplayer/hooks/useMultiplayerSocket";
-import type { useAppSession } from "./useAppSession";
+import { clearMultiplayerSession } from "../../features/multiplayer/hooks/useMultiplayerSocket";
+import type { useAppSession } from "../session/useAppSession";
 import type { useAppDialogs } from "./useAppDialogs";
-import type { useHeaderUI } from "./useHeaderUI";
+import type { useHeaderUI } from "../ui/useHeaderUI";
 
 type AppSession = ReturnType<typeof useAppSession>;
 type AppDialogs = ReturnType<typeof useAppDialogs>;

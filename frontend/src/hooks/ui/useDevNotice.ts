@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { readLocalFlag, setLocalFlag } from "../utils/localFlag";
+import { readLocalFlag, setLocalFlag } from "../../utils/localFlag";
 
 const DEV_NOTICE_SEEN_KEY = "impostorgame:devNoticeSeen";
 

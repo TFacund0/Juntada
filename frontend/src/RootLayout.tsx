@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { AppUpdateOverlay } from "./components/shell/AppUpdateOverlay";
-import { useServiceWorkerUpdate } from "./hooks/useServiceWorkerUpdate";
+import { useServiceWorkerUpdate } from "./hooks/device/useServiceWorkerUpdate";
 
 // Shared root route element for the whole tree (see routes.tsx) — keeps the
 // service-worker update overlay visible from both App and /join/:code,

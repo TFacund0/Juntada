@@ -1,7 +1,7 @@
 import { Btn } from "../ui/Btn";
 import { DialogFrame } from "./DialogFrame";
 import { QRCode } from "../ui/QRCode";
-import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
+import { useCopyToClipboard } from "../../hooks/ui/useCopyToClipboard";
 
 interface QRDialogProps {
   title: string;

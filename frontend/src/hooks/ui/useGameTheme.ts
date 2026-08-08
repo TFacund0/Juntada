@@ -1,6 +1,6 @@
 import { useLayoutEffect } from "react";
-import { GAME_THEMES, type GameTheme } from "../theme/gameThemes";
-import type { GameDef } from "../games/gameTypes";
+import { GAME_THEMES, type GameTheme } from "../../theme/gameThemes";
+import type { GameDef } from "../../games/gameTypes";
 
 /**
  * Deriva las variables CSS `--jt-*` (ver `theme/sharedChrome.css`) a partir

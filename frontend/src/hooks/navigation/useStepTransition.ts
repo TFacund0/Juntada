@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
-import type { GameDef } from "../games/gameTypes";
-import { isGameAvailable } from "../games/maintenance";
-import { useCurtainTransition } from "./useCurtainTransition";
+import type { GameDef } from "../../games/gameTypes";
+import { isGameAvailable } from "../../games/maintenance";
+import { useCurtainTransition } from "../ui/useCurtainTransition";
 
 interface UseStepTransitionArgs {
   gameId: string | null;

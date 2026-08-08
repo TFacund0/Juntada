@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useAppOutletContext } from "./useAppOutletContext";
-import type { useAppSession } from "./useAppSession";
+import type { useAppSession } from "../session/useAppSession";
 import type { useGameBridgeRefs } from "./useGameBridgeRefs";
 import type { useStepTransition } from "./useStepTransition";
 import type { useAppShell } from "./useAppShell";

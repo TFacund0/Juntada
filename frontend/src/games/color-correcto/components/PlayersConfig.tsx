@@ -2,7 +2,7 @@ import { useState } from "react";
 import { S } from "../../../theme/styles";
 import { Btn } from "../../../components/ui/Btn";
 import { AddPlayerForm } from "../../../components/game-kit/AddPlayerForm";
-import { useFlashError } from "../../../hooks/useFlashError";
+import { useFlashError } from "../../../hooks/ui/useFlashError";
 import { nextPlayerName } from "../../../utils/nextPlayerName";
 
 // Local pass-and-play's "who's playing" editor — add/remove names before

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
+import { useCopyToClipboard } from "../../../hooks/ui/useCopyToClipboard";
 import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
 import { Avatar } from "../../../components/ui/Avatar";

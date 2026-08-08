@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import type { GameDef } from "../games/gameTypes";
-import type { JoinLink } from "../features/multiplayer/utils/joinLink";
-import type { AppOutletContext } from "../pages/AppOutletContext";
-import type { useAppSession } from "./useAppSession";
+import type { GameDef } from "../../games/gameTypes";
+import type { JoinLink } from "../../features/multiplayer/utils/joinLink";
+import type { AppOutletContext } from "../../pages/AppOutletContext";
+import type { useAppSession } from "../session/useAppSession";
 import type { useGameBridgeRefs } from "./useGameBridgeRefs";
 import type { useStepTransition } from "./useStepTransition";
 import type { useAppShell } from "./useAppShell";

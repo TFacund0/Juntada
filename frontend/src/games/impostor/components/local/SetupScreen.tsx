@@ -10,7 +10,7 @@ import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { StartButton } from "../../../../components/setup/StartButton";
 import { MinPlayersHint } from "../../../../components/game-kit/MinPlayersHint";
 import { ErrorBanner } from "../../../../components/ui/ErrorBanner";
-import { useFlashError } from "../../../../hooks/useFlashError";
+import { useFlashError } from "../../../../hooks/ui/useFlashError";
 import { ConfigSection } from "../config/ConfigSection";
 import { ConfigTabs } from "../config/ConfigTabs";
 import { CategoriesTab } from "../config/CategoriesTab";

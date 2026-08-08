@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useLocation, useBlocker } from "react-router-dom";
-import { buildPath } from "../routing/appRoutes";
+import { buildPath } from "../../routing/appRoutes";
 
 /**
  * Keeps the address bar in sync with useAppNavigation's step state, and

@@ -1,4 +1,4 @@
-import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
+import { useCopyToClipboard } from "../../hooks/ui/useCopyToClipboard";
 
 interface CodeDisplayProps {
   code: string;

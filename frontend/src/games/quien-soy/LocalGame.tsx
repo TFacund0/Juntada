@@ -9,7 +9,7 @@ import { SetupTabs, type SetupTab } from "../../components/setup/SetupTabs";
 import { StickyActionBar } from "../../components/setup/StickyActionBar";
 import { TurnCircle } from "../../components/game-kit/TurnCircle";
 import { MinPlayersHint } from "../../components/game-kit/MinPlayersHint";
-import { useFlashError } from "../../hooks/useFlashError";
+import { useFlashError } from "../../hooks/ui/useFlashError";
 import { nextPlayerName } from "../../utils/nextPlayerName";
 import { shuffle } from "@juntada/core-utils";
 import { isCorrectGuess, MAX_WRONG_GUESSES, computeMatchRanks, type QuienSoyResult } from "@juntada/quien-soy-data";

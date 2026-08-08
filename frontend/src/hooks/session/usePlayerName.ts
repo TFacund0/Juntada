@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getStoredPlayerName, setStoredPlayerName } from "../features/multiplayer/utils/playerName";
+import { getStoredPlayerName, setStoredPlayerName } from "../../features/multiplayer/utils/playerName";
 
 /**
  * El nombre del jugador — extraído de `App.tsx`. Se pregunta una sola vez,

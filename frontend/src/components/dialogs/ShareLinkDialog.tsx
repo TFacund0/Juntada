@@ -1,6 +1,6 @@
 import { Btn } from "../ui/Btn";
 import { DialogFrame } from "./DialogFrame";
-import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
+import { useCopyToClipboard } from "../../hooks/ui/useCopyToClipboard";
 
 interface ShareLinkDialogProps {
   title: string;

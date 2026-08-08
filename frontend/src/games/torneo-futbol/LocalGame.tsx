@@ -10,7 +10,7 @@ import { TeamConfigPanel } from "./components/TeamConfigPanel";
 import { buildBracket, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
-import { useFlashError } from "../../hooks/useFlashError";
+import { useFlashError } from "../../hooks/ui/useFlashError";
 import { nextPlayerName } from "../../utils/nextPlayerName";
 
 // ═══════════════════════════════════════════════════════════════════════════════

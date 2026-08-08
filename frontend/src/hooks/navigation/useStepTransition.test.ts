@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useStepTransition } from "./useStepTransition";
-import type { GameDef } from "../games/gameTypes";
+import type { GameDef } from "../../games/gameTypes";
 
 // Minimal stand-ins covering only the fields stepKey/isGameAvailable read —
 // decoupled from the real registry so this doesn't depend on which games
