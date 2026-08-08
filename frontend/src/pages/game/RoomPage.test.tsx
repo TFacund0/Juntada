@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { RoomPage } from "./RoomPage";
-import type { AppOutletContext } from "./AppOutletContext";
+import type { AppOutletContext } from "../AppOutletContext";
 
 const outletContext = vi.fn<() => Partial<AppOutletContext>>();
 vi.mock("react-router-dom", async () => {
@@ -9,7 +9,7 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useOutletContext: () => outletContext() };
 });
 
-vi.mock("../features/multiplayer/MultiplayerGame", () => ({
+vi.mock("../../features/multiplayer/MultiplayerGame", () => ({
   MultiplayerGame: (props: { entryKind: string; gameId: string | null }) => (
     <div data-testid="multiplayer-game" data-entry-kind={props.entryKind} data-game-id={props.gameId ?? ""} />
   ),

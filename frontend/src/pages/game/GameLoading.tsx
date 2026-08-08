@@ -1,4 +1,4 @@
-import { Spinner } from "../components/ui/Spinner";
+import { Spinner } from "../../components/ui/Spinner";
 
 // Fallback de <Suspense> mientras carga el chunk de un juego — extraído
 // verbatim de App.tsx (misma función, mismo JSX), compartido entre las

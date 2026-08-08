@@ -1,7 +1,7 @@
 import { useOutletContext } from "react-router-dom";
-import { isGameAvailable } from "../games/maintenance";
-import { ModePicker } from "../components/shell/ModePicker";
-import type { AppOutletContext } from "./AppOutletContext";
+import { isGameAvailable } from "../../games/maintenance";
+import { ModePicker } from "../../components/shell/ModePicker";
+import type { AppOutletContext } from "../AppOutletContext";
 
 // Paso 2: elegir modo (solo si el juego ya está implementado y soporta
 // online) — extraído verbatim del bloque

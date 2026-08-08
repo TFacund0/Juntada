@@ -1,9 +1,9 @@
 import { useOutletContext } from "react-router-dom";
-import type { GameDef } from "../games/gameTypes";
-import { isGameAvailable } from "../games/maintenance";
-import { GamePicker } from "../components/shell/GamePicker";
-import { Hero } from "../components/shell/Hero";
-import type { AppOutletContext } from "./AppOutletContext";
+import type { GameDef } from "../../games/gameTypes";
+import { isGameAvailable } from "../../games/maintenance";
+import { GamePicker } from "../../components/shell/GamePicker";
+import { Hero } from "../../components/shell/Hero";
+import type { AppOutletContext } from "../AppOutletContext";
 
 // Paso 1: elegir juego — extraído verbatim del bloque `!gameId && !groupFlow`
 // en App.tsx. Guard preservado tal cual: si por un "one-render lag" esta

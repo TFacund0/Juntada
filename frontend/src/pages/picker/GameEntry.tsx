@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
-import { getGame } from "../games/registry";
-import { LocalOnlyGamePage } from "./LocalOnlyGamePage";
+import { getGame } from "../../games/registry";
+import { LocalOnlyGamePage } from "../game/LocalOnlyGamePage";
 import { ModePickerPage } from "./ModePickerPage";
 
 // Dispatch component for the /game/:gameId route.

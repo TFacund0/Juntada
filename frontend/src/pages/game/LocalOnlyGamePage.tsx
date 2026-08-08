@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { useOutletContext } from "react-router-dom";
-import { isGameAvailable } from "../games/maintenance";
-import { GameLoadErrorBoundary } from "../components/shell/GameLoadErrorBoundary";
+import { isGameAvailable } from "../../games/maintenance";
+import { GameLoadErrorBoundary } from "../../components/shell/GameLoadErrorBoundary";
 import { GameLoading } from "./GameLoading";
-import type { AppOutletContext } from "./AppOutletContext";
+import type { AppOutletContext } from "../AppOutletContext";
 
 // Juego solo local (sin motor de sala online, game.localOnly === true):
 // directo al juego, sin pasar por ModePicker — extraído verbatim del bloque

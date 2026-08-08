@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { useOutletContext } from "react-router-dom";
-import { GameLoadErrorBoundary } from "../components/shell/GameLoadErrorBoundary";
+import { GameLoadErrorBoundary } from "../../components/shell/GameLoadErrorBoundary";
 import { GameLoading } from "./GameLoading";
-import type { AppOutletContext } from "./AppOutletContext";
+import type { AppOutletContext } from "../AppOutletContext";
 
 // Paso 3 (mode === "local"): jugar un juego que sí soporta online pero fue
 // elegido en modo local — extraído verbatim del bloque `mode === "local" &&

@@ -1,8 +1,8 @@
 import { describe, test, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { ModePickerPage } from "./ModePickerPage";
-import type { AppOutletContext } from "./AppOutletContext";
-import type { GameDef } from "../games/gameTypes";
+import type { AppOutletContext } from "../AppOutletContext";
+import type { GameDef } from "../../games/gameTypes";
 
 const outletContext = vi.fn<() => Partial<AppOutletContext>>();
 vi.mock("react-router-dom", async () => {

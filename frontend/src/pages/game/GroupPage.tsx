@@ -1,6 +1,6 @@
 import { useOutletContext } from "react-router-dom";
-import { MultiplayerGame } from "../features/multiplayer/MultiplayerGame";
-import type { AppOutletContext } from "./AppOutletContext";
+import { MultiplayerGame } from "../../features/multiplayer/MultiplayerGame";
+import type { AppOutletContext } from "../AppOutletContext";
 
 // Paso 3 (mode === "multi", flujo de grupo): extraído verbatim de la mitad
 // "group" del bloque `mode === "multi" && (gameId || groupFlow)` en
