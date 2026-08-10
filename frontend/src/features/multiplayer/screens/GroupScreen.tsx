@@ -2,16 +2,16 @@ import { useState } from "react";
 import { useCopyToClipboard } from "../../../hooks/ui/useCopyToClipboard";
 import { createPortal } from "react-dom";
 import { S } from "../../../theme/styles";
-import { Avatar } from "../../../components/ui/Avatar";
 import { CodeDisplay } from "../../../components/ui/CodeDisplay";
 import { QRDialog } from "../../../components/dialogs/QRDialog";
 import { ConfirmDialog } from "../../../components/dialogs/ConfirmDialog";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { GameDetailDialog } from "../../../components/shell/GameDetailDialog";
-import { CrownIcon, PlusIcon, ShareArrowIcon } from "../../../components/ui/icons";
+import { PlusIcon, ShareArrowIcon } from "../../../components/ui/icons";
 import { NewGameDialog } from "../../../components/shell/NewGameDialog";
 import { MemberActionsDialog } from "../components/MemberActionsDialog";
-import { getGame } from "../../../games/registry";
+import { GroupOpenInstances } from "../components/group/GroupOpenInstances";
+import { GroupMembersGrid } from "../components/group/GroupMembersGrid";
 import type { GameDef } from "../../../games/gameTypes";
 import type { GroupPublicState } from "@juntada/shared-types";
 import { buildGroupJoinUrl } from "../utils/joinLink";
@@ -114,52 +114,7 @@ export function GroupScreen({
 
       <div className="jt-group-grid">
         <div className="jt-group-col">
-          <div className="jt-group-open-section">
-            <p className="jt-group-open-title">
-              Partidas abiertas <span className="jt-group-section-count">· {group.instances.length}</span>
-            </p>
-            {group.instances.length === 0 ? (
-              <p className="jt-group-empty jt-group-open-empty">Nadie abrió una partida todavía.</p>
-            ) : (
-              <div className="jt-group-open-list">
-                {group.instances.map((inst, i) => {
-                  const g = getGame(inst.gameType);
-                  const joinable = inst.phase === "lobby" && inst.playerCount < inst.maxPlayers;
-                  return (
-                    <div
-                      key={inst.roomCode}
-                      className={`jt-group-open-card jt-animate-rise ${joinable ? "jt-group-open-card--joinable" : ""}`}
-                      style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
-                    >
-                      <span className="jt-group-open-card-icon">
-                        {g?.logo ? <img src={g.logo} alt={g.label} className="jt-group-open-card-logo" /> : (g?.icon ?? "🎮")}
-                        {joinable && <span className="jt-group-open-card-live" aria-hidden />}
-                      </span>
-                      <div className="jt-group-row-body">
-                        <p className="jt-group-row-title">{g?.label ?? inst.gameType}</p>
-                        <p className="jt-group-row-meta">
-                          Abrió {inst.hostName} ·{" "}
-                          <strong>
-                            {inst.playerCount}/{inst.maxPlayers}
-                          </strong>{" "}
-                          jugadores
-                          {!joinable && inst.phase !== "lobby" && " · en curso"}
-                          {!joinable && inst.phase === "lobby" && " · llena"}
-                        </p>
-                      </div>
-                      <button
-                        disabled={!joinable || pendingJoinCode === inst.roomCode}
-                        onClick={() => onJoinInstance(inst.roomCode)}
-                        className={`jt-group-join-btn ${joinable ? "jt-group-join-btn--active" : "jt-group-join-btn--disabled"}`}
-                      >
-                        {pendingJoinCode === inst.roomCode ? "Uniéndose..." : joinable ? "Unirse" : "—"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <GroupOpenInstances instances={group.instances} pendingJoinCode={pendingJoinCode} onJoinInstance={onJoinInstance} />
 
           {/* Solo mobile (ver .jt-group-games-section) — en desktop "Nueva
               partida" ya vive suelta en la columna derecha (jt-group-col--newgame). */}
@@ -185,42 +140,7 @@ export function GroupScreen({
             </div>
           </div>
 
-          <div className="jt-group-open-section">
-            <p className="jt-group-open-title">
-              Integrantes <span className="jt-group-section-count">· {group.members.length}</span>
-            </p>
-            <div className="jt-group-members-grid">
-              {group.members.map((m, i) => (
-                <div key={m.id} className="jt-group-member-chip jt-animate-rise" style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}>
-                  {isGroupHost && m.id !== myPlayerId && (
-                    <button
-                      onClick={() => onTogglePlayerMenu(m.id)}
-                      aria-label={`Opciones para ${m.name}`}
-                      className="jt-group-member-menu-btn"
-                    >
-                      ⋮
-                    </button>
-                  )}
-                  <div className="jt-group-member-avatar-wrap">
-                    <Avatar name={m.name} size={46} />
-                    <span
-                      className={`jt-group-member-status ${!m.online ? "jt-group-member-status--offline" : ""}`}
-                      title={m.online ? "Conectado" : "Desconectado"}
-                    />
-                    {m.id === group.hostId && (
-                      <span className="jt-group-host-badge" title="Anfitrión">
-                        <CrownIcon size={11} color="var(--jt-warn-text, #e2c44a)" />
-                      </span>
-                    )}
-                  </div>
-                  <p className="jt-group-member-name">
-                    {m.name}
-                    {m.id === myPlayerId && " (vos)"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <GroupMembersGrid group={group} myPlayerId={myPlayerId} isGroupHost={isGroupHost} onTogglePlayerMenu={onTogglePlayerMenu} />
         </div>
 
         <div className="jt-group-col jt-group-col--newgame">
