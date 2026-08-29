@@ -3,6 +3,7 @@ import { Avatar } from "../ui/Avatar";
 import { ProfilePanel } from "./ProfilePanel";
 import { GroupMenuDropdown } from "./GroupMenuDropdown";
 import logo from "../../assets/brand/logo.webp";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 interface HomeNavbarProps {
   mutedColor: string;
@@ -48,7 +49,7 @@ export function HomeNavbar({
         left: 0,
         right: 0,
         zIndex: 20,
-        background: "color-mix(in srgb, var(--jt-bg, #0f0c1d) 78%, transparent)",
+        background: `color-mix(in srgb, var(--jt-bg, ${DEFAULT_COLORS.bg}) 78%, transparent)`,
         backdropFilter: "blur(14px)",
       }}
     >
@@ -69,7 +70,7 @@ export function HomeNavbar({
             style={{
               borderRadius: 11,
               flexShrink: 0,
-              boxShadow: "0 8px 24px -12px color-mix(in srgb, var(--jt-accent, #7f77dd) 90%, transparent)",
+              boxShadow: `0 8px 24px -12px color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 90%, transparent)`,
             }}
           />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2, minWidth: 0 }}>

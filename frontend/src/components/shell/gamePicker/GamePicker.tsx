@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { GameCategory, GameDef } from "../../../games/gameTypes";
 import { S } from "../../../theme/styles";
+import { DEFAULT_COLORS } from "../../../theme/styles/colors";
 import { GameDetailDialog } from "../GameDetailDialog";
 import { SearchIcon } from "../../ui/icons";
 import { CategorySection } from "./CategorySection";
@@ -148,9 +149,9 @@ function availChipStyle(active: boolean): CSSProperties {
     padding: "8px 16px",
     borderRadius: 12,
     border: "none",
-    background: active ? "color-mix(in srgb, var(--jt-accent, #7F77DD) 25%, transparent)" : "transparent",
+    background: active ? `color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 25%, transparent)` : "transparent",
     boxShadow: active
-      ? "0 0 0 1px color-mix(in srgb, var(--jt-accent, #7F77DD) 35%, transparent), 0 0 40px -10px color-mix(in srgb, var(--jt-accent, #7F77DD) 60%, transparent)"
+      ? `0 0 0 1px color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 35%, transparent), 0 0 40px -10px color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 60%, transparent)`
       : "none",
     color: active ? "#e8e4f0" : "var(--jt-muted-text, #a49dc9)",
     fontSize: 14,

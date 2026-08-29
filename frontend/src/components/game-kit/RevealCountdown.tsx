@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { S } from "../../theme/styles";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 /**
  * Genera un momento de suspenso antes de mostrar el resultado de una
@@ -55,7 +56,17 @@ export function RevealCountdown({ count, label = "Revelando resultado..." }: Rev
   return (
     <div style={{ ...S.cardHighlight, textAlign: "center", padding: "48px 20px" }}>
       <p style={{ fontSize: 13, color: "var(--jt-muted-text)", marginBottom: 10 }}>{label}</p>
-      <p style={{ fontSize: 56, fontWeight: 800, color: "var(--jt-accent-strong, #AFA9EC)", margin: 0, lineHeight: 1 }}>{count}</p>
+      <p
+        style={{
+          fontSize: 56,
+          fontWeight: 800,
+          color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
+          margin: 0,
+          lineHeight: 1,
+        }}
+      >
+        {count}
+      </p>
     </div>
   );
 }

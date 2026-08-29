@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { CloseIcon, BackArrowIcon } from "../ui/icons";
 import type { GameDef } from "../../games/gameTypes";
 import logo from "../../assets/brand/logo.webp";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 interface GameNavbarProps {
   mode: "local" | "multi" | null;
@@ -128,7 +129,7 @@ export function GameNavbar({
         left: 0,
         right: 0,
         zIndex: 20,
-        background: "color-mix(in srgb, var(--jt-bg, #0f0c1d) 78%, transparent)",
+        background: `color-mix(in srgb, var(--jt-bg, ${DEFAULT_COLORS.bg}) 78%, transparent)`,
         backdropFilter: "blur(14px)",
         borderBottom: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.15))",
       }}

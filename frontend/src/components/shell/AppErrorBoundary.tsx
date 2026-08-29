@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Btn } from "../ui/Btn";
 import { AlertIcon } from "../ui/icons";
 import "./AppErrorBoundary.css";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 // Root-level fallback: catches any render throw not already caught by a
 // more specific boundary (e.g. GameLoadErrorBoundary around each game's lazy
@@ -34,7 +35,7 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, State> 
     return (
       <div className="jt-app-error">
         <span className="jt-app-error-icon" aria-hidden>
-          <AlertIcon size={22} color="var(--jt-danger-text, #f09595)" />
+          <AlertIcon size={22} color={`var(--jt-danger-text, ${DEFAULT_COLORS.dangerText})`} />
         </span>
         <p className="jt-app-error-title">Algo salió mal</p>
         <p className="jt-app-error-subtitle">Se rompió algo de nuestro lado. Probá recargar la página.</p>

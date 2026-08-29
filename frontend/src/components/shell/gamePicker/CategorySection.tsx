@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ChevronDownIcon } from "../../ui/icons";
+import { DEFAULT_COLORS } from "../../../theme/styles/colors";
 
 interface CategorySectionProps {
   title: string;
@@ -24,14 +25,14 @@ export function CategorySection({ title, count, open, onToggle, children }: Cate
               fontWeight: 700,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              color: "var(--jt-accent-strong, #afa9ec)",
+              color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
             }}
           >
             {count} {count === 1 ? "juego" : "juegos"}
           </span>
           <span
             style={{
-              color: "var(--jt-label, #7F77DD)",
+              color: `var(--jt-label, ${DEFAULT_COLORS.label})`,
               display: "flex",
               flexShrink: 0,
               transition: "transform 0.15s ease",

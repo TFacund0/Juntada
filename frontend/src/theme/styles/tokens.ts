@@ -1,7 +1,8 @@
 // ─── Tokens de diseño / diccionario de estilos inline ────────────────────────
 import type { CSSProperties } from "react";
+import { DEFAULT_COLORS } from "./colors";
 
-export const S = {
+export const tokens = {
   // ── Compartido por (casi) todo juego/pantalla ─────────────────────────────
   app: {
     minHeight: "100vh",
@@ -58,7 +59,7 @@ export const S = {
     fontWeight: 700,
     letterSpacing: "0.1em",
     textTransform: "uppercase",
-    color: "var(--jt-label, #7F77DD)",
+    color: `var(--jt-label, ${DEFAULT_COLORS.label})`,
     marginBottom: 10,
     display: "block",
   } satisfies CSSProperties,
@@ -95,7 +96,7 @@ export const S = {
           // Lee las mismas variables --jt-accent-* que "ghost" más abajo —
           // un tema propio tiñe este botón en vez de quedarse en el morado
           // por defecto de toda la app.
-          background: "linear-gradient(135deg, var(--jt-accent, #7F77DD), color-mix(in srgb, var(--jt-accent, #7F77DD) 70%, black))",
+          background: `linear-gradient(135deg, var(--jt-accent, ${DEFAULT_COLORS.accent}), color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 70%, black))`,
           color: "#fff",
           boxShadow: disabled ? "none" : "0 4px 20px var(--jt-accent-border-soft, rgba(127,119,221,0.35))",
         }
@@ -106,7 +107,7 @@ export const S = {
             // cambiar este CTA a su propio acento en vez del verde de toda
             // la app; el resto de los juegos mantiene ese verde vía los
             // valores por defecto de :root de esas variables.
-            background: "linear-gradient(135deg, var(--jt-cta-from, #1D9E75), var(--jt-cta-to, #0F6E56))",
+            background: `linear-gradient(135deg, var(--jt-cta-from, ${DEFAULT_COLORS.ctaFrom}), var(--jt-cta-to, ${DEFAULT_COLORS.ctaTo}))`,
             color: "#fff",
             boxShadow: disabled ? "none" : "0 4px 20px var(--jt-cta-shadow, rgba(29,158,117,0.3))",
           }
@@ -117,7 +118,7 @@ export const S = {
               // CodeDisplay/QRDialog (theme/sharedChrome.css) — mismo
               // razonamiento que "success" más arriba.
               background: "var(--jt-accent-soft, rgba(127,119,221,0.1))",
-              color: "var(--jt-accent-strong, #AFA9EC)",
+              color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
               border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.25))",
             }),
   }),
@@ -130,7 +131,7 @@ export const S = {
     margin: "12px 0",
     lineHeight: 1.2,
   } satisfies CSSProperties,
-  muted: { color: "var(--jt-muted-text, #6b6490)", fontSize: 13 } satisfies CSSProperties,
+  muted: { color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})`, fontSize: 13 } satisfies CSSProperties,
   pill: (on: boolean): CSSProperties => ({
     display: "inline-flex",
     alignItems: "center",
@@ -228,127 +229,5 @@ export const S = {
     fontFamily: "inherit",
     cursor: "pointer",
     boxSizing: "border-box",
-  } satisfies CSSProperties,
-
-  // ── Solo pantalla de inicio (AppHeader, GamePicker, ModePicker — tokens de
-  //    un único consumidor, específicos de esa pantalla, no pensados para
-  //    ser reutilizados por los juegos) ──────────────────────────────────
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    color: "var(--jt-label, #7F77DD)",
-    margin: "0 2px 8px",
-  } satisfies CSSProperties,
-  searchBar: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    background: "var(--jt-card-bg, rgba(255,255,255,0.04))",
-    border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-    borderRadius: 999,
-    padding: "0 16px",
-    height: 46,
-    marginBottom: 18,
-    backdropFilter: "blur(10px)",
-  } satisfies CSSProperties,
-  searchInput: {
-    flex: 1,
-    background: "none",
-    border: "none",
-    outline: "none",
-    color: "#e8e4f0",
-    fontSize: 14,
-    fontFamily: "inherit",
-  } satisfies CSSProperties,
-  catalogCard: {
-    background: "var(--jt-card-bg, rgba(255,255,255,0.04))",
-    border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-    borderRadius: 20,
-    overflow: "hidden",
-    cursor: "pointer",
-    transition:
-      "transform 320ms cubic-bezier(0.22,1,0.36,1), box-shadow 320ms cubic-bezier(0.22,1,0.36,1), border-color 320ms cubic-bezier(0.22,1,0.36,1)",
-  } satisfies CSSProperties,
-  catalogThumb: {
-    aspectRatio: "4 / 3",
-    background: "radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--jt-accent, #7f77dd) 22%, transparent), transparent 70%)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 32,
-    position: "relative",
-  } satisfies CSSProperties,
-  catalogName: {
-    padding: "10px 12px 12px",
-    fontWeight: 700,
-    fontSize: 14,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    borderTop: "1px solid var(--jt-row-border, rgba(127,119,221,0.08))",
-  } satisfies CSSProperties,
-  soonBadge: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    background: "rgba(0,0,0,0.5)",
-    color: "#AFA9EC",
-    fontSize: 9,
-    fontWeight: 700,
-    padding: "2px 7px",
-    borderRadius: 20,
-    textTransform: "uppercase",
-    letterSpacing: "0.04em",
-  } satisfies CSSProperties,
-  groupFlowBar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    width: "100%",
-    height: 40,
-    background: "rgba(127,119,221,0.1)",
-    border: "1px solid rgba(127,119,221,0.3)",
-    borderRadius: 10,
-    color: "#e8e4f0",
-    fontSize: 13,
-    fontWeight: 700,
-    fontFamily: "inherit",
-    cursor: "pointer",
-  } satisfies CSSProperties,
-  namePill: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "5px 12px 5px 6px",
-    borderRadius: 999,
-    background: "rgba(127,119,221,0.1)",
-    border: "1px solid rgba(127,119,221,0.3)",
-    cursor: "pointer",
-    fontFamily: "inherit",
-  } satisfies CSSProperties,
-  modeIconBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    boxShadow: "0 10px 26px -10px color-mix(in srgb, var(--jt-accent, #7f77dd) 55%, transparent)",
-  } satisfies CSSProperties,
-  modeRowTitle: {
-    fontWeight: 800,
-    fontSize: 13,
-    margin: "0 0 3px",
-    fontFamily: "'Syne', sans-serif",
-  } satisfies CSSProperties,
-  modeRowSubtitle: {
-    color: "var(--jt-muted-text, #6b6490)",
-    fontSize: 11,
-    margin: 0,
-    lineHeight: 1.4,
   } satisfies CSSProperties,
 };

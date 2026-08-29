@@ -1,4 +1,5 @@
 import { S } from "../../theme/styles";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 import "../../theme/modeRow.css";
 
 interface ModePickerProps {
@@ -89,7 +90,7 @@ export function ModePickerBackdrop() {
           minWidth: 180,
           minHeight: 180,
           borderRadius: "50%",
-          background: "color-mix(in srgb, var(--jt-accent, #7f77dd) 22%, transparent)",
+          background: `color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 22%, transparent)`,
           filter: "blur(90px)",
         }}
       />
@@ -144,14 +145,14 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
         >
           ¿Cómo querés jugar?
         </h2>
-        <p style={{ color: "var(--jt-muted-text, #6b6490)", fontSize: 13, lineHeight: 1.5, margin: "12px 0 0" }}>
+        <p style={{ color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})`, fontSize: 13, lineHeight: 1.5, margin: "12px 0 0" }}>
           Online para jugar cada uno desde su celular, o local con un solo dispositivo entre todos.
         </p>
       </div>
 
       <div className="jt-mode-grid">
         <div className="jt-mode-card" onClick={onSelectMulti}>
-          <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
+          <div style={{ ...S.modeIconBadge, background: `var(--jt-accent, ${DEFAULT_COLORS.accent})` }}>
             <PlusIcon />
           </div>
           <div>
@@ -160,12 +161,12 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
           </div>
           <span className="jt-mode-card-cta">
             Elegir
-            <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
+            <ChevronRightIcon color={`var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`} />
           </span>
         </div>
 
         <div className="jt-mode-card jt-mode-row-disabled" aria-disabled="true" title="Todavía en desarrollo">
-          <div style={{ ...S.modeIconBadge, background: "var(--jt-muted, #5a5280)", boxShadow: "none" }}>
+          <div style={{ ...S.modeIconBadge, background: `var(--jt-muted, ${DEFAULT_COLORS.muted})`, boxShadow: "none" }}>
             <SearchIcon />
           </div>
           <div>
@@ -175,7 +176,7 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
-                  color: "var(--jt-muted-text, #6b6490)",
+                  color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})`,
                   background: "rgba(255,255,255,0.06)",
                   border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
                   borderRadius: 999,
@@ -191,7 +192,7 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
         </div>
 
         <div className="jt-mode-card" onClick={onSelectLocal}>
-          <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
+          <div style={{ ...S.modeIconBadge, background: `var(--jt-accent, ${DEFAULT_COLORS.accent})` }}>
             <PhoneIcon />
           </div>
           <div>
@@ -200,7 +201,7 @@ export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
           </div>
           <span className="jt-mode-card-cta">
             Elegir
-            <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
+            <ChevronRightIcon color={`var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`} />
           </span>
         </div>
       </div>

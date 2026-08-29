@@ -1,5 +1,6 @@
 import { AlertIcon } from "./icons";
 import "./ErrorBanner.css";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 /**
  * Un banner de error que se auto-limpia. El estado de error de quien lo usa
@@ -16,7 +17,7 @@ export function ErrorBanner({ message, flashKey, variant = "block" }: { message:
   return (
     <div key={flashKey} className={`jt-error-banner jt-error-banner--${variant}`}>
       <span className="jt-error-banner-icon" aria-hidden>
-        <AlertIcon size={variant === "block" ? 16 : 14} color="var(--jt-danger-text, #f09595)" />
+        <AlertIcon size={variant === "block" ? 16 : 14} color={`var(--jt-danger-text, ${DEFAULT_COLORS.dangerText})`} />
       </span>
       <span className="jt-error-banner-text">{message}</span>
     </div>

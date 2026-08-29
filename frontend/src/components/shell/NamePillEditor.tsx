@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Avatar } from "../ui/Avatar";
 import "./NamePillEditor.css";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 /**
  * Pill inline de "tocá para editar tu nombre", compartida entre la pantalla
@@ -103,7 +104,16 @@ export function NamePillEditor({ name, onSave, avatarSize = 26, editing: editing
         )}
       </div>
       {editing && nudge && (
-        <p style={{ color: "var(--jt-warn-text, #E2C44A)", fontSize: 12, fontWeight: 700, marginTop: 8, position: "relative", zIndex: 41 }}>
+        <p
+          style={{
+            color: `var(--jt-warn-text, ${DEFAULT_COLORS.warnText})`,
+            fontSize: 12,
+            fontWeight: 700,
+            marginTop: 8,
+            position: "relative",
+            zIndex: 41,
+          }}
+        >
           Confirmá o cancelá el nombre para seguir
         </p>
       )}
