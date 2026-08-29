@@ -1,8 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { getGame, GAME_LIST } from "../../../games/registry";
+import { GAME_LIST } from "../../../games/registry";
 import { isGameAvailable } from "../../../games/maintenance";
 import type { GameDef } from "../../../games/gameTypes";
 import { useMultiplayerSocket } from "./useMultiplayerSocket";
+import { useForwardProp } from "../../../hooks/ui/useForwardProp";
+import { usePlayerPresenceToasts } from "./usePlayerPresenceToasts";
+import { useRoomEventToasts } from "./useRoomEventToasts";
+import { usePendingJoinRetry } from "./usePendingJoinRetry";
+import { useSubmitCurtain } from "./useSubmitCurtain";
+import { useShellPermissions } from "./useShellPermissions";
 import type { MultiplayerGameProps } from "../MultiplayerGame";
 
 export function playableGames(): GameDef[] {
@@ -33,6 +39,10 @@ export function useMultiplayerGameShell({
   runTransition = action => action(),
   onTransitionSettled,
 }: MultiplayerGameProps) {
+  // 21 of these 24 fields flow straight through to this hook's own return
+  // (setRoomPreview, justReconnected, and connect are consumed internally
+  // instead). This passthrough is an intentional API boundary, not
+  // accidental coupling — see sdd/multiplayer-gameshell-refactor design.
   const {
     connectionPhase,
     setConnectionPhase,
@@ -62,86 +72,23 @@ export function useMultiplayerGameShell({
 
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
-  // Set the instant "Crear partida"/"Unirse" is tapped, cleared by the same
-  // two signals that settle the curtain (see the effects below) — the
-  // create/join round-trip can take a moment (slow connection, cold-started
-  // server), and without this the button just looked unresponsive, like the
-  // tap hadn't done anything at all.
-  const [submitting, setSubmitting] = useState(false);
   // Controlled (not just owned by NamePillEditor itself) because the "ya
   // está en uso" effect below also needs to force it open from outside.
   const [editingName, setEditingName] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  // Tracks a join_instance in flight so the tapped button can show
-  // "Uniéndose..." instead of looking like nothing happened — and, since
-  // send() silently drops the message if the socket isn't OPEN at the exact
-  // moment of the tap (flaky connection, mid-reconnect), gives us something
-  // to retry once the socket actually comes back (see the reconnect effect
-  // below) instead of leaving the player stuck restarting the tap themselves.
-  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
-  const pendingJoinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const joinInstance = (roomCode: string) => {
-    const targetGame = getGame(group?.instances.find(i => i.roomCode === roomCode)?.gameType ?? "");
-    runTransition(() => {
-      setPendingJoinCode(roomCode);
-      send({ type: "join_instance", roomCode });
-      if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
-      // Covers the rare case where neither a success (phase leaves "group")
-      // nor a server "error" ever comes back — without this the button would
-      // stay stuck on "Uniéndose..." forever.
-      pendingJoinTimeoutRef.current = setTimeout(() => {
-        setPendingJoinCode(null);
-        setError("No se pudo unir a la partida — probá de nuevo");
-      }, 8000);
-    }, Boolean(targetGame?.gameTheme));
-  };
-  // Cleared once the join actually succeeds — connectionPhase moves off
-  // "group" (into "lobby"). Deliberately not cleared on a generic error:
-  // send() itself can flash "Sin conexión con el servidor" in the very same
-  // tick as the tap (socket not OPEN yet), and that shouldn't cancel the
-  // pending retry-on-reconnect below — a genuine server rejection (room
-  // filled up, etc.) still surfaces via the error banner and just leaves the
-  // button on "Uniéndose..." until the timeout above clears it.
-  useEffect(() => {
-    if (connectionPhase !== "group") setPendingJoinCode(null);
-  }, [connectionPhase]);
-  // The tap itself already reached send(), which flashed "Sin conexión con
-  // el servidor" and dropped it if the socket wasn't OPEN — retry it once
-  // reconnected instead of leaving the player to notice and tap again.
-  useEffect(() => {
-    if (justReconnected && pendingJoinCode && connectionPhase === "group") send({ type: "join_instance", roomCode: pendingJoinCode });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [justReconnected]);
-  useEffect(
-    () => () => {
-      if (pendingJoinTimeoutRef.current) clearTimeout(pendingJoinTimeoutRef.current);
-    },
-    [],
-  );
-  // Same safety net as joinInstance above, for create_room/create_group and
-  // join_room/join_group: if the socket drops (or the server never answers)
-  // before a "joined"/"group_joined"/"error" comes back, ws.onclose stays
-  // silent — it only reconnects/reports once a session (me/groupMe) already
-  // exists, which isn't true yet mid-handshake (see useMultiplayerSocket's
-  // onclose). Without this, "Creando..."/"Uniéndose..." would stay on
-  // screen forever instead of surfacing a retryable error.
-  const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clearSubmitTimeout = () => {
-    if (submitTimeoutRef.current) {
-      clearTimeout(submitTimeoutRef.current);
-      submitTimeoutRef.current = null;
-    }
-  };
-  const armSubmitTimeout = (message: string) => {
-    clearSubmitTimeout();
-    submitTimeoutRef.current = setTimeout(() => {
-      submitTimeoutRef.current = null;
-      setSubmitting(false);
-      setError(message);
-    }, 8000);
-  };
-  useEffect(() => clearSubmitTimeout, []);
+
+  const curtain = useSubmitCurtain({ connectionPhase, setError, onTransitionSettled });
+  const { submitting, setSubmitting, armSubmitTimeout } = curtain;
+
+  const { pendingJoinCode, joinInstance } = usePendingJoinRetry({
+    connectionPhase,
+    justReconnected,
+    group,
+    send,
+    setError,
+    runTransition,
+  });
   // Leaving the group outright — separate confirm from "volver al grupo"
   // (the navbar's "Volver" arrow, see useAppNavigation's goBack), which only
   // steps back to the group screen without leaving it.
@@ -159,66 +106,14 @@ export function useMultiplayerGameShell({
   // click, so this only applies when the active game asks for it.
   const [lobbyTab, setLobbyTab] = useState<"players" | "config">("players");
 
-  // Player disconnects/reconnects only ever show up as a flipped `online`
-  // flag buried in the next full room-state broadcast — there's no distinct
-  // server event for it. So this diffs each new player list against the
-  // previous one (by id) and surfaces a brief toast for whoever flipped,
-  // skipping ourselves (we already know our own connection state from the
-  // reconnect banner above). Most useful when it's that player's turn and
-  // everyone else is left wondering why nothing's happening.
-  const prevOnlineRef = useRef<Record<string, boolean>>({});
+  // Player disconnects/reconnects, "Volver al lobby", and a group member
+  // leaving back to the group screen only ever show up as diffs in the next
+  // full room-state broadcast — there's no distinct server event for any of
+  // them. Both hooks below surface a brief toast purely by comparing the
+  // current `room` against its own previous render.
   const [statusToast, setStatusToast] = useState<string | null>(null);
-  useEffect(() => {
-    if (!room) return;
-    const prev = prevOnlineRef.current;
-    for (const p of room.players) {
-      if (p.id === me?.playerId) continue;
-      const wasOnline = prev[p.id];
-      if (wasOnline !== undefined && wasOnline !== p.online) {
-        setStatusToast(p.online ? `${p.name} se reconectó` : `${p.name} se desconectó`);
-      }
-    }
-    prevOnlineRef.current = Object.fromEntries(room.players.map(p => [p.id, p.online]));
-  }, [room, me?.playerId]);
-
-  // Same reusable toast as above, for two more events that otherwise happen
-  // silently under everyone else: someone interrupting the match with
-  // "Volver al lobby" (any player can now do this, not just the host — see
-  // backToLobby) — relevant in any online room, standalone or group — and,
-  // group instances only, a member leaving back to the group screen
-  // ("Volver al grupo") — a standalone room has no "group screen" to return
-  // to, so that half only makes sense there. Both are detected purely by
-  // diffing the room's phase/roster between renders — no dedicated server
-  // message needed, so this automatically covers every game through this
-  // one shared shell instead of each RoundView having to wire it up itself.
-  const prevRoomSnapshotRef = useRef<{ code: string; phase: string; players: Record<string, string> } | null>(null);
-  useEffect(() => {
-    if (!room) {
-      prevRoomSnapshotRef.current = null;
-      return;
-    }
-    const prev = prevRoomSnapshotRef.current;
-    // A different room/instance than the one we were last watching — don't
-    // compare across them (e.g. just switched instances inside a group).
-    if (prev && prev.code === room.code) {
-      if (prev.phase !== "lobby" && room.phase === "lobby") {
-        setStatusToast("Volvieron al lobby");
-        // Mirrors LocalGame's own "Nueva partida" flow: land back on the
-        // player roster first, not wherever the config tab happened to be
-        // left before the match started.
-        setLobbyTab("players");
-      } else if (room.groupCode !== null) {
-        const currentIds = new Set(room.players.map(p => p.id));
-        const leftPlayerName = Object.entries(prev.players).find(([id]) => !currentIds.has(id))?.[1];
-        if (leftPlayerName) setStatusToast(`${leftPlayerName} volvió al grupo`);
-      }
-    }
-    prevRoomSnapshotRef.current = {
-      code: room.code,
-      phase: room.phase,
-      players: Object.fromEntries(room.players.map(p => [p.id, p.name])),
-    };
-  }, [room]);
+  usePlayerPresenceToasts({ room, myPlayerId: me?.playerId, setStatusToast });
+  useRoomEventToasts({ room, setStatusToast, setLobbyTab });
 
   const inGroup = entryKind === "group";
 
@@ -249,9 +144,7 @@ export function useMultiplayerGameShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    onGroupAttachedChange?.(!!group);
-  }, [group, onGroupAttachedChange]);
+  useForwardProp(!!group, onGroupAttachedChange);
 
   // The server's room.gameType is the only source of truth for which game
   // is actually active — surface it upward as soon as it's known, and clear
@@ -264,27 +157,18 @@ export function useMultiplayerGameShell({
   // themed game, useAppNavigation's `inGameView` briefly read stale-true and
   // useGameTheme flashed that game's theme colors for a commit before the
   // fresh shell's own effect corrected it.
-  useEffect(() => {
-    onGameTypeChange?.(room?.gameType ?? null);
-    return () => onGameTypeChange?.(null);
-  }, [room?.gameType, onGameTypeChange]);
+  useForwardProp(room?.gameType ?? null, onGameTypeChange, { clearOnUnmount: true });
 
-  useEffect(() => {
-    onRoomPhaseChange?.(room?.phase ?? null);
-  }, [room?.phase, onRoomPhaseChange]);
+  useForwardProp(room?.phase ?? null, onRoomPhaseChange);
 
   // The server-assigned code is only known once a room/group actually
   // exists (after create/join lands) — App.tsx uses this to put the real
   // code in the URL (replacing the code-less /room/:gameId or /group route
   // used while still on the create/join form) so the address bar becomes
   // shareable from that point on.
-  useEffect(() => {
-    onRoomCodeChange?.(room?.code ?? null);
-  }, [room?.code, onRoomCodeChange]);
+  useForwardProp(room?.code ?? null, onRoomCodeChange);
 
-  useEffect(() => {
-    onGroupCodeChange?.(group?.code ?? null);
-  }, [group?.code, onGroupCodeChange]);
+  useForwardProp(group?.code ?? null, onGroupCodeChange);
 
   // Live preview of a standalone room as soon as the code is fully typed —
   // read-only lookup, no commitment (see checkRoomCode/room_preview on the
@@ -318,34 +202,20 @@ export function useMultiplayerGameShell({
     // either way once an error comes back — an unresolved request would
     // otherwise leave it down until the safety timeout, hiding the error
     // banner from view for that whole stretch.
-    onTransitionSettled?.();
-    setSubmitting(false);
-    clearSubmitTimeout();
-  }, [error, onTransitionSettled]);
-
-  // The other half of settling the curtain: a successful create/join lands
-  // here once connectionPhase actually leaves the pre-connection screens
-  // ("menu"/"create"/"join") for a real destination (lobby, group, or
-  // straight into a round on rejoin) — the moment there's something real to
-  // reveal instead of the same form the curtain covered.
-  useEffect(() => {
-    if (!["menu", "create", "join"].includes(connectionPhase)) {
-      onTransitionSettled?.();
-      setSubmitting(false);
-      clearSubmitTimeout();
-    }
-  }, [connectionPhase, onTransitionSettled]);
+    curtain.settle();
+  }, [error, curtain.settle]);
 
   const saveName = (name: string) => {
     onChangeName?.(name);
     setError("");
   };
 
-  const isHost = !!(me && room && room.hostId === me.playerId);
-  const isGroupHost = !!(me && group && group.hostId === me.playerId);
-  const myPlayer = room?.players?.find(p => p.id === me?.playerId);
-  const selectedGame = gameId ? getGame(gameId) : undefined;
-  const activeGame = room ? getGame(room.gameType) : selectedGame;
+  const { isHost, isGroupHost, myPlayer, selectedGame, activeGame } = useShellPermissions({
+    me,
+    room,
+    group,
+    gameId,
+  });
 
   // Tracks connectionPhase across renders (mutated during render, same
   // sentinel-ref pattern as RoundView's own prevRoomPhase) purely to detect

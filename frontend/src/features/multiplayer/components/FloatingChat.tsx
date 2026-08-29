@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { ChatMessage } from "@juntada/shared-types";
 import { Avatar } from "../../../components/ui/Avatar";
+import { useFloatingChatDrag } from "../hooks/useFloatingChatDrag";
+import { useChannelUnread } from "../hooks/useChannelUnread";
+import { useAutoScrollToBottom } from "../hooks/useAutoScrollToBottom";
 import "./FloatingChat.css";
 
 // Quick taps for mid-round chatter that shouldn't require opening the
@@ -11,7 +14,6 @@ import "./FloatingChat.css";
 const QUICK_REACTIONS = ["👏", "🔥", "😂", "😮", "❤️"];
 
 const MAX_MESSAGE_LENGTH = 300;
-const DEFAULT_POS = { right: 18, bottom: 96 };
 
 // One tab inside the floating chat — "grupo" and "sala" are both built by
 // MultiplayerGame.tsx (the one place that knows whether a room is attached
@@ -62,76 +64,17 @@ function formatTime(ts: number): string {
 export function FloatingChat({ channels, defaultChannelId }: FloatingChatProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [activeChannelId, setActiveChannelId] = useState(defaultChannelId ?? channels[0]?.id);
-  const [unreadByChannel, setUnreadByChannel] = useState<Record<string, number>>({});
-  const lastSeenRef = useRef<Record<string, number>>({});
-  const bubbleRef = useRef<HTMLButtonElement>(null);
-  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number; moved: boolean } | null>(null);
-  const msgsRef = useRef<HTMLDivElement>(null);
 
   // Falls back to the first channel if the active id ever stops matching one
   // (e.g. a caller's channel list shrinks) instead of rendering nothing.
   const activeChannel = channels.find(c => c.id === activeChannelId) ?? channels[0];
 
-  const channelKey = channels.map(c => `${c.id}:${c.messages.length}`).join("|");
-  // Tracks unread per channel: the currently open one (while the panel is
-  // shown) is always "seen"; any other channel that gained messages since
-  // last seen bumps its own counter instead of a single blanket badge, so
-  // switching tabs doesn't wrongly clear an unread count on the other one.
-  useEffect(() => {
-    setUnreadByChannel(prev => {
-      const next = { ...prev };
-      for (const ch of channels) {
-        const lastSeen = lastSeenRef.current[ch.id] ?? ch.messages.length;
-        const isVisible = open && ch.id === activeChannel?.id;
-        if (isVisible) {
-          next[ch.id] = 0;
-        } else if (ch.messages.length > lastSeen) {
-          next[ch.id] = (next[ch.id] ?? 0) + (ch.messages.length - lastSeen);
-        }
-        lastSeenRef.current[ch.id] = ch.messages.length;
-      }
-      return next;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelKey, open, activeChannel?.id]);
-
-  const totalUnread = useMemo(() => Object.values(unreadByChannel).reduce((a, b) => a + b, 0), [unreadByChannel]);
-
-  useEffect(() => {
-    if (open && msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
-  }, [open, activeChannel?.messages.length]);
-
-  function clampToViewport(x: number, y: number): { x: number; y: number } {
-    const size = 56;
-    const margin = 8;
-    const maxX = window.innerWidth - size - margin;
-    const maxY = window.innerHeight - size - margin;
-    return { x: Math.min(Math.max(x, margin), Math.max(margin, maxX)), y: Math.min(Math.max(y, margin), Math.max(margin, maxY)) };
-  }
-
-  function onPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
-    const rect = bubbleRef.current!.getBoundingClientRect();
-    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: rect.left, origY: rect.top, moved: false };
-    bubbleRef.current!.setPointerCapture(e.pointerId);
-  }
-
-  function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const dx = e.clientX - drag.startX;
-    const dy = e.clientY - drag.startY;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
-    setPos(clampToViewport(drag.origX + dx, drag.origY + dy));
-  }
-
-  function onPointerUp(e: React.PointerEvent<HTMLButtonElement>) {
-    const drag = dragRef.current;
-    dragRef.current = null;
-    bubbleRef.current?.releasePointerCapture(e.pointerId);
-    if (drag && !drag.moved) setOpen(true);
-  }
+  const { bubbleRef, bubbleStyle, onPointerDown, onPointerMove, onPointerUp } = useFloatingChatDrag({
+    onTap: () => setOpen(true),
+  });
+  const { unreadByChannel, totalUnread } = useChannelUnread({ channels, open, activeChannelId: activeChannel?.id });
+  const msgsRef = useAutoScrollToBottom([open, activeChannel?.messages.length]);
 
   function submit(value: string) {
     if (!activeChannel) return;
@@ -143,14 +86,10 @@ export function FloatingChat({ channels, defaultChannelId }: FloatingChatProps) 
 
   if (!activeChannel) return null;
 
-  const bubbleStyle: React.CSSProperties = pos
-    ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" }
-    : { right: DEFAULT_POS.right, bottom: DEFAULT_POS.bottom };
-
   return createPortal(
     <>
       <button
-        ref={bubbleRef}
+        ref={bubbleRef as React.Ref<HTMLButtonElement>}
         type="button"
         className={`jt-chatbubble jt-chatbubble--${activeChannel.accent}${totalUnread > 0 ? " jt-chatbubble--pulse" : ""}`}
         style={bubbleStyle}
@@ -200,7 +139,7 @@ export function FloatingChat({ channels, defaultChannelId }: FloatingChatProps) 
               </div>
             )}
 
-            <div className="jt-chatsheet-msgs jt-thin-scrollbar" ref={msgsRef}>
+            <div className="jt-chatsheet-msgs jt-thin-scrollbar" ref={msgsRef as React.Ref<HTMLDivElement>}>
               {activeChannel.messages.length === 0 && <p className="jt-chatsheet-empty">Todavía no hay mensajes. ¡Arrancá la charla!</p>}
               {activeChannel.messages.map(m => {
                 const mine = m.playerId === activeChannel.myPlayerId;

@@ -1,6 +1,7 @@
 import { Avatar } from "../../../../components/ui/Avatar";
 import { CrownIcon } from "../../../../components/ui/icons";
 import type { GroupPublicState } from "@juntada/shared-types";
+import { DEFAULT_COLORS } from "../../../../theme/styles/colors";
 
 // "Integrantes" grid: crown badge for the host, online/offline dot,
 // "(vos)" label for the current player, and the host-only options menu
@@ -38,7 +39,7 @@ export function GroupMembersGrid({
               />
               {m.id === group.hostId && (
                 <span className="jt-group-host-badge" title="Anfitrión">
-                  <CrownIcon size={11} color="var(--jt-warn-text, #e2c44a)" />
+                  <CrownIcon size={11} color={`var(--jt-warn-text, ${DEFAULT_COLORS.warnText})`} />
                 </span>
               )}
             </div>

@@ -1,6 +1,8 @@
 import { S } from "../../../theme/styles";
+import { DEFAULT_COLORS } from "../../../theme/styles/colors";
 import { Avatar } from "../../../components/ui/Avatar";
 import { MemberActionsDialog } from "./MemberActionsDialog";
+import { buildMemberMenuActions } from "../hooks/memberMenuActions";
 import type { PublicPlayer } from "@juntada/shared-types";
 
 /**
@@ -29,6 +31,8 @@ export function PlayerChip({
   onKickPlayer: (id: string) => void;
   animationDelay?: number;
 }) {
+  const { transferHost, kickMember } = buildMemberMenuActions(player.id, onTransferHost, onKickPlayer, () => onToggleMenu(null));
+
   return (
     <div
       className="jt-player-chip jt-glow-hover jt-animate-rise"
@@ -61,7 +65,11 @@ export function PlayerChip({
         }}
       >
         {player.name}
-        {isMe && <span style={{ display: "block", fontWeight: 600, color: "var(--jt-muted-text, #6b6490)", fontSize: 10.5 }}>vos</span>}
+        {isMe && (
+          <span style={{ display: "block", fontWeight: 600, color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})`, fontSize: 10.5 }}>
+            vos
+          </span>
+        )}
       </span>
       {(isHostPlayer || !player.online) && (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
@@ -77,7 +85,7 @@ export function PlayerChip({
                 padding: "2px 7px",
                 borderRadius: 20,
                 background: "var(--jt-accent-soft, rgba(127,119,221,0.18))",
-                color: "var(--jt-accent-strong, #AFA9EC)",
+                color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
                 border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.35))",
               }}
             >
@@ -116,14 +124,8 @@ export function PlayerChip({
             <MemberActionsDialog
               memberName={player.name}
               memberOnline={player.online}
-              onTransferHost={() => {
-                onTransferHost(player.id);
-                onToggleMenu(null);
-              }}
-              onKickMember={() => {
-                onKickPlayer(player.id);
-                onToggleMenu(null);
-              }}
+              onTransferHost={transferHost}
+              onKickMember={kickMember}
               onClose={() => onToggleMenu(null)}
             />
           )}

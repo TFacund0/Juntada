@@ -9,10 +9,12 @@ import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
  * el resto — evita que un maxPlayers alto (hasta 20 en algunos juegos)
  * empuje toda la columna para abajo antes de llegar a la config/inicio.
  */
+export type Seat = { kind: "player"; player: PublicPlayer } | { kind: "empty"; key: string };
+
 export function useLobbySeats(room: RoomPublicState) {
   const [showAllSeats, setShowAllSeats] = useState(false);
   const emptySeatCount = Math.max(0, room.maxPlayers - room.players.length);
-  const seats: Array<{ kind: "player"; player: PublicPlayer } | { kind: "empty"; key: string }> = [
+  const seats: Seat[] = [
     ...room.players.map(player => ({ kind: "player" as const, player })),
     ...Array.from({ length: emptySeatCount }, (_, i) => ({ kind: "empty" as const, key: `empty-${i}` })),
   ];

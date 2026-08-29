@@ -10,6 +10,7 @@ import { GameDetailDialog } from "../../../components/shell/GameDetailDialog";
 import { PlusIcon, ShareArrowIcon } from "../../../components/ui/icons";
 import { NewGameDialog } from "../../../components/shell/NewGameDialog";
 import { MemberActionsDialog } from "../components/MemberActionsDialog";
+import { buildMemberMenuActions } from "../hooks/memberMenuActions";
 import { GroupOpenInstances } from "../components/group/GroupOpenInstances";
 import { GroupMembersGrid } from "../components/group/GroupMembersGrid";
 import type { GameDef } from "../../../games/gameTypes";
@@ -167,18 +168,15 @@ export function GroupScreen({
         (() => {
           const menuMember = group.members.find(m => m.id === openPlayerMenu);
           if (!menuMember) return null;
+          const { transferHost, kickMember: kick } = buildMemberMenuActions(menuMember.id, onTransferHost, onKickMember, () =>
+            onTogglePlayerMenu(null),
+          );
           return (
             <MemberActionsDialog
               memberName={menuMember.name}
               memberOnline={menuMember.online}
-              onTransferHost={() => {
-                onTransferHost(menuMember.id);
-                onTogglePlayerMenu(null);
-              }}
-              onKickMember={() => {
-                onKickMember(menuMember.id);
-                onTogglePlayerMenu(null);
-              }}
+              onTransferHost={transferHost}
+              onKickMember={kick}
               onClose={() => onTogglePlayerMenu(null)}
             />
           );

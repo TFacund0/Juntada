@@ -15,6 +15,15 @@ const ACTIONABLE_MODES: OverlayMode[] = ["prompt", "gone", "failed"];
 const LINE_DELAY_2 = "0.06s";
 const LINE_DELAY_3 = "0.12s";
 
+// Every mode's title/subtitle repeated the same font-size/weight/color pair
+// with only margin, letter-spacing and the exact shade varying per mode —
+// these hold the shared part so each call site only spreads + overrides
+// what's actually different, instead of re-typing the whole style object.
+const TITLE_BASE: CSSProperties = { margin: 0, fontWeight: 800, color: "#fff" };
+const TITLE_UPPER_BASE: CSSProperties = { ...TITLE_BASE, textTransform: "uppercase" };
+const SUBTITLE_BASE: CSSProperties = { margin: "6px 0 0", fontSize: 14, color: "rgba(255,255,255,0.5)" };
+const SUBTITLE_MUTED: CSSProperties = { fontSize: 14, color: "rgba(255,255,255,0.55)" };
+
 // Shared shell for every "circle background + centered svg" icon this
 // overlay uses (the failed spinner, the reconnected check, the gone badge)
 // — each mode only differs in size/color/animation class, not the wrapper.
@@ -195,8 +204,8 @@ export function SessionRecoveryOverlay({
                 animation: "session-recovery-spin 0.8s linear infinite",
               }}
             />
-            <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#fff" }}>Autenticando</p>
-            <p style={{ margin: "6px 0 0", fontSize: 14, color: "rgba(255,255,255,0.5)" }}>
+            <p style={{ ...TITLE_BASE, fontSize: 18 }}>Autenticando</p>
+            <p style={SUBTITLE_BASE}>
               {attempt
                 ? `Reconectando ${contextArticle} ${contextLabel}... (${attempt}${maxAttempts ? `/${maxAttempts}` : ""})`
                 : "Verificando sesión..."}
@@ -221,8 +230,8 @@ export function SessionRecoveryOverlay({
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </IconCircle>
-            <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#5DCAA5" }}>Reconectado</p>
-            <p style={{ margin: "6px 0 0", fontSize: 14, color: "rgba(255,255,255,0.5)" }}>
+            <p style={{ ...TITLE_BASE, fontSize: 18, color: "#5DCAA5" }}>Reconectado</p>
+            <p style={SUBTITLE_BASE}>
               Volviendo {contextArticle} {contextLabel}...
             </p>
           </>
@@ -230,27 +239,16 @@ export function SessionRecoveryOverlay({
 
         {mode === "prompt" && (
           <>
-            <p
-              className="session-recovery-line"
-              style={{
-                margin: "0 0 4px",
-                fontSize: 20,
-                fontWeight: 800,
-                letterSpacing: "0.01em",
-                textTransform: "uppercase",
-                color: "#fff",
-              }}
-            >
+            <p className="session-recovery-line" style={{ ...TITLE_UPPER_BASE, margin: "0 0 4px", fontSize: 20, letterSpacing: "0.01em" }}>
               Unirse a la partida de
             </p>
             <p
               className="session-recovery-line"
               style={{
+                ...TITLE_UPPER_BASE,
                 margin: "0 0 28px",
                 fontSize: 20,
-                fontWeight: 800,
                 letterSpacing: "0.01em",
-                textTransform: "uppercase",
                 color: "#AFA9EC",
                 animationDelay: LINE_DELAY_2,
               }}
@@ -273,23 +271,10 @@ export function SessionRecoveryOverlay({
 
         {mode === "gone" && (
           <>
-            <p
-              className="session-recovery-line"
-              style={{
-                margin: "0 0 8px",
-                fontSize: 22,
-                fontWeight: 800,
-                letterSpacing: "0.01em",
-                textTransform: "uppercase",
-                color: "#fff",
-              }}
-            >
+            <p className="session-recovery-line" style={{ ...TITLE_UPPER_BASE, margin: "0 0 8px", fontSize: 22, letterSpacing: "0.01em" }}>
               {contextArticleCap} {contextLabel} ya no existe
             </p>
-            <p
-              className="session-recovery-line"
-              style={{ margin: "0 0 28px", fontSize: 14, color: "rgba(255,255,255,0.55)", animationDelay: LINE_DELAY_2 }}
-            >
+            <p className="session-recovery-line" style={{ ...SUBTITLE_MUTED, margin: "0 0 28px", animationDelay: LINE_DELAY_2 }}>
               Crea una sala nueva para volver a jugar.
             </p>
             <div
@@ -314,19 +299,8 @@ export function SessionRecoveryOverlay({
 
         {mode === "failed" && (
           <>
-            <p
-              style={{
-                margin: "0 0 10px",
-                fontSize: 20,
-                fontWeight: 800,
-                letterSpacing: "0.02em",
-                textTransform: "uppercase",
-                color: "#fff",
-              }}
-            >
-              Conexión perdida
-            </p>
-            <p style={{ margin: "0 0 26px", fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.55)" }}>
+            <p style={{ ...TITLE_UPPER_BASE, margin: "0 0 10px", fontSize: 20, letterSpacing: "0.02em" }}>Conexión perdida</p>
+            <p style={{ ...SUBTITLE_MUTED, margin: "0 0 26px", lineHeight: 1.5 }}>
               No se puede conectar al servidor. Esto puede deberse a problemas de red o el servidor está inactivo.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

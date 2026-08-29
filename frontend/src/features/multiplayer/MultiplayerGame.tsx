@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { getGame } from "../../games/registry";
 import { extractScannedCode } from "./utils/joinLink";
 import { RoomEntryModal } from "./screens/RoomEntryModal";
@@ -9,57 +10,10 @@ import { LobbyScreen } from "./screens/LobbyScreen";
 import { RoundScreen } from "./screens/RoundScreen";
 import { SessionRecoveryOverlay } from "./screens/SessionRecoveryOverlay";
 import { FloatingChat } from "./components/FloatingChat";
-import type { ChatChannel } from "./components/FloatingChat";
 import { ScreenFade } from "../../components/ui/ScreenFade";
 import { useMultiplayerGameShell, playableGames } from "./hooks/useMultiplayerGameShell";
-import type { GroupPublicState, RoomPublicState } from "@juntada/shared-types";
-
-// Shared by the group/lobby/round FloatingChat subtitles below — kept as one
-// spot instead of repeating the singular/plural ternary at each call site.
-function countLabel(n: number, singular: string, plural: string): string {
-  return `${n} ${n === 1 ? singular : plural}`;
-}
-
-// The two chat channels FloatingChat can show — built here (not inside the
-// component) since neither needs anything from render scope beyond its own
-// arguments, and keeping them free functions makes the "what goes into a
-// channel" logic testable/reusable independent of where each is mounted
-// below (group screen has only one; lobby/round can have both at once).
-function buildGroupChannel(
-  group: GroupPublicState,
-  groupMe: { playerId: string } | null,
-  send: (msg: Record<string, unknown>) => void,
-): ChatChannel {
-  return {
-    id: "group",
-    tabLabel: "Grupo",
-    title: "Chat del grupo",
-    subtitle: `${group.name} · ${countLabel(group.members.length, "persona", "personas")}`,
-    accent: "group",
-    messages: group.chat,
-    myPlayerId: groupMe?.playerId,
-    onSend: text => send({ type: "send_group_chat", text }),
-  };
-}
-
-function buildRoomChannel(
-  room: RoomPublicState,
-  roomTitle: string,
-  me: { playerId: string } | null,
-  send: (msg: Record<string, unknown>) => void,
-): ChatChannel {
-  return {
-    id: "room",
-    tabLabel: "Sala",
-    title: roomTitle,
-    subtitle: `${room.name} · ${countLabel(room.players.length, "jugador", "jugadores")}`,
-    accent: "room",
-    messages: room.chat,
-    myPlayerId: me?.playerId,
-    onSend: text => send({ type: "send_room_chat", text }),
-    quickReactions: true,
-  };
-}
+import { useMemberActions } from "./hooks/useMemberActions";
+import { buildGroupChannel, buildRoomScreenChannels } from "./services/chatChannels";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:
@@ -273,6 +227,13 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     rejoinHostName,
   } = useMultiplayerGameShell(props);
 
+  // Wrapped in its own useCallback (not an inline arrow at the call site
+  // below) — otherwise this would be a fresh function every render, and the
+  // memoization inside useMemberActions would be defeated even though it
+  // depends on this reference staying stable.
+  const closePlayerMenu = useCallback(() => setOpenPlayerMenu(null), [setOpenPlayerMenu]);
+  const { transferHost, kickMember, kickPlayer } = useMemberActions({ send, closePlayerMenu });
+
   // Block the whole screen — instead of a small banner floating over an
   // otherwise-tappable menu/lobby/round — for both a cold start (app just
   // opened/remounted with a session saved in localStorage) and any live
@@ -404,14 +365,8 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             onShowQR={setShowQR}
             openPlayerMenu={openPlayerMenu}
             onTogglePlayerMenu={setOpenPlayerMenu}
-            onTransferHost={id => {
-              send({ type: "transfer_host", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
-            onKickMember={id => {
-              send({ type: "kick_member", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
+            onTransferHost={transferHost}
+            onKickMember={kickMember}
             playableGames={playableGames()}
             onCreateInstance={gameIdToCreate => {
               const targetGame = getGame(gameIdToCreate);
@@ -454,14 +409,8 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             onLobbyTabChange={setLobbyTab}
             openPlayerMenu={openPlayerMenu}
             onTogglePlayerMenu={setOpenPlayerMenu}
-            onTransferHost={id => {
-              send({ type: "transfer_host", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
-            onKickPlayer={id => {
-              send({ type: "kick_player", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
+            onTransferHost={transferHost}
+            onKickPlayer={kickPlayer}
             updateConfig={updateConfig}
             onStartRound={() => send({ type: "start_round" })}
             error={error}
@@ -469,10 +418,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           />
         </ScreenFade>
         <FloatingChat
-          channels={[
-            ...(room.groupCode && group ? [buildGroupChannel(group, groupMe, send)] : []),
-            buildRoomChannel(room, "Chat de la sala", me, send),
-          ]}
+          channels={buildRoomScreenChannels({ room, group, groupMe, me, send, roomTitle: "Chat de la sala" })}
           defaultChannelId="room"
         />
       </>
@@ -498,10 +444,14 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           />
         </ScreenFade>
         <FloatingChat
-          channels={[
-            ...(room.groupCode && group ? [buildGroupChannel(group, groupMe, send)] : []),
-            buildRoomChannel(room, activeGame.label ?? "Chat de la partida", me, send),
-          ]}
+          channels={buildRoomScreenChannels({
+            room,
+            group,
+            groupMe,
+            me,
+            send,
+            roomTitle: activeGame.label ?? "Chat de la partida",
+          })}
           defaultChannelId="room"
         />
       </>

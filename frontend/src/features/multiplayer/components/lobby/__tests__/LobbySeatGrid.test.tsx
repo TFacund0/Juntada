@@ -1,7 +1,7 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LobbySeatGrid } from "../LobbySeatGrid";
-import { useLobbySeats } from "../../../hooks/useLobbySeats";
+import { useLobbySeats, type Seat } from "../../../hooks/useLobbySeats";
 import { renderHook } from "@testing-library/react";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 
@@ -95,9 +95,9 @@ describe("LobbySeatGrid", () => {
       <LobbySeatGrid
         {...baseProps(room, result.current)}
         showAllSeats={true}
-        visibleSeats={room.players
-          .map(player => ({ kind: "player" as const, player }))
-          .concat(Array.from({ length: 5 }, (_, i) => ({ kind: "empty" as const, key: `empty-${i}` })))}
+        visibleSeats={(room.players.map(player => ({ kind: "player" as const, player })) as Seat[]).concat(
+          Array.from({ length: 5 }, (_, i) => ({ kind: "empty" as const, key: `empty-${i}` })),
+        )}
         hiddenSeatCount={0}
         onShowAllSeats={onShowAllSeats}
       />,
