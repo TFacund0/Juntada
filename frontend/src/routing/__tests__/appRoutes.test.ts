@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { createMemoryRouter, matchRoutes } from "react-router-dom";
+import { createMemoryRouter, matchRoutes, type UIMatch } from "react-router-dom";
 import { routeInitFromMatches, buildPath, ROUTES } from "../appRoutes";
 
 // routeInitFromMatches reads useMatches()-shaped data, so these tests build
@@ -17,7 +17,11 @@ const routeTree = (Object.keys(ROUTES) as (keyof typeof ROUTES)[]).map(id => ({
 // a top-level `.id` on each entry — reshape to match the real shape here.
 function matchesFor(pathname: string) {
   const router = createMemoryRouter(routeTree, { initialEntries: [pathname] });
-  return router.state.matches.map(match => ({ ...match, id: match.route.id }));
+  // router.state.matches carries AgnosticDataRouteMatch entries, which lack the
+  // `data`/`handle` fields UIMatch adds at render time via useMatches(). This
+  // helper only needs the `id`/`params` shape routeInitFromMatches actually
+  // reads (see appRoutes.ts), so the cast is safe for test purposes.
+  return router.state.matches.map(match => ({ ...match, id: match.route.id })) as unknown as UIMatch[];
 }
 
 describe("appRoutes", () => {

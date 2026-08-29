@@ -51,10 +51,23 @@ export function useUrlSync(
   // checkpoint push and the popstate listener can both restore it without
   // recomputing anything themselves.
   const expectedPathRef = useRef<string>(buildPath(gameId, mode, groupFlow, roomCode, groupCode));
+
+  // Path this hook itself just told the router to navigate to, so the
+  // blocker effect below can tell "our own outgoing navigate just got
+  // blocked" apart from "the user actually pressed back" — see there for
+  // why that distinction matters. Cleared once `location` catches up
+  // (successful navigate) so a later, unrelated stray back to a
+  // coincidentally-identical path isn't misread as our own.
+  const selfNavTargetRef = useRef<string | null>(null);
   useEffect(() => {
     const path = buildPath(gameId, mode, groupFlow, roomCode, groupCode);
     expectedPathRef.current = path;
-    if (path !== location.pathname) navigate(path, { replace: true });
+    if (path !== location.pathname) {
+      selfNavTargetRef.current = path;
+      navigate(path, { replace: true });
+    } else {
+      selfNavTargetRef.current = null;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId, mode, groupFlow, roomCode, groupCode]);
 
@@ -92,9 +105,27 @@ export function useUrlSync(
   // above) while midRound is true, runs goBack() exactly as a "Volver" tap
   // would, then resets the blocker — which restores the location it was
   // blocking at, replacing the old manual re-push of expectedPathRef.
+  //
+  // react-router re-registers this blocker's condition in its OWN effect,
+  // which can run one tick after the path-sync effect above already fired a
+  // `navigate(path, { replace: true })` in the same commit (ej. goHome
+  // resetting mid-round state straight back to "/"). That leaves the
+  // blocker still holding last render's "block everything" condition when
+  // it intercepts our own outgoing navigation — not a stray user back
+  // gesture. A real stray back always pops onto the checkpoint entry, which
+  // shares its URL with the current path, so the blocked target can't be
+  // told apart from our own navigate by path alone — only `selfNavTargetRef`
+  // (set exclusively when THIS hook just issued that exact navigate) tells
+  // the two apart. Only then let it through; otherwise it's a genuine stray
+  // back and goBack() still runs as before.
   const blocker = useBlocker(midRound);
   useEffect(() => {
     if (blocker.state !== "blocked") return;
+    if (selfNavTargetRef.current !== null && blocker.location.pathname === selfNavTargetRef.current) {
+      selfNavTargetRef.current = null;
+      blocker.proceed();
+      return;
+    }
     goBackRef.current();
     blocker.reset();
   }, [blocker]);

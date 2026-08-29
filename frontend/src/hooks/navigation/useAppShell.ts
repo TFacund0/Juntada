@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { clearMultiplayerSession } from "../../features/multiplayer/hooks/useMultiplayerSocket";
 import type { useAppSession } from "../session/useAppSession";
 import type { useAppDialogs } from "./useAppDialogs";
@@ -28,7 +29,7 @@ export function useAppShell(
   // fade-to-black curtain or can just happen instantly.
   const themeIsLive = Boolean(session.game?.gameTheme) && (session.mode === "local" || (session.mode === "multi" && session.inRoom));
 
-  const confirmGoBack = () => {
+  const confirmGoBack = useCallback(() => {
     withCurtain(() => {
       if (session.mode === "multi") clearMultiplayerSession();
       session.setMode(null);
@@ -41,9 +42,19 @@ export function useAppShell(
       }
       dialogs.setShowBackConfirm(false);
     }, themeIsLive);
-  };
+  }, [
+    session.mode,
+    session.groupFlow,
+    session.setMode,
+    session.setRoomCode,
+    session.setGroupFlow,
+    session.setGroupCode,
+    dialogs.setShowBackConfirm,
+    withCurtain,
+    themeIsLive,
+  ]);
 
-  const goHome = () => {
+  const goHome = useCallback(() => {
     withCurtain(() => {
       if (session.mode === "multi") clearMultiplayerSession();
       session.setGameId(null);
@@ -55,26 +66,52 @@ export function useAppShell(
       dialogs.setShowExitConfirm(false);
       session.setGroupAttached(false);
     }, themeIsLive);
-  };
+  }, [
+    session.mode,
+    session.setGameId,
+    session.setMode,
+    session.setGroupFlow,
+    session.setRoomCode,
+    session.setGroupCode,
+    session.setGroupAttached,
+    headerUI.setShowRules,
+    dialogs.setShowExitConfirm,
+    withCurtain,
+    themeIsLive,
+  ]);
 
-  const pickGame = (id: string) => {
-    // No curtain here either — picking a game from the list only sets
-    // gameId, well before "Modo local"/an actual room turns its theme on.
-    session.setGameId(id);
-    session.setMode(null);
-    session.setRoomCode(null);
-    headerUI.setShowRules(false);
-  };
+  const pickGame = useCallback(
+    (id: string) => {
+      // No curtain here either — picking a game from the list only sets
+      // gameId, well before "Modo local"/an actual room turns its theme on.
+      session.setGameId(id);
+      session.setMode(null);
+      session.setRoomCode(null);
+      headerUI.setShowRules(false);
+    },
+    [session.setGameId, session.setMode, session.setRoomCode, headerUI.setShowRules],
+  );
 
-  const startGroupFlow = (intent: "create" | "join") => {
-    session.setGameId(null);
-    session.setGroupIntent(intent);
-    session.setGroupFlow(true);
-    session.setGroupCode(null);
-    session.setMode("multi");
-    headerUI.setShowRules(false);
-    headerUI.setShowProfileMenu(false);
-  };
+  const startGroupFlow = useCallback(
+    (intent: "create" | "join") => {
+      session.setGameId(null);
+      session.setGroupIntent(intent);
+      session.setGroupFlow(true);
+      session.setGroupCode(null);
+      session.setMode("multi");
+      headerUI.setShowRules(false);
+      headerUI.setShowProfileMenu(false);
+    },
+    [
+      session.setGameId,
+      session.setGroupIntent,
+      session.setGroupFlow,
+      session.setGroupCode,
+      session.setMode,
+      headerUI.setShowRules,
+      headerUI.setShowProfileMenu,
+    ],
+  );
 
   return {
     confirmGoBack,

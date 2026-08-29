@@ -27,15 +27,11 @@ interface AppLevelExtras {
  * useStepTransition, useAppShell) plus the small set of App-level-only values,
  * mirroring the argument-composition pattern used by useAppShell.ts.
  *
- * NOTE: the dependency array below is copied byte-for-byte from the original
- * App.tsx useMemo, including its pre-existing bug — useAppShell returns
- * confirmGoBack/goHome/pickGame/startGroupFlow as new arrow functions on
- * every render (never memoized), and 3 of those (pickGame, goHome, and
- * withCurtain/withAsyncCurtain/settleAsyncCurtain from useStepTransition
- * are similarly unmemoized) sit in this array — so this useMemo already
- * recalculates on every render regardless. Fixing that is explicitly out of
- * scope here; this hook must reproduce the existing behavior exactly, not a
- * "corrected" version of it.
+ * NOTE: every entry in the dependency array below is now a genuinely stable
+ * reference across re-renders with unchanged inputs (state values, stable
+ * `useState` setters, and the memoized callbacks from useAppShell/
+ * useAppSession) — so this useMemo only recomputes when something it
+ * actually depends on changes.
  */
 export function useAppOutletContext(
   session: AppSession,
@@ -69,7 +65,7 @@ export function useAppOutletContext(
   return useMemo(
     () => ({
       gameId,
-      setGameId: session.setGameId,
+      setGameId,
       mode,
       setMode,
       game,
@@ -108,7 +104,7 @@ export function useAppOutletContext(
     }),
     [
       gameId,
-      session.setGameId,
+      setGameId,
       mode,
       setMode,
       game,

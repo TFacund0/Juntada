@@ -24,11 +24,11 @@ export function useAppSession(validJoinLink: JoinLink | null, restored: { gameId
   const [groupCode, setGroupCode] = useState<string | null>(routeInit.groupFlow ? routeInit.code : null);
   const [groupIntent, setGroupIntent] = useState<"create" | "join" | undefined>(undefined);
   const [pendingGroupJoinCode, setPendingGroupJoinCode] = useState<string | null>(null);
-  const switchToGroupJoin = (code: string) => {
+  const switchToGroupJoin = useCallback((code: string) => {
     setPendingGroupJoinCode(code);
     setGroupIntent("join");
     setGroupFlow(true);
-  };
+  }, []);
   const [groupAttached, setGroupAttached] = useState(false);
 
   const game = gameId ? getGame(gameId) : null;
