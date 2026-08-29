@@ -23,6 +23,8 @@ interface ConfirmDialogProps {
   tone?: "exit" | "back";
 }
 
+const TITLE_ID = "jt-confirm-title-label";
+
 /**
  * Diálogo genérico de "¿estás seguro?" con confirmar/cancelar — usado en
  * toda la app (salir de una partida, del grupo, etc.). Centrado, con un
@@ -42,14 +44,22 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const toneClass = tone === "back" ? "jt-confirm-card--back" : "";
   return (
-    <DialogFrame onClose={onCancel} textAlign="center" cardClassName={`jt-confirm-card jt-card-glow ${toneClass}`.trim()}>
+    <DialogFrame
+      onClose={onCancel}
+      role="alertdialog"
+      titleId={TITLE_ID}
+      textAlign="center"
+      cardClassName={`jt-confirm-card jt-card-glow ${toneClass}`.trim()}
+    >
       <div className="jt-confirm-badge-wrap">
         <div className="jt-confirm-badge-ping jt-animate-ping" />
         <div className="jt-confirm-badge">
           {tone === "back" ? <BackArrowIcon size={22} color="#E8C868" /> : <AlertIcon size={22} color="#F09595" />}
         </div>
       </div>
-      <p className="jt-confirm-title">{title}</p>
+      <p id={TITLE_ID} className="jt-confirm-title">
+        {title}
+      </p>
       <p className="jt-confirm-message">{message}</p>
       <div className="jt-confirm-actions">
         <Btn variant="ghost" onClick={onCancel} style={{ fontSize: 13, padding: "11px 20px" }}>

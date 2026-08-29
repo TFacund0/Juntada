@@ -22,11 +22,15 @@ interface NewGameDialogProps {
  * GroupScreen, así que este trigger/modal ni se renderiza ahí (ver
  * .jt-group-newgame-trigger en GroupScreen.css).
  */
+const TITLE_ID = "jt-newgame-title-label";
+
 export function NewGameDialog({ games, onPick, onClose }: NewGameDialogProps) {
   return (
-    <DialogFrame onClose={onClose} maxWidth={560} padding={0} overlayBlur={10} cardClassName="jt-newgame-card">
+    <DialogFrame onClose={onClose} titleId={TITLE_ID} maxWidth={560} padding={0} overlayBlur={10} cardClassName="jt-newgame-card">
       <div className="jt-newgame-header">
-        <p className="jt-newgame-title">Nueva partida</p>
+        <p id={TITLE_ID} className="jt-newgame-title">
+          Nueva partida
+        </p>
         <button onClick={onClose} aria-label="Cerrar" className="jt-newgame-close-btn">
           <CloseIcon size={14} />
         </button>

@@ -6,18 +6,23 @@ interface DevNoticeDialogProps {
   onClose: () => void;
 }
 
+const TITLE_ID = "jt-devnotice-title-label";
+
 /** Aviso único de "app en desarrollo", mostrado una vez por sesión. */
 export function DevNoticeDialog({ onClose }: DevNoticeDialogProps) {
   return (
     <DialogFrame
       onClose={onClose}
+      titleId={TITLE_ID}
       maxWidth={380}
       closeOnOverlayClick={false}
       textAlign="center"
       cardClassName="jt-devnotice-card jt-card-glow"
     >
       <div className="jt-devnotice-badge">🚧</div>
-      <p className="jt-devnotice-title">Juntada está en desarrollo</p>
+      <p id={TITLE_ID} className="jt-devnotice-title">
+        Juntada está en desarrollo
+      </p>
       <p className="jt-devnotice-message">
         Esta es una versión de prueba. Podés encontrarte con errores, desconexiones o cambios repentinos mientras seguimos mejorándola.
         ¡Gracias por tu paciencia y por probarla!
