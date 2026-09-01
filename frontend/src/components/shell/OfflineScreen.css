@@ -1,0 +1,43 @@
+.jt-offline-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--jt-z-app-update, 3000);
+  background: #0f0c1d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 24px;
+  animation: jt-offline-screen-fade-in 0.2s ease-out both;
+}
+
+.jt-offline-screen-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.jt-offline-screen-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #a49dc9;
+  max-width: 280px;
+}
+
+@keyframes jt-offline-screen-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jt-offline-screen {
+    animation: none;
+  }
+}
