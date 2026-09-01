@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { CATEGORIES } from "@juntada/quien-soy-data";
 import type { LobbyInfoProps } from "../../gameTypes";
 
@@ -13,22 +14,22 @@ export function LobbyInfo({ room }: LobbyInfoProps) {
     .filter(Boolean);
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Configuración del anfitrión</span>
-      <p style={{ ...S.muted, marginBottom: active.length && wordSource === "categories" ? 10 : 0 }}>
+    <div className={T.card}>
+      <span className={T.label}>Configuración del anfitrión</span>
+      <p className={clsx(T.muted, active.length && wordSource === "categories" ? "mb-2.5" : "mb-0")}>
         {wordSource === "categories" ? "Palabras de categorías predefinidas" : "Palabras sugeridas y votadas entre todos"}
       </p>
       {wordSource === "categories" &&
         (active.length > 0 ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             {active.map(cat => (
-              <span key={cat.label} style={S.pill(true)}>
+              <span key={cat.label} className={T.pill(true)}>
                 {cat.icon} {cat.label}
               </span>
             ))}
           </div>
         ) : (
-          <p style={S.muted}>El anfitrión todavía no activó categorías</p>
+          <p className={T.muted}>El anfitrión todavía no activó categorías</p>
         ))}
     </div>
   );

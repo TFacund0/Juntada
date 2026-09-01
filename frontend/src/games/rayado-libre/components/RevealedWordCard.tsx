@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 
 /**
  * Cartel de fase "reveal" mostrando la palabra que se estaba dibujando.
@@ -10,9 +11,9 @@ import { S } from "../../../theme/styles";
  */
 export function RevealedWordCard({ word }: { word: string }) {
   return (
-    <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-      <p style={{ fontSize: 13, color: "#9089c0" }}>La palabra era</p>
-      <p style={S.bigReveal}>{word}</p>
+    <div className={clsx(T.cardHighlight, "text-center")}>
+      <p className="text-[13px] text-[#9089c0]">La palabra era</p>
+      <p className={T.bigReveal}>{word}</p>
     </div>
   );
 }

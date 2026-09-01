@@ -59,6 +59,17 @@ export function knob(on: boolean): string {
   );
 }
 
+export const bigReveal = "text-[28px] font-extrabold text-[#AFA9EC] text-center tracking-[-0.02em] my-3 leading-[1.2]";
+
+export function pill(on: boolean): string {
+  return clsx(
+    "inline-flex items-center gap-1.5 rounded-[20px] px-3 py-1 text-xs font-semibold",
+    on
+      ? "bg-[rgba(29,158,117,0.15)] text-[#5DCAA5] border border-[rgba(29,158,117,0.35)]"
+      : "bg-white/[0.06] text-[#6b6490] border border-white/[0.08]",
+  );
+}
+
 export const segmentedControl = "flex bg-white/5 rounded-[10px] p-[3px] mb-2.5 gap-[3px]";
 
 export function segmentedOption(active: boolean): string {
@@ -68,4 +79,4 @@ export function segmentedOption(active: boolean): string {
   );
 }
 
-export const T = { card, cardHighlight, label, input, muted, btn, toggle, knob, segmentedControl, segmentedOption };
+export const T = { card, cardHighlight, label, input, muted, btn, toggle, knob, bigReveal, pill, segmentedControl, segmentedOption };

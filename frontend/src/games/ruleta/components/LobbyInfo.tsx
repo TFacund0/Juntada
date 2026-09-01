@@ -1,4 +1,4 @@
-import { S } from "../../../theme/styles";
+import { T } from "../../../theme/styles/classes";
 import type { LobbyInfoProps } from "../../gameTypes";
 
 interface Entry {
@@ -15,21 +15,21 @@ export function LobbyInfo({ room }: LobbyInfoProps) {
   const mode = config.mode || "eliminate";
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Configuración del anfitrión</span>
-      <p style={{ fontSize: 13, color: "#9089c0", marginBottom: 12 }}>
-        Modo: <strong style={{ color: "#AFA9EC" }}>{mode === "eliminate" ? "Eliminación" : "Repetir"}</strong>
+    <div className={T.card}>
+      <span className={T.label}>Configuración del anfitrión</span>
+      <p className="text-[13px] text-[#9089c0] mb-3">
+        Modo: <strong className="text-[#AFA9EC]">{mode === "eliminate" ? "Eliminación" : "Repetir"}</strong>
       </p>
       {entries.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           {entries.map(e => (
-            <span key={e.id} style={S.pill(true)}>
+            <span key={e.id} className={T.pill(true)}>
               {e.name}
             </span>
           ))}
         </div>
       ) : (
-        <p style={{ ...S.muted }}>El anfitrión todavía no cargó entradas</p>
+        <p className={T.muted}>El anfitrión todavía no cargó entradas</p>
       )}
     </div>
   );
