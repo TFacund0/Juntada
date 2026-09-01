@@ -12,6 +12,9 @@ import { DEFAULT_COLORS } from "./colors";
 export const card =
   "rounded-2xl border border-[var(--jt-card-border,rgba(127,119,221,0.18))] bg-[var(--jt-card-bg,rgba(255,255,255,0.04))] p-[18px_20px] mb-3.5";
 
+export const cardHighlight =
+  "rounded-2xl border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.35))] bg-[var(--jt-accent-soft,rgba(127,119,221,0.1))] p-[18px_20px] mb-3.5";
+
 export const label = `mb-2.5 block text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--jt-label,${DEFAULT_COLORS.label})]`;
 
 export const input =
@@ -56,4 +59,4 @@ export function knob(on: boolean): string {
   );
 }
 
-export const T = { card, label, input, muted, btn, toggle, knob };
+export const T = { card, cardHighlight, label, input, muted, btn, toggle, knob };
