@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
 import { useFlashError } from "../../../hooks/ui/useFlashError";
@@ -59,27 +60,24 @@ export function EntriesEditor<Id>({ entries, onAdd, onRemove }: EntriesEditorPro
   };
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Entradas ({entries.length})</span>
+    <div className={T.card}>
+      <span className={T.label}>Entradas ({entries.length})</span>
       {entries.map(e => (
-        <div key={String(e.id)} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }} title={e.name.length > WHEEL_LABEL_MAX ? e.name : undefined}>
+        <div key={String(e.id)} className="flex items-start gap-2 mb-2.5">
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm" title={e.name.length > WHEEL_LABEL_MAX ? e.name : undefined}>
               {wheelLabel(e.name)}
             </p>
-            {e.description && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#9089c0" }}>{e.description}</p>}
+            {e.description && <p className="mt-0.5 text-xs text-[#9089c0]">{e.description}</p>}
           </div>
-          <button
-            onClick={() => onRemove(e.id)}
-            style={{ ...S.btn("danger"), width: 32, height: 32, padding: 0, borderRadius: 8, flexShrink: 0 }}
-          >
+          <button onClick={() => onRemove(e.id)} className={clsx(T.btn("danger"), "w-8! h-8 p-0 rounded-lg shrink-0")}>
             ×
           </button>
         </div>
       ))}
 
       <input
-        style={{ ...S.input, marginBottom: 8 }}
+        className={clsx(T.input, "mb-2")}
         placeholder="Nombre (ej: Juan, o 'Prenda 1')"
         value={name}
         onChange={e => setName(e.target.value)}
@@ -88,7 +86,7 @@ export function EntriesEditor<Id>({ entries, onAdd, onRemove }: EntriesEditorPro
         }}
       />
       <textarea
-        style={{ ...S.input, marginBottom: 8, resize: "vertical", minHeight: 60 }}
+        className={clsx(T.input, "mb-2 resize-y min-h-[60px]")}
         placeholder="Descripción / castigo (opcional)"
         value={desc}
         onChange={e => setDesc(e.target.value)}
@@ -97,7 +95,7 @@ export function EntriesEditor<Id>({ entries, onAdd, onRemove }: EntriesEditorPro
         Agregar a la ruleta
       </Btn>
       <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
-      {entries.length < 2 && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Cargá al menos 2 entradas</p>}
+      {entries.length < 2 && <p className={clsx(T.muted, "text-center mt-2")}>Cargá al menos 2 entradas</p>}
     </div>
   );
 }
