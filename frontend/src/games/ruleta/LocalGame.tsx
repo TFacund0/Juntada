@@ -121,7 +121,7 @@ export function LocalGame() {
           ]}
           active={setupTab}
           onChange={setSetupTab}
-          style={{ marginBottom: 14 }}
+          className="mb-3.5"
         />
 
         {setupTab === "entries" && <EntriesEditor entries={entries} onAdd={addEntry} onRemove={removeEntry} />}

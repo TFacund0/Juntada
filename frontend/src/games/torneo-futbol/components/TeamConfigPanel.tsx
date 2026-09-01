@@ -170,7 +170,7 @@ export function TeamConfigPanel<Id extends string | number>({
           ]}
           active={tab}
           onChange={setTab}
-          buttonPadding="8px"
+          compact
         />
       </div>
 

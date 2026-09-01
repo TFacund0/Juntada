@@ -17,7 +17,7 @@ export function SetupTabs({ tab, onChange }: { tab: SetupTab; onChange: (tab: Se
       ]}
       active={tab}
       onChange={onChange}
-      style={{ marginBottom: 14 }}
+      className="mb-3.5"
     />
   );
 }

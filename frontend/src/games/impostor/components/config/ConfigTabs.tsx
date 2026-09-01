@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { S } from "../../../../theme/styles";
+import { T } from "../../../../theme/styles/classes";
 import { TabRow } from "../../../../components/setup/TabRow";
 
 export type ConfigTabKey = "cats" | "rules" | "order";
@@ -23,8 +23,8 @@ export function ConfigTabs({
   children: ReactNode;
 }) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>Configuración</span>
+    <div className={T.card}>
+      <span className={T.label}>Configuración</span>
       <TabRow
         tabs={[
           { key: "cats", label: "Categorías" },
@@ -33,8 +33,8 @@ export function ConfigTabs({
         ]}
         active={active}
         onChange={onChange}
-        buttonPadding="8px"
-        style={{ marginBottom: 14 }}
+        compact
+        className="mb-3.5"
       />
       {children}
     </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import { T } from "../../../theme/styles/classes";
 import { TabRow } from "../../../components/setup/TabRow";
 import { EntriesEditor } from "./EntriesEditor";
 import { ModeSelector } from "./ModeSelector";
@@ -26,8 +26,8 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
   return (
     <div>
-      <div style={S.card}>
-        <span style={S.label}>Configuración</span>
+      <div className={T.card}>
+        <span className={T.label}>Configuración</span>
         <TabRow
           tabs={[
             { key: "entries", label: "Entradas" },
@@ -35,7 +35,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           ]}
           active={tab}
           onChange={setTab}
-          buttonPadding="8px"
+          compact
         />
       </div>
 
