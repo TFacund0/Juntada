@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../gameTypes";
@@ -56,7 +57,7 @@ export function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" |
             pending={pending}
             footer={
               round.rerollsUsed > 0 && (
-                <p style={{ ...S.muted, marginTop: 10 }}>
+                <p className={clsx(T.muted, "mt-2.5")}>
                   Letra cambiada {round.rerollsUsed} {round.rerollsUsed === 1 ? "vez" : "veces"}
                 </p>
               )
@@ -70,7 +71,7 @@ export function SetupPhase({ room, isHost, send }: Pick<RoundViewProps, "room" |
               Cambiar letra
             </button>
           ) : (
-            <p style={{ ...S.muted, textAlign: "center", marginTop: 18 }}>Esperando que el anfitrión confirme la letra...</p>
+            <p className={clsx(T.muted, "text-center mt-[18px]")}>Esperando que el anfitrión confirme la letra...</p>
           )}
         </div>
       </div>
