@@ -1,4 +1,5 @@
 import { S } from "./theme/styles";
+import "./theme/tailwind.css";
 import "./theme/curtain.css";
 import "./theme/sharedChrome.css";
 import "./theme/homeDesign.css";
