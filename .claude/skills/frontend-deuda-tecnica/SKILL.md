@@ -1,18 +1,18 @@
 ---
 name: frontend-deuda-tecnica
-description: Detecta y corrige deuda técnica estructural en frontend/src — CSS inline sin Tailwind, juegos sin lógica extraída a packages/, packages sin tests, imports cruzados entre juegos, esqueleto de juego inconsistente. Usar SIEMPRE que se toque un archivo de frontend/src/games/ o frontend/src/components/ (nuevo o existente), incluso si el pedido no menciona "buenas prácticas" o "refactor" — migrar de paso lo que se toca, no solo lo nuevo.
+description: Detecta y corrige deuda técnica estructural en frontend/src — CSS inline sin Tailwind, juegos sin lógica extraída a packages/, packages sin tests, imports cruzados entre juegos, esqueleto de juego inconsistente, layout no responsive. Usar SIEMPRE que se toque un archivo de frontend/src/games/ o frontend/src/components/ (nuevo o existente), incluso si el pedido no menciona "buenas prácticas" o "refactor" — migrar de paso lo que se toca, no solo lo nuevo.
 ---
 
 # Deuda técnica estructural del frontend — Juntada
 
-Auditoría de 2026-08-31 encontró 5 gaps estructurales en `frontend/src` que las reglas
+Auditoría de 2026-08-31 encontró 6 gaps estructurales en `frontend/src` que las reglas
 generales de `.claude/skills/CLAUDE.md` (DRY, SoC, modularización) no cubren porque son
 específicos de decisiones de este repo. Esta skill los detecta y corrige — de forma gradual,
 no con una migración masiva de una sola vez: **si tu cambio ya toca un archivo que viola una
 de estas reglas, corregilo ahí mismo**; no vayas a buscar violaciones en archivos que no ibas
 a tocar igual.
 
-## Los 5 gaps (por prioridad de impacto)
+## Los 6 gaps (por prioridad de impacto)
 
 ### 1. CSS inline → Tailwind
 
@@ -71,10 +71,27 @@ Solo algunos juegos tienen `hooks/`, `utils/`, `types/` propios; no hay convenci
 - Al completar o tocar un juego, alineá su esqueleto al de `rayado-libre/` o `tutifruti/`
   (referencia viva, ver `nuevo-juego-frontend`) en vez de inventar una estructura nueva.
 
+### 6. Layout no responsive / mal aprovechado
+
+Varias pantallas quedan con espacios vacíos grandes arriba, abajo o a los costados en vez de
+adaptarse a la altura/ancho real del viewport — sobre todo en desktop o pantallas altas, donde
+el diseño quedó pensado solo para el alto típico de un celular.
+
+- Al migrar o tocar una pantalla, revisá que el contenido use el alto/ancho disponible en vez de
+  quedar pegado arriba con todo el resto en blanco (`min-h-screen` / `h-full` en el contenedor
+  raíz en vez de una altura fija, `flex flex-col` con el bloque principal creciendo vía `flex-1`
+  en vez de alturas hardcodeadas).
+- Probá el cambio en el navegador en al menos dos anchos (mobile ~390px y desktop ~1200px+), no
+  solo en el viewport por defecto — un layout que se ve bien en uno puede dejar franjas vacías
+  gigantes en el otro.
+- No agregues breakpoints o reglas responsive por rutina donde el contenido ya se adapta bien
+  (una card chica centrada no necesita reglas extra) — el objetivo es evitar espacio
+  desperdiciado, no maximizar el uso de `sm:`/`md:`/`lg:` en todos lados.
+
 ## Flujo de trabajo
 
 1. Identificá qué archivo(s) de `frontend/src/games/` o `frontend/src/components/` vas a tocar.
-2. Revisá esos archivos contra los 5 gaps de arriba, en el orden en que están listados.
+2. Revisá esos archivos contra los 6 gaps de arriba, en el orden en que están listados.
 3. Corregí lo que encuentres en esos archivos — no busques violaciones en el resto del repo.
 4. Si la corrección es grande o ambigua (instalar Tailwind, agregar regla ESLint global),
    explicá el trade-off y preguntá antes de aplicarla — afecta a más que tu cambio puntual.
