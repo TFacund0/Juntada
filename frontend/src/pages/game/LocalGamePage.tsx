@@ -1,8 +1,8 @@
 import { Suspense } from "react";
-import { useOutletContext } from "react-router-dom";
 import { GameLoadErrorBoundary } from "../../components/shell/GameLoadErrorBoundary";
 import { GameLoading } from "./GameLoading";
-import type { AppOutletContext } from "../AppOutletContext";
+import { useGameSessionContext } from "../context/GameSessionContext";
+import { useGameBridgeContext } from "../context/GameBridgeContext";
 
 // Paso 3 (mode === "local"): jugar un juego que sí soporta online pero fue
 // elegido en modo local — extraído verbatim del bloque `mode === "local" &&
@@ -12,7 +12,8 @@ import type { AppOutletContext } from "../AppOutletContext";
 // no. Guard preservado tal cual — ver nota de "one-render lag" en
 // design.md.
 export function LocalGamePage() {
-  const { gameId, mode, game, exposeLocalGameBack, exposeLocalGameReset } = useOutletContext<AppOutletContext>();
+  const { gameId, mode, game } = useGameSessionContext();
+  const { exposeLocalGameBack, exposeLocalGameReset } = useGameBridgeContext();
 
   if (!(mode === "local" && game)) return null;
 

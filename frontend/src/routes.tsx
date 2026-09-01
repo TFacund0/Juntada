@@ -14,8 +14,9 @@ import { GroupPage } from "./pages/game/GroupPage";
 // PARENT/layout route (pathless, no `path` of its own): every path under it
 // (/, /game/:gameId, /game/:gameId/local, /room/:gameId/:code?,
 // /group/:code?) is now a CHILD route pointing at a leaf page component under
-// frontend/src/pages/, which reads shared state via useOutletContext rather
-// than per-route App elements — so App itself stays mounted at the same tree
+// frontend/src/pages/, which reads shared state via the domain contexts
+// AppMainContent provides around <Outlet> (pages/context/) rather than
+// per-route App elements — so App itself stays mounted at the same tree
 // position across all of these path changes instead of remounting.
 //
 // Route ids live on the CHILD routes, NOT on the App parent — routing/appRoutes.ts's

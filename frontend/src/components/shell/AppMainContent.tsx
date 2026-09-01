@@ -1,7 +1,12 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { Outlet } from "react-router-dom";
 import type { GameDef } from "../../games/gameTypes";
-import type { AppOutletContext } from "../../pages/AppOutletContext";
+import type { AppContextValues } from "../../hooks/navigation/useAppContextValues";
+import { GameSessionContext } from "../../pages/context/GameSessionContext";
+import { GameBridgeContext } from "../../pages/context/GameBridgeContext";
+import { CurtainContext } from "../../pages/context/CurtainContext";
+import { PlayerSessionContext } from "../../pages/context/PlayerSessionContext";
+import { AppShellContext } from "../../pages/context/AppShellContext";
 import { GameRules } from "./GameRules";
 import { ScreenFade } from "../ui/ScreenFade";
 import { AppHeader } from "./AppHeader";
@@ -28,7 +33,7 @@ interface AppMainContentProps {
   stepKey: string;
   stepDirection: "forward" | "back";
   curtain: "none" | "in" | "out";
-  outletContext: AppOutletContext;
+  contextValues: AppContextValues;
   inGameView: boolean;
 }
 
@@ -60,7 +65,7 @@ export function AppMainContent({
   stepKey,
   stepDirection,
   curtain,
-  outletContext,
+  contextValues,
   inGameView,
 }: AppMainContentProps) {
   const header = (
@@ -90,7 +95,17 @@ export function AppMainContent({
       {showRules && (game?.rules?.length ?? 0) > 0 && <GameRules rules={game!.rules} onClose={() => setShowRules(false)} />}
 
       <ScreenFade transitionKey={stepKey} direction={stepDirection} skipAnimation={curtain !== "none"}>
-        <Outlet context={outletContext} />
+        <GameSessionContext.Provider value={contextValues.gameSession}>
+          <GameBridgeContext.Provider value={contextValues.gameBridge}>
+            <CurtainContext.Provider value={contextValues.curtain}>
+              <PlayerSessionContext.Provider value={contextValues.playerSession}>
+                <AppShellContext.Provider value={contextValues.appShell}>
+                  <Outlet />
+                </AppShellContext.Provider>
+              </PlayerSessionContext.Provider>
+            </CurtainContext.Provider>
+          </GameBridgeContext.Provider>
+        </GameSessionContext.Provider>
       </ScreenFade>
     </>
   );

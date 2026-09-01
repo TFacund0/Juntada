@@ -10,9 +10,9 @@ import { useAppOrchestration } from "./hooks/app/useAppOrchestration";
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROOT APP — pathless PARENT/layout route. Delegates the 12-hook composition
 // to useAppOrchestration and the header/rest/AppShellLayout composition to
-// AppMainContent — see AppOutletContext.ts for the exact shape and design.md
-// for why App must stay a single non-remounting parent route (remounting on
-// every path change would destroy this state).
+// AppMainContent — see pages/context/ for the 5 domain contexts provided
+// around <Outlet>. App must stay a single non-remounting parent route
+// (remounting on every path change would destroy this state).
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function App() {
@@ -52,7 +52,7 @@ export default function App() {
     dismissDevNotice,
     localGameResetRef,
     returnToGroupRef,
-    outletContext,
+    contextValues,
   } = useAppOrchestration();
 
   if (!playerName) return <NameOnboardingScreen onSave={savePlayerName} />;
@@ -107,7 +107,7 @@ export default function App() {
         stepKey={stepKey}
         stepDirection={stepDirection}
         curtain={curtain}
-        outletContext={outletContext}
+        contextValues={contextValues}
         inGameView={inGameView}
       />
     </div>

@@ -1,14 +1,14 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LocalGamePage } from "../LocalGamePage";
-import type { AppOutletContext } from "../../AppOutletContext";
+import type { GameSessionContextValue } from "../../context/GameSessionContext";
+import type { GameBridgeContextValue } from "../../context/GameBridgeContext";
 import type { GameDef } from "../../../games/gameTypes";
 
-const outletContext = vi.fn<() => Partial<AppOutletContext>>();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return { ...actual, useOutletContext: () => outletContext() };
-});
+const gameSession = vi.fn<() => Partial<GameSessionContextValue>>();
+const gameBridge = vi.fn<() => Partial<GameBridgeContextValue>>();
+vi.mock("../../context/GameSessionContext", () => ({ useGameSessionContext: () => gameSession() }));
+vi.mock("../../context/GameBridgeContext", () => ({ useGameBridgeContext: () => gameBridge() }));
 
 function fakeGame(overrides: Partial<GameDef> = {}): GameDef {
   return {
@@ -20,32 +20,33 @@ function fakeGame(overrides: Partial<GameDef> = {}): GameDef {
   };
 }
 
-function baseContext(overrides: Partial<AppOutletContext> = {}): Partial<AppOutletContext> {
+function baseSession(overrides: Partial<GameSessionContextValue> = {}): Partial<GameSessionContextValue> {
   return {
     gameId: "impostor",
     mode: "local",
     game: fakeGame(),
-    exposeLocalGameBack: vi.fn(),
-    exposeLocalGameReset: vi.fn(),
     ...overrides,
   };
 }
 
 describe("LocalGamePage", () => {
   test("renders the game's LocalGame when mode is local and game is set (guard met)", async () => {
-    outletContext.mockReturnValue(baseContext());
+    gameSession.mockReturnValue(baseSession());
+    gameBridge.mockReturnValue({ exposeLocalGameBack: vi.fn(), exposeLocalGameReset: vi.fn() });
     render(<LocalGamePage />);
     expect(await screen.findByTestId("local-game")).toBeTruthy();
   });
 
   test("renders nothing when mode is not local — one-render lag guard", () => {
-    outletContext.mockReturnValue(baseContext({ mode: null }));
+    gameSession.mockReturnValue(baseSession({ mode: null }));
+    gameBridge.mockReturnValue({ exposeLocalGameBack: vi.fn(), exposeLocalGameReset: vi.fn() });
     const { container } = render(<LocalGamePage />);
     expect(container.firstChild).toBeNull();
   });
 
   test("renders nothing when there is no game — one-render lag guard", () => {
-    outletContext.mockReturnValue(baseContext({ game: null }));
+    gameSession.mockReturnValue(baseSession({ game: null }));
+    gameBridge.mockReturnValue({ exposeLocalGameBack: vi.fn(), exposeLocalGameReset: vi.fn() });
     const { container } = render(<LocalGamePage />);
     expect(container.firstChild).toBeNull();
   });

@@ -3,40 +3,50 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { AppMainContent } from "../AppMainContent";
-import type { AppOutletContext } from "../../../pages/AppOutletContext";
+import type { AppContextValues } from "../../../hooks/navigation/useAppContextValues";
 import type { GameDef } from "../../../games/gameTypes";
 
-function baseOutletContext(): AppOutletContext {
+function baseContextValues(): AppContextValues {
   return {
-    gameId: null,
-    setGameId: vi.fn(),
-    mode: null,
-    setMode: vi.fn(),
-    game: null,
-    groupFlow: false,
-    groupIntent: undefined,
-    pendingGroupJoinCode: null,
-    switchToGroupJoin: vi.fn(),
-    setRoomCode: vi.fn(),
-    setGroupCode: vi.fn(),
-    groupAttached: false,
-    setGroupAttached: vi.fn(),
-    setRoomPhase: vi.fn(),
-    handleRoomGameType: vi.fn(),
-    GAME_LIST: [],
-    exposeReturnToGroup: vi.fn(),
-    exposeLocalGameBack: vi.fn(),
-    exposeLocalGameReset: vi.fn(),
-    playerName: "Ana",
-    savePlayerName: vi.fn(),
-    validJoinLink: null,
-    curtain: "none",
-    withCurtain: vi.fn(),
-    withAsyncCurtain: vi.fn(),
-    settleAsyncCurtain: vi.fn(),
-    pickGame: vi.fn(),
-    goHome: vi.fn(),
-    goBack: vi.fn(),
+    gameSession: {
+      gameId: null,
+      setGameId: vi.fn(),
+      mode: null,
+      setMode: vi.fn(),
+      game: null,
+      groupFlow: false,
+      groupIntent: undefined,
+      pendingGroupJoinCode: null,
+      switchToGroupJoin: vi.fn(),
+      setRoomCode: vi.fn(),
+      setGroupCode: vi.fn(),
+      groupAttached: false,
+      setGroupAttached: vi.fn(),
+      setRoomPhase: vi.fn(),
+      handleRoomGameType: vi.fn(),
+      GAME_LIST: [],
+    },
+    gameBridge: {
+      exposeReturnToGroup: vi.fn(),
+      exposeLocalGameBack: vi.fn(),
+      exposeLocalGameReset: vi.fn(),
+    },
+    curtain: {
+      curtain: "none",
+      withCurtain: vi.fn(),
+      withAsyncCurtain: vi.fn(),
+      settleAsyncCurtain: vi.fn(),
+    },
+    playerSession: {
+      playerName: "Ana",
+      savePlayerName: vi.fn(),
+      validJoinLink: null,
+    },
+    appShell: {
+      pickGame: vi.fn(),
+      goHome: vi.fn(),
+      goBack: vi.fn(),
+    },
   };
 }
 
@@ -62,7 +72,7 @@ function renderAppMainContent(overrides: Partial<React.ComponentProps<typeof App
     stepKey: "picker",
     stepDirection: "forward",
     curtain: "none",
-    outletContext: baseOutletContext(),
+    contextValues: baseContextValues(),
     inGameView: false,
     ...overrides,
   };

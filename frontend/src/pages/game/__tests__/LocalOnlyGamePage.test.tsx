@@ -1,14 +1,11 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LocalOnlyGamePage } from "../LocalOnlyGamePage";
-import type { AppOutletContext } from "../../AppOutletContext";
+import type { GameSessionContextValue } from "../../context/GameSessionContext";
 import type { GameDef } from "../../../games/gameTypes";
 
-const outletContext = vi.fn<() => Partial<AppOutletContext>>();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return { ...actual, useOutletContext: () => outletContext() };
-});
+const gameSession = vi.fn<() => Partial<GameSessionContextValue>>();
+vi.mock("../../context/GameSessionContext", () => ({ useGameSessionContext: () => gameSession() }));
 
 function fakeGame(overrides: Partial<GameDef> = {}): GameDef {
   return {
@@ -21,7 +18,7 @@ function fakeGame(overrides: Partial<GameDef> = {}): GameDef {
   };
 }
 
-function baseContext(overrides: Partial<AppOutletContext> = {}): Partial<AppOutletContext> {
+function baseContext(overrides: Partial<GameSessionContextValue> = {}): Partial<GameSessionContextValue> {
   return {
     gameId: "trivia",
     mode: null,
@@ -32,19 +29,19 @@ function baseContext(overrides: Partial<AppOutletContext> = {}): Partial<AppOutl
 
 describe("LocalOnlyGamePage", () => {
   test("renders the game's LocalGame for an available localOnly game with no mode (guard met)", async () => {
-    outletContext.mockReturnValue(baseContext());
+    gameSession.mockReturnValue(baseContext());
     render(<LocalOnlyGamePage />);
     expect(await screen.findByTestId("local-game")).toBeTruthy();
   });
 
   test("renders nothing when a mode is already set — one-render lag guard", () => {
-    outletContext.mockReturnValue(baseContext({ mode: "local" }));
+    gameSession.mockReturnValue(baseContext({ mode: "local" }));
     const { container } = render(<LocalOnlyGamePage />);
     expect(container.firstChild).toBeNull();
   });
 
   test("renders nothing for a non-localOnly game", () => {
-    outletContext.mockReturnValue(baseContext({ game: fakeGame({ localOnly: false }) }));
+    gameSession.mockReturnValue(baseContext({ game: fakeGame({ localOnly: false }) }));
     const { container } = render(<LocalOnlyGamePage />);
     expect(container.firstChild).toBeNull();
   });

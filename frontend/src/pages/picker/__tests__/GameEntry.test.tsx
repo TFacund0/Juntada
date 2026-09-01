@@ -1,14 +1,12 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { GameEntry } from "../GameEntry";
-import type { AppOutletContext } from "../../AppOutletContext";
 import type { GameDef } from "../../../games/gameTypes";
 
 const params = vi.fn<() => { gameId?: string }>();
-const outletContext = vi.fn<() => Partial<AppOutletContext>>();
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return { ...actual, useParams: () => params(), useOutletContext: () => outletContext() };
+  return { ...actual, useParams: () => params() };
 });
 
 const getGame = vi.fn<(id: string) => GameDef | undefined>();

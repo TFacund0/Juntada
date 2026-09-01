@@ -11,7 +11,7 @@ import { useHeaderUI } from "../ui/useHeaderUI";
 import { useBackNavigation } from "../navigation/useBackNavigation";
 import { useStepTransition } from "../navigation/useStepTransition";
 import { useAppShell } from "../navigation/useAppShell";
-import { useAppOutletContext } from "../navigation/useAppOutletContext";
+import { useAppContextValues } from "../navigation/useAppContextValues";
 import { useDevNotice } from "../ui/useDevNotice";
 import { usePlayerName } from "../session/usePlayerName";
 import { setAppInGame } from "../../utils/appActivity";
@@ -102,10 +102,9 @@ export function useAppOrchestration() {
     setAppInGame(inGameView);
   }, [inGameView]);
 
-  // Combined state/callbacks handed down to whichever leaf page is
-  // currently matched — see AppOutletContext.ts for the exact shape each
-  // page under frontend/src/pages/ expects.
-  const outletContext = useAppOutletContext(session, bridgeRefs, stepTransition, shell, {
+  // The 5 domain-scoped values provided around <Outlet> in AppMainContent —
+  // see pages/context/ for what each page under frontend/src/pages/ expects.
+  const contextValues = useAppContextValues(session, bridgeRefs, stepTransition, shell, {
     playerName,
     savePlayerName,
     validJoinLink,
@@ -148,6 +147,6 @@ export function useAppOrchestration() {
     dismissDevNotice,
     localGameResetRef,
     returnToGroupRef,
-    outletContext,
+    contextValues,
   };
 }

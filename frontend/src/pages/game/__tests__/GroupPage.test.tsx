@@ -1,13 +1,17 @@
 import { describe, test, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { GroupPage } from "../GroupPage";
-import type { AppOutletContext } from "../../AppOutletContext";
+import type { MultiplayerGameProps } from "../../../features/multiplayer/MultiplayerGame";
 
-const outletContext = vi.fn<() => Partial<AppOutletContext>>();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return { ...actual, useOutletContext: () => outletContext() };
-});
+interface EntryProps {
+  mode: "local" | "multi" | null;
+  gameId: string | null;
+  groupFlow: boolean;
+  props: Omit<MultiplayerGameProps, "entryKind">;
+}
+
+const entry = vi.fn<() => EntryProps>();
+vi.mock("../../../hooks/navigation/useMultiplayerEntryProps", () => ({ useMultiplayerEntryProps: () => entry() }));
 
 vi.mock("../../../features/multiplayer/MultiplayerGame", () => ({
   MultiplayerGame: (props: { entryKind: string; gameId: string | null }) => (
@@ -15,43 +19,26 @@ vi.mock("../../../features/multiplayer/MultiplayerGame", () => ({
   ),
 }));
 
-function baseContext(overrides: Partial<AppOutletContext> = {}): Partial<AppOutletContext> {
+function baseEntry(overrides: Partial<EntryProps> = {}): EntryProps {
   return {
-    gameId: null,
     mode: "multi",
+    gameId: null,
     groupFlow: true,
-    game: null,
-    playerName: "Ana",
-    savePlayerName: vi.fn(),
-    pendingGroupJoinCode: null,
-    validJoinLink: null,
-    groupIntent: undefined,
-    handleRoomGameType: vi.fn(),
-    setRoomPhase: vi.fn(),
-    setRoomCode: vi.fn(),
-    setGroupCode: vi.fn(),
-    goHome: vi.fn(),
-    goBack: vi.fn(),
-    switchToGroupJoin: vi.fn(),
-    setGroupAttached: vi.fn(),
-    exposeReturnToGroup: vi.fn(),
-    withAsyncCurtain: vi.fn(),
-    settleAsyncCurtain: vi.fn(),
-    curtain: "none",
+    props: { gameId: null } as Omit<MultiplayerGameProps, "entryKind">,
     ...overrides,
   };
 }
 
 describe("GroupPage", () => {
   test("renders MultiplayerGame with entryKind group for an active group flow (guard met)", async () => {
-    outletContext.mockReturnValue(baseContext());
+    entry.mockReturnValue(baseEntry());
     render(<GroupPage />);
     const el = await screen.findByTestId("multiplayer-game");
     expect(el.dataset.entryKind).toBe("group");
   });
 
   test("renders MultiplayerGame with entryKind group even with a gameId set (group instance running one)", async () => {
-    outletContext.mockReturnValue(baseContext({ gameId: "impostor" }));
+    entry.mockReturnValue(baseEntry({ gameId: "impostor", props: { gameId: "impostor" } as Omit<MultiplayerGameProps, "entryKind"> }));
     render(<GroupPage />);
     const el = await screen.findByTestId("multiplayer-game");
     expect(el.dataset.entryKind).toBe("group");
@@ -59,13 +46,13 @@ describe("GroupPage", () => {
   });
 
   test("renders nothing when mode is not multi — one-render lag guard", () => {
-    outletContext.mockReturnValue(baseContext({ mode: null }));
+    entry.mockReturnValue(baseEntry({ mode: null }));
     const { container } = render(<GroupPage />);
     expect(container.firstChild).toBeNull();
   });
 
   test("renders nothing when there is no group flow — one-render lag guard", () => {
-    outletContext.mockReturnValue(baseContext({ groupFlow: false, gameId: "impostor" }));
+    entry.mockReturnValue(baseEntry({ groupFlow: false, gameId: "impostor" }));
     const { container } = render(<GroupPage />);
     expect(container.firstChild).toBeNull();
   });

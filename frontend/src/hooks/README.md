@@ -57,10 +57,12 @@ hooks de React de verdad, organizados en subcarpetas por dominio.
   los componentes de juego hacia arriba (header / diálogos globales) sin
   levantar todo su estado a `App` — extraído tal cual de
   `useAppNavigation.ts`.
-- **`useAppOutletContext.ts`** — arma el `AppOutletContext` que `App.tsx` le
-  pasa al `<Outlet>` de React Router, combinando `useAppSession`,
-  `useGameBridgeRefs`, `useStepTransition` y `useAppShell` ya instanciados
-  en un único objeto tipado para las páginas hijas.
+- **`useAppContextValues.ts`** — arma los 5 valores de contexto por dominio
+  (`pages/context/`) que `AppMainContent` provee alrededor del `<Outlet>` de
+  React Router, combinando `useAppSession`, `useGameBridgeRefs`,
+  `useStepTransition` y `useAppShell` ya instanciados. Cada slice se memoiza
+  por separado, así una página que solo lee `GameSessionContext` no
+  re-renderiza cuando cambia, por ejemplo, `CurtainContext`.
 
 ## `ui/` — chrome visual reusable
 

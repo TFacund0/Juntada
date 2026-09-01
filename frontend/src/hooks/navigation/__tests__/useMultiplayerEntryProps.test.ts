@@ -1,45 +1,66 @@
 import { describe, test, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useMultiplayerEntryProps } from "../useMultiplayerEntryProps";
-import type { AppOutletContext } from "../../../pages/AppOutletContext";
+import type { GameSessionContextValue } from "../../../pages/context/GameSessionContext";
+import type { GameBridgeContextValue } from "../../../pages/context/GameBridgeContext";
+import type { CurtainContextValue } from "../../../pages/context/CurtainContext";
+import type { PlayerSessionContextValue } from "../../../pages/context/PlayerSessionContext";
+import type { AppShellContextValue } from "../../../pages/context/AppShellContext";
 
-const outletContext = vi.fn<() => Partial<AppOutletContext>>();
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return { ...actual, useOutletContext: () => outletContext() };
-});
+const gameSession = vi.fn<() => Partial<GameSessionContextValue>>();
+const gameBridge = vi.fn<() => Partial<GameBridgeContextValue>>();
+const curtainCtx = vi.fn<() => Partial<CurtainContextValue>>();
+const playerSession = vi.fn<() => Partial<PlayerSessionContextValue>>();
+const appShell = vi.fn<() => Partial<AppShellContextValue>>();
 
-function baseContext(overrides: Partial<AppOutletContext> = {}): Partial<AppOutletContext> {
+vi.mock("../../../pages/context/GameSessionContext", () => ({ useGameSessionContext: () => gameSession() }));
+vi.mock("../../../pages/context/GameBridgeContext", () => ({ useGameBridgeContext: () => gameBridge() }));
+vi.mock("../../../pages/context/CurtainContext", () => ({ useCurtainContext: () => curtainCtx() }));
+vi.mock("../../../pages/context/PlayerSessionContext", () => ({ usePlayerSessionContext: () => playerSession() }));
+vi.mock("../../../pages/context/AppShellContext", () => ({ useAppShellContext: () => appShell() }));
+
+function baseGameSession(overrides: Partial<GameSessionContextValue> = {}): Partial<GameSessionContextValue> {
   return {
     gameId: "impostor",
     mode: "multi",
     groupFlow: false,
     game: null,
-    playerName: "Ana",
-    savePlayerName: vi.fn(),
     pendingGroupJoinCode: null,
-    validJoinLink: null,
     groupIntent: undefined,
     handleRoomGameType: vi.fn(),
     setRoomPhase: vi.fn(),
     setRoomCode: vi.fn(),
     setGroupCode: vi.fn(),
-    goHome: vi.fn(),
-    goBack: vi.fn(),
     switchToGroupJoin: vi.fn(),
     setGroupAttached: vi.fn(),
-    exposeReturnToGroup: vi.fn(),
-    withAsyncCurtain: vi.fn(),
-    settleAsyncCurtain: vi.fn(),
-    curtain: "none",
     ...overrides,
   };
 }
 
+function setupContexts(overrides: {
+  gameSession?: Partial<GameSessionContextValue>;
+  gameBridge?: Partial<GameBridgeContextValue>;
+  curtain?: Partial<CurtainContextValue>;
+  playerSession?: Partial<PlayerSessionContextValue>;
+  appShell?: Partial<AppShellContextValue>;
+}) {
+  gameSession.mockReturnValue(baseGameSession(overrides.gameSession));
+  gameBridge.mockReturnValue({ exposeReturnToGroup: vi.fn(), ...overrides.gameBridge });
+  curtainCtx.mockReturnValue({ withAsyncCurtain: vi.fn(), settleAsyncCurtain: vi.fn(), curtain: "none", ...overrides.curtain });
+  playerSession.mockReturnValue({ playerName: "Ana", savePlayerName: vi.fn(), validJoinLink: null, ...overrides.playerSession });
+  appShell.mockReturnValue({ goHome: vi.fn(), goBack: vi.fn(), ...overrides.appShell });
+}
+
 describe("useMultiplayerEntryProps", () => {
   test("returns guard inputs and maps every context field to its prop", () => {
-    const ctx = baseContext();
-    outletContext.mockReturnValue(ctx);
+    setupContexts({});
+    const gs = gameSession();
+    const gb = gameBridge();
+    const ct = curtainCtx();
+    const ps = playerSession();
+    const as = appShell();
+    // Re-arm mocks after the calls above, since the hook under test invokes
+    // each of these itself and vi.fn() mockReturnValue is stable across calls.
 
     const { result } = renderHook(() => useMultiplayerEntryProps());
 
@@ -48,28 +69,29 @@ describe("useMultiplayerEntryProps", () => {
     expect(result.current.groupFlow).toBe(false);
 
     const { props } = result.current;
-    expect(props.gameId).toBe(ctx.gameId);
-    expect(props.playerName).toBe(ctx.playerName);
-    expect(props.onChangeName).toBe(ctx.savePlayerName);
-    expect(props.initialGroupIntent).toBe(ctx.groupIntent);
-    expect(props.onGameTypeChange).toBe(ctx.handleRoomGameType);
-    expect(props.onRoomPhaseChange).toBe(ctx.setRoomPhase);
-    expect(props.onRoomCodeChange).toBe(ctx.setRoomCode);
-    expect(props.onGroupCodeChange).toBe(ctx.setGroupCode);
-    expect(props.onLeaveGroup).toBe(ctx.goHome);
-    expect(props.onExitRoomEntry).toBe(ctx.goBack);
-    expect(props.onGoHome).toBe(ctx.goHome);
-    expect(props.onSwitchToGroup).toBe(ctx.switchToGroupJoin);
-    expect(props.onGroupAttachedChange).toBe(ctx.setGroupAttached);
-    expect(props.onExposeReturnToGroup).toBe(ctx.exposeReturnToGroup);
-    expect(props.onTransitionSettled).toBe(ctx.settleAsyncCurtain);
+    expect(props.gameId).toBe(gs.gameId);
+    expect(props.playerName).toBe(ps.playerName);
+    expect(props.onChangeName).toBe(ps.savePlayerName);
+    expect(props.initialGroupIntent).toBe(gs.groupIntent);
+    expect(props.onGameTypeChange).toBe(gs.handleRoomGameType);
+    expect(props.onRoomPhaseChange).toBe(gs.setRoomPhase);
+    expect(props.onRoomCodeChange).toBe(gs.setRoomCode);
+    expect(props.onGroupCodeChange).toBe(gs.setGroupCode);
+    expect(props.onLeaveGroup).toBe(as.goHome);
+    expect(props.onExitRoomEntry).toBe(as.goBack);
+    expect(props.onGoHome).toBe(as.goHome);
+    expect(props.onSwitchToGroup).toBe(gs.switchToGroupJoin);
+    expect(props.onGroupAttachedChange).toBe(gs.setGroupAttached);
+    expect(props.onExposeReturnToGroup).toBe(gb.exposeReturnToGroup);
+    expect(props.onTransitionSettled).toBe(ct.settleAsyncCurtain);
     expect(props.curtain).toBe("none");
   });
 
   test("initialJoinCode falls back to validJoinLink.code when pendingGroupJoinCode is null", () => {
-    outletContext.mockReturnValue(
-      baseContext({ pendingGroupJoinCode: null, validJoinLink: { code: "ABC123" } as AppOutletContext["validJoinLink"] }),
-    );
+    setupContexts({
+      gameSession: { pendingGroupJoinCode: null },
+      playerSession: { validJoinLink: { code: "ABC123" } as PlayerSessionContextValue["validJoinLink"] },
+    });
 
     const { result } = renderHook(() => useMultiplayerEntryProps());
 
@@ -77,9 +99,10 @@ describe("useMultiplayerEntryProps", () => {
   });
 
   test("initialJoinCode prefers pendingGroupJoinCode over validJoinLink", () => {
-    outletContext.mockReturnValue(
-      baseContext({ pendingGroupJoinCode: "PEND1", validJoinLink: { code: "ABC123" } as AppOutletContext["validJoinLink"] }),
-    );
+    setupContexts({
+      gameSession: { pendingGroupJoinCode: "PEND1" },
+      playerSession: { validJoinLink: { code: "ABC123" } as PlayerSessionContextValue["validJoinLink"] },
+    });
 
     const { result } = renderHook(() => useMultiplayerEntryProps());
 
@@ -88,7 +111,10 @@ describe("useMultiplayerEntryProps", () => {
 
   test("runTransition passes themedOverride when provided", () => {
     const withAsyncCurtain = vi.fn();
-    outletContext.mockReturnValue(baseContext({ withAsyncCurtain, game: { gameTheme: "dark" } as AppOutletContext["game"] }));
+    setupContexts({
+      curtain: { withAsyncCurtain },
+      gameSession: { game: { gameTheme: "dark" } as GameSessionContextValue["game"] },
+    });
 
     const { result } = renderHook(() => useMultiplayerEntryProps());
     const action = vi.fn();
@@ -99,7 +125,10 @@ describe("useMultiplayerEntryProps", () => {
 
   test("runTransition falls back to Boolean(game?.gameTheme) when themedOverride is omitted", () => {
     const withAsyncCurtain = vi.fn();
-    outletContext.mockReturnValue(baseContext({ withAsyncCurtain, game: { gameTheme: "dark" } as AppOutletContext["game"] }));
+    setupContexts({
+      curtain: { withAsyncCurtain },
+      gameSession: { game: { gameTheme: "dark" } as GameSessionContextValue["game"] },
+    });
 
     const { result } = renderHook(() => useMultiplayerEntryProps());
     const action = vi.fn();
@@ -110,7 +139,7 @@ describe("useMultiplayerEntryProps", () => {
 
   test("runTransition falls back to false when there is no game", () => {
     const withAsyncCurtain = vi.fn();
-    outletContext.mockReturnValue(baseContext({ withAsyncCurtain, game: null }));
+    setupContexts({ curtain: { withAsyncCurtain }, gameSession: { game: null } });
 
     const { result } = renderHook(() => useMultiplayerEntryProps());
     const action = vi.fn();

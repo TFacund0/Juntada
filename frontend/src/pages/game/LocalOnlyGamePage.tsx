@@ -1,9 +1,8 @@
 import { Suspense } from "react";
-import { useOutletContext } from "react-router-dom";
 import { isGameAvailable } from "../../games/maintenance";
 import { GameLoadErrorBoundary } from "../../components/shell/GameLoadErrorBoundary";
 import { GameLoading } from "./GameLoading";
-import type { AppOutletContext } from "../AppOutletContext";
+import { useGameSessionContext } from "../context/GameSessionContext";
 
 // Juego solo local (sin motor de sala online, game.localOnly === true):
 // directo al juego, sin pasar por ModePicker — extraído verbatim del bloque
@@ -12,7 +11,7 @@ import type { AppOutletContext } from "../AppOutletContext";
 // bloque original tampoco lo hacía). Guard preservado tal cual — ver nota de
 // "one-render lag" en design.md.
 export function LocalOnlyGamePage() {
-  const { gameId, mode, game } = useOutletContext<AppOutletContext>();
+  const { gameId, mode, game } = useGameSessionContext();
 
   if (!(gameId && game?.localOnly && isGameAvailable(game) && !mode)) return null;
 

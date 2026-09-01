@@ -1,11 +1,14 @@
-import { useOutletContext } from "react-router-dom";
 import type { MultiplayerGameProps } from "../../features/multiplayer/MultiplayerGame";
-import type { AppOutletContext } from "../../pages/AppOutletContext";
+import { useGameSessionContext, type GameSessionContextValue } from "../../pages/context/GameSessionContext";
+import { useGameBridgeContext } from "../../pages/context/GameBridgeContext";
+import { useCurtainContext } from "../../pages/context/CurtainContext";
+import { usePlayerSessionContext } from "../../pages/context/PlayerSessionContext";
+import { useAppShellContext } from "../../pages/context/AppShellContext";
 
 interface MultiplayerEntry {
-  mode: AppOutletContext["mode"];
-  gameId: AppOutletContext["gameId"];
-  groupFlow: AppOutletContext["groupFlow"];
+  mode: GameSessionContextValue["mode"];
+  gameId: GameSessionContextValue["gameId"];
+  groupFlow: GameSessionContextValue["groupFlow"];
   props: Omit<MultiplayerGameProps, "entryKind">;
 }
 
@@ -20,24 +23,19 @@ export function useMultiplayerEntryProps(): MultiplayerEntry {
     mode,
     groupFlow,
     game,
-    playerName,
-    savePlayerName,
     pendingGroupJoinCode,
-    validJoinLink,
     groupIntent,
     handleRoomGameType,
     setRoomPhase,
     setRoomCode,
     setGroupCode,
-    goHome,
-    goBack,
     switchToGroupJoin,
     setGroupAttached,
-    exposeReturnToGroup,
-    withAsyncCurtain,
-    settleAsyncCurtain,
-    curtain,
-  } = useOutletContext<AppOutletContext>();
+  } = useGameSessionContext();
+  const { exposeReturnToGroup } = useGameBridgeContext();
+  const { withAsyncCurtain, settleAsyncCurtain, curtain } = useCurtainContext();
+  const { playerName, savePlayerName, validJoinLink } = usePlayerSessionContext();
+  const { goHome, goBack } = useAppShellContext();
 
   return {
     mode,
