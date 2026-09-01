@@ -1,5 +1,5 @@
-import type { CSSProperties } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 
 /**
  * Switcher de tabs segmentado y chico — mismo look/comportamiento en todo
@@ -16,19 +16,26 @@ interface TabRowProps<T extends string> {
   tabs: TabDef<T>[];
   active: T;
   onChange: (key: T) => void;
-  style?: CSSProperties;
-  buttonPadding?: string;
+  className?: string;
+  // Los dos únicos paddings de botón que usan los callers hoy — "compact"
+  // es el que usan las variantes con contenido debajo en la misma card
+  // (ConfigTabs/ConfigPanel), el default es el de SetupTabs/LocalGame.
+  compact?: boolean;
 }
 
-export function TabRow<T extends string>({ tabs, active, onChange, style, buttonPadding = "10px 4px" }: TabRowProps<T>) {
+export function TabRow<T extends string>({ tabs, active, onChange, className, compact = false }: TabRowProps<T>) {
   return (
-    <div style={{ display: "flex", gap: 8, ...style }}>
+    <div className={clsx("flex gap-2", className)}>
       {tabs.map(t => (
         <button
           key={t.key}
-          className="jt-btn-anim"
+          className={clsx(
+            "jt-btn-anim",
+            T.btn(active === t.key ? "primary" : "ghost"),
+            "flex-1 text-[13px]",
+            compact ? "p-2" : "py-2.5 px-1",
+          )}
           onClick={() => onChange(t.key)}
-          style={{ ...S.btn(active === t.key ? "primary" : "ghost"), flex: 1, padding: buttonPadding, fontSize: 13 }}
         >
           {t.label}
         </button>
