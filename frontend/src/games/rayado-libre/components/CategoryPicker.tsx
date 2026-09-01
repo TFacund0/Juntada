@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { CATEGORIES } from "@juntada/rayado-libre-data";
 
 interface CategoryPickerProps {
@@ -8,15 +9,7 @@ interface CategoryPickerProps {
   description?: string;
 }
 
-const linkButtonStyle = {
-  background: "none",
-  border: "none",
-  color: "#7F77DD",
-  cursor: "pointer",
-  fontSize: 12,
-  fontWeight: 700,
-  fontFamily: "inherit",
-} as const;
+const linkButtonClass = "bg-transparent border-none text-[#7F77DD] cursor-pointer text-xs font-bold font-[inherit]";
 
 /**
  * Selector de categorías activas: encabezado con atajos "Todas"/"Ninguna" y
@@ -33,39 +26,34 @@ const linkButtonStyle = {
 export function CategoryPicker({ enabled, onChange, description }: CategoryPickerProps) {
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={S.label}>Categorías</span>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}))} style={linkButtonStyle}>
+      <div className="flex items-center justify-between">
+        <span className={T.label}>Categorías</span>
+        <div className="flex gap-2.5">
+          <button onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: true }), {}))} className={linkButtonClass}>
             Todas
           </button>
-          <button onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}))} style={linkButtonStyle}>
+          <button
+            onClick={() => onChange(Object.keys(CATEGORIES).reduce((a, k) => ({ ...a, [k]: false }), {}))}
+            className={linkButtonClass}
+          >
             Ninguna
           </button>
         </div>
       </div>
-      {description && <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>{description}</p>}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
+      {description && <p className={clsx(T.muted, "mt-1 mb-3.5 leading-[1.4]")}>{description}</p>}
+      <div className="flex flex-wrap gap-2.5 mt-2.5">
         {Object.entries(CATEGORIES).map(([k, cat]) => {
           const active = !!enabled[k];
           return (
             <button
               key={k}
               onClick={() => onChange({ ...enabled, [k]: !active })}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "10px 16px",
-                borderRadius: 999,
-                border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-                color: active ? "#fff" : "#9089c0",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
+              className={clsx(
+                "flex items-center gap-[7px] rounded-full px-4 py-2.5 text-[13px] font-bold font-[inherit] cursor-pointer",
+                active
+                  ? "border border-[rgba(127,119,221,0.6)] bg-[linear-gradient(135deg,#7F77DD,#534AB7)] text-white"
+                  : "border border-white/[0.12] bg-white/[0.04] text-[#9089c0]",
+              )}
             >
               <span>{cat.icon}</span>
               <span>{cat.label}</span>
