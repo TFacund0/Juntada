@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 /**
@@ -54,19 +55,9 @@ interface RevealCountdownProps {
 
 export function RevealCountdown({ count, label = "Revelando resultado..." }: RevealCountdownProps) {
   return (
-    <div style={{ ...S.cardHighlight, textAlign: "center", padding: "48px 20px" }}>
-      <p style={{ fontSize: 13, color: "var(--jt-muted-text)", marginBottom: 10 }}>{label}</p>
-      <p
-        style={{
-          fontSize: 56,
-          fontWeight: 800,
-          color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
-          margin: 0,
-          lineHeight: 1,
-        }}
-      >
-        {count}
-      </p>
+    <div className={clsx(T.cardHighlight, "text-center py-12 px-5")}>
+      <p className="text-[13px] text-[var(--jt-muted-text)] mb-2.5">{label}</p>
+      <p className={`m-0 text-[56px] font-extrabold leading-none text-[var(--jt-accent-strong,${DEFAULT_COLORS.accentStrong})]`}>{count}</p>
     </div>
   );
 }
