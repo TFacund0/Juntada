@@ -1,4 +1,5 @@
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { Avatar } from "../../../../components/ui/Avatar";
 
 interface VotesBreakdownParticipant {
@@ -25,9 +26,9 @@ export function VotesBreakdownCard({ participants, votes, eliminatedId }: VotesB
   const maxCount = Math.max(1, ...participants.map(p => countFor(p.id)));
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Votos</span>
-      <div className="impostor-result-votes-scroll" style={{ maxHeight: 280, overflowY: "auto" }}>
+    <div className={T.card}>
+      <span className={T.label}>Votos</span>
+      <div className="impostor-result-votes-scroll max-h-[280px] overflow-y-auto">
         <style>{`
           .impostor-result-votes-scroll {
             scrollbar-width: none;
@@ -42,42 +43,29 @@ export function VotesBreakdownCard({ participants, votes, eliminatedId }: VotesB
           const voterNames = participants.filter(v => votes[v.id] === p.id).map(v => v.name);
           const isEliminated = p.id === eliminatedId;
           return (
-            <div key={p.id} style={{ padding: "10px 0", borderTop: "1px solid var(--jt-card-border, rgba(127,119,221,0.12))" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <div key={p.id} className="py-2.5 border-t border-[var(--jt-card-border,rgba(127,119,221,0.12))]">
+              <div className="flex items-center gap-2.5 mb-1.5">
                 <Avatar name={p.name} size={30} />
-                <span style={{ fontSize: 14, fontWeight: 700, flex: 1 }}>{p.name}</span>
+                <span className="text-sm font-bold flex-1">{p.name}</span>
                 {isEliminated && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: "0.04em",
-                      color: "#F09595",
-                      background: "rgba(240,149,149,0.15)",
-                      border: "1px solid rgba(240,149,149,0.4)",
-                      borderRadius: 999,
-                      padding: "3px 9px",
-                    }}
-                  >
+                  <span className="text-[10px] font-extrabold tracking-[0.04em] text-[#F09595] bg-[rgba(240,149,149,0.15)] border border-[rgba(240,149,149,0.4)] rounded-full px-[9px] py-[3px]">
                     ELIMINADO
                   </span>
                 )}
-                <span style={{ ...S.muted, fontSize: 12, minWidth: 44, textAlign: "right" }}>
+                <span className={clsx(T.muted, "text-xs min-w-[44px] text-right")}>
                   {count} {count === 1 ? "voto" : "votos"}
                 </span>
               </div>
-              <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
+              <div className="h-1.5 rounded-[3px] bg-white/[0.08]">
                 <div
-                  style={{
-                    height: "100%",
-                    borderRadius: 3,
-                    width: `${Math.round((count / maxCount) * 100)}%`,
-                    background: isEliminated ? "#E24B4A" : "var(--jt-accent-border-soft, rgba(127,119,221,0.5))",
-                    transition: "width 0.6s",
-                  }}
+                  className={clsx(
+                    "h-full rounded-[3px] transition-[width] duration-[600ms]",
+                    isEliminated ? "bg-[#E24B4A]" : "bg-[var(--jt-accent-border-soft,rgba(127,119,221,0.5))]",
+                  )}
+                  style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
                 />
               </div>
-              {voterNames.length > 0 && <p style={{ ...S.muted, marginTop: 6, fontSize: 12 }}>Votado por: {voterNames.join(", ")}</p>}
+              {voterNames.length > 0 && <p className={clsx(T.muted, "mt-1.5 text-xs")}>Votado por: {voterNames.join(", ")}</p>}
             </div>
           );
         })}
