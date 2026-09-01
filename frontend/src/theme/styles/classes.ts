@@ -12,6 +12,9 @@ import { DEFAULT_COLORS } from "./colors";
 export const card =
   "rounded-2xl border border-[var(--jt-card-border,rgba(127,119,221,0.18))] bg-[var(--jt-card-bg,rgba(255,255,255,0.04))] p-[18px_20px] mb-3.5";
 
+export const title =
+  "m-0 bg-gradient-to-r from-[#AFA9EC] to-[#5DCAA5] bg-clip-text text-[38px] font-extrabold tracking-[-0.03em] text-transparent";
+
 export const cardHighlight =
   "rounded-2xl border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.35))] bg-[var(--jt-accent-soft,rgba(127,119,221,0.1))] p-[18px_20px] mb-3.5";
 
@@ -79,4 +82,4 @@ export function segmentedOption(active: boolean): string {
   );
 }
 
-export const T = { card, cardHighlight, label, input, muted, btn, toggle, knob, bigReveal, pill, segmentedControl, segmentedOption };
+export const T = { card, cardHighlight, title, label, input, muted, btn, toggle, knob, bigReveal, pill, segmentedControl, segmentedOption };
