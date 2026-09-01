@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 
 interface Player {
   id: string;
@@ -24,28 +25,16 @@ export function WordsEditor({
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Palabras</span>
-      <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>
+    <div className={T.card}>
+      <span className={T.label}>Palabras</span>
+      <p className={clsx(T.muted, "mb-2.5 leading-[1.4]")}>
         Escribí la palabra secreta de cada jugador (se define entre todos, en voz alta). Queda oculta — tocá el ojo para revelarla.
       </p>
       {players.map(p => (
-        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span
-            style={{
-              width: 90,
-              flexShrink: 0,
-              fontSize: 13,
-              color: "#b8b0d4",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {p.name}
-          </span>
+        <div key={p.id} className="flex items-center gap-2 mb-2">
+          <span className="w-[90px] shrink-0 text-[13px] text-[#b8b0d4] truncate">{p.name}</span>
           <input
-            style={{ ...S.input, flex: 1 }}
+            className={clsx(T.input, "flex-1")}
             type={revealed[p.id] ? "text" : "password"}
             value={words[p.id] ?? ""}
             onChange={e => onChange(p.id, e.target.value)}
@@ -53,7 +42,7 @@ export function WordsEditor({
           />
           <button
             onClick={() => setRevealed(r => ({ ...r, [p.id]: !r[p.id] }))}
-            style={{ ...S.btn("ghost"), width: 40, height: 40, padding: 0, borderRadius: 8, flexShrink: 0 }}
+            className={clsx(T.btn("ghost"), "w-10! h-10 p-0 rounded-lg shrink-0")}
           >
             {revealed[p.id] ? "🙈" : "👁️"}
           </button>
