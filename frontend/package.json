@@ -28,6 +28,7 @@
     "@juntada/torneo-futbol-bracket": "workspace:*",
     "@juntada/tutifruti-data": "workspace:*",
     "@juntada/tutifruti-words": "workspace:*",
+    "clsx": "^2.1.1",
     "jsqr": "^1.4.0",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
