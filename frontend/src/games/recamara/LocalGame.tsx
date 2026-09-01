@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { escapeHtml } from "@juntada/core-utils";
 import "./css/index.css";
 import {
   createInitialState,
@@ -67,7 +68,7 @@ interface DisplayLogLine extends LogLine {
 // resolver rather than searching a Player[] themselves — this is that
 // resolver for local, where ids are already the engine's own numeric ones.
 function nameOf(players: Player[]): (id: number) => string {
-  return id => players.find(p => p.id === id)?.name ?? "?";
+  return id => escapeHtml(players.find(p => p.id === id)?.name ?? "?");
 }
 
 export function LocalGame() {
@@ -198,7 +199,7 @@ export function LocalGame() {
     // the same reset below in continueAfterFire's reload branch, which does
     // matter (see that comment).
     shotAnim.resetForNewRound();
-    addLog({ text: `Se cargó la recámara. Empieza <b>${state.players[0].name}</b>.` });
+    addLog({ text: `Se cargó la recámara. Empieza <b>${escapeHtml(state.players[0].name)}</b>.` });
   };
 
   const revealNextItem = () => setRevealedCount(c => c + 1);
