@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import logo from "../../assets/brand/logo.webp";
 import { ScreenFade } from "../ui/ScreenFade";
 import { Btn } from "../ui/Btn";
@@ -23,7 +24,7 @@ export function NameOnboardingScreen({ onSave }: NameOnboardingScreenProps) {
   const save = () => onSave(nameDraft);
 
   return (
-    <div style={S.app}>
+    <div className={T.app}>
       <ScreenFade transitionKey="onboarding">
         <div className="jt-onboarding">
           <div aria-hidden className="jt-onboarding-glow jt-onboarding-glow--a" />
@@ -35,9 +36,9 @@ export function NameOnboardingScreen({ onSave }: NameOnboardingScreenProps) {
             <p className="jt-onboarding-sub">Antes de ver los juegos, decinos cómo te llamás.</p>
 
             <div className="jt-onboarding-field">
-              <span style={S.label}>Tu nombre</span>
+              <span className={T.label}>Tu nombre</span>
               <input
-                style={S.input}
+                className={T.input}
                 placeholder="¿Cómo te llamás?"
                 autoFocus
                 value={nameDraft}
@@ -46,7 +47,7 @@ export function NameOnboardingScreen({ onSave }: NameOnboardingScreenProps) {
                   if (e.key === "Enter" && nameDraft.trim()) save();
                 }}
               />
-              <p style={{ ...S.muted, textAlign: "center" }} className="jt-onboarding-hint">
+              <p className={clsx(T.muted, "text-center", "jt-onboarding-hint")}>
                 Así te van a ver los demás jugadores. Lo guardamos en este dispositivo, no te lo va a volver a pedir.
               </p>
             </div>

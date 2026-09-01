@@ -12,6 +12,8 @@ import { DEFAULT_COLORS } from "./colors";
 export const card =
   "rounded-2xl border border-[var(--jt-card-border,rgba(127,119,221,0.18))] bg-[var(--jt-card-bg,rgba(255,255,255,0.04))] p-[18px_20px] mb-3.5";
 
+export const app = "min-h-screen bg-[#0f0c1d] font-['Syne',sans-serif] text-[#e8e4f0] overflow-x-hidden";
+
 export const title =
   "m-0 bg-gradient-to-r from-[#AFA9EC] to-[#5DCAA5] bg-clip-text text-[38px] font-extrabold tracking-[-0.03em] text-transparent";
 
@@ -82,4 +84,19 @@ export function segmentedOption(active: boolean): string {
   );
 }
 
-export const T = { card, cardHighlight, title, label, input, muted, btn, toggle, knob, bigReveal, pill, segmentedControl, segmentedOption };
+export const T = {
+  app,
+  card,
+  cardHighlight,
+  title,
+  label,
+  input,
+  muted,
+  btn,
+  toggle,
+  knob,
+  bigReveal,
+  pill,
+  segmentedControl,
+  segmentedOption,
+};
