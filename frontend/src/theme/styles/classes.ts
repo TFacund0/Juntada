@@ -59,4 +59,13 @@ export function knob(on: boolean): string {
   );
 }
 
-export const T = { card, cardHighlight, label, input, muted, btn, toggle, knob };
+export const segmentedControl = "flex bg-white/5 rounded-[10px] p-[3px] mb-2.5 gap-[3px]";
+
+export function segmentedOption(active: boolean): string {
+  return clsx(
+    "flex-1 text-center py-2 rounded-lg border-none text-xs font-bold font-[inherit] cursor-pointer",
+    active ? "bg-[linear-gradient(135deg,#7F77DD,#534AB7)] text-white" : "bg-transparent text-[#8079a8]",
+  );
+}
+
+export const T = { card, cardHighlight, label, input, muted, btn, toggle, knob, segmentedControl, segmentedOption };

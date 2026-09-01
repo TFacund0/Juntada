@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 
 export const GUESS_TIMER_OPTIONS = [0, 5, 10, 15, 20];
 
@@ -8,14 +9,14 @@ export const GUESS_TIMER_OPTIONS = [0, 5, 10, 15, 20];
 // how the room is being played. 0 = sin límite.
 export function GuessTimerConfig({ guessSeconds, onChange }: { guessSeconds: number; onChange: (seconds: number) => void }) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>Tiempo para adivinar</span>
-      <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>
+    <div className={T.card}>
+      <span className={T.label}>Tiempo para adivinar</span>
+      <p className={clsx(T.muted, "mb-2.5 leading-[1.4]")}>
         Una vez que el color desaparece, cuánto tiempo hay para elegir antes de que se confirme lo que esté seleccionado.
       </p>
-      <div style={S.segmentedControl}>
+      <div className={T.segmentedControl}>
         {GUESS_TIMER_OPTIONS.map(secs => (
-          <button key={secs} style={secs === guessSeconds ? S.segmentedOptionActive : S.segmentedOption} onClick={() => onChange(secs)}>
+          <button key={secs} className={T.segmentedOption(secs === guessSeconds)} onClick={() => onChange(secs)}>
             {secs === 0 ? "Sin límite" : `${secs}s`}
           </button>
         ))}
