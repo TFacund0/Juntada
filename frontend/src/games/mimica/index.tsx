@@ -6,7 +6,7 @@ import type { GameDef } from "../gameTypes";
 // see ComingSoon.
 export const mimicaGame: GameDef = {
   id: "mimica",
-  label: "Dígalo con Mímica",
+  label: "Mímica",
   icon: "🤸",
   description:
     "Un jugador actúa una palabra o frase secreta sin hablar ni hacer sonidos, y el resto tiene que adivinarla antes de que se acabe el tiempo.",
@@ -19,7 +19,7 @@ export const mimicaGame: GameDef = {
     "El resto intenta adivinar la palabra antes de que se acabe el tiempo.",
     "Quien adivina correctamente (y quien actuó) suman puntos.",
   ],
-  LocalGame: () => <ComingSoon label="Dígalo con Mímica" />,
-  ConfigPanel: () => <ComingSoon label="Dígalo con Mímica" />,
-  RoundView: () => <ComingSoon label="Dígalo con Mímica" />,
+  LocalGame: () => <ComingSoon label="Mímica" />,
+  ConfigPanel: () => <ComingSoon label="Mímica" />,
+  RoundView: () => <ComingSoon label="Mímica" />,
 };

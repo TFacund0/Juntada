@@ -12,7 +12,7 @@ const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.Round
 
 export const colorCorrectoGame: GameDef = {
   id: "color-correcto",
-  label: "Encuentra el Color Correcto",
+  label: "Color Correcto",
   icon: "🟪",
   description:
     "Aparece un color en pantalla y después desaparece. Hay que elegir con el selector el color más parecido posible a lo que viste — cuanto más cerca, más puntos.",
