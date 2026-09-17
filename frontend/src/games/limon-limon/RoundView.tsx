@@ -95,8 +95,13 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
   const descriptions: Record<string, string> = (room.config.descriptions as Record<string, string>) || {};
 
   if (room.phase === "round") {
+    // Keyed on turnId alone (not on round.current too) — remounting the
+    // whole screen on every reveal killed CardView's own 3D flip transition
+    // (it'd remount already-revealed instead of animating from the deck),
+    // unlike local mode, which never remounted this screen mid-turn at all.
+    // Only turn changes should retrigger the fade-in now, matching local's feel.
     return (
-      <PhaseTransition phaseKey={`${round.turnId}-${round.current ? "revealed" : "waiting"}`}>
+      <PhaseTransition phaseKey={round.turnId}>
         <div>
           <TurnOrder players={room.players} order={round.order || []} turnId={round.turnId} />
 
