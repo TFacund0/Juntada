@@ -2,11 +2,12 @@ import clsx from "clsx";
 import { T } from "../../../theme/styles/classes";
 import { CATEGORIES } from "@juntada/quien-soy-data";
 import type { LobbyInfoProps } from "../../gameTypes";
+import { getQuienSoyConfig } from "../utils/roomConfig";
 
 // Read-only mirror of ConfigPanel, shown to non-host players in the lobby so
 // they can see what the host is configuring live.
 export function LobbyInfo({ room }: LobbyInfoProps) {
-  const config = room.config as { wordSource?: "categories" | "suggested"; activeCategories?: Record<string, boolean> };
+  const config = getQuienSoyConfig(room);
   const wordSource = config.wordSource || "categories";
   const active = Object.entries(config.activeCategories || {})
     .filter(([, on]) => on)

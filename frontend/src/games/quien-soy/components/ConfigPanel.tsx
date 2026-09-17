@@ -1,16 +1,13 @@
 import { TurnOrderEditor } from "../../../components/game-kit/TurnOrderEditor";
 import type { ConfigPanelProps } from "../../gameTypes";
 import { WordSourceConfig } from "./WordSourceConfig";
+import { getQuienSoyConfig } from "../utils/roomConfig";
 
 // Host-only setup shown in the multiplayer lobby: where the words come from
 // (predefined categories vs. player-suggested-and-voted), plus who goes in
 // what order once play starts.
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
-  const config = room.config as {
-    wordSource?: "categories" | "suggested";
-    activeCategories?: Record<string, boolean>;
-    turnOrder?: string[];
-  };
+  const config = getQuienSoyConfig(room);
 
   return (
     <div>

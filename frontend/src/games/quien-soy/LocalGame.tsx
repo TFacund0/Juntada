@@ -17,6 +17,7 @@ import { isCorrectGuess, MAX_WRONG_GUESSES, computeMatchRanks, type QuienSoyResu
 import { WordsEditor } from "./components/WordsEditor";
 import { Standings, buildStandingEntries } from "./components/Standings";
 import { OthersWordsList } from "./components/OthersWordsList";
+import type { LocalPlayer, QAEntry, Phase } from "./types/localGame";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ¿QUIÉN SOY? — un solo dispositivo, pasándoselo por turnos. El grupo anota
@@ -26,19 +27,6 @@ import { OthersWordsList } from "./components/OthersWordsList";
 // "vueltas" (laps) que el motor online — quien acierta en la misma vuelta
 // que otro empata en el puesto.
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface LocalPlayer {
-  id: string;
-  name: string;
-}
-
-interface QAEntry {
-  turnPlayerId: string;
-  question: string;
-  answer: "si" | "no";
-}
-
-type Phase = "setup" | "turnHandoff" | "turnAction" | "answerHandoff" | "answerInput" | "final";
 
 export function LocalGame() {
   const [phase, setPhase] = useState<Phase>("setup");

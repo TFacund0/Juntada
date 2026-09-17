@@ -1,5 +1,6 @@
 import { lazy } from "react";
 import type { GameDef } from "../gameTypes";
+import { getRuletaConfig } from "./utils/roomConfig";
 
 // Dynamic import() creates its own chunk even though this metadata object is
 // imported eagerly by the registry — this keeps every game's actual code out
@@ -39,6 +40,6 @@ export const ruletaGame: GameDef = {
   // Mirrors LocalGame.tsx's own `disabled={entries.length < 2}` check on
   // "Empezar a girar" — online and local should never disagree on when the
   // wheel is actually startable.
-  canStart: room => (((room.config as { entries?: unknown[] })?.entries?.length ?? 0) < 2 ? "Cargá al menos 2 entradas" : null),
+  canStart: room => ((getRuletaConfig(room).entries?.length ?? 0) < 2 ? "Cargá al menos 2 entradas" : null),
   startLabel: "Empezar a girar",
 };

@@ -14,6 +14,7 @@ import { PlayersConfig } from "./components/PlayersConfig";
 import { GuessTimerConfig } from "./components/GuessTimerConfig";
 import { Leaderboard } from "./components/Leaderboard";
 import { TargetSwatch } from "./components/TargetSwatch";
+import type { Phase } from "./types/localGame";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENCUENTRA EL COLOR CORRECTO — un solo dispositivo, pasándoselo por turnos.
@@ -25,8 +26,6 @@ import { TargetSwatch } from "./components/TargetSwatch";
 
 const SHOW_DURATION_MS = SHOW_SECONDS * 1000;
 const ROUND_OPTIONS = [3, 5, 7];
-
-type Phase = "setup" | "handoff" | "show" | "guess" | "roundResult" | "final";
 
 export function LocalGame() {
   const [phase, setPhase] = useState<Phase>("setup");

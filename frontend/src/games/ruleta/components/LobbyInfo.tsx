@@ -1,16 +1,11 @@
 import { T } from "../../../theme/styles/classes";
 import type { LobbyInfoProps } from "../../gameTypes";
+import { getRuletaConfig } from "../utils/roomConfig";
 
-interface Entry {
-  id: string;
-  name: string;
-  description: string;
-}
-
-// Read-only mirror of ConfigPanel, shown to non-host players in the lobby so
+// Read-only mirror de ConfigPanel, shown to non-host players in the lobby so
 // they can see what el anfitrión está cargando en vivo.
 export function LobbyInfo({ room }: LobbyInfoProps) {
-  const config = room.config as { entries?: Entry[]; mode?: "keep" | "eliminate" };
+  const config = getRuletaConfig(room);
   const entries = config.entries || [];
   const mode = config.mode || "eliminate";
 

@@ -4,12 +4,7 @@ import { TabRow } from "../../../components/setup/TabRow";
 import { EntriesEditor } from "./EntriesEditor";
 import { ModeSelector } from "./ModeSelector";
 import type { ConfigPanelProps } from "../../gameTypes";
-
-interface Entry {
-  id: string;
-  name: string;
-  description: string;
-}
+import { getRuletaConfig } from "../utils/roomConfig";
 
 // Host-only, se muestra en el lobby: carga las entradas de la ruleta (nombre
 // + descripción opcional) y elige el modo. Todo se guarda en room.config y
@@ -20,7 +15,7 @@ interface Entry {
 // ModeSelector.tsx, compartidos con LocalGame.tsx.
 export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const [tab, setTab] = useState<"entries" | "mode">("entries");
-  const config = room.config as { entries?: Entry[]; mode?: "keep" | "eliminate" };
+  const config = getRuletaConfig(room);
   const entries = config.entries || [];
   const mode = config.mode || "eliminate";
 
