@@ -77,12 +77,30 @@ export function GamePicker({ games, onPick, showAvailabilityFilter = true, featu
         </label>
 
         {showAvailabilityFilter && (
-          <div className="jt-avail-tabs" role="tablist" aria-label="Estado de los juegos">
+          <div
+            className="jt-avail-tabs"
+            role="tablist"
+            aria-label="Estado de los juegos"
+            onKeyDown={e => {
+              // Roving tabindex + flechas, según el patrón ARIA de tabs —
+              // moverse con las flechas ya activa el filtro (no hace falta
+              // Enter/Espacio) porque no hay tabpanels separados que mostrar.
+              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+              e.preventDefault();
+              const keys = Object.keys(AVAILABILITY_LABEL) as AvailabilityFilter[];
+              const currentIdx = keys.indexOf(availFilter);
+              const dir = e.key === "ArrowRight" ? 1 : -1;
+              const nextIdx = (currentIdx + dir + keys.length) % keys.length;
+              setAvailFilter(keys[nextIdx]);
+              (e.currentTarget.querySelectorAll('[role="tab"]')[nextIdx] as HTMLElement | undefined)?.focus();
+            }}
+          >
             {(Object.keys(AVAILABILITY_LABEL) as AvailabilityFilter[]).map(key => (
               <button
                 key={key}
                 role="tab"
                 aria-selected={availFilter === key}
+                tabIndex={availFilter === key ? 0 : -1}
                 className={clsx("jt-avail-chip", availChipClass(availFilter === key))}
                 onClick={() => setAvailFilter(key)}
               >
