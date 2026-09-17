@@ -54,6 +54,9 @@ importers:
       typescript-eslint:
         specifier: ^8.63.0
         version: 8.63.0(eslint@9.39.5(jiti@2.7.0))(typescript@6.0.3)
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@26.1.1)(jsdom@29.1.1)(lightningcss@1.32.0)(terser@5.49.0)
 
   backend:
     dependencies:
@@ -301,7 +304,11 @@ importers:
         specifier: workspace:*
         version: link:../tutifruti-words
 
-  packages/recamara-engine: {}
+  packages/recamara-engine:
+    dependencies:
+      '@juntada/core-utils':
+        specifier: workspace:*
+        version: link:../core-utils
 
   packages/shared-types:
     dependencies:
