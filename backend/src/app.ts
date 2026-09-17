@@ -10,6 +10,7 @@ const cors = require("cors");
 const compression = require("compression");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
 const { createServer } = require("http");
 const { registerRoutes } = require("./http/routes");
 const { attachWebSocketServer } = require("./ws/server");
@@ -54,6 +55,9 @@ function createApp(): Server {
   app.use(compression());
   app.use(httpRateLimiter);
   app.use(express.json());
+  // Parses the httpOnly refresh-token cookie (see auth/http/authRoutes.ts)
+  // — nothing else in this app reads cookies yet.
+  app.use(cookieParser());
   registerRoutes(app);
   // Must be wired after every route so it only catches what the routes
   // themselves didn't handle — a no-op if SENTRY_DSN isn't set (see sentry.ts).

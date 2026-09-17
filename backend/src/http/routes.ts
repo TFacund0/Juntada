@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { rooms, groups } = require("../state/roomStore") as { rooms: Map<string, Room>; groups: Map<string, Group> };
 const { redisHealth } = require("../state/persistence") as { redisHealth: () => "disabled" | "ok" | "degraded" };
+const { mountAuthRoutes } = require("../auth");
 
 function injectOpenGraphMeta(template: string, meta: { title: string; description: string }): string {
   let html = template;
@@ -82,6 +83,14 @@ function registerRoutes(app: Express): void {
     // active game would silently lose its persistence on the next restart.
     res.json({ ok: redis !== "degraded", rooms: rooms.size, redis });
   });
+
+  // Auth (register/login/logout/refresh/me/password-reset). Mounted before
+  // the SPA catch-all below, same as every other real route — see
+  // auth/index.ts for the composition root and auth/http/authRoutes.ts for
+  // the route table.
+  const apiRouter = require("express").Router();
+  mountAuthRoutes(apiRouter);
+  app.use("/api", apiRouter);
 
   // Servir el frontend buildeado
   const distDir = path.join(__dirname, "..", "..", "..", "frontend", "dist");

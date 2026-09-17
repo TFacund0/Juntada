@@ -35,3 +35,28 @@ services:
       # "juntada-staging" in its own service's dashboard).
       - key: REDIS_NAMESPACE
         value: juntada-production
+      # Postgres connection string for the account/auth data layer (see
+      # backend/src/db/). Set as a secret env var in the Render dashboard,
+      # not here — auth routes fail at the DB call (not at boot) until this
+      # is set (see backend/src/db/client.ts and env.ts).
+      # - key: DATABASE_URL
+      #   sync: false
+      # HS256 signing secrets for access/refresh JWTs (see
+      # backend/src/auth/service/tokenService.ts). Set as secret env vars in
+      # the Render dashboard, not here.
+      # - key: JWT_ACCESS_SECRET
+      #   sync: false
+      # - key: JWT_REFRESH_SECRET
+      #   sync: false
+      # Resend API key for password-reset email (see
+      # backend/src/auth/mail/resendMailer.ts). Set as a secret env var in
+      # the Render dashboard, not here. Ships against Resend's shared test
+      # domain until a custom domain is verified (see design doc — a
+      # pre-production release gate, not a code change).
+      # - key: RESEND_API_KEY
+      #   sync: false
+      # Base URL the frontend is served from, used to build the
+      # password-reset email link. Defaults to http://localhost:5173 if
+      # unset — set this once the app has a real domain.
+      # - key: APP_URL
+      #   value: https://your-domain.com
