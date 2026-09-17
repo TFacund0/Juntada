@@ -554,10 +554,17 @@ export function LocalGame() {
         pendingFire &&
         (() => {
           const outcome = describeFireOutcome(pendingFire.result, nameOf(pendingFire.playersBefore));
+          const targetBefore = pendingFire.playersBefore.find(p => p.id === pendingFire.result.targetId);
+          const targetAfter = pendingFire.result.state.players.find(p => p.id === pendingFire.result.targetId);
+          const isElimination = (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0;
+          const eliminatedName = isElimination ? targetBefore?.name : undefined;
+
           return (
             <OutcomeBanner
               line={{ text: outcome.actionLine }}
               subLine={{ text: outcome.shellLine, cls: outcome.cls }}
+              isElimination={isElimination}
+              eliminatedName={eliminatedName}
               onContinue={continueAfterFire}
             />
           );

@@ -48,13 +48,13 @@ export function ChestReveal({ player, newItems, revealedCount, onReveal }: Chest
           doesn't fit — see @juntada/recamara-engine's reloadIfNeeded —
           nothing already held ever gets bumped to make room. That's
           invisible from newItems alone (it's just a shorter chest), so
-          spell it out explicitly whenever this reload granted fewer than
-          the usual ITEMS_PER_RELOAD. */}
-      {done && total < ITEMS_PER_RELOAD && (
+          spell it out explicitly whenever this reload was capped because
+          the inventory is full. */}
+      {done && total < ITEMS_PER_RELOAD && player.items.length >= MAX_ITEMS && (
         <p className="chest-full-warning">
           {total === 0
             ? `Inventario lleno (${MAX_ITEMS}/${MAX_ITEMS}) — no pudiste sumar ningún ítem nuevo. Usá alguno para hacer lugar.`
-            : `Inventario casi lleno — solo entró ${total} de ${ITEMS_PER_RELOAD} ítems nuevos. Usá alguno para hacer lugar la próxima vez.`}
+            : `Inventario lleno (${MAX_ITEMS}/${MAX_ITEMS}) — solo entró ${total} de ${ITEMS_PER_RELOAD} ítems nuevos. Usá alguno para hacer lugar la próxima vez.`}
         </p>
       )}
 
