@@ -204,7 +204,7 @@ export function LocalGame() {
             {players.map(p => (
               <div key={p.id} className="mb-2 flex items-center gap-2">
                 <Avatar name={p.name} size={32} />
-                <input className={clsx(T.input, "flex-1")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
                 <button onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))} className={T.squareIconBtn("danger")}>
                   ×
                 </button>

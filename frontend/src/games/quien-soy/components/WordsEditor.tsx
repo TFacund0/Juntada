@@ -34,7 +34,7 @@ export function WordsEditor({
         <div key={p.id} className="flex items-center gap-2 mb-2">
           <span className="w-[90px] shrink-0 text-[13px] text-[#b8b0d4] truncate">{p.name}</span>
           <input
-            className={clsx(T.input, "flex-1")}
+            className={clsx(T.input, "flex-1 min-w-0")}
             type={revealed[p.id] ? "text" : "password"}
             value={words[p.id] ?? ""}
             onChange={e => onChange(p.id, e.target.value)}

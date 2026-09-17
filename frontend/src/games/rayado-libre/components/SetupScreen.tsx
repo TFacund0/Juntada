@@ -68,8 +68,8 @@ export function SetupScreen({
             {players.map(p => (
               <div key={p.id} className="mb-2 flex items-center gap-2">
                 <Avatar name={p.name} size={32} />
-                <input className={clsx(T.input, "flex-1")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-                <button onClick={() => removePlayer(p.id)} className={clsx(T.btn("danger"), "h-9 w-9 shrink-0 rounded-lg p-0")}>
+                <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                <button onClick={() => removePlayer(p.id)} className={T.squareIconBtn("danger")}>
                   ×
                 </button>
               </div>

@@ -34,7 +34,7 @@ export function PlayersConfig({ names, onChange }: { names: string[]; onChange: 
         <span className={T.label}>Jugadores</span>
         {names.map((name, i) => (
           <div key={name} className="flex items-center gap-2 mb-2">
-            <div className={clsx(T.input, "flex-1")}>{name}</div>
+            <div className={clsx(T.input, "flex-1 min-w-0 truncate")}>{name}</div>
             {names.length > 1 && (
               <Btn variant="ghost" onClick={() => removeName(i)} style={{ width: "auto", padding: "11px 14px" }}>
                 ✕

@@ -107,10 +107,10 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
           {players.map(p => (
             <div key={p.id} className="mb-2 flex items-center gap-2">
               <Avatar name={p.name} size={32} />
-              <input className={clsx(T.input, "flex-1")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+              <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
               <button
                 onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                className={clsx("impostor-remove-player-btn", T.btn("danger"), "h-9 w-9 shrink-0 rounded-lg p-0")}
+                className={clsx("impostor-remove-player-btn", T.squareIconBtn("danger"))}
                 aria-label="Eliminar jugador"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">

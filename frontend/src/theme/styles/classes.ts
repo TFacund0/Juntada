@@ -170,7 +170,7 @@ export function letterTile(active: boolean): string {
 // sintonia y tateti. Ver classes.ts header — mismos defaults --jt-* que S.
 
 export function squareIconBtn(variant: BtnVariant): string {
-  return clsx(btn(variant), "h-9 w-9 shrink-0 rounded-lg p-0");
+  return clsx(btn(variant), "h-9! w-9! shrink-0 rounded-lg p-0!");
 }
 
 export const pillGhostSmall = clsx(btn("ghost"), "w-auto px-3.5 py-1.5 text-xs");

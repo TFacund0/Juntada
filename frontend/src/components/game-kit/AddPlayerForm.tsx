@@ -29,7 +29,7 @@ export function AddPlayerForm({
       <span className={T.label}>Sumar jugador</span>
       <div className="flex gap-2">
         <input
-          className={clsx(T.input, "flex-1")}
+          className={clsx(T.input, "flex-1 min-w-0")}
           placeholder="Nombre"
           value={name}
           onChange={e => onNameChange(e.target.value)}

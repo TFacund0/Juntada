@@ -182,24 +182,26 @@ export function LocalGame() {
         <SetupTabs tab={setupTab} onChange={setSetupTab} />
 
         {setupTab === "players" && (
-          <div className={T.card}>
-            <span className={T.label}>Jugadores ({players.length})</span>
-            {players.map(p => (
-              <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                <input
-                  className={clsx(T.input, "flex-1")}
-                  value={p.name}
-                  onChange={e => setPlayers(prev => prev.map(x => (x.id === p.id ? { ...x, name: e.target.value } : x)))}
-                />
-                {players.length > 2 && (
-                  <button onClick={() => removePlayer(p.id)} className={T.squareIconBtn("danger")}>
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
+          <>
+            <div className={T.card}>
+              <span className={T.label}>Jugadores ({players.length})</span>
+              {players.map(p => (
+                <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <input
+                    className={clsx(T.input, "flex-1 min-w-0")}
+                    value={p.name}
+                    onChange={e => setPlayers(prev => prev.map(x => (x.id === p.id ? { ...x, name: e.target.value } : x)))}
+                  />
+                  {players.length > 2 && (
+                    <button onClick={() => removePlayer(p.id)} className={T.squareIconBtn("danger")}>
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
             <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />
-          </div>
+          </>
         )}
 
         {setupTab === "config" && (
