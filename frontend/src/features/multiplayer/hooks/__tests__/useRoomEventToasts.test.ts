@@ -83,4 +83,52 @@ describe("useRoomEventToasts", () => {
     rerender({ room: makeRoom({ code: "BBBBB", phase: "lobby" }) });
     expect(setStatusToast).not.toHaveBeenCalled();
   });
+
+  test("emits host change toast when hostId changes to another player", () => {
+    const setStatusToast = vi.fn();
+    const setLobbyTab = vi.fn();
+    const beto = makePlayer({ id: "p2", name: "Beto" });
+    const { rerender } = renderHook(({ room }) => useRoomEventToasts({ room, myPlayerId: "p1", setStatusToast, setLobbyTab }), {
+      initialProps: {
+        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+      },
+    });
+    expect(setStatusToast).not.toHaveBeenCalled();
+
+    rerender({
+      room: makeRoom({ hostId: "p2", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+    });
+    expect(setStatusToast).toHaveBeenCalledWith("Beto es el nuevo anfitrión");
+  });
+
+  test("emits personalized toast when current player becomes host", () => {
+    const setStatusToast = vi.fn();
+    const setLobbyTab = vi.fn();
+    const beto = makePlayer({ id: "p2", name: "Beto" });
+    const { rerender } = renderHook(({ room }) => useRoomEventToasts({ room, myPlayerId: "p2", setStatusToast, setLobbyTab }), {
+      initialProps: {
+        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+      },
+    });
+
+    rerender({
+      room: makeRoom({ hostId: "p2", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+    });
+    expect(setStatusToast).toHaveBeenCalledWith("Ahora sos el anfitrión");
+  });
+
+  test("emits fallback toast when hostId changes but player name cannot be found", () => {
+    const setStatusToast = vi.fn();
+    const setLobbyTab = vi.fn();
+    const { rerender } = renderHook(({ room }) => useRoomEventToasts({ room, myPlayerId: "p1", setStatusToast, setLobbyTab }), {
+      initialProps: {
+        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", name: "Ana" })] }),
+      },
+    });
+
+    rerender({
+      room: makeRoom({ hostId: "unknown-id", players: [makePlayer({ id: "p1", name: "Ana" })] }),
+    });
+    expect(setStatusToast).toHaveBeenCalledWith("Cambió el anfitrión");
+  });
 });

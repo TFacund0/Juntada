@@ -113,7 +113,7 @@ export function useMultiplayerGameShell({
   // current `room` against its own previous render.
   const [statusToast, setStatusToast] = useState<string | null>(null);
   usePlayerPresenceToasts({ room, myPlayerId: me?.playerId, setStatusToast });
-  useRoomEventToasts({ room, setStatusToast, setLobbyTab });
+  useRoomEventToasts({ room, myPlayerId: me?.playerId, setStatusToast, setLobbyTab });
 
   const inGroup = entryKind === "group";
 
