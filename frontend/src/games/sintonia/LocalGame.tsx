@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
@@ -20,6 +20,7 @@ import { Collapsible } from "../../components/game-kit/Collapsible";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
 import { useFlashError } from "../../hooks/ui/useFlashError";
 import { PlayModeConfig } from "./components/PlayModeConfig";
+import type { HistoryEntry, LocalPlayer, RoundData } from "./types/localGame";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SINTONÍA (estilo Wavelength) — un solo dispositivo, se pasa de mano en mano.
@@ -32,32 +33,6 @@ import { PlayModeConfig } from "./components/PlayModeConfig";
 // adivine por su cuenta, y al final se revela el objetivo con la marca de
 // cada uno y el puntaje de la ronda — igual que en el modo online.
 // ═══════════════════════════════════════════════════════════════════════════════
-
-interface LocalPlayer {
-  id: number;
-  name: string;
-}
-
-interface RoundData {
-  left: string | null;
-  right: string | null;
-  target: number | null;
-  psychicId: number;
-  psychicName: string;
-  clue: string | null;
-  guesses: Record<number, number>;
-  pointsByPlayer?: Record<number, number>;
-}
-
-interface HistoryEntry {
-  left: string;
-  right: string;
-  target: number;
-  psychicId: number;
-  psychicName: string;
-  guesses: Record<number, number>;
-  pointsByPlayer: Record<number, number>;
-}
 
 const MIN_PLAYERS = 2;
 
@@ -86,13 +61,17 @@ function Scoreboard({
   // total, no label, so it doesn't read as two competing numbers.
   roundPoints?: Record<number, number>;
 }) {
-  const ranked = players
-    .map(p => ({
-      ...p,
-      points: history.reduce((sum, h) => sum + (h.pointsByPlayer[p.id] || 0), 0),
-      timesPsychic: history.filter(h => h.psychicId === p.id).length,
-    }))
-    .sort((a, b) => b.points - a.points);
+  const ranked = useMemo(
+    () =>
+      players
+        .map(p => ({
+          ...p,
+          points: history.reduce((sum, h) => sum + (h.pointsByPlayer[p.id] || 0), 0),
+          timesPsychic: history.filter(h => h.psychicId === p.id).length,
+        }))
+        .sort((a, b) => b.points - a.points),
+    [players, history],
+  );
   return (
     <Collapsible title="Tabla de puntuación">
       {ranked.map((p, i) => {
@@ -630,9 +609,10 @@ export function LocalGame() {
               </Collapsible>
             );
 
-          const winnerScore = (p: LocalPlayer) => history.reduce((sum, h) => sum + (h.pointsByPlayer[p.id] || 0), 0);
-          const topScore = Math.max(...players.map(winnerScore));
-          const winners = players.filter(p => winnerScore(p) === topScore);
+          const scoreOf = (p: LocalPlayer) => history.reduce((sum, h) => sum + (h.pointsByPlayer[p.id] || 0), 0);
+          const scores = players.map(scoreOf);
+          const topScore = Math.max(...scores);
+          const winners = players.filter((p, i) => scores[i] === topScore);
           const isTie = winners.length > 1;
           return (
             <>
