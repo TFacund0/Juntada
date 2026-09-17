@@ -221,7 +221,7 @@ function useItemAction(room: Room, playerId: string, payload: Record<string, unk
   r.lastLupaHint =
     item === "🔍" && result.revealedShellKind ? { forPlayerId: playerId, seq: r.itemSeq, shellKind: result.revealedShellKind } : null;
   addLog(r, describeItemResult(result, nameOf(playersBefore), { revealPhoneHint: false, revealLupaHint: false }));
-  return { handled: true, rerolled: item === "📞" };
+  return { handled: true, rerolled: item === "📞" || item === "🔍" };
 }
 
 function readyForDuel(room: Room, playerId: string): { handled: boolean } {
