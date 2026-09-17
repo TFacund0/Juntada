@@ -2,6 +2,7 @@ import type { RouteObject } from "react-router-dom";
 import App from "./App";
 import { JoinRedirect } from "./features/multiplayer/JoinRedirect";
 import { RootLayout } from "./RootLayout";
+import { NotFoundScreen } from "./components/shell/NotFoundScreen";
 import { ROUTES } from "./routing/appRoutes";
 import { PickerPage } from "./pages/picker/PickerPage";
 import { GameEntry } from "./pages/picker/GameEntry";
@@ -68,6 +69,10 @@ export const routes: RouteObject[] = [
         id: "join",
         path: ROUTES.join,
         element: <JoinRedirect />,
+      },
+      {
+        path: "*",
+        element: <NotFoundScreen />,
       },
     ],
   },
