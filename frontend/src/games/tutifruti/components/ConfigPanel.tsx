@@ -27,7 +27,16 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   const [newCat, setNewCat] = useState("");
   const [showActive, setShowActive] = useState(false);
   const [page, setPage] = useState(0);
-  const config = room.config as any;
+  const config = room.config as {
+    customCategories?: Category[];
+    activeCategories?: Record<string, boolean>;
+    enabledLetters?: Record<string, boolean>;
+    randomCategoryMode?: boolean;
+    randomCategoryCount?: number;
+    rounds: number;
+    endMode: "timer" | "basta";
+    roundTime: number;
+  };
   const customCategories: Category[] = config.customCategories || [];
   const customIds = new Set(customCategories.map(c => c.id));
   const allCategories: Category[] = [...DEFAULT_CATEGORIES, ...customCategories];
