@@ -25,6 +25,12 @@ const schema = z.object({
   // is set; each deployment sharing a database should set this to something
   // unique to it (e.g. "juntada-staging" vs "juntada-production").
   REDIS_NAMESPACE: z.string().min(1).default("juntada"),
+  // Postgres connection string for the account/auth data layer (see
+  // backend/src/db/). Supabase's "Connection pooling" string works here.
+  // Optional for now — nothing reads from the DB yet (this PR only ships
+  // the schema/migrations), and PR2 (auth core) is what makes it load-bearing
+  // and required.
+  DATABASE_URL: z.string().url().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
