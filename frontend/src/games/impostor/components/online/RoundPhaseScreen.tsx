@@ -124,8 +124,13 @@ export function RoundPhaseScreen({
         {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 
         <div className="flex min-h-0 flex-1 flex-col">
+          {/* Arriba de todo: lo que ya dijeron los demás es lo más relevante
+              para quien está esperando su turno — abajo del TurnCircle podía
+              quedar fuera de vista sin hacer scroll. */}
+          <CluesReview clues={round?.clues} players={room.players} label="Palabras de los jugadores" maxHeight={140} />
+
           {turnOrder.length > 0 && (
-            <p className={clsx(T.muted, "mb-2.5 text-center text-xs")}>
+            <p className={clsx(T.muted, "mb-2.5 mt-3.5 text-center text-xs")}>
               Turno {turnIndex + 1} de {turnOrder.length}
             </p>
           )}
@@ -135,8 +140,6 @@ export function RoundPhaseScreen({
           </div>
 
           <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} meId={me?.playerId} />
-
-          <CluesReview clues={round?.clues} players={room.players} label="Palabras de los jugadores" maxHeight={140} />
         </div>
 
         {isMyTurn && !clueSubmitted && requiresWrittenClue && (
