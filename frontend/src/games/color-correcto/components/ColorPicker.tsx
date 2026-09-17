@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { S } from "../../../theme/styles";
+import { T } from "../../../theme/styles/classes";
 import { hslToHex } from "@juntada/color-correcto-scoring";
 
 // Three-slider HSL picker (hue / saturation / brillo) — dialed.gg-style,
@@ -50,7 +50,7 @@ export function ColorPicker({ value, onChange }: { value: Hsl; onChange: (next: 
         }}
       />
 
-      <span style={S.label}>Tono</span>
+      <span className={T.label}>Tono</span>
       <input
         className="cc-slider"
         type="range"
@@ -65,7 +65,7 @@ export function ColorPicker({ value, onChange }: { value: Hsl; onChange: (next: 
         }}
       />
 
-      <span style={S.label}>Saturación</span>
+      <span className={T.label}>Saturación</span>
       <input
         className="cc-slider"
         type="range"
@@ -80,7 +80,7 @@ export function ColorPicker({ value, onChange }: { value: Hsl; onChange: (next: 
         }}
       />
 
-      <span style={S.label}>Brillo</span>
+      <span className={T.label}>Brillo</span>
       <input
         className="cc-slider"
         type="range"

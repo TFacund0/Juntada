@@ -1,4 +1,5 @@
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
@@ -43,7 +44,7 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
   const hasScoreToReset = !!(me && score[me.playerId]) || !!(opponent && score[opponent.id]) || !!(room.config.draws as number);
 
   const Scoreboard = (
-    <div style={{ ...S.card, display: "flex", justifyContent: "space-around", textAlign: "center" }}>
+    <div className={clsx(T.card, "flex justify-around text-center")}>
       <div>
         <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>
           {myPlayer?.name}
@@ -74,7 +75,7 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
     <div style={{ marginTop: 16 }}>
       {iVotedReset ? (
         <div style={{ textAlign: "center" }}>
-          <p style={S.muted}>Pediste reiniciar el marcador — esperando que {opponent?.name} confirme</p>
+          <p className={T.muted}>Pediste reiniciar el marcador — esperando que {opponent?.name} confirme</p>
           <Btn variant="ghost" onClick={cancelResetScore} style={{ fontSize: 13, marginTop: 8 }}>
             Cancelar pedido
           </Btn>
@@ -84,7 +85,7 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
         // that opens a confirmation dialog — so it's obvious up front what
         // tapping does, instead of leaving the player unsure whether it
         // resets immediately or asks first.
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+        <div className={clsx(T.cardHighlight, "text-center")}>
           <p style={{ margin: "0 0 10px", fontSize: 13, color: "#9089c0" }}>{opponent?.name} quiere reiniciar el marcador</p>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn variant="ghost" onClick={cancelResetScore} style={{ fontSize: 13 }}>
@@ -134,10 +135,10 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
       <PhaseTransition phaseKey="result">
         <div>
           {Scoreboard}
-          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
+          <div className={clsx(T.cardHighlight, "text-center mb-4")}>
             <p
+              className={T.bigReveal}
               style={{
-                ...S.bigReveal,
                 // "¡Ganaste!"/"Empate" are short, fixed strings — keep the
                 // usual big size. The forfeit message and "Ganó <name>" can
                 // run much longer (a name has no length limit), so both
@@ -164,11 +165,11 @@ export function RoundView({ room, me, myPlayer, send }: RoundViewProps) {
 
           <div style={{ marginTop: 16 }}>
             {round.forfeited ? (
-              <p style={{ ...S.muted, textAlign: "center" }}>
+              <p className={clsx(T.muted, "text-center")}>
                 Volvé al lobby para esperar a alguien más — hace falta un segundo jugador para seguir.
               </p>
             ) : myPlayer?.ready ? (
-              <div style={{ ...S.card, textAlign: "center" }}>
+              <div className={clsx(T.card, "text-center")}>
                 <p style={{ color: "#5DCAA5" }}>Listo — esperando a {opponent?.name} para la revancha</p>
               </div>
             ) : (

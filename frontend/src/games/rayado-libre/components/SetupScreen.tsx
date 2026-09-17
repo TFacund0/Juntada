@@ -1,5 +1,6 @@
 import { MIN_PLAYERS } from "@juntada/rayado-libre-scoring";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { Avatar } from "../../../components/ui/Avatar";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
@@ -58,27 +59,24 @@ export function SetupScreen({
   const canStart = players.length >= MIN_PLAYERS && (activeCatKeys.length > 0 || customWords.length > 0);
   return (
     <PhaseTransition phaseKey="setup">
-      <div style={{ paddingBottom: 88 }}>
+      <div className="pb-[88px]">
         <SetupTabs tab={setupTab} onChange={setSetupTab} />
 
         {setupTab === "players" && (
-          <div style={S.card}>
-            <span style={S.label}>Jugadores ({players.length})</span>
+          <div className={T.card}>
+            <span className={T.label}>Jugadores ({players.length})</span>
             {players.map(p => (
-              <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <div key={p.id} className="mb-2 flex items-center gap-2">
                 <Avatar name={p.name} size={32} />
-                <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-                <button
-                  onClick={() => removePlayer(p.id)}
-                  style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
-                >
+                <input className={clsx(T.input, "flex-1")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                <button onClick={() => removePlayer(p.id)} className={clsx(T.btn("danger"), "h-9 w-9 shrink-0 rounded-lg p-0")}>
                   ×
                 </button>
               </div>
             ))}
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <div className="mt-2.5 flex gap-2">
               <input
-                style={{ ...S.input, flex: 1 }}
+                className={clsx(T.input, "flex-1")}
                 placeholder="Nombre"
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
@@ -86,7 +84,7 @@ export function SetupScreen({
                   if (e.key === "Enter") addPlayer();
                 }}
               />
-              <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
+              <Btn variant="ghost" onClick={addPlayer} className="w-auto px-[18px] py-[11px]">
                 Agregar
               </Btn>
             </div>
@@ -96,7 +94,7 @@ export function SetupScreen({
 
         {setupTab === "config" && (
           <>
-            <div style={S.card}>
+            <div className={T.card}>
               <CategoryPicker enabled={enabledCategories} onChange={setEnabledCategories} />
             </div>
 
@@ -112,7 +110,7 @@ export function SetupScreen({
           </StartButton>
           <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
           {activeCatKeys.length === 0 && customWords.length === 0 && (
-            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Elegí al menos una categoría o agregá tus propias palabras</p>
+            <p className={clsx(T.muted, "mt-2 text-center")}>Elegí al menos una categoría o agregá tus propias palabras</p>
           )}
         </StickyActionBar>
       </div>

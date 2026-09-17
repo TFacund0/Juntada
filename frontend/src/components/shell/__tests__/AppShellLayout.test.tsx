@@ -20,23 +20,23 @@ describe("AppShellLayout", () => {
     expect(wrap).not.toBeNull();
   });
 
-  test("default/game branch with wide=false renders jt-content-pad-top without jt-round-wrap-wide and keeps maxWidth", () => {
+  test("default/game branch with wide=false renders jt-content-pad-top without jt-round-wrap-wide and keeps the fixed max-width class", () => {
     const { container } = render(
       <AppShellLayout stepKey="local-config" game={null} inGameView={false} header={<div>header</div>} rest={<div>rest</div>} />,
     );
     const wrap = container.querySelector(".jt-content-pad-top") as HTMLElement;
     expect(wrap).not.toBeNull();
     expect(wrap.classList.contains("jt-round-wrap-wide")).toBe(false);
-    expect(wrap.style.maxWidth).not.toBe("");
+    expect(wrap.classList.contains("max-w-[480px]")).toBe(true);
   });
 
-  test("default/game branch with wide=true renders jt-round-wrap-wide and undefined maxWidth", () => {
+  test("default/game branch with wide=true renders jt-round-wrap-wide without the fixed max-width class", () => {
     const game = { wideRoundView: true } as unknown as GameDef;
     const { container } = render(
       <AppShellLayout stepKey="local-round" game={game} inGameView={true} header={<div>header</div>} rest={<div>rest</div>} />,
     );
     const wrap = container.querySelector(".jt-content-pad-top.jt-round-wrap-wide") as HTMLElement;
     expect(wrap).not.toBeNull();
-    expect(wrap.style.maxWidth).toBe("");
+    expect(wrap.classList.contains("max-w-[480px]")).toBe(false);
   });
 });

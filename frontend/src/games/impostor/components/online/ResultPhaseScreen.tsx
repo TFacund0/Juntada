@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { StartButton } from "../../../../components/setup/StartButton";
 import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
@@ -82,30 +83,21 @@ export function ResultPhaseScreen({
 
   return (
     <PhaseTransition phaseKey="result">
-      <div style={{ paddingBottom: 88 }}>
+      <div className="pb-[88px]">
         <style>{actionBtnStyle}</style>
         {/* The normal win/lose outcome is already shown in MatchOutcomeOverlay
             above — this only needs to cover abortedReason, whose path skips
             that overlay entirely (there's no real elimination to walk
             through when the impostor just left). */}
         {abortedReason === "impostor_disconnected" && (
-          <div style={{ textAlign: "center", marginBottom: 20 }}>
-            <p
-              style={{
-                margin: "0 0 6px",
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--jt-accent, #e0202b)",
-              }}
-            >
+          <div className="mb-5 text-center">
+            <p className="m-0 mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#e0202b)]">
               Partida terminada
             </p>
-            <h2 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", color: winnerColor }}>
+            <h2 className="m-0 mb-2 text-[22px] font-extrabold tracking-[-0.02em]" style={{ color: winnerColor }}>
               🔌 El impostor se desconectó
             </h2>
-            <p style={{ ...S.muted, fontSize: 13 }}>
+            <p className={clsx(T.muted, "text-[13px]")}>
               La partida se cerró sin definir un ganador porque el impostor abandonó.
               {votesDiscarded && " Los votos que ya se habían emitido en esta ronda no se cuentan."}
             </p>
@@ -113,9 +105,7 @@ export function ResultPhaseScreen({
         )}
 
         {!abortedReason && tieBrokenRandomly && (
-          <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", margin: "0 0 8px" }}>
-            🎲 Empate persistente — se sorteó entre los más votados
-          </p>
+          <p className="m-0 mb-2 text-center text-xs text-[#E2C44A]">🎲 Empate persistente — se sorteó entre los más votados</p>
         )}
 
         {!abortedReason && (
@@ -146,8 +136,8 @@ export function ResultPhaseScreen({
             </StartButton>
           )}
           {!isHost && (
-            <div style={{ ...S.card, textAlign: "center", marginBottom: 0 }}>
-              <p style={{ color: "var(--jt-muted-text)", fontSize: 14 }}>
+            <div className={clsx(T.card, "mb-0 text-center")}>
+              <p className="text-sm text-[var(--jt-muted-text)]">
                 {matchOver ? "Esperando que el anfitrión inicie otra partida" : "Esperando que el anfitrión continúe la ronda"}
               </p>
             </div>

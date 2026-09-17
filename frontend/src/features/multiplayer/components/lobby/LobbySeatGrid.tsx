@@ -1,4 +1,5 @@
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { PlayerChip } from "../PlayerChip";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 
@@ -39,13 +40,13 @@ export function LobbySeatGrid({
 }) {
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 2px 10px" }}>
-        <span style={{ ...S.label, marginBottom: 0 }}>Jugadores</span>
-        <span style={S.pill(false)}>
+      <div className="mx-0.5 mb-2.5 mt-0 flex items-center justify-between">
+        <span className={clsx(T.label, "mb-0")}>Jugadores</span>
+        <span className={T.pill(false)}>
           {room.players.length} / {room.maxPlayers}
         </span>
       </div>
-      <div className="jt-lobby-card" style={S.card}>
+      <div className={clsx("jt-lobby-card", T.card)}>
         <div className="jt-player-grid jt-thin-scrollbar">
           {visibleSeats.map((seat, i) =>
             seat.kind === "player" ? (

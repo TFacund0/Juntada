@@ -18,11 +18,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
     <title>Juntada</title>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+      /* El reset universal (margin/padding/box-sizing) vivía acá manualmente
+         hasta que se detectó que rompía TODAS las utilities de margin y
+         padding de Tailwind en todo el sitio: este bloque es CSS suelto,
+         sin capa (layer), y en CSS cascade layers una regla sin capa le
+         gana siempre a una regla con capa, sin importar especificidad.
+         Como Tailwind envuelve sus utilities en una capa de utilidades,
+         este reset universal ganaba contra cualquier clase de margen o
+         padding del sitio, siempre. El Preflight propio de Tailwind
+         (importado en theme/tailwind.css) ya aplica el mismo reset,
+         correctamente ubicado en su capa base — no hace falta duplicarlo
+         acá. Si en el futuro hace falta un reset adicional fuera de
+         Tailwind, ubicarlo explícitamente en esa misma capa base. */
       /* color explícito (no solo background): los diálogos modales
          (DialogFrame, GroupEntryModal, RoomEntryModal, ...) usan
          createPortal directo a este <body>, así que quedan afuera del

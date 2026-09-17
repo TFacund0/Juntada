@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
@@ -193,20 +194,17 @@ export function LocalGame() {
         <SetupTabs tab={setupTab} onChange={setSetupTab} />
 
         {setupTab === "players" && (
-          <div style={S.card}>
-            <span style={S.label}>Jugadores ({players.length})</span>
+          <div className={T.card}>
+            <span className={T.label}>Jugadores ({players.length})</span>
             {players.map(p => (
               <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
                 <input
-                  style={{ ...S.input, flex: 1 }}
+                  className={clsx(T.input, "flex-1")}
                   value={p.name}
                   onChange={e => setPlayers(prev => prev.map(x => (x.id === p.id ? { ...x, name: e.target.value } : x)))}
                 />
                 {players.length > 2 && (
-                  <button
-                    onClick={() => removePlayer(p.id)}
-                    style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
-                  >
+                  <button onClick={() => removePlayer(p.id)} className={T.squareIconBtn("danger")}>
                     ×
                   </button>
                 )}
@@ -226,7 +224,7 @@ export function LocalGame() {
           </StartButton>
           <MinPlayersHint count={players.length} min={2} />
           {players.length >= 2 && !allWordsFilled && (
-            <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Faltan palabras — completalas en "Configuración"</p>
+            <p className={clsx(T.muted, "text-center mt-2")}>Faltan palabras — completalas en "Configuración"</p>
           )}
         </StickyActionBar>
       </div>
@@ -236,10 +234,10 @@ export function LocalGame() {
   if (phase === "turnHandoff") {
     return (
       <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <p style={{ ...S.label, marginBottom: 4 }}>Ronda {lapNumber}</p>
-          <p style={S.bigReveal}>{nameOf(turnQueue[0])}</p>
-          <p style={S.muted}>Pasále el dispositivo. Es tu turno.</p>
+        <div className={clsx(T.cardHighlight, "text-center")}>
+          <p className={clsx(T.label, "mb-1")}>Ronda {lapNumber}</p>
+          <p className={T.bigReveal}>{nameOf(turnQueue[0])}</p>
+          <p className={T.muted}>Pasále el dispositivo. Es tu turno.</p>
         </div>
         <StartButton onClick={() => setPhase("turnAction")}>Empezar mi turno</StartButton>
       </div>
@@ -251,9 +249,9 @@ export function LocalGame() {
     const outcomeByPlayer = Object.fromEntries(results.map(r => [r.playerId, r.outcome]));
     return (
       <div>
-        <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Ronda {lapNumber}</p>
+        <p className={clsx(T.muted, "text-center mb-2.5")}>Ronda {lapNumber}</p>
 
-        <div style={S.card}>
+        <div className={T.card}>
           <TurnCircle
             turnOrder={turnOrder}
             turnIndex={Math.max(0, turnOrder.indexOf(playerId))}
@@ -263,13 +261,13 @@ export function LocalGame() {
           />
         </div>
 
-        <div style={S.card}>
-          <span style={S.label}>Palabras del resto</span>
+        <div className={T.card}>
+          <span className={T.label}>Palabras del resto</span>
           <OthersWordsList entries={players.filter(p => p.id !== playerId).map(p => ({ id: p.id, name: p.name, word: words[p.id] }))} />
         </div>
 
         {wrongGuesses[playerId] > 0 && (
-          <p style={{ ...S.muted, textAlign: "center" }}>
+          <p className={clsx(T.muted, "text-center")}>
             Intentos fallidos: {wrongGuesses[playerId]}/{MAX_WRONG_GUESSES}
           </p>
         )}
@@ -289,9 +287,9 @@ export function LocalGame() {
         )}
 
         {actionMode === "asking" && (
-          <div style={S.card}>
-            <span style={S.label}>Tu pregunta (decila en voz alta)</span>
-            <input style={S.input} value={questionText} onChange={e => setQuestionText(e.target.value)} placeholder="¿Soy famoso?..." />
+          <div className={T.card}>
+            <span className={T.label}>Tu pregunta (decila en voz alta)</span>
+            <input className={T.input} value={questionText} onChange={e => setQuestionText(e.target.value)} placeholder="¿Soy famoso?..." />
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <Btn variant="ghost" onClick={() => setActionMode("idle")} style={{ flex: 1 }}>
                 Cancelar
@@ -304,9 +302,14 @@ export function LocalGame() {
         )}
 
         {actionMode === "guessing" && (
-          <div style={S.card}>
-            <span style={S.label}>¿Quién sos?</span>
-            <input style={S.input} value={guessText} onChange={e => setGuessText(e.target.value)} placeholder="Escribí tu respuesta..." />
+          <div className={T.card}>
+            <span className={T.label}>¿Quién sos?</span>
+            <input
+              className={T.input}
+              value={guessText}
+              onChange={e => setGuessText(e.target.value)}
+              placeholder="Escribí tu respuesta..."
+            />
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <Btn variant="ghost" onClick={() => setActionMode("idle")} style={{ flex: 1 }}>
                 Cancelar
@@ -319,8 +322,8 @@ export function LocalGame() {
         )}
 
         {qaLog.length > 0 && (
-          <div style={S.card}>
-            <span style={S.label}>Historial</span>
+          <div className={T.card}>
+            <span className={T.label}>Historial</span>
             {qaLog
               .slice()
               .reverse()
@@ -328,7 +331,7 @@ export function LocalGame() {
               .map((qa, i) => (
                 <p key={i} style={{ fontSize: 13, margin: "4px 0" }}>
                   <strong>{nameOf(qa.turnPlayerId)}</strong>: "{qa.question}" →{" "}
-                  <span style={{ color: qa.answer === "si" ? "#5DCAA5" : "#F09595" }}>{qa.answer === "si" ? "Sí" : "No"}</span>
+                  <span className={qa.answer === "si" ? "text-[#5DCAA5]" : "text-[#F09595]"}>{qa.answer === "si" ? "Sí" : "No"}</span>
                 </p>
               ))}
           </div>
@@ -352,16 +355,16 @@ export function LocalGame() {
     if (phase === "answerHandoff")
       return (
         <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={S.muted}>Que agarre el dispositivo cualquiera menos {nameOf(pendingQuestion?.by)}.</p>
+          <div className={clsx(T.cardHighlight, "text-center")}>
+            <p className={T.muted}>Que agarre el dispositivo cualquiera menos {nameOf(pendingQuestion?.by)}.</p>
           </div>
           <StartButton onClick={() => setPhase("answerInput")}>Ver la pregunta</StartButton>
         </div>
       );
     return (
       <div>
-        <div style={S.card}>
-          <span style={S.label}>Pregunta de {nameOf(pendingQuestion?.by)}</span>
+        <div className={T.card}>
+          <span className={T.label}>Pregunta de {nameOf(pendingQuestion?.by)}</span>
           <p style={{ fontSize: 16, fontWeight: 700, margin: "4px 0 10px" }}>"{pendingQuestion?.text}"</p>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn variant="success" onClick={() => answerQuestion("si")} style={{ flex: 1 }}>

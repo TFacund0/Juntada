@@ -1,3 +1,5 @@
+import { T } from "../../../theme/styles/classes";
+
 const MARK_COLOR: Record<string, string> = { X: "#AFA9EC", O: "#5DCAA5" };
 
 interface BoardProps {
@@ -18,15 +20,13 @@ export function Board({ board, winningLine, onCellClick, disabled }: BoardProps)
             key={i}
             onClick={() => clickable && onCellClick!(i)}
             disabled={!clickable}
+            className={T.tatetiCell(!!isWinning, clickable)}
             style={{
               aspectRatio: "1/1",
               borderRadius: 14,
               fontSize: 40,
               fontWeight: 800,
               fontFamily: "inherit",
-              cursor: clickable ? "pointer" : "default",
-              background: isWinning ? "rgba(93,202,165,0.18)" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${isWinning ? "rgba(93,202,165,0.5)" : "rgba(127,119,221,0.25)"}`,
               color: cell ? MARK_COLOR[cell] : "transparent",
               transition: "background 0.15s, border-color 0.15s",
             }}

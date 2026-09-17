@@ -1,8 +1,7 @@
 import { useState } from "react";
-import type { CSSProperties } from "react";
+import clsx from "clsx";
 import type { GameCategory, GameDef } from "../../../games/gameTypes";
-import { S } from "../../../theme/styles";
-import { DEFAULT_COLORS } from "../../../theme/styles/colors";
+import { T } from "../../../theme/styles/classes";
 import { GameDetailDialog } from "../GameDetailDialog";
 import { SearchIcon } from "../../ui/icons";
 import { CategorySection } from "./CategorySection";
@@ -84,9 +83,8 @@ export function GamePicker({ games, onPick, showAvailabilityFilter = true, featu
                 key={key}
                 role="tab"
                 aria-selected={availFilter === key}
-                className="jt-avail-chip"
+                className={clsx("jt-avail-chip", availChipClass(availFilter === key))}
                 onClick={() => setAvailFilter(key)}
-                style={availChipStyle(availFilter === key)}
               >
                 {AVAILABILITY_LABEL[key]}
               </button>
@@ -122,11 +120,11 @@ export function GamePicker({ games, onPick, showAvailabilityFilter = true, featu
         ))
       ) : filtered.length > 0 ? (
         <div>
-          <div style={S.sectionLabel}>Resultados</div>
+          <div className="m-0 mb-2 ml-0.5 mr-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--jt-label)]">Resultados</div>
           <GameGrid games={filtered} onSelect={setPreviewGame} />
         </div>
       ) : (
-        <p style={{ ...S.muted, textAlign: "center", marginTop: 24 }}>No encontramos juegos que coincidan con "{query}".</p>
+        <p className={clsx(T.muted, "mt-6 text-center")}>No encontramos juegos que coincidan con "{query}".</p>
       )}
 
       {previewGame && (
@@ -143,21 +141,11 @@ export function GamePicker({ games, onPick, showAvailabilityFilter = true, featu
   );
 }
 
-function availChipStyle(active: boolean): CSSProperties {
-  return {
-    flex: 1,
-    padding: "8px 16px",
-    borderRadius: 12,
-    border: "none",
-    background: active ? `color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 25%, transparent)` : "transparent",
-    boxShadow: active
-      ? `0 0 0 1px color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 35%, transparent), 0 0 40px -10px color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 60%, transparent)`
-      : "none",
-    color: active ? "#e8e4f0" : "var(--jt-muted-text, #a49dc9)",
-    fontSize: 14,
-    fontWeight: 500,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    transition: "all 0.3s ease",
-  };
+function availChipClass(active: boolean): string {
+  return clsx(
+    "flex-1 cursor-pointer rounded-xl border-none px-4 py-2 font-[inherit] text-sm font-medium transition-all duration-300",
+    active
+      ? "bg-[color-mix(in_srgb,var(--jt-accent,#7f77dd)_25%,transparent)] text-[#e8e4f0] shadow-[0_0_0_1px_color-mix(in_srgb,var(--jt-accent,#7f77dd)_35%,transparent),0_0_40px_-10px_color-mix(in_srgb,var(--jt-accent,#7f77dd)_60%,transparent)]"
+      : "bg-transparent text-[var(--jt-muted-text,#a49dc9)] shadow-none",
+  );
 }

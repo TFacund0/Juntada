@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { wordHint } from "@juntada/impostor-data";
 import { Btn } from "../../../../components/ui/Btn";
 import { Avatar } from "../../../../components/ui/Avatar";
@@ -81,14 +82,14 @@ export function ClueReadyScreen({ round, players, config, matchRound, onStart }:
   // comes straight back to this same roster screen.
   if (reviewPlayer) {
     return (
-      <div className="impostor-clue-ready-scene" style={{ minHeight: "calc(100dvh - 140px)", display: "flex", flexDirection: "column" }}>
+      <div className="impostor-clue-ready-scene flex min-h-[calc(100dvh-140px)] flex-col">
         <style>
           {sharedStyle}
           {staggerPopStyle}
           {actionBtnStyle}
         </style>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 0 }}>
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Carta de {reviewPlayer.name}</p>
+        <div className="flex min-h-0 flex-1 flex-col justify-center">
+          <p className={clsx(T.muted, "mb-4 text-center")}>Carta de {reviewPlayer.name}</p>
           <FlipRevealCard
             visible={reviewWordVisible}
             onToggle={() => setReviewWordVisible(v => !v)}
@@ -114,14 +115,14 @@ export function ClueReadyScreen({ round, players, config, matchRound, onStart }:
   // Player picker for "Olvidé la palabra".
   if (pickingReview) {
     return (
-      <div className="impostor-clue-ready-scene" style={{ minHeight: "calc(100dvh - 140px)", display: "flex", flexDirection: "column" }}>
+      <div className="impostor-clue-ready-scene flex min-h-[calc(100dvh-140px)] flex-col">
         <style>
           {sharedStyle}
           {staggerPopStyle}
           {actionBtnStyle}
         </style>
-        <p style={{ ...S.muted, textAlign: "center", margin: "0 0 16px" }}>¿Quién necesita ver su carta de nuevo?</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, overflowY: "auto", minHeight: 0 }}>
+        <p className={clsx(T.muted, "m-0 mb-4 text-center")}>¿Quién necesita ver su carta de nuevo?</p>
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
           {alive.map((p, i) => (
             <button
               key={p.id}
@@ -129,28 +130,18 @@ export function ClueReadyScreen({ round, players, config, matchRound, onStart }:
                 setPickingReview(false);
                 setReviewPlayerId(p.id);
               }}
-              className="impostor-clue-ready-pick-btn impostor-stagger-pop"
-              style={{
-                ...S.card,
-                marginBottom: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                cursor: "pointer",
-                textAlign: "left",
-                width: "100%",
-                border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-                color: "#e8e4f0",
-                font: "inherit",
-                animationDelay: `${i * 0.04}s`,
-              }}
+              className={clsx(
+                "impostor-clue-ready-pick-btn impostor-stagger-pop mb-0 flex w-full cursor-pointer items-center gap-2.5 border border-[var(--jt-card-border,rgba(127,119,221,0.18))] text-left font-[inherit] text-[#e8e4f0]",
+                T.card,
+              )}
+              style={{ animationDelay: `${i * 0.04}s` }}
             >
               <Avatar name={p.name} size={32} />
-              <span style={{ fontWeight: 700, fontSize: 14, color: "#e8e4f0" }}>{p.name}</span>
+              <span className="text-sm font-bold text-[#e8e4f0]">{p.name}</span>
             </button>
           ))}
         </div>
-        <Btn variant="ghost" onClick={() => setPickingReview(false)} style={{ marginTop: 10 }}>
+        <Btn variant="ghost" onClick={() => setPickingReview(false)} className="mt-2.5">
           Cancelar
         </Btn>
       </div>
@@ -158,7 +149,7 @@ export function ClueReadyScreen({ round, players, config, matchRound, onStart }:
   }
 
   return (
-    <div className="impostor-clue-ready-scene" style={{ minHeight: "calc(100dvh - 140px)", display: "flex", flexDirection: "column" }}>
+    <div className="impostor-clue-ready-scene flex min-h-[calc(100dvh-140px)] flex-col">
       <style>
         {sharedStyle}
         {staggerPopStyle}
@@ -166,58 +157,25 @@ export function ClueReadyScreen({ round, players, config, matchRound, onStart }:
       </style>
 
       <div>
-        <p
-          style={{
-            textAlign: "center",
-            margin: "0 0 6px",
-            fontSize: 12,
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--jt-accent, #e0202b)",
-          }}
-        >
+        <p className="m-0 mb-1.5 text-center text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#e0202b)]">
           Ronda {matchRound}
         </p>
-        <h2 style={{ textAlign: "center", margin: "0 0 10px", fontSize: 26, fontWeight: 800, letterSpacing: "-0.02em" }}>
-          A dar sus pistas
-        </h2>
-        <p style={{ ...S.muted, textAlign: "center", margin: "0 auto 24px", lineHeight: 1.5, maxWidth: 300 }}>
+        <h2 className="m-0 mb-2.5 text-center text-[26px] font-extrabold tracking-[-0.02em]">A dar sus pistas</h2>
+        <p className={clsx(T.muted, "mx-auto mb-6 mt-0 max-w-[300px] text-center leading-[1.5]")}>
           Cada uno debe dar una pista sobre la palabra secreta. Después arranca la votación para descubrir al impostor.
         </p>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 28 }}>
+      <div className="min-h-0 flex-1">
+        <div className="mt-7 grid grid-cols-3 gap-2.5">
           {alive.map((p, i) => (
             <div
               key={p.id}
-              className="impostor-clue-ready-card impostor-stagger-pop"
-              style={{
-                ...S.card,
-                marginBottom: 0,
-                padding: "16px 8px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                animationDelay: `${i * 0.04}s`,
-              }}
+              className={clsx("impostor-clue-ready-card impostor-stagger-pop mb-0 flex flex-col items-center px-2 py-4", T.card)}
+              style={{ animationDelay: `${i * 0.04}s` }}
             >
               <Avatar name={p.name} size={40} />
-              <p
-                style={{
-                  margin: "8px 0 0",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  textAlign: "center",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  maxWidth: "100%",
-                }}
-              >
-                {p.name}
-              </p>
+              <p className="m-0 mt-2 max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center text-xs font-bold">{p.name}</p>
             </div>
           ))}
         </div>
@@ -228,16 +186,7 @@ export function ClueReadyScreen({ round, players, config, matchRound, onStart }:
       </Btn>
       <button
         onClick={() => setPickingReview(true)}
-        className="impostor-clue-ready-link"
-        style={{
-          background: "none",
-          border: "none",
-          color: "var(--jt-muted-text)",
-          fontSize: 13,
-          fontWeight: 700,
-          padding: "14px 0 4px",
-          cursor: "pointer",
-        }}
+        className="impostor-clue-ready-link cursor-pointer border-none bg-transparent px-0 py-3.5 pb-1 text-[13px] font-bold text-[var(--jt-muted-text)]"
       >
         Olvidé la palabra
       </button>

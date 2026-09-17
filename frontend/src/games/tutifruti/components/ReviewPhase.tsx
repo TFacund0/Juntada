@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import { shuffle } from "@juntada/core-utils";
@@ -60,8 +61,8 @@ export function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "m
             .filter(e => e.word && e.word.trim());
           if (entries.length === 0) return null;
           return (
-            <div key={cat.id} style={S.card}>
-              <span style={S.label}>
+            <div key={cat.id} className={T.card}>
+              <span className={T.label}>
                 {cat.icon ? `${cat.icon} ` : ""}
                 {cat.label}
               </span>
@@ -76,71 +77,48 @@ export function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "m
                 const rejectedByVotes = ticks + crosses > 0 && crosses >= ticks;
                 const struckOut = wrongLetter || rejectedByVotes;
                 return (
-                  <div
-                    key={playerId}
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "8px 0",
-                      borderBottom: "1px solid rgba(127,119,221,0.08)",
-                    }}
-                  >
+                  <div key={playerId} className="flex flex-wrap items-center gap-2.5 border-b border-[rgba(127,119,221,0.08)] py-2">
                     {/* The word always takes the full row on its own — on a
                       narrow phone, a long word plus a tally column plus two
                       36px buttons all fighting for one row left almost no
                       breathing room, so the tally+buttons group wraps to its
                       own line below instead. */}
-                    <div style={{ flex: "1 1 100%", minWidth: 0 }}>
+                    <div className="min-w-0 flex-[1_1_100%]">
                       <p
-                        style={{
-                          margin: 0,
-                          fontSize: 15,
-                          fontWeight: 600,
-                          wordBreak: "break-word",
-                          overflowWrap: "anywhere",
-                          color: struckOut ? "#F09595" : undefined,
-                          textDecoration: struckOut ? "line-through" : undefined,
-                        }}
+                        className={clsx(
+                          "m-0 break-words text-[15px] font-semibold [overflow-wrap:anywhere]",
+                          struckOut && "text-[#F09595] line-through",
+                        )}
                       >
                         {word}
                       </p>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, flex: "1 1 auto" }}>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "flex-end" }}>
+                    <div className="flex flex-[1_1_auto] items-center justify-end gap-2.5">
+                      <div className="flex flex-wrap justify-end gap-0.5">
                         {Object.values(marksForWord).map((valid, i) => (
-                          <span key={i} style={{ fontSize: 11, color: valid ? "#5DCAA5" : "#F09595" }}>
+                          <span key={i} className={clsx("text-[11px]", valid ? "text-[#5DCAA5]" : "text-[#F09595]")}>
                             {valid ? "✓" : "✗"}
                           </span>
                         ))}
                       </div>
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <div className="flex shrink-0 gap-1.5">
                         <button
                           onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: true })}
                           disabled={iConfirmed}
-                          style={{
-                            ...S.btn(me && marksForWord[me.playerId] === true ? "success" : "ghost", iConfirmed),
-                            width: 36,
-                            height: 36,
-                            padding: 0,
-                            borderRadius: 8,
-                            fontSize: 16,
-                          }}
+                          className={clsx(
+                            T.btn(me && marksForWord[me.playerId] === true ? "success" : "ghost", iConfirmed),
+                            "h-9 w-9 rounded-lg p-0 text-base",
+                          )}
                         >
                           ✓
                         </button>
                         <button
                           onClick={() => send({ type: "mark_word", targetPlayerId: playerId, categoryId: cat.id, valid: false })}
                           disabled={iConfirmed}
-                          style={{
-                            ...S.btn(me && marksForWord[me.playerId] === false ? "danger" : "ghost", iConfirmed),
-                            width: 36,
-                            height: 36,
-                            padding: 0,
-                            borderRadius: 8,
-                            fontSize: 16,
-                          }}
+                          className={clsx(
+                            T.btn(me && marksForWord[me.playerId] === false ? "danger" : "ghost", iConfirmed),
+                            "h-9 w-9 rounded-lg p-0 text-base",
+                          )}
                         >
                           ✗
                         </button>
@@ -154,14 +132,14 @@ export function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "m
         })}
       </div>
       {!iConfirmed && unvotedCount > 0 && (
-        <p style={{ fontSize: 12, color: "var(--jt-warn-text, #E2C44A)", textAlign: "center", marginBottom: 8 }}>
+        <p className="mb-2 text-center text-xs text-[var(--jt-warn-text,#E2C44A)]">
           {unvotedCount} respuesta{unvotedCount === 1 ? "" : "s"} sin ningún voto todavía — sin votos cuentan como válidas.
         </p>
       )}
       <StickyActionBar>
         {iConfirmed ? (
-          <div style={{ ...S.card, textAlign: "center" }}>
-            <p style={{ color: "#5DCAA5", margin: 0 }}>
+          <div className={clsx(T.card, "text-center")}>
+            <p className="m-0 text-[#5DCAA5]">
               Confirmaste los puntajes — esperando a los demás ({confirmedCount}/{online.length})
             </p>
           </div>

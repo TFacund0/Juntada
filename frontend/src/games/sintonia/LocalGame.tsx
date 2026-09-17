@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { BackButton } from "../../components/game-kit/BackButton";
@@ -97,26 +98,13 @@ function Scoreboard({
       {ranked.map((p, i) => {
         const delta = roundPoints?.[p.id] ?? 0;
         return (
-          <div
-            key={p.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "6px 0",
-              borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
-            }}
-          >
-            <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+          <div key={p.id} className={T.rankRow(i === ranked.length - 1)}>
+            <span className={T.rankIndex}>{i + 1}</span>
             <Avatar name={p.name} size={28} />
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
-            <span style={{ ...S.muted, fontSize: 12 }}>psíquico x{p.timesPsychic}</span>
-            {roundPoints && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: delta > 0 ? "#5DCAA5" : "#6b6490", minWidth: 24, textAlign: "right" }}>
-                +{delta}
-              </span>
-            )}
-            <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 28, textAlign: "right" }}>{p.points}</span>
+            <span className={T.rankName}>{p.name}</span>
+            <span className={T.muted}>psíquico x{p.timesPsychic}</span>
+            {roundPoints && <span className={T.deltaBadge(delta > 0)}>+{delta}</span>}
+            <span className={T.rankPointsTotal}>{p.points}</span>
           </div>
         );
       })}
@@ -309,28 +297,25 @@ export function LocalGame() {
   // ── SETUP (jugadores y configuración general) ──
   if (phase === "setup")
     return (
-      <div style={{ paddingBottom: 88 }}>
+      <div className="pb-[88px]">
         <SetupTabs tab={tab} onChange={setTab} />
 
         {tab === "players" && (
           <>
-            <div style={S.card}>
-              <span style={S.label}>Jugadores ({players.length})</span>
+            <div className={T.card}>
+              <span className={T.label}>Jugadores ({players.length})</span>
               {players.map(p => (
-                <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                <div key={p.id} className="flex items-center gap-2 mb-2">
                   <Avatar name={p.name} size={32} />
-                  <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-                  <button
-                    onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                    style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
-                  >
+                  <input className={clsx(T.input, "flex-1")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                  <button onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))} className={T.squareIconBtn("danger")}>
                     ×
                   </button>
                 </div>
               ))}
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <div className="flex gap-2 mt-2.5">
                 <input
-                  style={{ ...S.input, flex: 1 }}
+                  className={clsx(T.input, "flex-1")}
                   placeholder="Nombre"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
@@ -351,13 +336,13 @@ export function LocalGame() {
 
         {tab === "config" && (
           <>
-            <div style={S.card}>
+            <div className={T.card}>
               <Toggle
                 label={config.writtenClues ? "Pistas escritas (se escriben en el dispositivo)" : "Pistas dichas en voz alta"}
                 value={config.writtenClues}
                 onChange={v => setConfig(c => ({ ...c, writtenClues: v }))}
               />
-              <p style={{ ...S.muted, margin: "10px 0 0", lineHeight: 1.4 }}>
+              <p className={clsx(T.muted, "mt-2.5 mb-0 leading-[1.4]")}>
                 Con pistas escritas, el psíquico la tipea en el dispositivo antes de pasarlo. Sin esto, la dice en voz alta y el dispositivo
                 pasa directo a que el resto adivine.
               </p>
@@ -387,28 +372,21 @@ export function LocalGame() {
 
     return (
       <div>
-        <div style={S.card}>
-          <span style={S.label}>¿Quién es el psíquico esta ronda?</span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className={T.card}>
+          <span className={T.label}>¿Quién es el psíquico esta ronda?</span>
+          <div className="flex flex-col gap-2">
             {players.map(p => (
               <button
                 key={p.id}
                 onClick={() => setSetupPsychicId(p.id)}
-                style={{
-                  ...S.btn(chosenPsychicId === p.id && setupPsychicId !== "random" ? "primary" : "ghost"),
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  justifyContent: "flex-start",
-                  padding: "10px 14px",
-                }}
+                className={T.psychicChoiceBtn(chosenPsychicId === p.id && setupPsychicId !== "random")}
               >
                 <Avatar name={p.name} size={28} />
                 <span>{p.name}</span>
-                {p.id === suggestedId && <span style={{ ...S.muted, marginLeft: "auto", fontSize: 11 }}>sugerido por turno</span>}
+                {p.id === suggestedId && <span className={clsx(T.muted, "ml-auto text-[11px]")}>sugerido por turno</span>}
               </button>
             ))}
-            <button onClick={() => setSetupPsychicId("random")} style={{ ...S.btn(setupPsychicId === "random" ? "primary" : "ghost") }}>
+            <button onClick={() => setSetupPsychicId("random")} className={T.btn(setupPsychicId === "random" ? "primary" : "ghost")}>
               🎲 Elegir al azar
             </button>
           </div>
@@ -441,28 +419,28 @@ export function LocalGame() {
       const previewPair = spectrumMode === "manual" ? { left: spectrumLeft || "?", right: spectrumRight || "?" } : resolvedPair;
       return (
         <div>
-          <div style={{ textAlign: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <div className="text-center mb-4">
+            <div className={T.avatarNameRow}>
               <Avatar name={psychic.name} size={56} />
-              <p style={{ fontWeight: 800, fontSize: 20, margin: 0 }}>{psychic.name}</p>
+              <p className="font-extrabold text-xl m-0">{psychic.name}</p>
             </div>
-            <p style={S.muted}>Pasále el dispositivo solo a esta persona</p>
+            <p className={T.muted}>Pasále el dispositivo solo a esta persona</p>
           </div>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
+          <div className={clsx(T.cardHighlight, "text-center")}>
+            <p className="text-[22px] font-extrabold text-[#AFA9EC] m-0">Sos el psíquico</p>
           </div>
           {previewPair && (
-            <div style={S.card}>
+            <div className={T.card}>
               <Dial value={50} showNeedle={false} leftLabel={previewPair.left} rightLabel={previewPair.right} />
             </div>
           )}
-          <div style={S.card}>
-            <span style={S.label}>¿Qué par de conceptos usamos?</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className={T.card}>
+            <span className={T.label}>¿Qué par de conceptos usamos?</span>
+            <div className="flex flex-col gap-2">
               {lastRound && (
                 <button
                   onClick={() => setSpectrumMode("same")}
-                  style={{ ...S.btn(spectrumMode === "same" ? "primary" : "ghost"), textAlign: "left" }}
+                  className={clsx(T.btn(spectrumMode === "same" ? "primary" : "ghost"), "text-left")}
                 >
                   Repetir: {lastRound.left} / {lastRound.right}
                 </button>
@@ -472,13 +450,13 @@ export function LocalGame() {
                   setSpectrumMode("random");
                   if (!randomPreview) setRandomPreview(pickAndCyclePreview());
                 }}
-                style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
+                className={clsx(T.btn(spectrumMode === "random" ? "primary" : "ghost"), "text-left")}
               >
                 Uno al azar de la base
               </button>
               <button
                 onClick={() => setSpectrumMode("manual")}
-                style={{ ...S.btn(spectrumMode === "manual" ? "primary" : "ghost"), textAlign: "left" }}
+                className={clsx(T.btn(spectrumMode === "manual" ? "primary" : "ghost"), "text-left")}
               >
                 Elegirlo yo mismo
               </button>
@@ -489,15 +467,15 @@ export function LocalGame() {
               </Btn>
             )}
             {spectrumMode === "manual" && (
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <div className="flex gap-2 mt-2.5">
                 <input
-                  style={{ ...S.input, flex: 1 }}
+                  className={clsx(T.input, "flex-1")}
                   placeholder="Extremo izquierdo"
                   value={spectrumLeft}
                   onChange={e => setSpectrumLeft(e.target.value)}
                 />
                 <input
-                  style={{ ...S.input, flex: 1 }}
+                  className={clsx(T.input, "flex-1")}
                   placeholder="Extremo derecho"
                   value={spectrumRight}
                   onChange={e => setSpectrumRight(e.target.value)}
@@ -505,7 +483,7 @@ export function LocalGame() {
               </div>
             )}
             {spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim()) && (
-              <p style={{ fontSize: 12, color: "#E2C44A", marginTop: 8 }}>Completá los dos extremos para poder continuar</p>
+              <p className="text-xs text-[#E2C44A] mt-2">Completá los dos extremos para poder continuar</p>
             )}
           </div>
           <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
@@ -519,47 +497,33 @@ export function LocalGame() {
     const canProceed = revealed && (!config.writtenClues || clueText.trim());
     return (
       <div>
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <div className="text-center mb-4">
+          <div className={T.avatarNameRow}>
             <Avatar name={psychic.name} size={56} />
-            <p style={{ fontWeight: 800, fontSize: 20, margin: 0 }}>{psychic.name}</p>
+            <p className="font-extrabold text-xl m-0">{psychic.name}</p>
           </div>
-          <p style={S.muted}>Pasále el dispositivo solo a esta persona</p>
+          <p className={T.muted}>Pasále el dispositivo solo a esta persona</p>
         </div>
-        <div
-          style={{
-            ...S.card,
-            textAlign: "center",
-            cursor: "pointer",
-            border: revealed ? "1px solid rgba(127,119,221,0.4)" : "1px solid rgba(255,255,255,0.08)",
-            minHeight: 260,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            userSelect: "none",
-          }}
-          onClick={() => setRevealed(v => !v)}
-        >
+        <div className={T.revealCard(revealed)} onClick={() => setRevealed(v => !v)}>
           {!revealed ? (
-            <p style={{ color: "#6b6490", fontSize: 15 }}>Tocá para revelar el objetivo</p>
+            <p className="text-[#6b6490] text-[15px]">Tocá para revelar el objetivo</p>
           ) : (
             <>
               <Dial value={round.target!} target={round.target} leftLabel={round.left!} rightLabel={round.right!} />
-              <p style={{ fontSize: 12, color: "#5a5280", marginTop: 12 }}>Tocá para ocultar</p>
+              <p className="text-xs text-[#5a5280] mt-3">Tocá para ocultar</p>
             </>
           )}
         </div>
         {revealed && !config.writtenClues && (
-          <p style={{ ...S.muted, textAlign: "center", margin: "12px 0" }}>
+          <p className={clsx(T.muted, "text-center my-3")}>
             Pensá una pista (una palabra, una persona, lo que sea) que ubique ese punto entre "{round.left}" y "{round.right}" y decila en
             voz alta. No digas el objetivo directamente.
           </p>
         )}
         {revealed && config.writtenClues && (
-          <div style={S.card}>
-            <span style={S.label}>Tu pista</span>
-            <input style={S.input} placeholder="Escribí tu pista..." value={clueText} onChange={e => setClueText(e.target.value)} />
+          <div className={T.card}>
+            <span className={T.label}>Tu pista</span>
+            <input className={T.input} placeholder="Escribí tu pista..." value={clueText} onChange={e => setClueText(e.target.value)} />
           </div>
         )}
         <Btn onClick={proceedToGuessing} disabled={!canProceed}>
@@ -574,33 +538,26 @@ export function LocalGame() {
     const guesser = players.find(p => p.id === guessOrder[guessIdx])!;
     return (
       <div>
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <div className="text-center mb-4">
+          <div className={T.avatarNameRow}>
             <Avatar name={guesser.name} size={56} />
-            <p style={{ fontWeight: 800, fontSize: 20, margin: 0 }}>{guesser.name}</p>
+            <p className="font-extrabold text-xl m-0">{guesser.name}</p>
           </div>
-          <p style={S.muted}>
+          <p className={T.muted}>
             Turno {guessIdx + 1} de {guessOrder.length} — pasále el dispositivo a esta persona
           </p>
         </div>
         {round.clue ? (
-          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "#9089c0" }}>Pista de {round.psychicName}</p>
-            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>"{round.clue}"</p>
+          <div className={clsx(T.cardHighlight, "text-center mb-4")}>
+            <p className="text-xs text-[#9089c0]">Pista de {round.psychicName}</p>
+            <p className="text-xl font-extrabold text-[#AFA9EC]">"{round.clue}"</p>
           </div>
         ) : (
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Guiate por la pista que dijo {round.psychicName} en voz alta</p>
+          <p className={clsx(T.muted, "text-center mb-4")}>Guiate por la pista que dijo {round.psychicName} en voz alta</p>
         )}
-        <div style={S.card}>
+        <div className={T.card}>
           <Dial value={guessValue} leftLabel={round.left!} rightLabel={round.right!} />
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={guessValue}
-            onChange={e => setGuessValue(+e.target.value)}
-            style={{ width: "100%", marginTop: 16 }}
-          />
+          <input type="range" min="0" max="100" value={guessValue} onChange={e => setGuessValue(+e.target.value)} className="w-full mt-4" />
         </div>
         <Btn variant="success" onClick={confirmCurrentGuess}>
           {guessIdx + 1 < guessOrder.length ? "Confirmar y pasar al siguiente" : "Confirmar y revelar resultado"}
@@ -624,15 +581,15 @@ export function LocalGame() {
 
     return (
       <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <span style={S.label}>Pista de {round.psychicName}</span>
+        <div className={clsx(T.cardHighlight, "text-center")}>
+          <span className={T.label}>Pista de {round.psychicName}</span>
           {round.clue ? (
-            <p style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>"{round.clue}"</p>
+            <p className="text-lg font-bold m-0">"{round.clue}"</p>
           ) : (
-            <p style={{ ...S.muted, margin: 0 }}>(dicha en voz alta)</p>
+            <p className={clsx(T.muted, "m-0")}>(dicha en voz alta)</p>
           )}
         </div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+        <div className={clsx(T.cardHighlight, "text-center")}>
           <Dial
             value={round.target!}
             target={round.target}
@@ -642,21 +599,11 @@ export function LocalGame() {
             showNeedle={false}
           />
           {guessers.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 10px", marginTop: 10 }}>
+            <div className="flex flex-wrap justify-center gap-x-2.5 gap-y-1 mt-2.5">
               {guessers.map((p, i) => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span
-                    style={{
-                      width: 13,
-                      height: 13,
-                      borderRadius: "50%",
-                      background: MARKER_COLORS[i % MARKER_COLORS.length],
-                      border: "1.5px solid rgba(255,255,255,0.4)",
-                      display: "inline-block",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "#b8b0d4" }}>
+                <div key={p.id} className="flex items-center gap-1">
+                  <span className={T.markerDotBase} style={{ background: MARKER_COLORS[i % MARKER_COLORS.length] }} />
+                  <span className="text-[11px] font-semibold text-[#b8b0d4]">
                     {labels[i]} — {p.name}
                   </span>
                 </div>
@@ -672,12 +619,12 @@ export function LocalGame() {
             return (
               <Collapsible title="Puntos de la ronda">
                 {players.map(p => (
-                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 14 }}>
-                    <span style={{ color: "#b8b0d4" }}>
+                  <div key={p.id} className="flex justify-between py-1.5 text-sm">
+                    <span className="text-[#b8b0d4]">
                       {p.name}
                       {p.id === round.psychicId ? " (psíquico)" : ""}
                     </span>
-                    <span style={{ color: (points[p.id] || 0) > 0 ? "#5DCAA5" : "#F09595" }}>+{points[p.id] || 0}</span>
+                    <span className={(points[p.id] || 0) > 0 ? "text-[#5DCAA5]" : "text-[#F09595]"}>+{points[p.id] || 0}</span>
                   </div>
                 ))}
               </Collapsible>
@@ -689,12 +636,12 @@ export function LocalGame() {
           const isTie = winners.length > 1;
           return (
             <>
-              <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-                <span style={S.label}>Partida terminada</span>
-                <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+              <div className={clsx(T.cardHighlight, "text-center")}>
+                <span className={T.label}>Partida terminada</span>
+                <p className="text-xl font-extrabold text-[#AFA9EC] my-1">
                   🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
                 </p>
-                <p style={S.muted}>
+                <p className={T.muted}>
                   {history.length} rondas jugadas · {topScore} puntos
                 </p>
               </div>
@@ -702,7 +649,7 @@ export function LocalGame() {
             </>
           );
         })()}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+        <div className="flex flex-col gap-2.5 mt-1">
           {config.playMode === "rounds" && history.length >= config.roundLimit ? (
             <StartButton onClick={startGame}>Nueva partida</StartButton>
           ) : (

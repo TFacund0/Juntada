@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { maxImpostors } from "@juntada/impostor-match-rules";
 import { TurnOrderEditor } from "../../../../components/game-kit/TurnOrderEditor";
 import { ConfigSection } from "../config/ConfigSection";
@@ -35,27 +36,25 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
       {tab === "rules" && (
         <div>
           <ConfigSection divider={false}>
-            <span style={S.label}>Impostores</span>
-            <div style={{ display: "flex", gap: 8 }}>
+            <span className={T.label}>Impostores</span>
+            <div className="flex gap-2">
               {[1, 2, 3].map(n => (
                 <button
                   key={n}
                   onClick={() => updateConfig({ numImpostors: n })}
                   disabled={n > maxImp}
-                  style={{
-                    ...S.btn(config.numImpostors === n ? "primary" : "ghost"),
-                    flex: 1,
-                    padding: "8px",
-                    fontSize: 13,
-                    opacity: n > maxImp ? 0.35 : 1,
-                  }}
+                  className={clsx(
+                    T.btn(config.numImpostors === n ? "primary" : "ghost"),
+                    "flex-1 p-2 text-[13px]",
+                    n > maxImp ? "opacity-35" : "opacity-100",
+                  )}
                 >
                   {n}
                 </button>
               ))}
             </div>
             {maxImp < 3 && (
-              <p style={{ ...S.muted, marginTop: 8, lineHeight: 1.4 }}>
+              <p className={clsx(T.muted, "mt-2 leading-[1.4]")}>
                 Con {room.players.length} jugadores, como máximo puede haber {maxImp} {maxImp === 1 ? "impostor" : "impostores"} — tienen
                 que ser menos que los inocentes.
               </p>
@@ -70,22 +69,22 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </ConfigSection>
 
           <ConfigSection>
-            <span style={S.label}>¿El impostor recibe una pista?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <span className={T.label}>¿El impostor recibe una pista?</span>
+            <div className="mt-1 flex gap-2">
               <button
                 onClick={() => updateConfig({ hintsEnabled: true })}
-                style={{ ...S.btn(config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                className={clsx(T.btn(config.hintsEnabled ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
               >
                 Sí, con pista
               </button>
               <button
                 onClick={() => updateConfig({ hintsEnabled: false })}
-                style={{ ...S.btn(!config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                className={clsx(T.btn(!config.hintsEnabled ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
               >
                 No, a ciegas
               </button>
             </div>
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+            <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
               {config.hintsEnabled
                 ? "El impostor ve una pista relacionada con la palabra secreta, para poder disimular."
                 : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
@@ -97,22 +96,22 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </ConfigSection>
 
           <ConfigSection>
-            <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <span className={T.label}>¿Cómo dan su palabra los jugadores?</span>
+            <div className="mt-1 flex gap-2">
               <button
                 onClick={() => updateConfig({ writtenClues: true })}
-                style={{ ...S.btn(config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                className={clsx(T.btn(config.writtenClues ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
               >
                 Escrita
               </button>
               <button
                 onClick={() => updateConfig({ writtenClues: false })}
-                style={{ ...S.btn(!config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                className={clsx(T.btn(!config.writtenClues ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
               >
                 En voz alta
               </button>
             </div>
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+            <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
               {config.writtenClues
                 ? "Cada uno escribe su palabra en el dispositivo por turnos, y queda visible para todos apenas la envía."
                 : "Cada uno dice su palabra en voz alta, por turnos, y solo confirma en el dispositivo cuando ya la dijo."}
@@ -120,8 +119,8 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
           </ConfigSection>
 
           <ConfigSection>
-            <span style={S.label}>Tiempo por turno: {config.clueTime === 0 ? "Sin límite" : `${config.clueTime}s`}</span>
-            <p style={{ ...S.muted, margin: "4px 0 0", lineHeight: 1.4 }}>Cuánto tiene cada jugador para dar su palabra cuando le toca.</p>
+            <span className={T.label}>Tiempo por turno: {config.clueTime === 0 ? "Sin límite" : `${config.clueTime}s`}</span>
+            <p className={clsx(T.muted, "m-0 mt-1 leading-[1.4]")}>Cuánto tiene cada jugador para dar su palabra cuando le toca.</p>
             <input
               type="range"
               min="0"
@@ -129,12 +128,12 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
               step="15"
               value={config.clueTime}
               onChange={e => updateConfig({ clueTime: +e.target.value })}
-              style={{ width: "100%", marginTop: 8 }}
+              className="mt-2 w-full"
             />
           </ConfigSection>
 
           <ConfigSection>
-            <span style={S.label}>
+            <span className={T.label}>
               Tiempo de discusión:{" "}
               {config.discussionUnlimited
                 ? "Sin límite"
@@ -142,7 +141,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                   ? "Sin fase de discusión"
                   : `${config.discussionTime}s`}
             </span>
-            <p style={{ ...S.muted, margin: "4px 0 8px", lineHeight: 1.4 }}>Cuánto dura la charla antes de pasar a la votación.</p>
+            <p className={clsx(T.muted, "m-0 mb-2 mt-1 leading-[1.4]")}>Cuánto dura la charla antes de pasar a la votación.</p>
             <input
               type="range"
               min="0"
@@ -151,38 +150,41 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
               value={config.discussionTime}
               disabled={config.discussionUnlimited}
               onChange={e => updateConfig({ discussionTime: +e.target.value, discussionUnlimited: false })}
-              style={{ width: "100%", opacity: config.discussionUnlimited ? 0.4 : 1 }}
+              className={clsx("w-full", config.discussionUnlimited ? "opacity-40" : "opacity-100")}
             />
-            <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
+            <label className="mt-3 flex cursor-pointer items-center gap-2.5">
               <div
-                style={S.toggle(!!config.discussionUnlimited)}
+                className={T.toggle(!!config.discussionUnlimited)}
                 onClick={() => updateConfig({ discussionUnlimited: !config.discussionUnlimited })}
               >
-                <div style={S.knob(!!config.discussionUnlimited)} />
+                <div className={T.knob(!!config.discussionUnlimited)} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "var(--jt-muted-text)" }}>
+              <span
+                className="text-[13px] font-semibold"
+                style={{ color: config.discussionUnlimited ? "#5DCAA5" : "var(--jt-muted-text)" }}
+              >
                 Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
               </span>
             </label>
           </ConfigSection>
 
           <ConfigSection>
-            <span style={S.label}>¿Cómo van a discutir?</span>
-            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <span className={T.label}>¿Cómo van a discutir?</span>
+            <div className="mt-1 flex gap-2">
               <button
                 onClick={() => updateConfig({ discussionMode: "voice" })}
-                style={{ ...S.btn(config.discussionMode !== "chat" ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                className={clsx(T.btn(config.discussionMode !== "chat" ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
               >
                 Por voz
               </button>
               <button
                 onClick={() => updateConfig({ discussionMode: "chat" })}
-                style={{ ...S.btn(config.discussionMode === "chat" ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                className={clsx(T.btn(config.discussionMode === "chat" ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
               >
                 Chat de texto
               </button>
             </div>
-            <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+            <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
               {config.discussionMode === "chat"
                 ? "Aparece un chat de texto en la fase de discusión para escribirse entre todos."
                 : "Discuten en voz alta (en persona o por llamada) — la app no necesita mostrar nada extra."}

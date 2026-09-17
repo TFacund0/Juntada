@@ -32,7 +32,7 @@ export function GroupMembersGrid({
               </button>
             )}
             <div className="jt-group-member-avatar-wrap">
-              <Avatar name={m.name} size={46} />
+              <Avatar name={m.name} size={52} />
               <span
                 className={`jt-group-member-status ${!m.online ? "jt-group-member-status--offline" : ""}`}
                 title={m.online ? "Conectado" : "Desconectado"}

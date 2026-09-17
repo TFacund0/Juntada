@@ -1,4 +1,5 @@
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Avatar } from "../ui/Avatar";
 
 /**
@@ -63,47 +64,39 @@ export function TurnOrderEditor({
   };
 
   return (
-    <div style={bare ? undefined : S.card}>
-      <span style={S.label}>{label}</span>
-      {helpText && <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>{helpText}</p>}
+    <div className={bare ? undefined : T.card}>
+      <span className={T.label}>{label}</span>
+      {helpText && <p className={clsx(T.muted, "m-0 mb-2.5 leading-[1.4]")}>{helpText}</p>}
 
       {allowRandom && (
-        <div style={{ display: "flex", gap: 8, marginBottom: manual ? 12 : 0 }}>
-          <button onClick={() => onChange([])} style={{ ...S.btn(!manual ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}>
+        <div className={clsx("flex gap-2", manual ? "mb-3" : "mb-0")}>
+          <button onClick={() => onChange([])} className={clsx(T.btn(!manual ? "primary" : "ghost"), "flex-1 p-2 text-[13px]")}>
             Al azar
           </button>
-          <button onClick={() => onChange(order)} style={{ ...S.btn(manual ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}>
+          <button onClick={() => onChange(order)} className={clsx(T.btn(manual ? "primary" : "ghost"), "flex-1 p-2 text-[13px]")}>
             Orden manual
           </button>
         </div>
       )}
 
       {manual && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="flex flex-col gap-1.5">
           {rows.map((p, i) => (
-            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-              <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "var(--jt-muted-text)" }}>{i + 1}</span>
+            <div key={p.id} className="flex items-center gap-2.5 py-1.5">
+              <span className="w-[18px] text-xs font-extrabold text-[var(--jt-muted-text)]">{i + 1}</span>
               <Avatar name={p.name} size={28} />
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+              <span className="flex-1 text-sm font-bold">{p.name}</span>
               <button
                 onClick={() => move(i, -1)}
                 disabled={i === 0}
-                style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 14, opacity: i === 0 ? 0.35 : 1 }}
+                className={clsx(T.btn("ghost"), "h-8 w-8 rounded-lg p-0 text-sm", i === 0 ? "opacity-35" : "opacity-100")}
               >
                 ↑
               </button>
               <button
                 onClick={() => move(i, 1)}
                 disabled={i === rows.length - 1}
-                style={{
-                  ...S.btn("ghost"),
-                  width: 32,
-                  height: 32,
-                  padding: 0,
-                  borderRadius: 8,
-                  fontSize: 14,
-                  opacity: i === rows.length - 1 ? 0.35 : 1,
-                }}
+                className={clsx(T.btn("ghost"), "h-8 w-8 rounded-lg p-0 text-sm", i === rows.length - 1 ? "opacity-35" : "opacity-100")}
               >
                 ↓
               </button>

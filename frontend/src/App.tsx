@@ -1,4 +1,5 @@
-import { S } from "./theme/styles";
+import clsx from "clsx";
+import { T } from "./theme/styles/classes";
 import "./theme/tailwind.css";
 import "./theme/curtain.css";
 import "./theme/sharedChrome.css";
@@ -59,14 +60,7 @@ export default function App() {
   if (!playerName) return <NameOnboardingScreen onSave={savePlayerName} />;
 
   return (
-    <div
-      style={{
-        ...S.app,
-        ...activeTheme?.app,
-        position: "relative",
-        transition: "background-color .4s ease, color .4s ease",
-      }}
-    >
+    <div className={clsx(T.app, "relative transition-[background-color,color] duration-[400ms] ease")} style={activeTheme?.app}>
       <AppOverlays
         curtain={curtain}
         activeTheme={activeTheme}

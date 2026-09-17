@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Avatar } from "../../../components/ui/Avatar";
 import { StartButton } from "../../../components/setup/StartButton";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
@@ -31,64 +32,49 @@ export function RoundResult({
   return (
     <div style={{ paddingBottom: isHost ? STICKY_ACTION_BAR_CLEARANCE : undefined }}>
       <RoundBadge round={round} />
-      <div style={{ textAlign: "center", padding: "12px 0" }}>
-        <p style={{ ...S.title, fontSize: 26, display: "block" }}>Puntos de la ronda</p>
+      <div className="py-3 text-center">
+        <p className={clsx(T.title, "block text-2xl")}>Puntos de la ronda</p>
       </div>
-      <div style={S.card}>
-        <span style={S.label}>Clasificación</span>
+      <div className={T.card}>
+        <span className={T.label}>Clasificación</span>
         {standings.map((p, i) => (
           <div
             key={p.id}
-            className="tf-podium-row"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "8px 0",
-              borderBottom: "1px solid rgba(127,119,221,0.08)",
-              animationDelay: `${i * 60}ms`,
-            }}
+            className="tf-podium-row flex items-center gap-2.5 border-b border-[rgba(127,119,221,0.08)] py-2"
+            style={{ animationDelay: `${i * 60}ms` }}
           >
-            <span style={{ fontWeight: 800, color: i === 0 ? "var(--jt-warn-text, #E2C44A)" : "var(--jt-muted-text, #6b6490)", width: 20 }}>
+            <span
+              className="w-5 font-extrabold"
+              style={{ color: i === 0 ? "var(--jt-warn-text, #E2C44A)" : "var(--jt-muted-text, #6b6490)" }}
+            >
               {i + 1}
             </span>
             <Avatar name={p.name} size={30} />
-            <span style={{ flex: 1, fontWeight: 700 }}>{p.name}</span>
-            <span style={{ fontSize: 12, color: "#5DCAA5", marginRight: 8 }}>+{p.roundPts}</span>
-            <span style={{ fontWeight: 800, color: "#5DCAA5" }}>{p.score} pts</span>
+            <span className="flex-1 font-bold">{p.name}</span>
+            <span className="mr-2 text-xs text-[#5DCAA5]">+{p.roundPts}</span>
+            <span className="font-extrabold text-[#5DCAA5]">{p.score} pts</span>
           </div>
         ))}
       </div>
-      <div style={S.card}>
-        <span style={S.label}>Desglose ({round.letter})</span>
+      <div className={T.card}>
+        <span className={T.label}>Desglose ({round.letter})</span>
         {round.categories.map(cat => {
           const entries = room.players
             .map(p => (breakdown[p.id] || {})[cat.id])
             .filter((b): b is TutifrutiAnswerBreakdown => !!b && !!b.word);
           if (entries.length === 0) return null;
           return (
-            <div key={cat.id} style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 12, color: "#7F77DD", fontWeight: 700 }}>
+            <div key={cat.id} className="mb-3">
+              <span className="text-xs font-bold text-[#7F77DD]">
                 {cat.icon ? `${cat.icon} ` : ""}
                 {cat.label}
               </span>
               {entries.map((b, i) => (
-                <div
-                  key={i}
-                  style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "4px 0", color: "#b8b0d4" }}
-                >
-                  <span
-                    style={{
-                      wordBreak: "break-word",
-                      overflowWrap: "anywhere",
-                      minWidth: 0,
-                      color: !b.valid ? "#F09595" : undefined,
-                      textDecoration: !b.valid ? "line-through" : undefined,
-                    }}
-                  >
+                <div key={i} className="flex justify-between gap-2.5 py-1 text-[13px] text-[#b8b0d4]">
+                  <span className={clsx("min-w-0 break-words [overflow-wrap:anywhere]", !b.valid && "text-[#F09595] line-through")}>
                     {b.word}
                   </span>
-                  <span style={{ flexShrink: 0, color: !b.valid ? "#F09595" : b.duplicate ? "#EF9F27" : "#5DCAA5" }}>
+                  <span className="shrink-0" style={{ color: !b.valid ? "#F09595" : b.duplicate ? "#EF9F27" : "#5DCAA5" }}>
                     {b.wrongLetter
                       ? `No empieza con "${round.letter}"`
                       : !b.valid
@@ -104,7 +90,7 @@ export function RoundResult({
         })}
       </div>
       {!isHost && (
-        <p style={{ ...S.muted, textAlign: "center" }}>
+        <p className={clsx(T.muted, "text-center")}>
           {round.isFinalRound
             ? "Se jugaron todas las rondas configuradas — esperando al anfitrión."
             : "Esperando a que el anfitrión inicie una nueva ronda..."}

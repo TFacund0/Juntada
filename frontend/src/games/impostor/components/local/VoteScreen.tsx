@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { Btn } from "../../../../components/ui/Btn";
 import { Avatar } from "../../../../components/ui/Avatar";
 import { SuspectGrid } from "../shared/SuspectGrid";
@@ -45,46 +46,30 @@ export function VoteScreen({ round, players, selection, setSelection, votes, con
         }
       `}</style>
 
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <p
-          style={{
-            margin: "0 0 6px",
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--jt-accent, #e0202b)",
-          }}
-        >
-          Votación
-        </p>
-        <h2 style={{ margin: "0 0 8px", fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em" }}>¿Quién es el impostor?</h2>
-        <p style={{ ...S.muted, margin: "0 auto", lineHeight: 1.5, maxWidth: 300 }}>
+      <div className="mb-5 text-center">
+        <p className="m-0 mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#e0202b)]">Votación</p>
+        <h2 className="m-0 mb-2 text-2xl font-extrabold tracking-[-0.02em]">¿Quién es el impostor?</h2>
+        <p className={clsx(T.muted, "mx-auto my-0 max-w-[300px] leading-[1.5]")}>
           Cada uno vota a quién sospecha y confirma antes de pasar el dispositivo.
         </p>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <div style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
+      <div className="mb-4 flex items-center gap-2">
+        <div className="h-1.5 flex-1 rounded-[3px] bg-white/[0.08]">
           <div
-            style={{
-              height: "100%",
-              borderRadius: 3,
-              width: `${Math.round((confirmedCount / alive.length) * 100)}%`,
-              background: "#5DCAA5",
-              transition: "width 0.4s",
-            }}
+            className="h-full rounded-[3px] bg-[#5DCAA5] transition-[width] duration-[400ms]"
+            style={{ width: `${Math.round((confirmedCount / alive.length) * 100)}%` }}
           />
         </div>
-        <span style={{ fontSize: 12, color: "var(--jt-muted-text)", fontWeight: 700, whiteSpace: "nowrap" }}>
+        <span className="whitespace-nowrap text-xs font-bold text-[var(--jt-muted-text)]">
           {confirmedCount}/{alive.length}
         </span>
       </div>
 
       {revoteCandidates && (
-        <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
-          <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>Hubo un empate</p>
-          <p style={{ ...S.muted, margin: "4px 0 0" }}>Se vota de nuevo, solo entre quienes empataron</p>
+        <div className={clsx(T.card, "border border-[rgba(226,196,74,0.35)] bg-[rgba(226,196,74,0.08)] text-center")}>
+          <p className="m-0 text-sm font-bold text-[#E2C44A]">Hubo un empate</p>
+          <p className={clsx(T.muted, "m-0 mt-1")}>Se vota de nuevo, solo entre quienes empataron</p>
         </div>
       )}
 
@@ -93,31 +78,20 @@ export function VoteScreen({ round, players, selection, setSelection, votes, con
         const pending = selection[voter.id];
         if (confirmed) {
           return (
-            <div
-              key={voter.id}
-              className="impostor-vote-card"
-              style={{
-                ...S.card,
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 16px",
-                opacity: 0.6,
-              }}
-            >
+            <div key={voter.id} className={clsx("impostor-vote-card flex items-center gap-2.5 px-4 py-2.5 opacity-60", T.card)}>
               <Avatar name={voter.name} size={26} />
-              <span style={{ fontWeight: 700, fontSize: 13, flex: 1 }}>{voter.name}</span>
-              <span style={S.pill(true)}>✓ Confirmado</span>
+              <span className="flex-1 text-[13px] font-bold">{voter.name}</span>
+              <span className={T.pill(true)}>✓ Confirmado</span>
             </div>
           );
         }
         return (
-          <div key={voter.id} className="impostor-vote-card" style={{ ...S.card, animationDelay: `${i * 0.03}s` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div key={voter.id} className={clsx("impostor-vote-card", T.card)} style={{ animationDelay: `${i * 0.03}s` }}>
+            <div className="mb-3 flex items-center gap-2">
               <Avatar name={voter.name} size={32} />
-              <span style={{ fontWeight: 800, fontSize: 15 }}>{voter.name} sospecha de...</span>
+              <span className="text-[15px] font-extrabold">{voter.name} sospecha de...</span>
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div className="mb-3">
               <SuspectGrid
                 suspects={alive
                   .filter(p => p.id !== voter.id && (!revoteCandidates || revoteCandidates.includes(p.id)))

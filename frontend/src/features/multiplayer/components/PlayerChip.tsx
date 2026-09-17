@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { DEFAULT_COLORS } from "../../../theme/styles/colors";
 import { Avatar } from "../../../components/ui/Avatar";
 import { MemberActionsDialog } from "./MemberActionsDialog";
@@ -35,88 +36,47 @@ export function PlayerChip({
 
   return (
     <div
-      className="jt-player-chip jt-glow-hover jt-animate-rise"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        textAlign: "center",
-        position: "relative",
-        padding: "8px",
-        borderRadius: 14,
-        overflow: "hidden",
-        background: isMe ? "var(--jt-accent-soft, rgba(127,119,221,0.08))" : "rgba(255,255,255,0.03)",
-        border: `1px solid ${isMe ? "var(--jt-accent-border-soft, rgba(127,119,221,0.35))" : "var(--jt-row-border, rgba(127,119,221,0.08))"}`,
-        animationDelay: animationDelay ? `${animationDelay}ms` : undefined,
-      }}
+      className={clsx(
+        "jt-player-chip jt-glow-hover jt-animate-rise relative flex flex-col items-center justify-center gap-1.5 overflow-hidden rounded-[14px] p-2 text-center border",
+        isMe
+          ? "bg-[var(--jt-accent-soft,rgba(127,119,221,0.08))] border-[var(--jt-accent-border-soft,rgba(127,119,221,0.35))]"
+          : "bg-white/[0.03] border-[var(--jt-row-border,rgba(127,119,221,0.08))]",
+      )}
+      style={animationDelay ? { animationDelay: `${animationDelay}ms` } : undefined}
     >
       <Avatar name={player.name} size={34} />
       <span
-        style={{
-          fontSize: 12.5,
-          fontWeight: isMe ? 800 : 700,
-          color: isMe ? "#fff" : undefined,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          maxWidth: "100%",
-        }}
+        className={clsx(
+          "max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[12.5px]",
+          isMe ? "font-extrabold text-white" : "font-bold",
+        )}
       >
         {player.name}
         {isMe && (
-          <span style={{ display: "block", fontWeight: 600, color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})`, fontSize: 10.5 }}>
+          <span className="block text-[10.5px] font-semibold" style={{ color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})` }}>
             vos
           </span>
         )}
       </span>
       {(isHostPlayer || !player.online) && (
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+        <div className="flex flex-wrap justify-center gap-1">
           {isHostPlayer && (
             <span
-              className="jt-player-host-badge"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 9,
-                fontWeight: 700,
-                padding: "2px 7px",
-                borderRadius: 20,
-                background: "var(--jt-accent-soft, rgba(127,119,221,0.18))",
-                color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
-                border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.35))",
-              }}
+              className="jt-player-host-badge inline-flex items-center gap-1 rounded-full border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.35))] bg-[var(--jt-accent-soft,rgba(127,119,221,0.18))] px-[7px] py-0.5 text-[9px] font-bold"
+              style={{ color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})` }}
             >
               👑 Anfitrión
             </span>
           )}
-          {!player.online && <span style={S.pill(false)}>Desconectado</span>}
+          {!player.online && <span className={T.pill(false)}>Desconectado</span>}
         </div>
       )}
       {canManage && (
-        <div style={{ position: "absolute", top: 6, right: 6 }}>
+        <div className="absolute right-1.5 top-1.5">
           <button
             onClick={() => onToggleMenu(player.id)}
             aria-label={`Opciones para ${player.name}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 22,
-              height: 22,
-              padding: 0,
-              border: "none",
-              borderRadius: 7,
-              background: "rgba(255,255,255,0.06)",
-              color: "var(--jt-muted-text, #8079a8)",
-              cursor: "pointer",
-              fontSize: 13,
-              lineHeight: 1,
-              fontWeight: 800,
-              fontFamily: "inherit",
-            }}
+            className="flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-[7px] border-none bg-white/[0.06] p-0 font-[inherit] text-[13px] font-extrabold leading-none text-[var(--jt-muted-text,#8079a8)]"
           >
             ⋮
           </button>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { Avatar } from "../../components/ui/Avatar";
 import { SetupTabs, type SetupTab } from "../../components/setup/SetupTabs";
@@ -48,33 +49,15 @@ function Ranking({ players, counts }: { players: LocalPlayer[]; counts: Record<n
   const ranked = players.map(p => ({ ...p, count: counts[p.id] || 0 })).sort((a, b) => b.count - a.count);
   const maxCount = ranked[0]?.count ?? 0;
   return (
-    <div style={S.card}>
-      <span style={S.label}>Cartas acumuladas</span>
+    <div className={T.card}>
+      <span className={T.label}>Cartas acumuladas</span>
       {ranked.map((p, i) => (
-        <div
-          key={p.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "6px 0",
-            borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
-          }}
-        >
-          <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+        <div key={p.id} className={T.rankRow(i === ranked.length - 1)}>
+          <span className={T.rankIndex}>{i + 1}</span>
           <Avatar name={p.name} size={28} />
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+          <span className={T.rankName}>{p.name}</span>
           {p.count === maxCount && maxCount > 0 && <span style={{ fontSize: 11, color: "#F09595", fontWeight: 700 }}>pierde</span>}
-          <span
-            style={{
-              fontWeight: 800,
-              color: p.count === maxCount && maxCount > 0 ? "#F09595" : "#AFA9EC",
-              minWidth: 24,
-              textAlign: "right",
-            }}
-          >
-            {p.count}
-          </span>
+          <span className={T.rankValue(p.count === maxCount && maxCount > 0)}>{p.count}</span>
         </div>
       ))}
     </div>
@@ -259,28 +242,28 @@ export function LocalGame() {
         <SetupTabs tab={tab} onChange={setTab} />
 
         {tab === "players" && (
-          <div style={S.card}>
-            <span style={S.label}>Jugadores ({players.length})</span>
+          <div className={T.card}>
+            <span className={T.label}>Jugadores ({players.length})</span>
             {players.map(p => (
-              <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <div key={p.id} className="mb-2 flex items-center gap-2">
                 <Avatar name={p.name} size={32} />
                 <input
-                  style={{ ...S.input, flex: 1 }}
+                  className={clsx(T.input, "flex-1")}
                   value={p.name}
                   onChange={e => renamePlayer(p.id, e.target.value)}
                   onBlur={() => handleNameBlur(p.id)}
                 />
                 <button
                   onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                  style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
+                  className={clsx(T.squareIconBtn("danger"), "shrink-0")}
                 >
                   ×
                 </button>
               </div>
             ))}
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <div className="mt-2.5 flex gap-2">
               <input
-                style={{ ...S.input, flex: 1 }}
+                className={clsx(T.input, "flex-1")}
                 placeholder="Nombre"
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
@@ -298,23 +281,23 @@ export function LocalGame() {
 
         {tab === "config" && (
           <>
-            <div style={S.card}>
-              <span style={S.label}>Modo de juego</span>
-              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <div className={T.card}>
+              <span className={T.label}>Modo de juego</span>
+              <div className="mt-1.5 flex gap-2">
                 <button
                   onClick={() => setMode("circle")}
-                  style={{ ...S.btn(mode === "circle" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}
+                  className={clsx(T.btn(mode === "circle" ? "primary" : "ghost"), "flex-1 text-[13px]")}
                 >
                   En círculo
                 </button>
                 <button
                   onClick={() => setMode("reveal")}
-                  style={{ ...S.btn(mode === "reveal" ? "primary" : "ghost"), flex: 1, fontSize: 13 }}
+                  className={clsx(T.btn(mode === "reveal" ? "primary" : "ghost"), "flex-1 text-[13px]")}
                 >
                   Revelar cartas
                 </button>
               </div>
-              <p style={{ ...S.muted, marginTop: 10, marginBottom: 0 }}>
+              <p className={clsx(T.muted, "mb-0 mt-2.5")}>
                 {mode === "circle"
                   ? "Van pasando el mazo por turno y el grupo decide quién se come cada carta."
                   : "Se toca la carta para revelarla, se vuelve a tocar para pasar a la siguiente. Anotar quién se queda cada carta es opcional."}
@@ -349,7 +332,7 @@ export function LocalGame() {
           {revealed ? "toquen para tapar" : awaitingAdvance ? "toquen para pasar a la siguiente" : "toquen para revelar"}
         </p>
 
-        <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
+        <div className={T.deckCardWrap}>
           <DeckStack cardsLeft={cardsUnderneath} />
           <div
             style={{
@@ -363,7 +346,7 @@ export function LocalGame() {
           </div>
         </div>
 
-        <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {cardsLeft} cartas por revelar</p>
+        <p className={clsx(T.muted, "mt-2.5 text-center")}>Quedan {cardsLeft} cartas por revelar</p>
 
         {revealCard && (
           <div style={{ marginTop: 14 }}>
@@ -374,26 +357,26 @@ export function LocalGame() {
         <ScoreToggleButton show={showManualCounts} onToggle={() => setShowManualCounts(v => !v)} />
 
         {showManualCounts && (
-          <div style={S.card}>
-            <span style={S.label}>Cartas de cada uno</span>
-            <p style={{ ...S.muted, margin: "4px 0 10px", lineHeight: 1.4 }}>
+          <div className={T.card}>
+            <span className={T.label}>Cartas de cada uno</span>
+            <p className={clsx(T.muted, "my-1 mb-2.5 leading-normal")}>
               En este modo nadie se asigna cartas automáticamente — sumalas vos a mano a medida que se deciden en voz alta.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="flex flex-col gap-2">
               {players.map(p => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div key={p.id} className="flex items-center gap-2.5">
                   <Avatar name={p.name} size={26} />
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+                  <span className="flex-1 text-sm font-bold">{p.name}</span>
                   <button
                     onClick={() => bumpManualCount(p.id, -1)}
-                    style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 16 }}
+                    className={clsx(T.btn("ghost"), "h-8 w-8 shrink-0 rounded-lg p-0 text-base")}
                   >
                     −
                   </button>
-                  <span style={{ minWidth: 22, textAlign: "center", fontWeight: 800 }}>{manualCounts[p.id] || 0}</span>
+                  <span className="min-w-[22px] text-center font-extrabold">{manualCounts[p.id] || 0}</span>
                   <button
                     onClick={() => bumpManualCount(p.id, 1)}
-                    style={{ ...S.btn("ghost"), width: 32, height: 32, padding: 0, borderRadius: 8, fontSize: 16 }}
+                    className={clsx(T.btn("ghost"), "h-8 w-8 shrink-0 rounded-lg p-0 text-base")}
                   >
                     +
                   </button>
@@ -406,14 +389,14 @@ export function LocalGame() {
         {addingPlayer && (
           <>
             <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />
-            <p style={{ ...S.muted, textAlign: "center", fontSize: 12, marginTop: -6 }}>
+            <p className={clsx(T.muted, "-mt-1.5 text-center text-xs")}>
               En este modo no se le asignan cartas automáticamente — sumalas a mano en "Cartas de cada uno".
             </p>
           </>
         )}
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
-          <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>
+        <div className="mt-1 flex justify-center gap-2">
+          <button onClick={() => setAddingPlayer(v => !v)} className={T.pillGhostSmall}>
             {addingPlayer ? "Cancelar" : "+ Sumar jugador"}
           </button>
           <EndMatchButton
@@ -438,14 +421,14 @@ export function LocalGame() {
           </p>
         )}
 
-        <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
+        <div className={T.deckCardWrap}>
           <DeckStack cardsLeft={deck.length} />
           <div style={{ position: "relative" }}>
             <CardView card={current} onClick={!current ? reveal : undefined} />
           </div>
         </div>
 
-        <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {deck.length} cartas en el mazo</p>
+        <p className={clsx(T.muted, "mt-2.5 text-center")}>Quedan {deck.length} cartas en el mazo</p>
 
         {current && (
           <div style={{ marginTop: 14 }}>
@@ -454,7 +437,7 @@ export function LocalGame() {
         )}
 
         {current && (
-          <div style={{ ...S.cardHighlight, marginTop: 14 }}>
+          <div className={clsx(T.cardHighlight, "mt-3.5")}>
             <AssignPicker players={players} selected={selectedAssignee} onSelect={setSelectedAssignee} onConfirm={confirmAssign} />
           </div>
         )}
@@ -467,8 +450,8 @@ export function LocalGame() {
           <AddPlayerForm name={newName} onNameChange={setNewName} onSubmit={addPlayer} error={nameError} errorKey={nameErrorKey} />
         )}
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 4 }}>
-          <button onClick={() => setAddingPlayer(v => !v)} style={{ ...S.btn("ghost"), width: "auto", padding: "6px 14px", fontSize: 12 }}>
+        <div className="mt-1 flex justify-center gap-2">
+          <button onClick={() => setAddingPlayer(v => !v)} className={T.pillGhostSmall}>
             {addingPlayer ? "Cancelar" : "+ Sumar jugador"}
           </button>
           <EndMatchButton onConfirm={() => setPhase("result")} />
@@ -481,11 +464,11 @@ export function LocalGame() {
     const hasManualCounts = Object.values(manualCounts).some(c => c > 0);
     return (
       <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <p style={S.bigReveal}>Partida terminada</p>
+        <div className={clsx(T.cardHighlight, "text-center")}>
+          <p className={T.bigReveal}>Partida terminada</p>
         </div>
         {hasManualCounts && <Ranking players={players} counts={manualCounts} />}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+        <div className="mt-1 flex flex-col gap-2.5">
           <StartButton onClick={playAgain}>Jugar de nuevo</StartButton>
           <BackButton onClick={() => setPhase("setup")}>Volver al lobby</BackButton>
         </div>
@@ -496,20 +479,20 @@ export function LocalGame() {
   // ── RESULT (modo círculo) ──
   return (
     <div>
-      <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-        <p style={S.bigReveal}>{deck.length > 0 ? "Partida terminada" : "Se acabó el mazo"}</p>
+      <div className={clsx(T.cardHighlight, "text-center")}>
+        <p className={T.bigReveal}>{deck.length > 0 ? "Partida terminada" : "Se acabó el mazo"}</p>
       </div>
       {current && (
-        <div style={{ ...S.card, textAlign: "center" }}>
-          <span style={S.label}>Quedó sin repartir</span>
+        <div className={clsx(T.card, "text-center")}>
+          <span className={T.label}>Quedó sin repartir</span>
           <CardView card={current} size="small" />
-          <p style={{ ...S.muted, marginTop: 8 }}>
+          <p className={clsx(T.muted, "mt-2")}>
             Se cortó la partida justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.
           </p>
         </div>
       )}
       <Ranking players={players} counts={Object.fromEntries(players.map(p => [p.id, (piles[p.id] || []).length]))} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+      <div className="mt-1 flex flex-col gap-2.5">
         <StartButton onClick={playAgain}>Jugar de nuevo</StartButton>
         <BackButton onClick={() => setPhase("setup")}>Volver al lobby</BackButton>
       </div>

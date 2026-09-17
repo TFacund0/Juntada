@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
+import clsx from "clsx";
 import { Avatar } from "../ui/Avatar";
-import { S } from "../../theme/styles";
+import { T } from "../../theme/styles/classes";
 
 // Shared by every game's final-results screen (moved here from
 // rayado-libre, where it started — see games/rayado-libre/README.md /
@@ -49,7 +50,7 @@ export function PodiumBoard({ entries, colors = DEFAULT_COLORS }: { entries: Sco
   ];
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <style>{`
         .gk-podium-row { display: flex; align-items: flex-end; justify-content: center; gap: 14px; padding: 28px 10px 0; position: relative; }
         .gk-podium-bar { border-radius: 12px 12px 4px 4px; width: 84px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; color: #fff; font-weight: 800; font-size: 20px; box-shadow: 0 10px 24px -10px rgba(0,0,0,0.5); }
@@ -78,44 +79,35 @@ export function PodiumBoard({ entries, colors = DEFAULT_COLORS }: { entries: Sco
             animationDelay: `${rank * 0.08}s`,
           } as CSSProperties;
           return (
-            <div key={entry.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div key={entry.id} className="flex flex-col items-center gap-2">
               <Avatar name={entry.name} size={36} />
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  maxWidth: 84,
-                  textAlign: "center",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <p className="m-0 max-w-[84px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-xs font-bold">
                 {entry.name}
                 {entry.isMe && " (vos)"}
               </p>
               <div className="gk-podium-bar" style={barStyle}>
                 {rank + 1}
               </div>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: colors[rank] }}>{entry.score} pts</p>
+              <p className="m-0 text-xs font-extrabold" style={{ color: colors[rank] }}>
+                {entry.score} pts
+              </p>
             </div>
           );
         })}
       </div>
 
       {rest.length > 0 && (
-        <div style={{ ...S.card, marginTop: 20 }}>
-          <span style={S.label}>Resto de la tabla</span>
+        <div className={clsx(T.card, "mt-5")}>
+          <span className={T.label}>Resto de la tabla</span>
           {rest.map((e, i) => (
-            <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
-              <span style={{ width: 16, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 4}</span>
+            <div key={e.id} className="flex items-center gap-2 py-[5px]">
+              <span className="w-4 text-xs font-extrabold text-[#6b6490]">{i + 4}</span>
               <Avatar name={e.name} size={22} />
-              <span style={{ flex: 1, fontWeight: 700, fontSize: 12 }}>
+              <span className="flex-1 text-xs font-bold">
                 {e.name}
                 {e.isMe && " (vos)"}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: "#5DCAA5" }}>{e.score} pts</span>
+              <span className="text-xs font-extrabold text-[#5DCAA5]">{e.score} pts</span>
             </div>
           ))}
         </div>

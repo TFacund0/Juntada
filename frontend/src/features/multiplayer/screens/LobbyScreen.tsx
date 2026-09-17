@@ -1,6 +1,7 @@
 import { Suspense, useState } from "react";
 import { createPortal } from "react-dom";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { SetupTabs } from "../../../components/setup/SetupTabs";
 import { Toast } from "../../../components/ui/Toast";
 import { ErrorBanner } from "../../../components/ui/ErrorBanner";
@@ -92,9 +93,9 @@ export function LobbyScreen({
         {activeGame?.startLabel ?? "Iniciar ronda"}
       </StartButton>
       {notEnoughPlayers ? (
-        <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>
+        <p className={clsx(T.muted, "mt-2 text-center")}>Necesitás mínimo {activeGame?.minPlayers ?? 3} jugadores</p>
       ) : (
-        notReadyReason && <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>{notReadyReason}</p>
+        notReadyReason && <p className="mt-2 text-center text-xs text-[#E2C44A]">{notReadyReason}</p>
       )}
     </>
   );
@@ -132,15 +133,18 @@ export function LobbyScreen({
             />
           )}
           {showLobbyTabs && (
-            <div className="jt-lobby-tabs-mobile" style={{ marginTop: 14 }}>
+            <div className="jt-lobby-tabs-mobile mt-3.5">
               <SetupTabs tab={lobbyTab} onChange={onLobbyTabChange} />
             </div>
           )}
 
           {
             <div
-              className={`jt-animate-rise${showLobbyTabs ? ` jt-lobby-tab-panel${lobbyTab === "players" ? " jt-lobby-tab-panel-active" : ""}` : ""}`}
-              style={{ marginTop: 14, animationDelay: "60ms" }}
+              className={clsx(
+                "jt-animate-rise mt-3.5",
+                showLobbyTabs && `jt-lobby-tab-panel${lobbyTab === "players" ? " jt-lobby-tab-panel-active" : ""}`,
+              )}
+              style={{ animationDelay: "60ms" }}
             >
               <LobbySeatGrid
                 room={room}
@@ -189,9 +193,9 @@ export function LobbyScreen({
                   </Suspense>
                 </GameLoadErrorBoundary>
               )}
-              <div className="jt-lobby-waiting-card" style={{ ...S.card, textAlign: "center" }}>
+              <div className={clsx("jt-lobby-waiting-card text-center", T.card)}>
                 <span className="jt-lobby-waiting-dot" />
-                <p style={{ fontSize: 15, color: "#9089c0", margin: 0 }}>Esperando que el anfitrión inicie la partida</p>
+                <p className="m-0 text-[15px] text-[#9089c0]">Esperando que el anfitrión inicie la partida</p>
               </div>
             </div>
           )}

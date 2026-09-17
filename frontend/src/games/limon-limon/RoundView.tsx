@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
@@ -30,26 +31,15 @@ interface LimonLimonRoundState {
 function TurnOrder({ players, order, turnId }: { players: PublicPlayer[]; order: string[]; turnId: string }) {
   const ordered = order.map(id => players.find(p => p.id === id)).filter((p): p is PublicPlayer => Boolean(p));
   return (
-    <div style={{ ...S.card, marginBottom: 14 }}>
-      <span style={S.label}>Orden de turno</span>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <div className={clsx(T.card, "mb-3.5")}>
+      <span className={T.label}>Orden de turno</span>
+      <div className="flex flex-wrap gap-2">
         {ordered.map(p => {
           const active = p.id === turnId;
           return (
-            <div
-              key={p.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "4px 10px 4px 4px",
-                borderRadius: 20,
-                background: active ? "rgba(93,202,165,0.15)" : "rgba(255,255,255,0.04)",
-                border: active ? "1px solid #5DCAA5" : "1px solid rgba(127,119,221,0.15)",
-              }}
-            >
+            <div key={p.id} className={T.turnChip(active)}>
               <Avatar name={p.name} size={20} />
-              <span style={{ fontSize: 12, fontWeight: active ? 800 : 600, color: active ? "#5DCAA5" : "#b8b0d4" }}>{p.name}</span>
+              <span className={T.turnChipLabel(active)}>{p.name}</span>
             </div>
           );
         })}
@@ -62,36 +52,18 @@ function Ranking({ players, pileCounts }: { players: PublicPlayer[]; pileCounts:
   const ranked = players.map(p => ({ ...p, count: pileCounts[p.id] || 0 })).sort((a, b) => b.count - a.count);
   const maxCount = ranked[0]?.count ?? 0;
   return (
-    <div style={S.card}>
-      <span style={S.label}>Cartas acumuladas</span>
+    <div className={T.card}>
+      <span className={T.label}>Cartas acumuladas</span>
       {ranked.map((p, i) => (
-        <div
-          key={p.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "6px 0",
-            borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
-          }}
-        >
-          <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+        <div key={p.id} className={T.rankRow(i === ranked.length - 1)}>
+          <span className={T.rankIndex}>{i + 1}</span>
           <Avatar name={p.name} size={28} />
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
+          <span className={T.rankName}>
             {p.name}
             {!p.online ? " (desconectado)" : ""}
           </span>
           {p.count === maxCount && maxCount > 0 && <span style={{ fontSize: 11, color: "#F09595", fontWeight: 700 }}>pierde</span>}
-          <span
-            style={{
-              fontWeight: 800,
-              color: p.count === maxCount && maxCount > 0 ? "#F09595" : "#AFA9EC",
-              minWidth: 24,
-              textAlign: "right",
-            }}
-          >
-            {p.count}
-          </span>
+          <span className={T.rankValue(p.count === maxCount && maxCount > 0)}>{p.count}</span>
         </div>
       ))}
     </div>
@@ -142,14 +114,14 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
             </p>
           )}
 
-          <div style={{ position: "relative", width: 140, height: 196, margin: "0 auto", zIndex: 0 }}>
+          <div className={T.deckCardWrap}>
             <DeckStack cardsLeft={round.remaining} />
             <div style={{ position: "relative" }}>
               <CardView card={round.current} onClick={myTurn && !round.current ? () => send({ type: "reveal" }) : undefined} />
             </div>
           </div>
 
-          <p style={{ textAlign: "center", ...S.muted, margin: "10px 0 0" }}>Quedan {round.remaining} cartas en el mazo</p>
+          <p className={clsx(T.muted, "mt-2.5 text-center")}>Quedan {round.remaining} cartas en el mazo</p>
 
           {round.current && (
             <div style={{ marginTop: 14 }}>
@@ -161,7 +133,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
           )}
 
           {round.current && (
-            <div style={{ ...S.cardHighlight, marginTop: 14 }}>
+            <div className={clsx(T.cardHighlight, "mt-3.5")}>
               {myTurn ? (
                 <>
                   <AssignPicker
@@ -172,7 +144,7 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
                   />
                 </>
               ) : (
-                <p style={{ textAlign: "center", ...S.muted }}>Esperando que {turnPlayer?.name} reparta la carta</p>
+                <p className={clsx(T.muted, "text-center")}>Esperando que {turnPlayer?.name} reparta la carta</p>
               )}
             </div>
           )}
@@ -183,21 +155,18 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
           {/* Chico a propósito — terminar antes es la excepción, no algo a lo
             que se quiera empujar al grupo — pero en rojo como el resto de
             los "terminar partida" del modo local, ya que corta el juego. */}
-          <div style={{ textAlign: "center", marginTop: 18 }}>
-            <button
-              onClick={() => setShowEndVote(v => !v)}
-              style={{ ...S.btn("danger"), width: "auto", padding: "6px 14px", fontSize: 12 }}
-            >
+          <div className="mt-[18px] text-center">
+            <button onClick={() => setShowEndVote(v => !v)} className={clsx(T.btn("danger"), "w-auto px-3.5 py-1.5 text-xs")}>
               {(round.endVotes || []).length > 0 ? `Terminar antes (${round.endVotes.length}/${round.endVoteThreshold})` : "Terminar antes"}
             </button>
             {showEndVote && (
-              <div style={{ ...S.card, marginTop: 10, textAlign: "left" }}>
-                <p style={{ ...S.muted, marginBottom: 10 }}>
+              <div className={clsx(T.card, "mt-2.5 text-left")}>
+                <p className={clsx(T.muted, "mb-2.5")}>
                   Con la mitad de los jugadores votando, se corta la partida y se muestra la tabla como está ahora.
                   {round.current && " La carta que está revelada ahora mismo quedaría sin repartir, sin sumarle a nadie."}
                 </p>
                 {me && (round.endVotes || []).includes(me.playerId) ? (
-                  <p style={{ ...S.muted, margin: 0 }}>Votaste terminar — esperando al resto</p>
+                  <p className={clsx(T.muted, "m-0")}>Votaste terminar — esperando al resto</p>
                 ) : (
                   <Btn variant="ghost" onClick={() => send({ type: "vote_end" })}>
                     Votar para terminar
@@ -216,27 +185,27 @@ export function RoundView({ room, me, isHost, send }: RoundViewProps) {
     return (
       <PhaseTransition phaseKey="result">
         <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <p style={S.bigReveal}>{round.remaining > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
+          <div className={clsx(T.cardHighlight, "text-center")}>
+            <p className={T.bigReveal}>{round.remaining > 0 ? "Partida terminada por votación" : "Se acabó el mazo"}</p>
           </div>
           {round.current && (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <span style={S.label}>Quedó sin repartir</span>
+            <div className={clsx(T.card, "text-center")}>
+              <span className={T.label}>Quedó sin repartir</span>
               <CardView card={round.current} size="small" />
-              <p style={{ ...S.muted, marginTop: 8 }}>
+              <p className={clsx(T.muted, "mt-2")}>
                 Se votó terminar justo cuando se estaba por decidir quién se la quedaba, así que no se le sumó a nadie.
               </p>
             </div>
           )}
           <Ranking players={room.players} pileCounts={round.pileCounts} />
           {isHost ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+            <div className="mt-1 flex flex-col gap-2.5">
               <StartButton onClick={() => send({ type: "start_round" })}>Jugar de nuevo</StartButton>
               <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
             </div>
           ) : (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
+            <div className={clsx(T.card, "text-center")}>
+              <p className="text-sm text-[#9089c0]">Esperando que el anfitrión inicie otra partida</p>
             </div>
           )}
         </div>

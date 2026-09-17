@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
 import type { GameDef } from "../../games/gameTypes";
 import { HeroBackdrop } from "./Hero";
 import { ModePickerBackdrop } from "./ModePicker";
@@ -29,7 +29,7 @@ export function AppShellLayout({ stepKey, game, inGameView, header, rest }: AppS
   // ancho creciente por breakpoint (theme/homeDesign.css).
   if (stepKey === "picker") {
     return (
-      <div style={{ position: "relative", zIndex: 1 }}>
+      <div className="relative z-[1]">
         {/* Hermano de <ScreenFade> (dentro de `rest`), no descendiente
             suyo — ver el comentario en HeroBackdrop (Hero.tsx) sobre
             por qué un fondo `position: fixed` no puede vivir adentro
@@ -48,9 +48,7 @@ export function AppShellLayout({ stepKey, game, inGameView, header, rest }: AppS
             margen chico; el aire de sobra ya lo da el padding propio
             de Hero (jt-hero-section, 40-56px) — no hace falta sumar
             más acá o el espacio se duplica. */}
-        <div className="jt-home-wrap" style={{ margin: "0 auto", padding: "72px 16px 60px" }}>
-          {rest}
-        </div>
+        <div className="jt-home-wrap mx-auto px-4 pb-[60px] pt-[72px]">{rest}</div>
       </div>
     );
   }
@@ -64,7 +62,7 @@ export function AppShellLayout({ stepKey, game, inGameView, header, rest }: AppS
   // en grilla en pantallas grandes.
   if (stepKey.startsWith("modepicker-")) {
     return (
-      <div className="jt-mode-wrap jt-content-pad-top" style={{ margin: "0 auto", position: "relative", zIndex: 1 }}>
+      <div className="jt-mode-wrap jt-content-pad-top relative z-[1] mx-auto">
         {/* Hermano de <ScreenFade> (dentro de `rest`), no descendiente
             suyo — mismo motivo que HeroBackdrop arriba. */}
         <ModePickerBackdrop />
@@ -86,10 +84,7 @@ export function AppShellLayout({ stepKey, game, inGameView, header, rest }: AppS
   // otro, ya que no está pensado para ese ancho.
   const wide = inGameView && Boolean(game?.wideRoundView);
   return (
-    <div
-      className={`jt-content-pad-top${wide ? " jt-round-wrap-wide" : ""}`}
-      style={{ ...S.wrap, ...(wide ? { maxWidth: undefined } : null), position: "relative", zIndex: 1 }}
-    >
+    <div className={clsx("jt-content-pad-top relative z-[1] mx-auto px-4 pb-[60px]", wide ? "jt-round-wrap-wide" : "max-w-[480px]")}>
       {header}
       {rest}
     </div>

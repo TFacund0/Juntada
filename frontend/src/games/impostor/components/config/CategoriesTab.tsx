@@ -1,4 +1,5 @@
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { CATEGORIES } from "@juntada/impostor-data";
 
 interface CategoriesTabProps {
@@ -17,19 +18,13 @@ function allCategoriesSetTo(value: boolean): Record<string, boolean> {
 // invertido — antes cada uno repetía el mismo objeto de estilo entero
 // cambiando solo qué condición mira, con el riesgo de que un ajuste futuro
 // (color, padding) se aplicara a uno y no al otro por copy-paste.
-function bulkBtnStyle(active: boolean) {
-  return {
-    flex: 1,
-    background: active ? "rgba(224,32,43,0.12)" : "rgba(255,255,255,0.04)",
-    border: active ? "1px solid rgba(224,32,43,0.4)" : "1px solid rgba(255,255,255,0.14)",
-    borderRadius: 8,
-    color: active ? "#FF6B6B" : "var(--jt-muted-text)",
-    cursor: "pointer",
-    padding: "8px 12px",
-    fontSize: 12,
-    fontWeight: 700,
-    fontFamily: "inherit",
-  } as const;
+function bulkBtnClass(active: boolean): string {
+  return clsx(
+    "flex-1 cursor-pointer rounded-lg px-3 py-2 font-[inherit] text-xs font-bold",
+    active
+      ? "border border-[rgba(224,32,43,0.4)] bg-[rgba(224,32,43,0.12)] text-[#FF6B6B]"
+      : "border border-white/[0.14] bg-white/[0.04] text-[var(--jt-muted-text)]",
+  );
 }
 
 // The "Categorías" config tab — identical between LocalGame and ConfigPanel
@@ -55,9 +50,7 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
 
   return (
     <div>
-      <p style={{ ...S.muted, margin: "0 0 12px", lineHeight: 1.4 }}>
-        Elegí de qué van a ser las palabras. Tocá una categoría para activarla.
-      </p>
+      <p className={clsx(T.muted, "m-0 mb-3 leading-[1.4]")}>Elegí de qué van a ser las palabras. Tocá una categoría para activarla.</p>
       <style>{`
         .impostor-cats-bulk-btn {
           transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out, background 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
@@ -88,23 +81,21 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
           transform: translateY(0) scale(0.94);
         }
       `}</style>
-      <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+      <div className="mb-3.5 flex gap-2">
         <button
-          className={`impostor-cats-bulk-btn${allSelected ? " impostor-cats-bulk-btn-active" : ""}`}
+          className={clsx("impostor-cats-bulk-btn", allSelected && "impostor-cats-bulk-btn-active", bulkBtnClass(allSelected))}
           onClick={() => onChange(allCategoriesSetTo(true))}
-          style={bulkBtnStyle(allSelected)}
         >
           ✓ Seleccionar todas
         </button>
         <button
-          className={`impostor-cats-bulk-btn${allDeselected ? " impostor-cats-bulk-btn-active" : ""}`}
+          className={clsx("impostor-cats-bulk-btn", allDeselected && "impostor-cats-bulk-btn-active", bulkBtnClass(allDeselected))}
           onClick={() => onChange(allCategoriesSetTo(false))}
-          style={bulkBtnStyle(allDeselected)}
         >
           ✕ Quitar todas
         </button>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      <div className="flex flex-wrap gap-2.5">
         {Object.entries(CATEGORIES).map(([k, cat]) => {
           const active = !!enabledCategories?.[k];
           const remaining = wordsLeftIn(k);
@@ -112,41 +103,30 @@ export function CategoriesTab({ enabledCategories, usedWords, onChange }: Catego
           return (
             <button
               key={k}
-              className="impostor-cats-chip"
+              className={clsx(
+                "impostor-cats-chip flex cursor-pointer items-center gap-[7px] rounded-full px-4 py-2.5 font-[inherit] text-[13px] font-bold transition-all duration-150",
+                active
+                  ? "border border-[rgba(224,32,43,0.6)] bg-[linear-gradient(135deg,#E0202B,#7A1A20)] text-white shadow-[0_3px_14px_rgba(224,32,43,0.35)]"
+                  : "border border-white/[0.12] bg-white/[0.04] text-[var(--jt-muted-text)] shadow-none",
+                exhausted ? "opacity-55" : "opacity-100",
+              )}
               onClick={() => onChange({ ...enabledCategories, [k]: !active })}
               title={exhausted ? "Ya se usaron todas las palabras de esta categoría en esta partida" : undefined}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "10px 16px",
-                borderRadius: 999,
-                border: active ? "1px solid rgba(224,32,43,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                background: active ? "linear-gradient(135deg,#E0202B,#7A1A20)" : "rgba(255,255,255,0.04)",
-                color: active ? "#fff" : "var(--jt-muted-text)",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                boxShadow: active ? "0 3px 14px rgba(224,32,43,0.35)" : "none",
-                transition: "all 0.15s",
-                opacity: exhausted ? 0.55 : 1,
-              }}
             >
               <span>{cat.icon}</span>
               <span>{cat.label}</span>
-              <span style={{ fontSize: 11, opacity: 0.75 }}>{exhausted ? "· sin palabras" : `· ${remaining}`}</span>
+              <span className="text-[11px] opacity-75">{exhausted ? "· sin palabras" : `· ${remaining}`}</span>
             </button>
           );
         })}
       </div>
-      <p style={{ ...S.muted, marginTop: 14 }}>
+      <p className={clsx(T.muted, "mt-3.5")}>
         {activeKeys.length === 0
           ? "No elegiste ninguna categoría todavía."
           : `${activeKeys.length} categoría${activeKeys.length === 1 ? "" : "s"} activa${activeKeys.length === 1 ? "" : "s"}.`}
       </p>
       {allCategoriesExhausted && (
-        <p style={{ fontSize: 12, color: "#F09595", marginTop: 4 }}>
+        <p className="mt-1 text-xs text-[#F09595]">
           Ya se usaron todas las palabras de las categorías activas — activá otra para poder seguir jugando.
         </p>
       )}

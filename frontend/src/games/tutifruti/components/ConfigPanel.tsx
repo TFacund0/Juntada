@@ -1,5 +1,6 @@
-import { useState, type CSSProperties } from "react";
-import { S } from "../../../theme/styles";
+import { useState } from "react";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { DEFAULT_CATEGORIES, LETTERS } from "@juntada/tutifruti-data";
 import { Btn } from "../../../components/ui/Btn";
 import type { ConfigPanelProps } from "../../gameTypes";
@@ -11,8 +12,6 @@ interface Category {
   label: string;
   icon?: string;
 }
-
-const divider: CSSProperties = { borderTop: "1px solid rgba(255,255,255,0.08)", margin: "16px 0" };
 
 // DEFAULT_CATEGORIES alone is well over 100 entries — showing them all in one
 // long wrapping list meant scrolling a long way down just to find one to
@@ -68,24 +67,20 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   };
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Configuración</span>
-      <div style={{ display: "flex", gap: 8 }}>
+    <div className={T.card}>
+      <span className={T.label}>Configuración</span>
+      <div className="flex gap-2">
         {(["cats", "letters", "rules"] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{ ...S.btn(tab === t ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-          >
+          <button key={t} onClick={() => setTab(t)} className={clsx(T.btn(tab === t ? "primary" : "ghost"), T.tabBtnOverride)}>
             {t === "cats" ? "Categorías" : t === "letters" ? "Letras" : "Reglas"}
           </button>
         ))}
       </div>
 
-      <div style={divider} />
+      <div className={T.divider} />
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#e8e4f0" }}>
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-bold text-[#e8e4f0]">
           {randomMode
             ? `${randomCount} categoría${randomCount === 1 ? "" : "s"} por ronda (aleatorias)`
             : activeCount === 0
@@ -95,24 +90,16 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
         {!randomMode && activeCount > 0 && (
           <button
             onClick={() => setShowActive(v => !v)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#7F77DD",
-              cursor: "pointer",
-              fontSize: 13,
-              fontFamily: "inherit",
-              fontWeight: 700,
-            }}
+            className="cursor-pointer border-none bg-transparent font-[inherit] text-[13px] font-bold text-[#7F77DD]"
           >
             {showActive ? "Ocultar" : "Ver cuáles"}
           </button>
         )}
       </div>
       {!randomMode && showActive && activeCount > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+        <div className="mt-2.5 flex flex-wrap gap-2">
           {activeList.map(c => (
-            <span key={c.id} style={S.pill(true)}>
+            <span key={c.id} className={T.pill(true)}>
               {c.icon} {c.label}
             </span>
           ))}
@@ -121,10 +108,10 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
       {tab === "rules" && (
         <>
-          <div style={divider} />
+          <div className={T.divider} />
 
-          <span style={S.label}>Rondas: {config.rounds}</span>
-          <p style={{ ...S.muted, margin: "4px 0 8px", lineHeight: 1.4 }}>Cuántas rondas se juegan en total.</p>
+          <span className={T.label}>Rondas: {config.rounds}</span>
+          <p className={clsx(T.muted, "mt-1 mb-2 leading-[1.4]")}>Cuántas rondas se juegan en total.</p>
           <input
             type="range"
             min="1"
@@ -132,36 +119,36 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             step="1"
             value={config.rounds}
             onChange={e => updateConfig({ rounds: +e.target.value })}
-            style={{ width: "100%" }}
+            className="w-full"
           />
 
-          <div style={divider} />
+          <div className={T.divider} />
 
-          <span style={S.label}>¿Cómo termina la ronda?</span>
-          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          <span className={T.label}>¿Cómo termina la ronda?</span>
+          <div className="mt-1 flex gap-2">
             <button
               onClick={() => updateConfig({ endMode: "timer" })}
-              style={{ ...S.btn(config.endMode === "timer" ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+              className={clsx(T.btn(config.endMode === "timer" ? "primary" : "ghost"), T.segmentedBtnOverride)}
             >
               Por tiempo
             </button>
             <button
               onClick={() => updateConfig({ endMode: "basta" })}
-              style={{ ...S.btn(config.endMode === "basta" ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+              className={clsx(T.btn(config.endMode === "basta" ? "primary" : "ghost"), T.segmentedBtnOverride)}
             >
               Por "¡Basta!"
             </button>
           </div>
-          <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+          <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
             {config.endMode === "basta"
               ? "La ronda termina apenas alguien complete todas las categorías y grite '¡Basta!'."
               : "La ronda termina cuando se acaba el tiempo, sin importar quién haya terminado."}
           </p>
 
-          <div style={divider} />
+          <div className={T.divider} />
 
-          <span style={S.label}>Tiempo por ronda: {config.endMode === "basta" ? "No aplica" : `${config.roundTime}s`}</span>
-          <p style={{ ...S.muted, margin: "4px 0 8px", lineHeight: 1.4 }}>Cuánto dura cada ronda antes de cortar.</p>
+          <span className={T.label}>Tiempo por ronda: {config.endMode === "basta" ? "No aplica" : `${config.roundTime}s`}</span>
+          <p className={clsx(T.muted, "mt-1 mb-2 leading-[1.4]")}>Cuánto dura cada ronda antes de cortar.</p>
           <input
             type="range"
             min="30"
@@ -170,31 +157,31 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             value={config.roundTime}
             disabled={config.endMode === "basta"}
             onChange={e => updateConfig({ roundTime: +e.target.value })}
-            style={{ width: "100%", opacity: config.endMode === "basta" ? 0.4 : 1 }}
+            className={T.rangeInput(config.endMode === "basta")}
           />
         </>
       )}
 
       {tab === "cats" && (
         <>
-          <div style={divider} />
+          <div className={T.divider} />
 
-          <span style={S.label}>¿Cómo se eligen las categorías?</span>
-          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          <span className={T.label}>¿Cómo se eligen las categorías?</span>
+          <div className="mt-1 flex gap-2">
             <button
               onClick={() => updateConfig({ randomCategoryMode: false })}
-              style={{ ...S.btn(!randomMode ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+              className={clsx(T.btn(!randomMode ? "primary" : "ghost"), T.segmentedBtnOverride)}
             >
               Elegir a mano
             </button>
             <button
               onClick={() => updateConfig({ randomCategoryMode: true })}
-              style={{ ...S.btn(randomMode ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+              className={clsx(T.btn(randomMode ? "primary" : "ghost"), T.segmentedBtnOverride)}
             >
               Aleatorias
             </button>
           </div>
-          <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+          <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
             {randomMode
               ? "Cada ronda sortea sola una cantidad fija de categorías de entre todas las disponibles (más las que agregues abajo) — una forma más rápida de armar la partida."
               : "Elegís vos qué categorías entran, tildándolas una por una más abajo."}
@@ -202,9 +189,9 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
           {randomMode && (
             <>
-              <div style={divider} />
-              <span style={S.label}>Cantidad de categorías por ronda: {randomCount}</span>
-              <p style={{ ...S.muted, margin: "4px 0 8px", lineHeight: 1.4 }}>
+              <div className={T.divider} />
+              <span className={T.label}>Cantidad de categorías por ronda: {randomCount}</span>
+              <p className={clsx(T.muted, "mt-1 mb-2 leading-[1.4]")}>
                 Cuántas categorías salen sorteadas en cada ronda (de un total de {randomPoolSize} disponibles).
               </p>
               <input
@@ -214,22 +201,22 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 step="1"
                 value={randomCount}
                 onChange={e => updateConfig({ randomCategoryCount: +e.target.value })}
-                style={{ width: "100%" }}
+                className="w-full"
               />
             </>
           )}
 
-          <div style={divider} />
+          <div className={T.divider} />
 
-          <span style={S.label}>Agregar categoría</span>
-          <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
+          <span className={T.label}>Agregar categoría</span>
+          <p className={clsx(T.muted, "mt-1 mb-3 leading-[1.4]")}>
             {randomMode
               ? "Sumá una categoría propia — entra al pool del que se sortea cada ronda, junto con todas las de por defecto."
               : "Sumá una categoría propia, además de las de abajo."}
           </p>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex gap-2">
             <input
-              style={{ ...S.input, flex: 1 }}
+              className={clsx(T.input, "flex-1")}
               placeholder="Nueva categoría..."
               value={newCat}
               onChange={e => setNewCat(e.target.value)}
@@ -237,21 +224,21 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
                 if (e.key === "Enter") addCustomCategory();
               }}
             />
-            <Btn variant="ghost" onClick={addCustomCategory} style={{ width: "auto", padding: "11px 18px" }}>
+            <Btn variant="ghost" onClick={addCustomCategory} className="w-auto px-[18px] py-[11px]">
               Agregar
             </Btn>
           </div>
 
           {customCategories.length > 0 && (
             <>
-              <div style={divider} />
-              <span style={S.label}>Tus categorías</span>
-              <p style={{ ...S.muted, margin: "0 0 14px", lineHeight: 1.4 }}>
+              <div className={T.divider} />
+              <span className={T.label}>Tus categorías</span>
+              <p className={clsx(T.muted, "mb-3.5 leading-[1.4]")}>
                 {randomMode
                   ? "Ya entran todas al sorteo — tocá la × para sacar alguna."
                   : "Las que agregaste vos, siempre a mano sin importar la página."}
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <div className="flex flex-wrap gap-2.5">
                 {customCategories.map(cat => (
                   <CategoryChip
                     key={cat.id}
@@ -267,14 +254,12 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
           {!randomMode && (
             <>
-              <div style={divider} />
+              <div className={T.divider} />
 
-              <span style={S.label}>Categorías</span>
-              <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
-                Tocá una categoría para activarla o desactivarla en la partida.
-              </p>
+              <span className={T.label}>Categorías</span>
+              <p className={clsx(T.muted, "mt-1 mb-3.5 leading-[1.4]")}>Tocá una categoría para activarla o desactivarla en la partida.</p>
               {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <div className="flex flex-wrap gap-2.5">
                 {pagedCategories.map(cat => (
                   <CategoryChip
                     key={cat.id}
@@ -291,42 +276,25 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
       {tab === "letters" && (
         <>
-          <div style={divider} />
+          <div className={T.divider} />
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={S.label}>Letras</span>
-            <span style={{ fontSize: 12, color: "#9089c0", fontWeight: 700 }}>
+          <div className="flex items-center justify-between">
+            <span className={T.label}>Letras</span>
+            <span className="text-xs font-bold text-[#9089c0]">
               {activeLetterCount} activa{activeLetterCount === 1 ? "" : "s"}
             </span>
           </div>
-          <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+          <p className={clsx(T.muted, "mt-1 mb-3.5 leading-[1.4]")}>
             Tocá una letra para activarla o desactivarla — ya vienen preseleccionadas las más comunes.
           </p>
           {activeLetterCount === 0 && (
-            <p style={{ fontSize: 12, color: "#E2C44A", margin: "0 0 14px" }}>Activá al menos una letra para poder empezar una ronda.</p>
+            <p className="mb-3.5 text-xs text-[#E2C44A]">Activá al menos una letra para poder empezar una ronda.</p>
           )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             {(LETTERS as string[]).map(l => {
               const active = !!config.enabledLetters?.[l];
               return (
-                <button
-                  key={l}
-                  onClick={() => toggleLetter(l)}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    border: active ? "1px solid rgba(127,119,221,0.6)" : "1px solid rgba(255,255,255,0.12)",
-                    background: active ? "linear-gradient(135deg,#7F77DD,#534AB7)" : "rgba(255,255,255,0.04)",
-                    color: active ? "#fff" : "#9089c0",
-                    fontWeight: 700,
-                    fontSize: 15,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    boxShadow: active ? "0 3px 14px rgba(127,119,221,0.35)" : "none",
-                    transition: "all 0.15s",
-                  }}
-                >
+                <button key={l} onClick={() => toggleLetter(l)} className={T.letterTile(active)}>
                   {l}
                 </button>
               );

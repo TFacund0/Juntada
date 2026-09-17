@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { Avatar } from "../../../components/ui/Avatar";
 import type { RoundViewProps } from "../../gameTypes";
@@ -37,32 +38,8 @@ export function BracketPhase({
     setEditingMatch(null);
   };
 
-  const sideStyle = (side: Entrant | null, m: Match) => ({
-    display: "flex" as const,
-    alignItems: "center" as const,
-    gap: 8,
-    minWidth: 0,
-    flex: 1,
-    opacity: m.winner && m.winner.id !== side?.id ? 0.45 : 1,
-  });
-  const nameStyle = (side: Entrant | null, m: Match) => ({
-    margin: 0,
-    fontWeight: 700 as const,
-    fontSize: 13,
-    minWidth: 0,
-    overflow: "hidden" as const,
-    textOverflow: "ellipsis" as const,
-    whiteSpace: "nowrap" as const,
-    color: m.winner?.id === side?.id ? "#5DCAA5" : "#e8e4f0",
-  });
-  const teamStyle = {
-    margin: 0,
-    fontSize: 11,
-    color: "#7F77DD",
-    overflow: "hidden" as const,
-    textOverflow: "ellipsis" as const,
-    whiteSpace: "nowrap" as const,
-  };
+  const sideClass = (side: Entrant | null, m: Match) => T.matchSide(!!m.winner && m.winner.id !== side?.id);
+  const nameClass = (side: Entrant | null, m: Match) => T.matchSideName(m.winner?.id === side?.id);
 
   // La ronda "activa" es la primera que todavía tiene algún partido sin
   // decidir — una vez que todos los partidos de una ronda tienen ganador, el
@@ -72,19 +49,17 @@ export function BracketPhase({
 
   return (
     <div>
-      <p style={{ textAlign: "center", fontSize: 13, color: "#9089c0", marginBottom: 8 }}>
+      <p className="mb-2 text-center text-[13px] text-[#9089c0]">
         {roundNames[activeRoundIdx]} ({activeRoundIdx + 1}/{rounds.length})
       </p>
       {!isHost && (
-        <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: "#9089c0", margin: 0 }}>
-            El anfitrión va cargando los resultados a medida que se juegan los partidos.
-          </p>
+        <div className={clsx(T.cardHighlight, "text-center mb-4")}>
+          <p className="m-0 text-[13px] text-[#9089c0]">El anfitrión va cargando los resultados a medida que se juegan los partidos.</p>
         </div>
       )}
       {rounds.map((round, ri) => (
-        <div key={ri} style={{ marginBottom: 18 }}>
-          <span style={{ ...S.label, marginBottom: 12 }}>
+        <div key={ri} className="mb-[18px]">
+          <span className={clsx(T.label, "mb-3")}>
             {roundNames[ri]} ({ri + 1}/{rounds.length})
           </span>
           {round.map((m, mi) => {
@@ -93,98 +68,70 @@ export function BracketPhase({
             const decided = m.winner != null;
             const involvesMe = myPlayer && (m.a?.id === myPlayer.id || m.b?.id === myPlayer.id);
             return (
-              <div
-                key={mi}
-                style={{
-                  ...S.cardHighlight,
-                  marginBottom: 10,
-                  padding: "14px 16px",
-                  border: involvesMe && playable ? "1px solid rgba(93,202,165,0.5)" : undefined,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={sideStyle(m.a, m)}>
-                    {m.a ? (
-                      <Avatar name={m.a.name} size={30} />
-                    ) : (
-                      <div
-                        style={{ width: 30, height: 30, borderRadius: "50%", border: "1px dashed rgba(127,119,221,0.3)", flexShrink: 0 }}
-                      />
-                    )}
-                    <div style={{ minWidth: 0 }}>
-                      <p style={nameStyle(m.a, m)}>{m.a ? m.a.name : "Por definir"}</p>
-                      {m.a && <p style={teamStyle}>{m.a.team}</p>}
+              <div key={mi} className={T.matchCard(!!(involvesMe && playable))}>
+                <div className="flex items-center gap-2.5">
+                  <div className={sideClass(m.a, m)}>
+                    {m.a ? <Avatar name={m.a.name} size={30} /> : <div className={T.avatarPlaceholder} />}
+                    <div className="min-w-0">
+                      <p className={nameClass(m.a, m)}>{m.a ? m.a.name : "Por definir"}</p>
+                      {m.a && <p className={T.matchSideTeam}>{m.a.team}</p>}
                     </div>
                   </div>
 
-                  <div style={{ flexShrink: 0, textAlign: "center", minWidth: 46 }}>
+                  <div className="min-w-[46px] shrink-0 text-center">
                     {m.goalsA != null ? (
-                      <span style={{ fontSize: 16, fontWeight: 800, color: "#AFA9EC" }}>
+                      <span className="text-base font-extrabold text-[#AFA9EC]">
                         {m.goalsA} - {m.goalsB}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#6b6490" }}>vs</span>
+                      <span className="text-[11px] font-bold text-[#6b6490]">vs</span>
                     )}
                   </div>
 
-                  <div style={{ ...sideStyle(m.b, m), flexDirection: "row-reverse" as const, textAlign: "right" as const }}>
-                    {m.b ? (
-                      <Avatar name={m.b.name} size={30} />
-                    ) : (
-                      <div
-                        style={{ width: 30, height: 30, borderRadius: "50%", border: "1px dashed rgba(127,119,221,0.3)", flexShrink: 0 }}
-                      />
-                    )}
-                    <div style={{ minWidth: 0 }}>
-                      <p style={nameStyle(m.b, m)}>{m.b ? m.b.name : "Por definir"}</p>
-                      {m.b && <p style={teamStyle}>{m.b.team}</p>}
+                  <div className={clsx(sideClass(m.b, m), "flex-row-reverse text-right")}>
+                    {m.b ? <Avatar name={m.b.name} size={30} /> : <div className={T.avatarPlaceholder} />}
+                    <div className="min-w-0">
+                      <p className={nameClass(m.b, m)}>{m.b ? m.b.name : "Por definir"}</p>
+                      {m.b && <p className={T.matchSideTeam}>{m.b.team}</p>}
                     </div>
                   </div>
                 </div>
 
                 {isHost && playable && !editing && (
-                  <Btn variant="ghost" onClick={() => openMatch(ri, mi)} style={{ marginTop: 12 }}>
+                  <Btn variant="ghost" onClick={() => openMatch(ri, mi)} className="mt-3">
                     Cargar resultado
                   </Btn>
                 )}
 
                 {isHost && playable && editing && !trackGoals && (
-                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                    <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, "a")} style={{ fontSize: 13 }}>
+                  <div className="mt-3 flex gap-2">
+                    <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, "a")} className="text-[13px]">
                       Ganó {m.a!.name}
                     </Btn>
-                    <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, "b")} style={{ fontSize: 13 }}>
+                    <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, "b")} className="text-[13px]">
                       Ganó {m.b!.name}
                     </Btn>
                   </div>
                 )}
 
                 {isHost && playable && editing && trackGoals && (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                      <span
-                        style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                      >
-                        {m.a!.name}
-                      </span>
+                  <div className="mt-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px]">{m.a!.name}</span>
                       <input
                         type="number"
                         min="0"
-                        style={{ ...S.input, width: 60, flexShrink: 0, textAlign: "center" }}
+                        className={clsx(T.input, "w-[60px] shrink-0 text-center")}
                         value={scoreInput.goalsA}
                         onChange={e => setScoreInput(s => ({ ...s, goalsA: e.target.value }))}
                       />
                     </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-                      <span
-                        style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                      >
-                        {m.b!.name}
-                      </span>
+                    <div className="mb-2.5 flex items-center gap-2">
+                      <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px]">{m.b!.name}</span>
                       <input
                         type="number"
                         min="0"
-                        style={{ ...S.input, width: 60, flexShrink: 0, textAlign: "center" }}
+                        className={clsx(T.input, "w-[60px] shrink-0 text-center")}
                         value={scoreInput.goalsB}
                         onChange={e => setScoreInput(s => ({ ...s, goalsB: e.target.value }))}
                       />
@@ -196,13 +143,13 @@ export function BracketPhase({
                 )}
 
                 {!isHost && playable && (
-                  <p style={{ ...S.muted, marginTop: 8, textAlign: "center" }}>
+                  <p className={clsx(T.muted, "mt-2 text-center")}>
                     {involvesMe ? "Es tu partido — esperá a que el anfitrión cargue el resultado." : "Esperando resultado..."}
                   </p>
                 )}
 
                 {decided && !playable && m.a && m.b && (
-                  <p style={{ ...S.muted, marginTop: 8, textAlign: "center" }}>
+                  <p className={clsx(T.muted, "mt-2 text-center")}>
                     Ganó {m.winner!.name} · {m.winner!.team}
                   </p>
                 )}
