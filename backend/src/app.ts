@@ -37,7 +37,12 @@ function createApp(): Server {
   // render.yaml), so this mostly guards against other sites hitting /health
   // directly. Left permissive unless CORS_ORIGIN is set, since local dev runs
   // the Vite frontend on a different port than the backend.
-  app.use(cors(env.CORS_ORIGIN ? { origin: env.CORS_ORIGIN } : undefined));
+  app.use(
+    cors({
+      origin: env.CORS_ORIGIN ?? true,
+      credentials: true,
+    }),
+  );
   // Baseline security headers (X-Content-Type-Options, frame-ancestors 'self',
   // Referrer-Policy, etc.) at zero behavior risk — EXCEPT the
   // Content-Security-Policy helmet enables by default, which is turned off
