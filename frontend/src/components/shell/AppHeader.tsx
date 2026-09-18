@@ -60,7 +60,15 @@ export function AppHeader({
   showRules,
   onToggleRules,
 }: AppHeaderProps) {
-  const isHome = !gameId && !groupFlow;
+  // El flujo de grupo pone `groupFlow` en true apenas se toca "Crear
+  // grupo"/"Unirme" — bastante antes de estar realmente adentro (recién pasa
+  // con `groupAttached`, cuando el server confirma create/join_group). Sin
+  // el chequeo de `groupAttached` acá, este navbar cambiaba a GameNavbar
+  // (subtítulo "Grupo") mientras el modal de crear/unirse todavía se estaba
+  // mostrando — un cambio de navbar visible antes de que la transición al
+  // modal terminara. Ahora se queda en HomeNavbar durante todo ese modal, y
+  // recién pasa a GameNavbar una vez que el grupo existe de verdad.
+  const isHome = !gameId && (!groupFlow || !groupAttached);
   // Misma condición que goBack (useAppNavigation): con un grupo activo y una
   // instancia puntual en pantalla, "Volver" no sale del juego, manda de
   // vuelta a la pantalla de grupo.

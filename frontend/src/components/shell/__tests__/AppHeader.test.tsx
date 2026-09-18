@@ -36,8 +36,14 @@ describe("AppHeader", () => {
     expect(container.querySelector(".jt-home-navbar")).toBeNull();
   });
 
-  test("renders GameNavbar when groupFlow is true even without a gameId", () => {
-    const { container } = render(<AppHeader {...baseProps} gameId={null} groupFlow={true} />);
+  test("stays on HomeNavbar while groupFlow is true but not yet attached (create/join modal still showing)", () => {
+    const { container } = render(<AppHeader {...baseProps} gameId={null} groupFlow={true} groupAttached={false} />);
+    expect(container.querySelector(".jt-home-navbar")).not.toBeNull();
+    expect(container.querySelector(".jt-ingame-logo")).toBeNull();
+  });
+
+  test("renders GameNavbar once groupFlow is true and the group is actually attached", () => {
+    const { container } = render(<AppHeader {...baseProps} gameId={null} groupFlow={true} groupAttached={true} />);
     expect(container.querySelector(".jt-ingame-logo")).not.toBeNull();
     expect(container.querySelector(".jt-home-navbar")).toBeNull();
   });

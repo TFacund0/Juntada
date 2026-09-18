@@ -84,10 +84,15 @@ function HomeIcon() {
  *
  * Ver AppHeader.tsx para la rama complementaria (HomeNavbar) y el
  * criterio que decide cuál de las dos se renderiza. Reemplaza a HomeNavbar
- * de un tirón en ese cambio (sin transición propia del lado de React) — el
- * fade de 100ms de acá abajo evita que este navbar aparezca ya completo
- * mientras GroupEntryModal/RoomEntryModal todavía están en pleno fade-in
- * (mismo keyframe que esos dos, para que se sientan una sola transición).
+ * de un tirón en ese cambio — el subtítulo (ej. "Grupo") ya está en pantalla
+ * desde el primer frame, así que animar la OPACIDAD del fondo (como se hizo
+ * en un intento previo) deja una ventana semi-transparente durante toda la
+ * animación: ese texto en negrita se alcanza a leer a través del scrim, que
+ * es justo lo que había que evitar. Acá el fondo queda opaco fijo desde el
+ * frame 0 (nunca anima su opacidad) y solo el `backdrop-filter` blur crece
+ * de 0 al valor final (`jt-navbar-blur-in`, mismo criterio que el scrim de
+ * GroupEntryModal/RoomEntryModal con `jt-modal-scrim-in`) — el tinte oscuro
+ * ya tapa todo, el blur solo termina de asentar el efecto vidrio esmerilado.
  */
 export function GameNavbar({
   mode,
@@ -103,8 +108,8 @@ export function GameNavbar({
 }: GameNavbarProps) {
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-20 backdrop-blur-[14px] border-b border-jt-accent-border-soft
-        bg-[color-mix(in_srgb,var(--jt-bg)_78%,transparent)] animate-[jt-modal-scrim-in_100ms_ease-out] motion-reduce:animate-none"
+      className="fixed top-0 left-0 right-0 z-20 border-b border-jt-accent-border-soft
+        bg-[color-mix(in_srgb,var(--jt-bg)_78%,transparent)] animate-[jt-navbar-blur-in_100ms_ease-out_forwards] motion-reduce:backdrop-blur-[14px] motion-reduce:animate-none"
     >
       <div className="jt-home-navbar-inner flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">

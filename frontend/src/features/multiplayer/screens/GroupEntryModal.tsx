@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { CloseIcon } from "../../../components/ui/icons";
 
 const SCRIM =
-  "fixed inset-0 z-40 flex items-center justify-center p-5 bg-[color-mix(in_srgb,var(--jt-bg)_72%,transparent)] backdrop-blur-[18px] animate-[jt-modal-scrim-in_100ms_ease-out] motion-reduce:animate-none";
+  "fixed inset-0 z-40 flex items-center justify-center p-5 bg-[color-mix(in_srgb,var(--jt-bg)_72%,transparent)] animate-[jt-modal-scrim-in_100ms_ease-out_forwards] motion-reduce:backdrop-blur-[18px] motion-reduce:animate-none";
 
 const GLOW = "absolute rounded-full pointer-events-none blur-[90px]";
 
