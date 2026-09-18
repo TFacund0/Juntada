@@ -48,8 +48,10 @@ export function ResetPasswordScreen({ token }: { token: string }) {
           <div aria-hidden className="jt-onboarding-glow jt-onboarding-glow--a" />
           <div aria-hidden className="jt-onboarding-glow jt-onboarding-glow--b" />
           <div className="jt-onboarding-card jt-animate-rise">
-            <img src={logo} alt="Juntada" className="jt-onboarding-logo" />
-            <h1 className="jt-onboarding-title jt-text-gradient">Juntada</h1>
+            <div className="jt-onboarding-brand">
+              <img src={logo} alt="Juntada" className="jt-onboarding-logo" />
+              <h1 className="jt-onboarding-title jt-text-gradient">Juntada</h1>
+            </div>
 
             {status === "done" ? (
               <p className={clsx(T.muted, "text-center")}>Contraseña actualizada. Ya podés iniciar sesión con tu nueva contraseña.</p>

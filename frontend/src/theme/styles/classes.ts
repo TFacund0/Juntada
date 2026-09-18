@@ -22,7 +22,7 @@ export const cardHighlight =
 export const label = "mb-2.5 block text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--jt-label,#7f77dd)]";
 
 export const input =
-  "box-border w-full rounded-[10px] border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.25))] bg-white/[0.06] px-3.5 py-[11px] font-[inherit] text-[15px] text-[#e8e4f0] outline-none";
+  "box-border w-full rounded-[10px] border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.25))] bg-white/[0.06] px-3.5 py-[11px] font-[inherit] text-[15px] text-[#e8e4f0] outline-none placeholder:text-[#a49dc9]/40 transition-colors focus:border-[var(--jt-accent,#7f77dd)]";
 
 export const muted = "text-[13px] text-[var(--jt-muted-text,#6b6490)]";
 

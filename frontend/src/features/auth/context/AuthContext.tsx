@@ -33,14 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SelfUser | null>(null);
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
-  useEffect(
-    () => () => {
-      mountedRef.current = false;
-    },
-    [],
-  );
-
   const setAccessToken = useCallback((token: string | null) => {
     accessTokenRef.current = token;
     setAccessTokenState(token);
@@ -52,19 +44,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // expired, revoked) just means AuthScreen shows instead; this is expected,
   // not an error to surface to the player.
   useEffect(() => {
+    let active = true;
     (async () => {
       try {
         const { accessToken: token } = await authApi.refresh();
         const { user: self } = await authApi.getMe(token);
-        if (!mountedRef.current) return;
+        if (!active) return;
         setAccessToken(token);
         setUser(self);
       } catch {
         // no valid session — stay logged out
       } finally {
-        if (mountedRef.current) setLoading(false);
+        if (active) setLoading(false);
       }
     })();
+    return () => {
+      active = false;
+    };
   }, [setAccessToken]);
 
   const login = useCallback(

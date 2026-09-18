@@ -23,9 +23,6 @@ export function RoomEntryCard({
   error,
   errorKey,
   playerName,
-  editingName,
-  onEditingChange,
-  onSaveName,
   onSetPhase,
   joinCode,
   onJoinCodeChange,
@@ -43,9 +40,6 @@ export function RoomEntryCard({
   error: string;
   errorKey: number;
   playerName: string;
-  editingName: boolean;
-  onEditingChange: (editing: boolean) => void;
-  onSaveName: (name: string) => void;
   onSetPhase: (phase: "create" | "join" | "menu") => void;
   onCreateRoom: () => void;
   joinCode: string;
@@ -75,7 +69,7 @@ export function RoomEntryCard({
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
-        <NamePillEditor name={playerName} onSave={onSaveName} avatarSize={20} editing={editingName} onEditingChange={onEditingChange} />
+        <NamePillEditor name={playerName} avatarSize={20} />
       </div>
 
       <ErrorBanner message={error} flashKey={errorKey} variant="block" />
