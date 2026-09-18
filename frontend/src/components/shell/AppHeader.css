@@ -1,71 +1,7 @@
-/* Micro-animaciones del navbar compartido (AppHeader) — un simple hover/press
-   en los círculos de navegación y una entrada breve para el menú
-   desplegable, en vez de que aparezcan/cambien de estado en seco. */
-
-.jt-nav-icon-btn {
-  width: 34px;
-  height: 34px;
-  transform: scale(1);
-}
-
-@media (min-width: 900px) {
-  .jt-nav-icon-btn {
-    width: 40px;
-    height: 40px;
-  }
-}
-
-/* Logo/nombre del juego + iconos del navbar de las pantallas de juego —
-   crecen un poco en pantallas grandes, igual criterio que el navbar del
-   home (jt-text-gradient, jt-home-navbar). */
-.jt-ingame-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  transition:
-    transform 0.15s ease,
-    filter 0.15s ease;
-}
-
-@media (min-width: 900px) {
-  .jt-ingame-logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-  }
-}
-
-.jt-ingame-title {
-  font-weight: 800;
-  font-size: 16px;
-}
-
-@media (min-width: 900px) {
-  .jt-ingame-title {
-    font-size: 19px;
-  }
-}
-
-.jt-ingame-subtitle {
-  font-size: 10px;
-}
-
-@media (min-width: 900px) {
-  .jt-ingame-subtitle {
-    font-size: 12px;
-  }
-}
-
-.jt-nav-icon-btn:hover {
-  transform: scale(1.08);
-  filter: brightness(1.2);
-  background: var(--jt-accent-border-soft, rgba(127, 119, 221, 0.4)) !important;
-}
-
-.jt-nav-icon-btn:active {
-  transform: scale(0.92);
-  filter: brightness(0.95);
-}
+/* Micro-animaciones del navbar compartido (AppHeader) — entrada breve para
+   el menú desplegable, en vez de que aparezca en seco. Los iconos redondos/
+   logo/título de GameNavbar migraron a Tailwind (ver GameNavbar.tsx), así
+   que sus reglas .jt-nav-icon-btn/.jt-ingame-* ya no viven acá. */
 
 /* @keyframes jt-dropdown-in vive en sharedChrome.css — GroupMenuDropdown.css
    y ProfilePanel.css también la usan, así que quedó centralizada ahí en vez

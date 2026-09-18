@@ -5,6 +5,9 @@ import { ShareArrowIcon } from "../../../../components/ui/icons";
 import { buildRoomJoinUrl } from "../../utils/joinLink";
 import type { RoomPublicState } from "@juntada/shared-types";
 
+const LINK_BTN =
+  "border-none text-jt-accent-strong cursor-pointer text-[13px] font-[inherit] font-bold inline-flex items-center gap-[5px] transition-[color,transform] duration-200 hover:text-white hover:-translate-y-px";
+
 // Invitación para una sala INDEPENDIENTE (sin grupo): comparte el código de
 // la propia sala, su único mecanismo de invitación. Extraído verbatim de
 // LobbyScreen.tsx (rama `room.groupCode === null`).
@@ -31,11 +34,11 @@ export function LobbyRoomInvite({
   return (
     <>
       <CodeDisplay code={room.code} />
-      <div style={{ display: "flex", justifyContent: "center", gap: 18, marginTop: 10 }} className="jt-animate-rise">
-        <button onClick={() => onShowQR(true)} className="jt-lobby-link-btn">
+      <div className="jt-animate-rise flex justify-center gap-[18px] mt-2.5">
+        <button onClick={() => onShowQR(true)} className={LINK_BTN}>
           ▦ Ver QR
         </button>
-        <button onClick={() => onShowShareLink(true)} className="jt-lobby-link-btn">
+        <button onClick={() => onShowShareLink(true)} className={LINK_BTN}>
           <ShareArrowIcon /> Compartir enlace
         </button>
       </div>

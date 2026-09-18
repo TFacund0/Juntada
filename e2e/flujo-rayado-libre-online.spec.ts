@@ -24,7 +24,7 @@ base("dos jugadores completan una ronda de Rayado Libre online: elegir palabra, 
 
   try {
     await ana.goto("/");
-    await ana.getByText("Rayado Libre", { exact: true }).click();
+    await ana.getByText("Rayado", { exact: true }).click();
     await ana.getByRole("button", { name: "Jugar" }).click();
     await ana.getByText("Jugar online con amigos").click();
     await ana.getByRole("button", { name: "Crear partida" }).click();

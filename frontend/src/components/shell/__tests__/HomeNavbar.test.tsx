@@ -48,11 +48,18 @@ describe("HomeNavbar", () => {
   test("does not show ProfilePanel when showProfileMenu is false", () => {
     const { container } = renderWithAuth(<HomeNavbar {...baseProps} showProfileMenu={false} />);
     expect(container.querySelector(".jt-profile-trigger")).not.toBeNull();
-    expect(screen.queryByText("Guardar")).toBeNull();
+    expect(screen.queryByText("Cerrar sesión")).toBeNull();
   });
 
   test("shows ProfilePanel when showProfileMenu is true", () => {
     renderWithAuth(<HomeNavbar {...baseProps} showProfileMenu={true} />);
+    expect(screen.getByText("Cerrar sesión")).toBeTruthy();
+  });
+
+  test("reveals the name editor only after clicking the name", () => {
+    renderWithAuth(<HomeNavbar {...baseProps} showProfileMenu={true} />);
+    expect(screen.queryByText("Guardar")).toBeNull();
+    fireEvent.click(screen.getByText(baseProps.playerName));
     expect(screen.getByText("Guardar")).toBeTruthy();
   });
 });

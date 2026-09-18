@@ -37,7 +37,8 @@ function baseProps(room: RoomPublicState, seatsResult: ReturnType<typeof useLobb
     hiddenSeatCount: seatsResult.hiddenSeatCount,
     totalSeatCount: seatsResult.seats.length,
     showAllSeats: seatsResult.showAllSeats,
-    onShowAllSeats: vi.fn(),
+    onShowMoreSeats: vi.fn(),
+    onShowFewerSeats: vi.fn(),
     openPlayerMenu: null,
     onTogglePlayerMenu: vi.fn(),
     onTransferHost: vi.fn(),
@@ -76,21 +77,29 @@ describe("LobbySeatGrid", () => {
     expect(screen.getByText("Vacío")).toBeInTheDocument();
   });
 
-  test("shows the +N button and calls onShowAllSeats(true) when there are more than 5 seats", () => {
+  test("shows the +N button (capped at 3) and calls onShowMoreSeats when there are more than 5 seats", () => {
     const room = makeRoom({ players: [makePlayer("p1"), makePlayer("p2"), makePlayer("p3")], maxPlayers: 8 });
     const { result } = renderHook(() => useLobbySeats(room));
-    const onShowAllSeats = vi.fn();
-    render(<LobbySeatGrid {...baseProps(room, result.current)} onShowAllSeats={onShowAllSeats} />);
+    const onShowMoreSeats = vi.fn();
+    render(<LobbySeatGrid {...baseProps(room, result.current)} onShowMoreSeats={onShowMoreSeats} />);
 
     const moreButton = screen.getByText("+3").closest("button")!;
     moreButton.click();
-    expect(onShowAllSeats).toHaveBeenCalledWith(true);
+    expect(onShowMoreSeats).toHaveBeenCalled();
   });
 
-  test("shows 'Ver menos' and calls onShowAllSeats(false) when expanded with more than 5 total seats", () => {
+  test("caps the +N badge to the actual hidden count when fewer than 3 remain", () => {
+    const room = makeRoom({ players: [makePlayer("p1")], maxPlayers: 7 });
+    const { result } = renderHook(() => useLobbySeats(room));
+    render(<LobbySeatGrid {...baseProps(room, result.current)} />);
+
+    expect(screen.getByText("+2")).toBeInTheDocument();
+  });
+
+  test("shows 'Ver menos' and calls onShowFewerSeats when expanded with more than 5 total seats", () => {
     const room = makeRoom({ players: [makePlayer("p1"), makePlayer("p2"), makePlayer("p3")], maxPlayers: 8 });
     const { result } = renderHook(() => useLobbySeats(room));
-    const onShowAllSeats = vi.fn();
+    const onShowFewerSeats = vi.fn();
     render(
       <LobbySeatGrid
         {...baseProps(room, result.current)}
@@ -99,11 +108,11 @@ describe("LobbySeatGrid", () => {
           Array.from({ length: 5 }, (_, i) => ({ kind: "empty" as const, key: `empty-${i}` })),
         )}
         hiddenSeatCount={0}
-        onShowAllSeats={onShowAllSeats}
+        onShowFewerSeats={onShowFewerSeats}
       />,
     );
 
     screen.getByText("Ver menos").click();
-    expect(onShowAllSeats).toHaveBeenCalledWith(false);
+    expect(onShowFewerSeats).toHaveBeenCalled();
   });
 });

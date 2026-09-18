@@ -40,14 +40,14 @@ export function useLobbyColumnMaxHeight({
   activeGameId,
   playerCount,
   maxPlayers,
-  showAllSeats,
+  visibleSeatCount,
 }: {
   lobbyTab: "players" | "config";
   isHost: boolean;
   activeGameId: string | undefined;
   playerCount: number;
   maxPlayers: number;
-  showAllSeats: boolean;
+  visibleSeatCount: number;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   const configScrollRef = useRef<HTMLDivElement>(null);
@@ -77,7 +77,7 @@ export function useLobbyColumnMaxHeight({
       window.removeEventListener("resize", recompute);
       cancelAnimationFrame(raf);
     };
-  }, [lobbyTab, isHost, activeGameId, playerCount, maxPlayers, showAllSeats]);
+  }, [lobbyTab, isHost, activeGameId, playerCount, maxPlayers, visibleSeatCount]);
 
   return { colRef, configScrollRef, actionBarRef };
 }

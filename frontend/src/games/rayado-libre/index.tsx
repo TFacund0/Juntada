@@ -13,7 +13,7 @@ const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.Round
 
 export const rayadoLibreGame: GameDef = {
   id: "rayado-libre",
-  label: "Rayado Libre",
+  label: "Rayado",
   icon: "🎨",
   logo,
   backgroundImage,

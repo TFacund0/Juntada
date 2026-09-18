@@ -1,10 +1,35 @@
-/* Entry point de Tailwind — sin bloque @theme: la paleta de la app ya vive en
-   las variables --jt-* de sharedChrome.css, sobreescritas en runtime por
-   juego con tema propio (ver hooks/useGameTheme.ts). Redefinirlas acá
-   duplicaría la fuente de verdad — las utilities de Tailwind leen esas
-   mismas variables vía sintaxis de valor arbitrario (bg-[var(--jt-accent)])
-   en vez de un theme propio. */
+/* Entry point de Tailwind. La paleta de la app vive en las variables --jt-*
+   de sharedChrome.css, sobreescritas en runtime por juego con tema propio
+   (ver hooks/useGameTheme.ts) — eso no cambia acá. Lo de abajo son ALIAS
+   cortos a esas mismas variables (no una redefinición con valor fijo): cada
+   `--color-jt-*` sigue apuntando a `var(--jt-*)`, así que una clase como
+   `bg-jt-accent` resuelve en runtime al mismo valor que pisa cada juego, sin
+   duplicar la fuente de verdad. El objetivo es evitar repetir
+   `bg-[var(--jt-accent,#7f77dd)]` con el fallback completo en archivo tras
+   archivo — se agregan tokens acá a medida que un archivo que ya se está
+   tocando los necesita (mismo criterio gradual que el resto del sweep de
+   deuda técnica), no de una sola vez para todas las --jt-* existentes. */
 @import "tailwindcss";
+
+@theme {
+  --color-jt-bg: var(--jt-bg);
+  --color-jt-surface: var(--jt-surface);
+  --color-jt-accent: var(--jt-accent);
+  --color-jt-accent-strong: var(--jt-accent-strong);
+  --color-jt-accent-border: var(--jt-accent-border);
+  --color-jt-card-border: var(--jt-card-border);
+  --color-jt-row-border: var(--jt-row-border);
+  --color-jt-muted-text: var(--jt-muted-text);
+  --color-jt-danger-text: var(--jt-danger-text);
+  --color-jt-danger-bg: var(--jt-danger-bg);
+  --color-jt-danger-border: var(--jt-danger-border);
+  --color-jt-card-bg: var(--jt-card-bg);
+  --color-jt-label: var(--jt-label);
+  --color-jt-cta-from: var(--jt-cta-from);
+  --color-jt-cta-to: var(--jt-cta-to);
+  --color-jt-accent-soft: var(--jt-accent-soft);
+  --color-jt-accent-border-soft: var(--jt-accent-border-soft);
+}
 
 /* Usado por OfflineScreen.tsx (animate-[jt-offline-screen-fade-in_...]) —
    Tailwind's arbitrary `animate-[name_...]` utility only sets the
@@ -12,6 +37,73 @@
 @keyframes jt-offline-screen-fade-in {
   from {
     opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Usados por FloatingChat.tsx (burbuja + panel de chat). */
+@keyframes jt-chatbubble-ring {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes jt-chatsheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mensaje nuevo: entra con un pop sutil (no solo fade) para que se note
+   sin ser una animación disruptiva — un jugador puede recibir varios
+   mensajes seguidos en pleno juego y no queremos que "salten" la pantalla. */
+@keyframes jt-chatmsg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.015);
+  }
+  to {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Pill "Anfitrión" del PlayerChip (lobby) — pulso de brillo sutil y
+   continuo para que la corona se lea como algo vivo. */
+@keyframes jt-host-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--jt-accent) 35%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 10px 1px color-mix(in srgb, var(--jt-accent) 35%, transparent);
+  }
+}
+
+/* Scrim de GroupEntryModal/RoomEntryModal — el backdrop-filter:blur tarda un
+   frame en asentarse en algunos navegadores: se llegaba a ver el navbar de
+   atrás sin blur durante ese instante. Un fade desde opacity:0 empeora esto
+   (deja al scrim más transparente, no menos, durante toda la animación) —
+   arranca ya bastante oscuro (.55, nunca "ventana" transparente) y solo
+   remata la opacidad final, tapando el frame sin blur en vez de exponerlo. */
+@keyframes jt-modal-scrim-in {
+  from {
+    opacity: 0.55;
   }
   to {
     opacity: 1;

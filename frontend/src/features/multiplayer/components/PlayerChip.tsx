@@ -37,7 +37,7 @@ export function PlayerChip({
   return (
     <div
       className={clsx(
-        "jt-player-chip jt-glow-hover jt-animate-rise relative flex flex-col items-center justify-center gap-1.5 overflow-hidden rounded-[14px] p-2 text-center border",
+        "jt-glow-hover jt-animate-rise relative flex flex-col items-center justify-center gap-1.5 overflow-hidden rounded-[14px] p-2 text-center border",
         isMe
           ? "bg-[var(--jt-accent-soft,rgba(127,119,221,0.08))] border-[var(--jt-accent-border-soft,rgba(127,119,221,0.35))]"
           : "bg-white/[0.03] border-[var(--jt-row-border,rgba(127,119,221,0.08))]",
@@ -62,7 +62,8 @@ export function PlayerChip({
         <div className="flex flex-wrap justify-center gap-1">
           {isHostPlayer && (
             <span
-              className="jt-player-host-badge inline-flex items-center gap-1 rounded-full border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.35))] bg-[var(--jt-accent-soft,rgba(127,119,221,0.18))] px-[7px] py-0.5 text-[9px] font-bold"
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.35))] bg-[var(--jt-accent-soft,rgba(127,119,221,0.18))] px-[7px] py-0.5 text-[9px] font-bold
+                animate-[jt-host-glow_2.4s_ease-in-out_infinite] motion-reduce:animate-none"
               style={{ color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})` }}
             >
               👑 Anfitrión

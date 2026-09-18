@@ -5,6 +5,7 @@ import logo from "../../../assets/brand/logo.webp";
 import { ScreenFade } from "../../../components/ui/ScreenFade";
 import { Btn } from "../../../components/ui/Btn";
 import { completePasswordReset, AuthApiError } from "../api/authApi";
+import { AuthErrorBanner } from "../components/AuthErrorBanner";
 import "./AuthScreen.css";
 
 /**
@@ -56,9 +57,7 @@ export function ResetPasswordScreen({ token }: { token: string }) {
             {status === "done" ? (
               <p className={clsx(T.muted, "text-center")}>Contraseña actualizada. Ya podés iniciar sesión con tu nueva contraseña.</p>
             ) : status === "invalid" ? (
-              <p className={clsx(T.muted, "text-center", "text-[#F09595]")}>
-                Este link ya no es válido — pedí uno nuevo desde "Olvidé mi contraseña".
-              </p>
+              <AuthErrorBanner>Este link ya no es válido — pedí uno nuevo desde "Olvidé mi contraseña".</AuthErrorBanner>
             ) : (
               <form
                 onSubmit={e => {
@@ -75,8 +74,8 @@ export function ResetPasswordScreen({ token }: { token: string }) {
                   <span className={T.label}>Repetir contraseña</span>
                   <input className={T.input} type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
                 </div>
-                {error && <p className={clsx(T.muted, "text-center", "text-[#F09595]")}>{error}</p>}
-                <Btn onClick={submit} disabled={status === "busy" || !passwordsMatch} style={{ marginTop: 20 }}>
+                {error && <AuthErrorBanner>{error}</AuthErrorBanner>}
+                <Btn onClick={submit} disabled={status === "busy" || !passwordsMatch} className="mt-5">
                   {status === "busy" ? "Guardando…" : "Restablecer contraseña"}
                 </Btn>
               </form>

@@ -218,10 +218,15 @@ export function useMultiplayerGameShell({
     // code and a default name (the game's own name — good enough, since a
     // room only lives for one match). Groups also always get an
     // auto-generated code — letting the host pick their own invited
-    // collisions/weak codes like "1234" for no real benefit.
+    // collisions/weak codes like "1234" for no real benefit. El nombre del
+    // grupo sí es obligatorio (a diferencia de la sala): un grupo vive más
+    // tiempo y se comparte con más gente, así que un nombre real ayuda a
+    // identificarlo entre varios — no alcanza con el nombre por defecto que
+    // le pondría el backend si se manda undefined.
+    if (inGroup && !roomName.trim()) return setError("Ingresá un nombre para el grupo");
     connect(ws => {
       if (inGroup) {
-        ws.send(JSON.stringify({ type: "create_group", groupName: roomName.trim() || undefined }));
+        ws.send(JSON.stringify({ type: "create_group", groupName: roomName.trim() }));
       } else {
         ws.send(
           JSON.stringify({
