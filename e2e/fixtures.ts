@@ -23,7 +23,9 @@ export async function seedPlayerContext(context: BrowserContext, playerName: str
       try {
         localStorage.setItem(nameKey, name);
         localStorage.setItem(noticeKey, "1");
-      } catch (_) {}
+      } catch {
+        // localStorage unavailable (e.g. disabled by the browser) — seeding is best-effort
+      }
     },
     [PLAYER_NAME_KEY, playerName, DEV_NOTICE_SEEN_KEY] as [string, string, string],
   );

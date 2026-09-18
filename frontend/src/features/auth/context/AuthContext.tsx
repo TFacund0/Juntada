@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import * as authApi from "../api/authApi";
 import type { SelfUser } from "../api/authApi";
 
@@ -8,7 +8,7 @@ import type { SelfUser } from "../api/authApi";
 // cookie we never touch directly. `accessTokenRef` exists so a non-React
 // consumer (multiplayerSocketService.ts, via getAccessToken()) always reads
 // the latest token without re-subscribing to context on every refresh.
-let accessTokenRef: { current: string | null } = { current: null };
+const accessTokenRef: { current: string | null } = { current: null };
 
 // Exposed for the WS layer (see services/multiplayerSocketService.ts) — kept
 // outside React so the socket service (a plain factory, not a hook) can read
