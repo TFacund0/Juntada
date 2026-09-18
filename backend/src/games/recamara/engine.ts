@@ -26,6 +26,7 @@
 // looking.
 
 import type { Room } from "@juntada/shared-types";
+import { escapeHtml } from "@juntada/core-utils";
 import type { GameEngine } from "../engineTypes";
 import {
   createInitialState,
@@ -98,7 +99,7 @@ function addLog(r: RecamaraRound, line: LogLine): void {
 // shape LocalGame.tsx uses, since this engine's ids are the same numeric
 // ones (log text embeds names, not room ids).
 function nameOf(players: Player[]): (id: number) => string {
-  return id => players.find(p => p.id === id)?.name ?? "?";
+  return id => escapeHtml(players.find(p => p.id === id)?.name ?? "?");
 }
 
 function createConfig(): Record<string, unknown> {
@@ -127,7 +128,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     lastPhoneHint: null,
     lastLupaHint: null,
   };
-  addLog(r, { text: `Se cargó la recámara. Empieza <b>${state.players[0].name}</b>.` });
+  addLog(r, { text: `Se cargó la recámara. Empieza <b>${escapeHtml(state.players[0].name)}</b>.` });
 
   room.round = r;
   room.phase = "playing";
@@ -220,7 +221,7 @@ function useItemAction(room: Room, playerId: string, payload: Record<string, unk
   r.lastLupaHint =
     item === "🔍" && result.revealedShellKind ? { forPlayerId: playerId, seq: r.itemSeq, shellKind: result.revealedShellKind } : null;
   addLog(r, describeItemResult(result, nameOf(playersBefore), { revealPhoneHint: false, revealLupaHint: false }));
-  return { handled: true, rerolled: item === "📞" };
+  return { handled: true, rerolled: item === "📞" || item === "🔍" };
 }
 
 function readyForDuel(room: Room, playerId: string): { handled: boolean } {

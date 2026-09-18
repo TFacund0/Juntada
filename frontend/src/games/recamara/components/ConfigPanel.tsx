@@ -1,4 +1,4 @@
-import "../recamara.css";
+import "../css/index.css";
 import type { ConfigPanelProps } from "../../gameTypes";
 
 // Recámara has no adjustable rules — same fixed duel as local mode (5 vidas,

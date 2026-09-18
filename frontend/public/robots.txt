@@ -1,0 +1,5 @@
+# The app is a private multiplayer game session behind a room/group code —
+# nothing here is meant to be indexed today. Revisit once a public landing
+# page exists to actually point crawlers at.
+User-agent: *
+Disallow: /

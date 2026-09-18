@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 
 // Shared "¿Cómo se juega?" editor — identical copy/layout in the online
 // lobby's ConfigPanel and local mode's setup screen (both just wire it to
@@ -14,29 +15,29 @@ export function PlayModeConfig({
   onChange: (patch: { playMode?: "endless" | "rounds"; roundLimit?: number }) => void;
 }) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>¿Cómo se juega?</span>
-      <p style={{ ...S.muted, margin: "0 0 10px", lineHeight: 1.4 }}>
+    <div className={T.card}>
+      <span className={T.label}>¿Cómo se juega?</span>
+      <p className={clsx(T.muted, "mb-2.5 leading-[1.4]")}>
         Define cuándo termina la partida: sigue rotando de psíquico ronda tras ronda sin parar, o corta después de una cantidad fija de
         rondas y muestra quién ganó.
       </p>
-      <div style={{ display: "flex", gap: 8, marginBottom: playMode === "rounds" ? 14 : 0 }}>
+      <div className={clsx("flex gap-2", playMode === "rounds" ? "mb-3.5" : "mb-0")}>
         <button
           onClick={() => onChange({ playMode: "endless" })}
-          style={{ ...S.btn(playMode === "endless" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
+          className={clsx(T.btn(playMode === "endless" ? "primary" : "ghost"), "flex-1 p-2 text-[13px]")}
         >
           Libre (sin límite)
         </button>
         <button
           onClick={() => onChange({ playMode: "rounds" })}
-          style={{ ...S.btn(playMode === "rounds" ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
+          className={clsx(T.btn(playMode === "rounds" ? "primary" : "ghost"), "flex-1 p-2 text-[13px]")}
         >
           Por rondas
         </button>
       </div>
       {playMode === "rounds" && (
         <div>
-          <span style={S.label}>Cantidad de rondas: {roundLimit}</span>
+          <span className={T.label}>Cantidad de rondas: {roundLimit}</span>
           <input
             type="range"
             min="1"
@@ -44,7 +45,7 @@ export function PlayModeConfig({
             step="1"
             value={roundLimit}
             onChange={e => onChange({ roundLimit: +e.target.value })}
-            style={{ width: "100%" }}
+            className="w-full"
           />
         </div>
       )}

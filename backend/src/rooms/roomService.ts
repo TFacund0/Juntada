@@ -13,18 +13,18 @@ import type { GameEngine } from "../games/engineTypes";
 import { logger } from "../logger";
 
 const { v4: uuidv4 } = require("uuid");
-const { rooms, clients, activeSockets } = require("../state/roomStore") as {
+const { rooms, clients, activeSockets, evictPreviousAccountSocket } = require("../state/roomStore") as {
   rooms: Map<string, Room>;
   clients: Map<WebSocket, ClientInfo>;
   activeSockets: Map<string, WebSocket>;
+  evictPreviousAccountSocket: (scopeCode: string, accountId: string, newWs: WebSocket) => void;
 };
 const { generateUniqueRoomCode } = require("./roomCode") as { generateUniqueRoomCode: () => string };
 const { getEngine } = require("../games/registry") as {
   getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
 };
 const { ONLINE_CLEANUP_DELAY_MS } = require("./constants") as { ONLINE_CLEANUP_DELAY_MS: number };
-const { isNameTaken, pickHostReplacement } = require("./rosterUtils") as {
-  isNameTaken: (roster: { id: string; name: string; online: boolean }[], name: string) => boolean;
+const { pickHostReplacement } = require("./rosterUtils") as {
   pickHostReplacement: (roster: { id: string; name: string; online: boolean }[], leavingId: string) => { id: string } | undefined;
 };
 
@@ -39,7 +39,7 @@ interface RoomResult {
 
 function createRoom(
   ws: WebSocket,
-  { playerName, roomName, gameType }: { playerName?: string; roomName?: string; gameType: string },
+  { accountId, username, roomName, gameType }: { accountId: string; username: string; roomName?: string; gameType: string },
 ): RoomResult {
   const engine = getEngine(gameType);
   if (!engine) return { error: `Juego desconocido: ${gameType}` };
@@ -54,7 +54,7 @@ function createRoom(
     gameType,
     groupCode: null,
     phase: "lobby",
-    players: [{ id: playerId, name: playerName || "Anfitrión", ready: false, online: true }],
+    players: [{ id: playerId, accountId, name: username, ready: false, online: true }],
     config: engine.createConfig(),
     round: null,
     usedWords: {},
@@ -62,8 +62,9 @@ function createRoom(
     chat: [],
   };
   rooms.set(code, room);
-  clients.set(ws, { groupCode: null, roomCode: code, playerId });
+  clients.set(ws, { groupCode: null, roomCode: code, playerId, accountId });
   activeSockets.set(playerId, ws);
+  evictPreviousAccountSocket(code, accountId, ws);
   logger.info({ roomCode: code, gameType, playerCount: rooms.size }, "room created");
   return { room, playerId };
 }
@@ -72,7 +73,14 @@ function createRoom(
 // createRoom, just linked back to the group and without registering a
 // fresh websocket client entry (the caller's already attached to the group;
 // see groupService.createInstance for the client bookkeeping).
-function createInstanceRoom(groupCode: string, gameType: string, hostId: string, hostName: string, groupName: string): RoomResult {
+function createInstanceRoom(
+  groupCode: string,
+  gameType: string,
+  hostId: string,
+  hostAccountId: string,
+  hostUsername: string,
+  groupName: string,
+): RoomResult {
   const engine = getEngine(gameType);
   if (!engine) return { error: `Juego desconocido: ${gameType}` };
   if (rooms.size >= MAX_TOTAL_ROOMS) return { error: "El servidor está lleno, probá de nuevo en un rato" };
@@ -85,7 +93,7 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
     gameType,
     groupCode,
     phase: "lobby",
-    players: [{ id: hostId, name: hostName, ready: false, online: true }],
+    players: [{ id: hostId, accountId: hostAccountId, name: hostUsername, ready: false, online: true }],
     config: engine.createConfig(),
     round: null,
     usedWords: {},
@@ -96,7 +104,7 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
   return { room };
 }
 
-function joinRoom(ws: WebSocket, { code, playerName }: { code?: string; playerName?: string }): RoomResult {
+function joinRoom(ws: WebSocket, { code, accountId, username }: { code?: string; accountId: string; username: string }): RoomResult {
   const room = rooms.get(code?.toUpperCase() ?? "");
   if (!room) return { error: "No existe ninguna sala con ese código" };
   if (room.phase !== "lobby") return { error: "La partida ya empezó, esperá a que termine la ronda para unirte" };
@@ -104,20 +112,19 @@ function joinRoom(ws: WebSocket, { code, playerName }: { code?: string; playerNa
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
   if (room.players.length >= maxPlayers) return { error: "La sala está llena" };
 
-  const name = playerName || "Jugador";
-  if (isNameTaken(room.players, name)) return { error: "Ese nombre ya está en uso en esta sala" };
-
   const playerId: string = uuidv4();
-  room.players.push({ id: playerId, name, ready: false, online: true });
-  clients.set(ws, { groupCode: null, roomCode: room.code, playerId });
+  room.players.push({ id: playerId, accountId, name: username, ready: false, online: true });
+  clients.set(ws, { groupCode: null, roomCode: room.code, playerId, accountId });
   activeSockets.set(playerId, ws);
+  evictPreviousAccountSocket(room.code, accountId, ws);
   return { room, playerId };
 }
 
 // A group member joining an instance already has an identity (playerId,
-// name) from the group — reused as-is instead of minting a new one, so
-// they're recognizable as the same person across every instance they join.
-function joinInstanceRoom(roomCode: string, playerId: string, playerName: string): RoomResult {
+// accountId, username) from the group — reused as-is instead of minting a
+// new one, so they're recognizable as the same person across every instance
+// they join.
+function joinInstanceRoom(roomCode: string, playerId: string, accountId: string, username: string): RoomResult {
   const room = rooms.get(roomCode);
   if (!room) return { error: "Esa partida ya no existe" };
   if (room.phase !== "lobby") return { error: "La partida ya empezó, esperá a que termine para unirte" };
@@ -125,22 +132,26 @@ function joinInstanceRoom(roomCode: string, playerId: string, playerName: string
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
   if (room.players.length >= maxPlayers) return { error: "Esa partida está llena" };
   if (room.players.some(p => p.id === playerId)) return { room };
-  if (isNameTaken(room.players, playerName)) return { error: "Ese nombre ya está en uso en esa partida" };
 
-  room.players.push({ id: playerId, name: playerName, ready: false, online: true });
+  room.players.push({ id: playerId, accountId, name: username, ready: false, online: true });
   return { room };
 }
 
-function rejoinRoom(ws: WebSocket, { roomCode, playerId }: { roomCode: string; playerId: string }): RoomResult {
+// The seat is resolved purely from the authenticated `accountId` (see
+// design.md's account-reconnection delta) — no client-supplied playerId
+// enters this anymore. A device with no seat in this room (never joined, or
+// already removed) is rejected with the same error message as before.
+function rejoinRoom(ws: WebSocket, { roomCode, accountId }: { roomCode: string; accountId: string }): RoomResult {
   const room = rooms.get(roomCode);
   if (!room) return { error: "La sala ya no existe" };
-  const player = room.players.find(p => p.id === playerId);
+  const player = room.players.find(p => p.accountId === accountId);
   if (!player) return { error: "Ya no formás parte de esta sala" };
   player.online = true;
   player.offlineSince = undefined;
-  clients.set(ws, { groupCode: room.groupCode, roomCode: room.code, playerId });
-  activeSockets.set(playerId, ws);
-  return { room, playerId };
+  clients.set(ws, { groupCode: room.groupCode, roomCode: room.code, playerId: player.id, accountId });
+  activeSockets.set(player.id, ws);
+  evictPreviousAccountSocket(room.code, accountId, ws);
+  return { room, playerId: player.id };
 }
 
 // Each game defines its own config shape (see engine.createConfig()), so

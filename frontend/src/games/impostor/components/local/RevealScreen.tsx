@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { wordHint } from "@juntada/impostor-data";
 import { Btn } from "../../../../components/ui/Btn";
 import { FlipRevealCard } from "../shared/FlipRevealCard";
@@ -48,13 +49,7 @@ export function RevealScreen({ round, players, config, revealIdx, setRevealIdx, 
   };
 
   return (
-    <div
-      style={{
-        minHeight: "calc(100dvh - 140px)",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div className="flex min-h-[calc(100dvh-140px)] flex-col">
       <style>{actionBtnStyle}</style>
       <style>{`
         .impostor-reveal-turn {
@@ -73,33 +68,18 @@ export function RevealScreen({ round, players, config, revealIdx, setRevealIdx, 
         }
       `}</style>
 
-      <div
-        className={`impostor-reveal-turn${handingOff ? " is-handing-off" : ""}`}
-        key={revealIdx}
-        style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
-      >
+      <div className={clsx("impostor-reveal-turn flex min-h-0 flex-1 flex-col", handingOff && "is-handing-off")} key={revealIdx}>
         <div>
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10, fontSize: 12 }}>
+          <p className={clsx(T.muted, "mb-2.5 text-center text-xs")}>
             Jugador {revealIdx + 1} de {alive.length}
           </p>
-          <div style={{ textAlign: "center", marginBottom: 14 }}>
-            <p
-              style={{
-                margin: "0 0 4px",
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--jt-accent, #7F77DD)",
-              }}
-            >
-              Turno de
-            </p>
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 24 }}>{player.name}</p>
+          <div className="mb-3.5 text-center">
+            <p className="m-0 mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#7F77DD)]">Turno de</p>
+            <p className="m-0 text-2xl font-extrabold">{player.name}</p>
           </div>
         </div>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <div className="flex min-h-0 flex-1 flex-col">
           <FlipRevealCard
             visible={wordVisible}
             onToggle={() => setWordVisible(v => !v)}

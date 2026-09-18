@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors } from "@juntada/impostor-match-rules";
 import { nextPlayerName } from "../../../../utils/nextPlayerName";
@@ -10,7 +11,7 @@ import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { StartButton } from "../../../../components/setup/StartButton";
 import { MinPlayersHint } from "../../../../components/game-kit/MinPlayersHint";
 import { ErrorBanner } from "../../../../components/ui/ErrorBanner";
-import { useFlashError } from "../../../../hooks/useFlashError";
+import { useFlashError } from "../../../../hooks/ui/useFlashError";
 import { ConfigSection } from "../config/ConfigSection";
 import { ConfigTabs } from "../config/ConfigTabs";
 import { CategoriesTab } from "../config/CategoriesTab";
@@ -79,11 +80,11 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
   };
 
   return (
-    <div style={{ paddingBottom: 88 }}>
+    <div className="pb-[88px]">
       <SetupTabs tab={tab} onChange={setTab} />
 
       {tab === "players" && (
-        <div style={S.card}>
+        <div className={T.card}>
           <style>{`
             .impostor-add-player-btn {
               transition: transform 0.1s ease-out, filter 0.15s ease-out, box-shadow 0.15s ease-out, border-color 0.2s ease-out;
@@ -102,16 +103,15 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
               justify-content: center;
             }
           `}</style>
-          <span style={S.label}>Jugadores ({players.length})</span>
+          <span className={T.label}>Jugadores ({players.length})</span>
           {players.map(p => (
-            <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+            <div key={p.id} className="mb-2 flex items-center gap-2">
               <Avatar name={p.name} size={32} />
-              <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+              <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
               <button
                 onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                className="impostor-remove-player-btn"
+                className={clsx("impostor-remove-player-btn", T.squareIconBtn("danger"))}
                 aria-label="Eliminar jugador"
-                style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -119,12 +119,7 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
               </button>
             </div>
           ))}
-          <Btn
-            variant="ghost"
-            onClick={addPlayer}
-            className="impostor-add-player-btn"
-            style={{ marginTop: 10, borderStyle: "dashed", borderWidth: 2 }}
-          >
+          <Btn variant="ghost" onClick={addPlayer} className="impostor-add-player-btn mt-2.5 border-2 border-dashed">
             + Añadir jugador
           </Btn>
           <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
@@ -136,8 +131,8 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
           {configTab === "rules" && (
             <div>
               <ConfigSection divider={false}>
-                <span style={S.label}>Impostores</span>
-                <div style={{ display: "flex", gap: 8 }}>
+                <span className={T.label}>Impostores</span>
+                <div className="flex gap-2">
                   {[1, 2, 3].map(n => {
                     const maxImp = maxImpostors(players.length);
                     return (
@@ -145,13 +140,11 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
                         key={n}
                         onClick={() => setConfig(c => ({ ...c, numImpostors: n }))}
                         disabled={n > maxImp}
-                        style={{
-                          ...S.btn(config.numImpostors === n ? "primary" : "ghost"),
-                          flex: 1,
-                          padding: "10px 0",
-                          fontSize: 14,
-                          opacity: n > maxImp ? 0.35 : 1,
-                        }}
+                        className={clsx(
+                          T.btn(config.numImpostors === n ? "primary" : "ghost"),
+                          "flex-1 px-0 py-2.5 text-sm",
+                          n > maxImp && "opacity-[0.35]",
+                        )}
                       >
                         {n}
                       </button>
@@ -159,29 +152,29 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
                   })}
                 </div>
                 {maxImpostors(players.length) < 3 && (
-                  <p style={{ ...S.muted, marginTop: 8, lineHeight: 1.4 }}>
+                  <p className={clsx(T.muted, "mt-2 leading-[1.4]")}>
                     Con {players.length} jugadores, como máximo puede haber {maxImpostors(players.length)}{" "}
                     {maxImpostors(players.length) === 1 ? "impostor" : "impostores"}.
                   </p>
                 )}
               </ConfigSection>
               <ConfigSection>
-                <span style={S.label}>¿El impostor recibe una pista?</span>
-                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <span className={T.label}>¿El impostor recibe una pista?</span>
+                <div className="mt-1 flex gap-2">
                   <button
                     onClick={() => setConfig(c => ({ ...c, hintsEnabled: true }))}
-                    style={{ ...S.btn(config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                    className={clsx(T.btn(config.hintsEnabled ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
                   >
                     Sí, con pista
                   </button>
                   <button
                     onClick={() => setConfig(c => ({ ...c, hintsEnabled: false }))}
-                    style={{ ...S.btn(!config.hintsEnabled ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                    className={clsx(T.btn(!config.hintsEnabled ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
                   >
                     No, a ciegas
                   </button>
                 </div>
-                <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
                   {config.hintsEnabled
                     ? "El impostor ve una pista sutil sobre la palabra, para poder disimular."
                     : "El impostor no sabe nada de la palabra secreta — tiene que improvisar."}
@@ -197,22 +190,22 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
                 <ShowCategoryControl value={config.showCategory} onChange={showCategory => setConfig(c => ({ ...c, showCategory }))} />
               </ConfigSection>
               <ConfigSection>
-                <span style={S.label}>¿Cómo dan su palabra los jugadores?</span>
-                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                <span className={T.label}>¿Cómo dan su palabra los jugadores?</span>
+                <div className="mt-1 flex gap-2">
                   <button
                     onClick={() => setConfig(c => ({ ...c, writtenClues: true }))}
-                    style={{ ...S.btn(config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                    className={clsx(T.btn(config.writtenClues ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
                   >
                     Escrita
                   </button>
                   <button
                     onClick={() => setConfig(c => ({ ...c, writtenClues: false }))}
-                    style={{ ...S.btn(!config.writtenClues ? "primary" : "ghost"), flex: 1, padding: "10px 8px", fontSize: 13 }}
+                    className={clsx(T.btn(!config.writtenClues ? "primary" : "ghost"), "flex-1 px-2 py-2.5 text-[13px]")}
                   >
                     En voz alta
                   </button>
                 </div>
-                <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4 }}>
+                <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
                   {config.writtenClues
                     ? "Cada uno escribe su palabra en el dispositivo antes de pasarlo, y quedan visibles para repasar antes de votar."
                     : "Cada uno dice su palabra en voz alta, por turnos, sin escribir nada."}
@@ -223,13 +216,13 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
                 pasando de mano en mano, así que ya queda en manos del grupo
                 cuánto tarda cada uno antes de tocar "Siguiente jugador" —
                 no hace falta un cronómetro server-side para eso. */}
-                <p style={{ ...S.muted, marginTop: 10, lineHeight: 1.4, fontSize: 12 }}>
+                <p className={clsx(T.muted, "mt-2.5 text-xs leading-[1.4]")}>
                   No hay límite de tiempo por turno: como se van pasando el dispositivo de mano en mano, cada uno avanza cuando ya dijo su
                   palabra.
                 </p>
               </ConfigSection>
               <ConfigSection>
-                <span style={S.label}>
+                <span className={T.label}>
                   Tiempo de discusión:{" "}
                   {config.discussionUnlimited
                     ? "Sin límite"
@@ -245,16 +238,21 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
                   value={config.discussionTime}
                   disabled={config.discussionUnlimited}
                   onChange={e => setConfig(c => ({ ...c, discussionTime: +e.target.value, discussionUnlimited: false }))}
-                  style={{ width: "100%", marginTop: 8, opacity: config.discussionUnlimited ? 0.4 : 1 }}
+                  className={clsx("mt-2 w-full", config.discussionUnlimited && "opacity-40")}
                 />
-                <label style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, cursor: "pointer" }}>
+                <label className="mt-3 flex cursor-pointer items-center gap-2.5">
                   <div
-                    style={S.toggle(config.discussionUnlimited)}
+                    className={T.toggle(config.discussionUnlimited)}
                     onClick={() => setConfig(c => ({ ...c, discussionUnlimited: !c.discussionUnlimited }))}
                   >
-                    <div style={S.knob(config.discussionUnlimited)} />
+                    <div className={T.knob(config.discussionUnlimited)} />
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: config.discussionUnlimited ? "#5DCAA5" : "var(--jt-muted-text)" }}>
+                  <span
+                    className={clsx(
+                      "text-[13px] font-semibold",
+                      config.discussionUnlimited ? "text-[#5DCAA5]" : "text-[var(--jt-muted-text)]",
+                    )}
+                  >
                     Discusión sin límite de tiempo — pasan a votar cuando estén todos listos
                   </span>
                 </label>
@@ -272,43 +270,27 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
 
           {configTab === "order" && (
             <div>
-              <span style={S.label}>Orden de turno para dar la palabra</span>
-              <p style={{ ...S.muted, margin: "4px 0 12px", lineHeight: 1.4 }}>
+              <span className={T.label}>Orden de turno para dar la palabra</span>
+              <p className={clsx(T.muted, "mt-1 mb-3 leading-[1.4]")}>
                 Así van a ir pasando el dispositivo y dando su palabra en la ronda.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
                 {players.map((p, i) => (
-                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                    <span style={{ width: 18, fontSize: 12, fontWeight: 800, color: "var(--jt-muted-text)" }}>{i + 1}</span>
+                  <div key={p.id} className="flex items-center gap-2.5 py-1.5">
+                    <span className="w-[18px] text-xs font-extrabold text-[var(--jt-muted-text)]">{i + 1}</span>
                     <Avatar name={p.name} size={28} />
-                    <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>{p.name}</span>
+                    <span className="flex-1 text-sm font-bold">{p.name}</span>
                     <button
                       onClick={() => movePlayer(i, -1)}
                       disabled={i === 0}
-                      style={{
-                        ...S.btn("ghost"),
-                        width: 32,
-                        height: 32,
-                        padding: 0,
-                        borderRadius: 8,
-                        fontSize: 14,
-                        opacity: i === 0 ? 0.35 : 1,
-                      }}
+                      className={clsx(T.btn("ghost"), "h-8 w-8 rounded-lg p-0 text-sm", i === 0 && "opacity-[0.35]")}
                     >
                       ↑
                     </button>
                     <button
                       onClick={() => movePlayer(i, 1)}
                       disabled={i === players.length - 1}
-                      style={{
-                        ...S.btn("ghost"),
-                        width: 32,
-                        height: 32,
-                        padding: 0,
-                        borderRadius: 8,
-                        fontSize: 14,
-                        opacity: i === players.length - 1 ? 0.35 : 1,
-                      }}
+                      className={clsx(T.btn("ghost"), "h-8 w-8 rounded-lg p-0 text-sm", i === players.length - 1 && "opacity-[0.35]")}
                     >
                       ↓
                     </button>
@@ -326,12 +308,12 @@ export function SetupScreen({ players, setPlayers, config, setConfig, usedWords,
         </StartButton>
         <MinPlayersHint count={players.length} min={3} />
         {players.length >= 3 && activeCats.length === 0 && (
-          <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
+          <p className="mt-2 text-center text-xs text-[#E2C44A]">
             Elegí al menos una categoría en la pestaña "Categorías" para poder arrancar
           </p>
         )}
         {players.length >= 3 && activeCats.length > 0 && allCategoriesExhausted && (
-          <p style={{ fontSize: 12, color: "#E2C44A", textAlign: "center", marginTop: 8 }}>
+          <p className="mt-2 text-center text-xs text-[#E2C44A]">
             Ya no quedan palabras sin usar en las categorías activas — activá otra en "Categorías"
           </p>
         )}

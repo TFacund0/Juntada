@@ -6,16 +6,26 @@ interface OutcomeBannerProps {
   // neutral "who shot whom" line.
   line: LogLine;
   subLine?: LogLine;
+  isElimination?: boolean;
+  eliminatedName?: string;
   onContinue: () => void;
 }
 
 // Big centered alert shown after a shot resolves or an item gets used —
 // stays up until the player taps through, so the pacing of "what just
 // happened" is entirely in their hands instead of an arbitrary timer.
-export function OutcomeBanner({ line, subLine, onContinue }: OutcomeBannerProps) {
+export function OutcomeBanner({ line, subLine, isElimination, eliminatedName, onContinue }: OutcomeBannerProps) {
   return (
-    <div className="rec-overlay">
-      <div className={`rec-modal rec-banner${subLine ? "" : line.cls ? ` ${line.cls}` : ""}${subLine ? ` ${subLine.cls}` : ""}`}>
+    <div className={`rec-overlay${isElimination ? " rec-overlay-elimination" : ""}`}>
+      <div
+        className={`rec-modal rec-banner${isElimination ? " elimination" : ""}${subLine ? "" : line.cls ? ` ${line.cls}` : ""}${subLine ? ` ${subLine.cls}` : ""}`}
+      >
+        {isElimination && (
+          <div className="rec-elimination-callout">
+            <span className="rec-elimination-skull">💀</span>
+            <p className="rec-elimination-title display">{eliminatedName ? `¡${eliminatedName} ELIMINADO!` : "¡JUGADOR ELIMINADO!"}</p>
+          </div>
+        )}
         <p className="rec-banner-text" dangerouslySetInnerHTML={{ __html: line.text }} />
         {subLine && <p className={`rec-banner-subtext ${subLine.cls}`} dangerouslySetInnerHTML={{ __html: subLine.text }} />}
         <button className="act primary" onClick={onContinue}>

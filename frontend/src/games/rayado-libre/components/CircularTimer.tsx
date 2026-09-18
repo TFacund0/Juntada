@@ -1,4 +1,4 @@
-import { useCountdownSeconds, timerUrgencyColor } from "../../../components/game-kit/useCountdownSeconds";
+import { useCountdownSeconds, timerUrgencyColor } from "../../../components/game-kit/hooks/useCountdownSeconds";
 
 /**
  * Reloj circular (a diferencia del `RingTimer` grande y centrado de

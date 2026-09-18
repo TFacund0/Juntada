@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Avatar } from "../../../components/ui/Avatar";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
@@ -69,10 +70,10 @@ export function LocalDrawingScreen({
             wordSlot={wordHint != null ? <HintText hint={wordHint} /> : null}
             onReroll={rerollAvailable ? onReroll : undefined}
             sideContent={
-              <div style={S.card}>
-                <span style={S.label}>¿Quién acertó?</span>
-                <p style={{ ...S.muted, margin: "0 0 10px" }}>Tocá el nombre de quien haya adivinado en voz alta.</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className={T.card}>
+                <span className={T.label}>¿Quién acertó?</span>
+                <p className={clsx(T.muted, "m-0 mb-2.5")}>Tocá el nombre de quien haya adivinado en voz alta.</p>
+                <div className="flex flex-col gap-2">
                   {players
                     .filter(p => p.id !== drawerId)
                     .map(p => {
@@ -82,18 +83,15 @@ export function LocalDrawingScreen({
                           key={p.id}
                           disabled={already}
                           onClick={() => markCorrect(p.id)}
-                          style={{
-                            ...S.btn(already ? "ghost" : "success"),
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            padding: "12px 14px",
-                            opacity: already ? 0.6 : 1,
-                          }}
+                          className={clsx(
+                            T.btn(already ? "ghost" : "success"),
+                            "flex items-center gap-2.5 px-3.5 py-3",
+                            already ? "opacity-60" : "opacity-100",
+                          )}
                         >
                           <Avatar name={p.name} size={28} />
-                          <span style={{ flex: 1, textAlign: "left", fontWeight: 700 }}>{p.name}</span>
-                          {already && <span style={{ fontSize: 13 }}>+{lastTurnPoints[p.id]} pts ✓</span>}
+                          <span className="flex-1 text-left font-bold">{p.name}</span>
+                          {already && <span className="text-sm">+{lastTurnPoints[p.id]} pts ✓</span>}
                         </button>
                       );
                     })}

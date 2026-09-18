@@ -119,7 +119,37 @@
 }
 
 .recamara .token.dead {
-  opacity: 0.4;
+  opacity: 0.45;
+  filter: grayscale(0.85);
+  border-color: rgba(255, 60, 60, 0.35);
+  background: rgba(30, 10, 10, 0.4);
+}
+
+.recamara .token.dead .token-name {
+  text-decoration: line-through;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .token-dead-skull {
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-right: 2px;
+  animation: rec-skull-pop 0.4s ease-out;
+}
+
+@keyframes rec-skull-pop {
+  0% {
+    transform: scale(0.3) rotate(-15deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.3) rotate(5deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 
 .recamara .token-name {

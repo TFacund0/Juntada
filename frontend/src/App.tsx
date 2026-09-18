@@ -1,74 +1,44 @@
-import { useState, useEffect, Suspense } from "react";
-import { S } from "./theme/styles";
+import clsx from "clsx";
+import { T } from "./theme/styles/classes";
+import "./theme/tailwind.css";
 import "./theme/curtain.css";
 import "./theme/sharedChrome.css";
 import "./theme/homeDesign.css";
-import type { GameDef } from "./games/gameTypes";
-import { isGameAvailable } from "./games/maintenance";
-import { MultiplayerGame } from "./features/multiplayer/MultiplayerGame";
-import { GamePicker } from "./components/shell/GamePicker";
-import { Hero, HeroBackdrop } from "./components/shell/Hero";
-import { GameRules } from "./components/shell/GameRules";
-import { AppConfirmDialogs } from "./components/shell/AppConfirmDialogs";
-import { AppBackdrop } from "./components/shell/AppBackdrop";
-import { DevNoticeDialog } from "./components/shell/DevNoticeDialog";
-import { GameLoadErrorBoundary } from "./components/shell/GameLoadErrorBoundary";
-import { NameOnboardingScreen } from "./components/shell/NameOnboardingScreen";
-import { ScreenFade } from "./components/ui/ScreenFade";
-import { Spinner } from "./components/ui/Spinner";
-import { AppHeader } from "./components/shell/AppHeader";
-import { ModePicker, ModePickerBackdrop } from "./components/shell/ModePicker";
-import { getStoredPlayerName, setStoredPlayerName } from "./features/multiplayer/utils/playerName";
-import { getGame } from "./games/registry";
-import { loadActive } from "./hooks/useActiveSession";
-import { useValidJoinLink } from "./features/multiplayer/hooks/useValidJoinLink";
-import { useGameTheme } from "./hooks/useGameTheme";
-import { useAppNavigation } from "./hooks/useAppNavigation";
-import { setAppInGame } from "./hooks/appActivity";
-import { readLocalFlag, setLocalFlag } from "./utils/localFlag";
-
-const DEV_NOTICE_SEEN_KEY = "impostorgame:devNoticeSeen";
+import { AuthScreen } from "./features/auth/screens/AuthScreen";
+import { AppMainContent } from "./components/shell/AppMainContent";
+import { AppOverlays } from "./components/shell/AppOverlays";
+import { useAppOrchestration } from "./hooks/app/useAppOrchestration";
+import { useAuth } from "./features/auth/context/AuthContext";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ROOT APP — landing = elegir juego, luego elegir modo (local/multi) para ese
-// juego. No conoce reglas de ningún juego: todo sale de games/registry.js.
+// ROOT APP — pathless PARENT/layout route. Delegates the 12-hook composition
+// to useAppOrchestration and the header/rest/AppShellLayout composition to
+// AppMainContent — see pages/context/ for the 5 domain contexts provided
+// around <Outlet>. App must stay a single non-remounting parent route
+// (remounting on every path change would destroy this state).
 // ═══════════════════════════════════════════════════════════════════════════════
-
-function GameLoading() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: 40 }}>
-      <Spinner />
-      <p style={{ margin: 0, color: "var(--jt-muted-text, #6b6490)", fontSize: 14 }}>Cargando juego...</p>
-    </div>
-  );
-}
 
 export default function App() {
-  const validJoinLink = useValidJoinLink();
-  const restoredRaw = validJoinLink ? null : loadActive();
-  // A session persisted before a deploy that removed/renamed the game, or
-  // put it into maintenance, would otherwise restore straight into a
-  // ModePicker/local match for a game that's no longer selectable from the
-  // home screen at all — go home instead in that case.
-  const restoredGame = restoredRaw ? getGame(restoredRaw.gameId) : undefined;
-  const restored = restoredRaw && restoredGame && isGameAvailable(restoredGame) ? restoredRaw : null;
-  const nav = useAppNavigation(validJoinLink, restored);
+  const { user, loading: authLoading } = useAuth();
   const {
     gameId,
-    setMode,
     mode,
     game,
     groupFlow,
-    groupIntent,
-    pendingGroupJoinCode,
-    switchToGroupJoin,
-    setRoomCode,
-    setGroupCode,
     groupAttached,
-    setGroupAttached,
-    exposeReturnToGroup,
-    exposeLocalGameBack,
-    exposeLocalGameReset,
+    inGameView,
+    activeTheme,
+    accentColor,
+    mutedColor,
+    curtain,
+    stepKey,
+    stepDirection,
+    playerName,
+    savePlayerName,
+    goBack,
+    confirmGoBack,
+    goHome,
+    startGroupFlow,
     showProfileMenu,
     setShowProfileMenu,
     profileMenuRef,
@@ -80,270 +50,66 @@ export default function App() {
     setShowBackConfirm,
     showLocalResetConfirm,
     setShowLocalResetConfirm,
-    localGameResetRef,
     showReturnToGroupConfirm,
     setShowReturnToGroupConfirm,
+    showDevNotice,
+    dismissDevNotice,
+    localGameResetRef,
     returnToGroupRef,
-    inGameView,
-    setRoomPhase,
-    handleRoomGameType,
-    curtain,
-    withCurtain,
-    withAsyncCurtain,
-    settleAsyncCurtain,
-    goBack,
-    confirmGoBack,
-    goHome,
-    pickGame,
-    startGroupFlow,
-    stepKey,
-    stepDirection,
-    GAME_LIST,
-  } = nav;
+    contextValues,
+  } = useAppOrchestration();
 
-  const [showDevNotice, setShowDevNotice] = useState(() => !readLocalFlag(DEV_NOTICE_SEEN_KEY));
-
-  const dismissDevNotice = () => {
-    setLocalFlag(DEV_NOTICE_SEEN_KEY);
-    setShowDevNotice(false);
-  };
-
-  // Asked once, right when the app is first opened — saved locally so
-  // nothing downstream (creating/joining a room or group) ever has to ask
-  // for it again. Editable later from the home screen ("Cambiar" link).
-  const [playerName, setPlayerName] = useState(() => getStoredPlayerName());
-
-  const savePlayerName = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setStoredPlayerName(trimmed);
-    setPlayerName(trimmed);
-  };
-
-  // Whether a themed game's reskin is actually on screen right now — used
-  // to drive the body/theme-color sync effect. Computed above the
-  // "!playerName" early return further down since Hooks (the effect right
-  // after it) can never be called conditionally.
-  const { activeTheme, accentColor, mutedColor } = useGameTheme(game, inGameView);
-
-  // Lets a pending service worker update (see useServiceWorkerUpdate) know
-  // it's not safe to reload right now — a round can last just a few
-  // seconds, and yanking the page mid-tap would lose whatever the player
-  // was doing. useEffect (not a direct call in the render body) so this
-  // only fires on an actual mode change, not every re-render.
-  useEffect(() => {
-    setAppInGame(inGameView);
-  }, [inGameView]);
-
-  if (!playerName) return <NameOnboardingScreen onSave={savePlayerName} />;
+  // Silent refresh-on-boot (AuthProvider) hasn't resolved yet — render
+  // nothing rather than flashing AuthScreen for a logged-in user whose
+  // cookie is still being exchanged for a fresh access token.
+  if (authLoading) return null;
+  if (!user) return <AuthScreen />;
 
   return (
-    <div
-      style={{
-        ...S.app,
-        ...activeTheme?.app,
-        position: "relative",
-        transition: "background-color .4s ease, color .4s ease",
-      }}
-    >
-      <AppBackdrop curtain={curtain} activeTheme={activeTheme} accentColor={accentColor} />
-      {(() => {
-        const header = (
-          <AppHeader
-            gameId={gameId}
-            mode={mode}
-            groupFlow={groupFlow}
-            groupAttached={groupAttached}
-            game={game}
-            accentColor={accentColor}
-            mutedColor={mutedColor}
-            playerName={playerName}
-            onSavePlayerName={savePlayerName}
-            onBack={goBack}
-            onExit={() => setShowExitConfirm(true)}
-            showProfileMenu={showProfileMenu}
-            onToggleProfileMenu={() => setShowProfileMenu(v => !v)}
-            profileMenuRef={profileMenuRef}
-            onStartGroupFlow={startGroupFlow}
-            showRules={showRules}
-            onToggleRules={() => setShowRules(v => !v)}
-          />
-        );
-        const rest = (
-          <>
-            {showRules && (game?.rules?.length ?? 0) > 0 && <GameRules rules={game!.rules} onClose={() => setShowRules(false)} />}
-
-            <ScreenFade transitionKey={stepKey} direction={stepDirection} skipAnimation={curtain !== "none"}>
-              {/* ── Paso 1: elegir juego (crear/unirse a un grupo vive en el "+" del header) ── */}
-              {!gameId && !groupFlow && (
-                <div>
-                  <Hero gameCount={(GAME_LIST as GameDef[]).filter(isGameAvailable).length} />
-                  <div id="jt-games">
-                    <GamePicker games={GAME_LIST as GameDef[]} onPick={pickGame} />
-                  </div>
-                </div>
-              )}
-
-              {/* ── Juego solo local (sin motor de sala online): directo al juego ── */}
-              {gameId && game?.localOnly && isGameAvailable(game) && !mode && (
-                <GameLoadErrorBoundary key={gameId}>
-                  <Suspense fallback={<GameLoading />}>
-                    <game.LocalGame />
-                  </Suspense>
-                </GameLoadErrorBoundary>
-              )}
-
-              {/* ── Paso 2: elegir modo (solo si el juego ya está implementado y soporta online) ── */}
-              {gameId && !mode && game && isGameAvailable(game) && !game.localOnly && (
-                <ModePicker
-                  onSelectMulti={() => setMode("multi")}
-                  onSelectLocal={() => withCurtain(() => setMode("local"), Boolean(game?.gameTheme))}
-                />
-              )}
-
-              {/* ── Paso 3: jugar ── */}
-              {mode === "local" && game && (
-                <GameLoadErrorBoundary key={gameId}>
-                  <Suspense fallback={<GameLoading />}>
-                    <game.LocalGame onExposeBack={exposeLocalGameBack} onExposeReset={exposeLocalGameReset} />
-                  </Suspense>
-                </GameLoadErrorBoundary>
-              )}
-              {mode === "multi" && (gameId || groupFlow) && (
-                <MultiplayerGame
-                  entryKind={groupFlow ? "group" : "room"}
-                  gameId={gameId}
-                  playerName={playerName}
-                  onChangeName={savePlayerName}
-                  initialJoinCode={pendingGroupJoinCode ?? validJoinLink?.code}
-                  initialGroupIntent={groupIntent}
-                  onGameTypeChange={handleRoomGameType}
-                  onRoomPhaseChange={setRoomPhase}
-                  onRoomCodeChange={setRoomCode}
-                  onGroupCodeChange={setGroupCode}
-                  onLeaveGroup={goHome}
-                  onExitRoomEntry={goBack}
-                  onGoHome={goHome}
-                  onSwitchToGroup={switchToGroupJoin}
-                  onGroupAttachedChange={setGroupAttached}
-                  onExposeReturnToGroup={exposeReturnToGroup}
-                  // `game` only reflects the *route's* gameId (set upfront for a
-                  // standalone room) — a group instance's game is picked from
-                  // inside the group screen itself, so `game` is still whatever it
-                  // was before (often null) at the exact moment a group create/
-                  // join fires. Callers there know the target game synchronously
-                  // (the picker's own gameId, or the instance's gameType) and pass
-                  // it as `themedOverride` instead of relying on this closure.
-                  runTransition={(action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme))}
-                  onTransitionSettled={settleAsyncCurtain}
-                  curtain={curtain}
-                />
-              )}
-            </ScreenFade>
-          </>
-        );
-
-        // Paso "picker" (home): el navbar necesita fondo a todo lo ancho de
-        // la ventana (como una landing real), no acotado a los 480px fijos
-        // que sí llevan las pantallas de juego — por eso acá el navbar vive
-        // en un contenedor sin maxWidth, y solo su contenido interno (y el
-        // resto de la pantalla) usan jt-home-wrap para centrarse con el
-        // ancho creciente por breakpoint (theme/homeDesign.css).
-        if (stepKey === "picker") {
-          return (
-            <div style={{ position: "relative", zIndex: 1 }}>
-              {/* Hermano de <ScreenFade> (dentro de `rest`), no descendiente
-                  suyo — ver el comentario en HeroBackdrop (Hero.tsx) sobre
-                  por qué un fondo `position: fixed` no puede vivir adentro
-                  del wrapper que ScreenFade anima con `transform`. */}
-              <HeroBackdrop />
-              {/* El navbar (fondo sticky) va suelto, sin jt-home-wrap acá —
-                  es él mismo quien centra su contenido interno con esa clase
-                  (ver AppHeader), así su fondo llega a los bordes reales de
-                  la ventana en vez de cortarse en el ancho del contenido. */}
-              {header}
-              {/* paddingTop compensa que el navbar ahora es fixed (ver
-                  AppHeader) y ya no ocupa espacio en el flujo normal — sin
-                  esto, Hero/GamePicker quedarían tapados debajo suyo. 72px
-                  alcanza para cubrir su altura real tanto en mobile (~57px,
-                  logo achicado bajo 420px) como en desktop (~65px) con un
-                  margen chico; el aire de sobra ya lo da el padding propio
-                  de Hero (jt-hero-section, 40-56px) — no hace falta sumar
-                  más acá o el espacio se duplica. */}
-              <div className="jt-home-wrap" style={{ margin: "0 auto", padding: "72px 16px 60px" }}>
-                {rest}
-              </div>
-            </div>
-          );
-        }
-
-        // Paso "elegí cómo jugar": a diferencia de las pantallas de juego en
-        // sí (formularios/lobby, pensados mobile-first a 480px fijos), acá no
-        // hay nada que se vuelva incómodo si crece — así que en vez de dejar
-        // 3 filas angostas nadando en espacio vacío en desktop, este paso usa
-        // un contenedor propio que crece por breakpoint (jt-mode-wrap,
-        // theme/modeRow.css) para que ModePicker pueda acomodar sus opciones
-        // en grilla en pantallas grandes.
-        if (stepKey.startsWith("modepicker-")) {
-          return (
-            <div className="jt-mode-wrap jt-content-pad-top" style={{ margin: "0 auto", position: "relative", zIndex: 1 }}>
-              {/* Hermano de <ScreenFade> (dentro de `rest`), no descendiente
-                  suyo — mismo motivo que HeroBackdrop arriba. */}
-              <ModePickerBackdrop />
-              {header}
-              {rest}
-            </div>
-          );
-        }
-
-        return (
-          // jt-content-pad-top compensa que el navbar de estas pantallas
-          // también pasó a ser fixed (ver AppHeader) y ya no ocupa espacio en
-          // el flujo normal — vive en una clase (theme/sharedChrome.css) y no
-          // en `style` porque necesita crecer desde los 900px (el navbar
-          // in-game crece ahí también), algo que un padding puesto por
-          // `style` inline no puede hacer. `jt-round-wrap-wide` reemplaza el
-          // `maxWidth: 480` fijo de S.wrap solo mientras el RoundView de un
-          // juego con `wideRoundView` (GameDef) está en pantalla — el lobby/
-          // ConfigPanel de ese mismo juego se queda a 480px como cualquier
-          // otro, ya que no está pensado para ese ancho.
-          (() => {
-            const wide = inGameView && Boolean(game?.wideRoundView);
-            return (
-              <div
-                className={`jt-content-pad-top${wide ? " jt-round-wrap-wide" : ""}`}
-                style={{ ...S.wrap, ...(wide ? { maxWidth: undefined } : null), position: "relative", zIndex: 1 }}
-              >
-                {header}
-                {rest}
-              </div>
-            );
-          })()
-        );
-      })()}
-
-      {showDevNotice && <DevNoticeDialog onClose={dismissDevNotice} />}
-
-      <AppConfirmDialogs
+    <div className={clsx(T.app, "relative transition-[background-color,color] duration-[400ms] ease")} style={activeTheme?.app}>
+      <AppOverlays
+        curtain={curtain}
+        activeTheme={activeTheme}
+        accentColor={accentColor}
+        showDevNotice={showDevNotice}
+        dismissDevNotice={dismissDevNotice}
         showBackConfirm={showBackConfirm}
-        onConfirmGoBack={confirmGoBack}
-        onCancelBackConfirm={() => setShowBackConfirm(false)}
+        confirmGoBack={confirmGoBack}
+        setShowBackConfirm={setShowBackConfirm}
         showLocalResetConfirm={showLocalResetConfirm}
-        onConfirmLocalReset={() => {
-          setShowLocalResetConfirm(false);
-          localGameResetRef.current?.();
-        }}
-        onCancelLocalResetConfirm={() => setShowLocalResetConfirm(false)}
+        setShowLocalResetConfirm={setShowLocalResetConfirm}
+        localGameResetRef={localGameResetRef}
         showExitConfirm={showExitConfirm}
         groupAttached={groupAttached}
-        onConfirmExit={goHome}
-        onCancelExitConfirm={() => setShowExitConfirm(false)}
+        goHome={goHome}
+        setShowExitConfirm={setShowExitConfirm}
         showReturnToGroupConfirm={showReturnToGroupConfirm}
-        onConfirmReturnToGroup={() => {
-          setShowReturnToGroupConfirm(false);
-          returnToGroupRef.current?.();
-        }}
-        onCancelReturnToGroupConfirm={() => setShowReturnToGroupConfirm(false)}
+        setShowReturnToGroupConfirm={setShowReturnToGroupConfirm}
+        returnToGroupRef={returnToGroupRef}
+      />
+      <AppMainContent
+        gameId={gameId}
+        mode={mode}
+        groupFlow={groupFlow}
+        groupAttached={groupAttached}
+        game={game}
+        accentColor={accentColor}
+        mutedColor={mutedColor}
+        playerName={playerName}
+        savePlayerName={savePlayerName}
+        goBack={goBack}
+        setShowExitConfirm={setShowExitConfirm}
+        showProfileMenu={showProfileMenu}
+        setShowProfileMenu={setShowProfileMenu}
+        profileMenuRef={profileMenuRef}
+        startGroupFlow={startGroupFlow}
+        showRules={showRules}
+        setShowRules={setShowRules}
+        stepKey={stepKey}
+        stepDirection={stepDirection}
+        curtain={curtain}
+        contextValues={contextValues}
+        inGameView={inGameView}
       />
     </div>
   );

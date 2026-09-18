@@ -1,11 +1,12 @@
 import type { CSSProperties } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { Btn } from "../../../../components/ui/Btn";
 import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
 import { CluesReview } from "../shared/CluesReview";
 import { SuspectGrid } from "../shared/SuspectGrid";
-import { useCountdownSeconds } from "../../../../components/game-kit/useCountdownSeconds";
+import { useCountdownSeconds } from "../../../../components/game-kit/hooks/useCountdownSeconds";
 import { actionBtnStyle } from "../shared/actionBtnStyle";
 import type { RoundViewProps } from "../../../gameTypes";
 import type { ImpostorRoundState } from "../../types/roundView";
@@ -87,61 +88,45 @@ export function VotingPhaseScreen({
 
   return (
     <PhaseTransition phaseKey={`voting-${round?.revoteCount ?? 0}`}>
-      <div style={{ paddingBottom: 88 }}>
+      <div className="pb-[88px]">
         <style>{actionBtnStyle}</style>
 
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <p
-            style={{
-              margin: "0 0 6px",
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--jt-accent, #e0202b)",
-            }}
-          >
-            Votación
-          </p>
-          <h2 style={{ margin: "0 0 8px", fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em" }}>¿Quién es el impostor?</h2>
-          <p style={{ ...S.muted, margin: "0 auto", lineHeight: 1.5, maxWidth: 300 }}>Elegí a quién sospechás y confirmá tu voto.</p>
+        <div className="mb-5 text-center">
+          <p className="m-0 mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#e0202b)]">Votación</p>
+          <h2 className="m-0 mb-2 text-2xl font-extrabold tracking-[-0.02em]">¿Quién es el impostor?</h2>
+          <p className={clsx(T.muted, "mx-auto my-0 max-w-[300px] leading-[1.5]")}>Elegí a quién sospechás y confirmá tu voto.</p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <div style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.08)" }}>
+        <div className="mb-4 flex items-center gap-2">
+          <div className="h-1.5 flex-1 rounded-[3px] bg-white/[0.08]">
             <div
-              style={{
-                height: "100%",
-                borderRadius: 3,
-                width: `${Math.round((totalVoted / Math.max(1, onlinePlayers.length)) * 100)}%`,
-                background: "#5DCAA5",
-                transition: "width 0.4s",
-              }}
+              className="h-full rounded-[3px] bg-[#5DCAA5] transition-[width] duration-[400ms]"
+              style={{ width: `${Math.round((totalVoted / Math.max(1, onlinePlayers.length)) * 100)}%` }}
             />
           </div>
-          <span style={{ fontSize: 12, color: "var(--jt-muted-text)", fontWeight: 700, whiteSpace: "nowrap" }}>
+          <span className="whitespace-nowrap text-xs font-bold text-[var(--jt-muted-text)]">
             {totalVoted}/{onlinePlayers.length}
           </span>
         </div>
 
         {isRevote && (
-          <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
-            <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>Hubo un empate</p>
-            <p style={{ fontSize: 13, color: "var(--jt-muted-text)", marginTop: 4 }}>Se vota de nuevo solo entre los más votados</p>
+          <div className={clsx(T.card, "border border-[rgba(226,196,74,0.35)] bg-[rgba(226,196,74,0.08)] text-center")}>
+            <p className="m-0 text-sm font-bold text-[#E2C44A]">Hubo un empate</p>
+            <p className="mt-1 text-[13px] text-[var(--jt-muted-text)]">Se vota de nuevo solo entre los más votados</p>
           </div>
         )}
 
         {offlineAlive.length > 0 && (
-          <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
-            <p style={{ fontSize: 14, color: "#E2C44A", fontWeight: 700, margin: 0 }}>
+          <div className={clsx(T.card, "border border-[rgba(226,196,74,0.35)] bg-[rgba(226,196,74,0.08)] text-center")}>
+            <p className="m-0 text-sm font-bold text-[#E2C44A]">
               {offlineAlive.length === 1 ? `${offlineAlive[0].name} se desconectó` : `${offlineAlive.length} jugadores se desconectaron`}
             </p>
-            <p style={{ fontSize: 13, color: "var(--jt-muted-text)", marginTop: 4 }}>
+            <p className="mt-1 text-[13px] text-[var(--jt-muted-text)]">
               La votación sigue pausada hasta que vuelva{offlineAlive.length === 1 ? "" : "n"} o se lo/a expulse
               {reconnectDeadline != null && (
                 <>
                   {" "}
-                  — <strong style={{ color: "#E2C44A" }}>{reconnectSecs}s</strong>
+                  — <strong className="text-[#E2C44A]">{reconnectSecs}s</strong>
                 </>
               )}
             </p>
@@ -150,8 +135,8 @@ export function VotingPhaseScreen({
 
         <CluesReview clues={round?.clues} players={room.players} />
 
-        <div style={S.card}>
-          <span style={S.label}>Elegí a quién sospechás</span>
+        <div className={T.card}>
+          <span className={T.label}>Elegí a quién sospechás</span>
           {!voteConfirmed ? (
             <SuspectGrid
               suspects={suspects.map(p => ({ id: p.id, name: p.name, online: p.online }))}
@@ -160,9 +145,7 @@ export function VotingPhaseScreen({
               voteCounts={voteCounts}
             />
           ) : (
-            <p style={{ fontSize: 14, color: "#5DCAA5", textAlign: "center", marginTop: 10 }}>
-              Ya votaste — esperando a que confirmen los demás.
-            </p>
+            <p className="mt-2.5 text-center text-sm text-[#5DCAA5]">Ya votaste — esperando a que confirmen los demás.</p>
           )}
         </div>
 
@@ -172,7 +155,7 @@ export function VotingPhaseScreen({
               Confirmar voto
             </Btn>
           ) : (
-            <p style={{ ...S.muted, textAlign: "center", margin: 0 }}>
+            <p className={clsx(T.muted, "m-0 text-center")}>
               Votos confirmados: {totalVoted}/{onlinePlayers.length}
             </p>
           )}

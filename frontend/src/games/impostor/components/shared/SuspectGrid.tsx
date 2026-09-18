@@ -1,4 +1,4 @@
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
 import { Avatar } from "../../../../components/ui/Avatar";
 import { staggerPopStyle } from "./staggerPopStyle";
 
@@ -25,7 +25,7 @@ interface SuspectGridProps {
 // VotingPhaseScreen (a single grid, just for you).
 export function SuspectGrid({ suspects, selectedId, onSelect, voteCounts }: SuspectGridProps) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12 }}>
+    <div className="grid grid-cols-3 gap-2 mt-3">
       <style>{staggerPopStyle}</style>
       <style>{`
         .impostor-suspect-tile {
@@ -46,64 +46,24 @@ export function SuspectGrid({ suspects, selectedId, onSelect, voteCounts }: Susp
           <button
             key={p.id}
             onClick={() => onSelect(p.id)}
-            className="impostor-suspect-tile impostor-stagger-pop"
+            className={clsx(
+              "impostor-suspect-tile impostor-stagger-pop relative mb-0 rounded-2xl px-1.5 py-3 flex flex-col items-center gap-1.5 cursor-pointer text-[#e8e4f0] font-[inherit]",
+              p.online === false ? "opacity-60" : "opacity-100",
+              isSelected
+                ? "bg-[rgba(224,32,43,0.15)] border border-[#E24B4A]"
+                : "bg-[var(--jt-card-bg,rgba(255,255,255,0.04))] border border-[var(--jt-card-border,rgba(127,119,221,0.18))]",
+            )}
             aria-label={p.name}
-            style={{
-              ...S.card,
-              position: "relative",
-              marginBottom: 0,
-              padding: "12px 6px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 6,
-              cursor: "pointer",
-              color: "#e8e4f0",
-              font: "inherit",
-              opacity: p.online === false ? 0.6 : 1,
-              background: isSelected ? "rgba(224,32,43,0.15)" : "var(--jt-card-bg, rgba(255,255,255,0.04))",
-              border: isSelected ? "1px solid #E24B4A" : "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-              animationDelay: `${i * 0.04}s`,
-            }}
+            style={{ animationDelay: `${i * 0.04}s` }}
           >
             {count > 0 && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: -6,
-                  right: -6,
-                  minWidth: 20,
-                  height: 20,
-                  padding: "0 5px",
-                  borderRadius: 999,
-                  background: "#E24B4A",
-                  color: "#fff",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 0 0 2px var(--jt-bg, #0a0a0a)",
-                }}
-              >
+              <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-[5px] rounded-full bg-[#E24B4A] text-white text-[11px] font-extrabold flex items-center justify-center shadow-[0_0_0_2px_var(--jt-bg,#0a0a0a)]">
                 {count}
               </span>
             )}
             <Avatar name={p.name} size={32} />
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                textAlign: "center",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                maxWidth: "100%",
-              }}
-            >
-              {p.name}
-            </span>
-            {p.online === false && <span style={{ fontSize: 10, color: "var(--jt-muted-text)" }}>desconectado</span>}
+            <span className="text-xs font-bold text-center truncate max-w-full">{p.name}</span>
+            {p.online === false && <span className="text-[10px] text-[var(--jt-muted-text)]">desconectado</span>}
           </button>
         );
       })}

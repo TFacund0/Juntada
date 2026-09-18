@@ -20,8 +20,10 @@ export const DEV_NOTICE_SEEN_KEY = "impostorgame:devNoticeSeen";
 export async function seedPlayerContext(context: BrowserContext, playerName: string): Promise<void> {
   await context.addInitScript(
     ([nameKey, name, noticeKey]) => {
-      localStorage.setItem(nameKey, name);
-      localStorage.setItem(noticeKey, "1");
+      try {
+        localStorage.setItem(nameKey, name);
+        localStorage.setItem(noticeKey, "1");
+      } catch (_) {}
     },
     [PLAYER_NAME_KEY, playerName, DEV_NOTICE_SEEN_KEY] as [string, string, string],
   );

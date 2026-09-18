@@ -18,7 +18,6 @@ Organizados en subcarpetas por para qué sirven, no alfabéticamente:
 - `GamePicker` / `GameDetailDialog` — el catálogo de juegos de la pantalla de
   inicio y el diálogo de vista previa que se abre al tocar una tarjeta.
 - `ModePicker` — "elegí cómo jugar": Multijugador online vs. Modo local.
-- `NameOnboardingScreen` — la primerísima pantalla de "¿cómo te llamás?".
 - `NamePillEditor` — la pill chica que muestra/edita el nombre guardado.
 - `GameRules` — renderiza el `GameDef.rules` de un juego.
 - `DevNoticeDialog` — el aviso único de "app en desarrollo".
@@ -26,6 +25,12 @@ Organizados en subcarpetas por para qué sirven, no alfabéticamente:
   activo, detrás de toda la app.
 - `AppConfirmDialogs` — los `ConfirmDialog` de nivel-app (volver, resetear
   local, salir, volver-al-grupo) que dispara `App.tsx`/`useAppNavigation`.
+- `AppErrorBoundary` — el fallback de nivel raíz para cualquier error de
+  render no atrapado por un boundary más específico; se monta en `main.tsx`
+  envolviendo `<RouterProvider/>`, así que también atrapa errores del propio
+  `App.tsx`. Distinto de `GameLoadErrorBoundary`: no reintenta recargar
+  automáticamente ante un chunk-404 (a este nivel eso sería un loop de
+  recarga sin salida), solo muestra "Algo salió mal" + un botón "Recargar".
 
 ## `dialogs/` — piezas de modal compartidas
 

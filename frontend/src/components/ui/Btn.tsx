@@ -1,5 +1,6 @@
 import type { CSSProperties, MouseEventHandler, ReactNode } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 
 interface BtnProps {
   children: ReactNode;
@@ -21,8 +22,8 @@ export function Btn({ children, onClick, variant = "primary", disabled, style = 
     <button
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
-      className={className}
-      style={{ ...S.btn(variant, disabled), ...style }}
+      className={clsx(T.btn(variant, disabled), className)}
+      style={style}
     >
       {children}
     </button>

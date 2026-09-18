@@ -15,3 +15,11 @@ export function shuffle<T>(arr: readonly T[]): T[] {
   }
   return a;
 }
+
+// Escapes user-controlled text (player names, chat) before it's interpolated
+// into an HTML string that gets rendered via dangerouslySetInnerHTML — those
+// spots build markup like `<b>${name}</b>` for emphasis, so the value itself
+// still needs escaping or a player name like `<img onerror=...>` executes.
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}

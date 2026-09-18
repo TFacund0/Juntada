@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { Avatar } from "../../../components/ui/Avatar";
 import { TabRow } from "../../../components/setup/TabRow";
@@ -150,18 +151,18 @@ export function TeamConfigPanel<Id extends string | number>({
 
   return (
     <>
-      <div style={S.card}>
-        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={onToggleTrackGoals}>
-          <div style={S.toggle(trackGoals)}>
-            <div style={S.knob(trackGoals)} />
+      <div className={T.card}>
+        <label className="flex cursor-pointer items-center gap-2.5" onClick={onToggleTrackGoals}>
+          <div className={T.toggle(trackGoals)}>
+            <div className={T.knob(trackGoals)} />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: trackGoals ? "#5DCAA5" : "#6b6490" }}>
+          <span className={clsx("text-[13px] font-semibold", trackGoals ? "text-[#5DCAA5]" : "text-[#6b6490]")}>
             {trackGoals ? "Contabilizar goles (goleador, valla menos vencida)" : "Solo ganador/perdedor, sin goles"}
           </span>
         </label>
       </div>
 
-      <div style={S.card}>
+      <div className={T.card}>
         <TabRow
           tabs={[
             { key: "teams", label: "Equipos" },
@@ -170,24 +171,24 @@ export function TeamConfigPanel<Id extends string | number>({
           ]}
           active={tab}
           onChange={setTab}
-          buttonPadding="8px"
+          compact
         />
       </div>
 
       {tab === "teams" && (
-        <div style={S.card}>
-          <span style={S.label}>Equipos disponibles ({teams.length})</span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+        <div className={T.card}>
+          <span className={T.label}>Equipos disponibles ({teams.length})</span>
+          <div className="mb-2.5 flex flex-wrap gap-2">
             {teams.map(t => (
-              <span key={t} style={{ ...S.pill(true), cursor: "pointer", maxWidth: "100%" }} onClick={() => onRemoveTeam(t)}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🏳️ {t}</span>{" "}
-                <span style={{ marginLeft: 4, opacity: 0.6, flexShrink: 0 }}>×</span>
+              <span key={t} className={clsx(T.pill(true), "cursor-pointer max-w-full")} onClick={() => onRemoveTeam(t)}>
+                <span className="overflow-hidden text-ellipsis whitespace-nowrap">🏳️ {t}</span>{" "}
+                <span className="ml-1 shrink-0 opacity-60">×</span>
               </span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex gap-2">
             <input
-              style={{ ...S.input, flex: 1 }}
+              className={clsx(T.input, "flex-1")}
               placeholder="Agregar equipo..."
               value={newTeam}
               onChange={e => setNewTeam(e.target.value)}
@@ -195,28 +196,26 @@ export function TeamConfigPanel<Id extends string | number>({
                 if (e.key === "Enter") addTeam();
               }}
             />
-            <Btn variant="ghost" onClick={addTeam} style={{ width: "auto", padding: "11px 18px" }}>
+            <Btn variant="ghost" onClick={addTeam} className="w-auto px-[18px] py-[11px]">
               Agregar
             </Btn>
           </div>
           {teams.length < players.length && (
-            <p style={{ fontSize: 12, color: "#F09595", marginTop: 8 }}>Necesitás al menos {players.length} equipos (uno por jugador)</p>
+            <p className="mt-2 text-xs text-[#F09595]">Necesitás al menos {players.length} equipos (uno por jugador)</p>
           )}
         </div>
       )}
 
       {tab === "assign" && (
         <>
-          <div style={S.card}>
-            <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <p style={{ fontSize: 13, color: "#9089c0", margin: "0 0 10px" }}>
-                Asigná un equipo a cada jugador: con la ruleta o elegilo vos manualmente.
-              </p>
+          <div className={T.card}>
+            <div className="mb-4 text-center">
+              <p className="mb-2.5 text-[13px] text-[#9089c0]">Asigná un equipo a cada jugador: con la ruleta o elegilo vos manualmente.</p>
               <Btn variant="success" onClick={runRouletteAll} disabled={!!spinningId || teams.length < players.length}>
                 🎰 Girar la ruleta para todos
               </Btn>
               {teams.length < players.length && (
-                <p style={{ fontSize: 12, color: "#F09595", marginTop: 10 }}>
+                <p className="mt-2.5 text-xs text-[#F09595]">
                   Necesitás al menos {players.length} equipos para poder sortear — agregá {players.length - teams.length} más en la pestaña
                   "Equipos".
                 </p>
@@ -228,46 +227,24 @@ export function TeamConfigPanel<Id extends string | number>({
               const isSpinning = spinningId === p.id;
               const noTeamsLeft = teams.filter(t => !usedTeams.has(t)).length === 0;
               return (
-                <div
-                  key={p.id}
-                  style={{
-                    paddingTop: i === 0 ? 0 : 14,
-                    marginTop: i === 0 ? 0 : 14,
-                    borderTop: i === 0 ? undefined : "1px solid rgba(127,119,221,0.12)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: team && !isSpinning ? 0 : 12 }}>
+                <div key={p.id} className={clsx(i !== 0 && "mt-3.5 pt-3.5 border-t border-[rgba(127,119,221,0.12)]")}>
+                  <div className={clsx("flex items-center gap-2.5", team && !isSpinning ? "mb-0" : "mb-3")}>
                     <Avatar name={p.name} size={32} />
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 15,
-                        flex: 1,
-                        minWidth: 0,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {p.name}
-                    </span>
+                    <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[15px] font-bold">{p.name}</span>
                     {isSpinning ? (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#EF9F27" }}>Girando...</span>
+                      <span className="text-xs font-bold text-[#EF9F27]">Girando...</span>
                     ) : team ? (
-                      <span
-                        style={{ ...S.pill(true), cursor: "pointer", maxWidth: "55%", flexShrink: 0 }}
-                        onClick={() => clearAssignment(p.id)}
-                      >
-                        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🏳️ {team}</span>{" "}
-                        <span style={{ marginLeft: 4, opacity: 0.6, flexShrink: 0 }}>×</span>
+                      <span className={clsx(T.pill(true), "cursor-pointer max-w-[55%] shrink-0")} onClick={() => clearAssignment(p.id)}>
+                        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">🏳️ {team}</span>{" "}
+                        <span className="ml-1 shrink-0 opacity-60">×</span>
                       </span>
                     ) : (
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <div className="flex shrink-0 gap-1.5">
                         <button
                           onClick={() => spinForPlayer(p.id)}
                           disabled={!!spinningId || noTeamsLeft}
                           title={noTeamsLeft ? "No quedan equipos disponibles" : undefined}
-                          style={{ ...S.btn("success", !!spinningId || noTeamsLeft), width: "auto", padding: "8px 12px", fontSize: 13 }}
+                          className={clsx(T.btn("success", !!spinningId || noTeamsLeft), "w-auto px-3 py-2 text-[13px]")}
                         >
                           🎰
                         </button>
@@ -275,7 +252,7 @@ export function TeamConfigPanel<Id extends string | number>({
                           variant="ghost"
                           onClick={() => setManualPick(manualPick === p.id ? null : p.id)}
                           disabled={!!spinningId || noTeamsLeft}
-                          style={{ width: "auto", padding: "8px 14px", fontSize: 13 }}
+                          className="w-auto px-3.5 py-2 text-[13px]"
                         >
                           Elegir equipo
                         </Btn>
@@ -284,37 +261,24 @@ export function TeamConfigPanel<Id extends string | number>({
                   </div>
 
                   {!team && !isSpinning && noTeamsLeft && (
-                    <p style={{ fontSize: 12, color: "#F09595", margin: "8px 0 0" }}>
-                      No quedan equipos disponibles — agregá más en la pestaña "Equipos".
-                    </p>
+                    <p className="mt-2 text-xs text-[#F09595]">No quedan equipos disponibles — agregá más en la pestaña "Equipos".</p>
                   )}
 
                   {isSpinning && (
-                    <div
-                      style={{
-                        textAlign: "center",
-                        padding: "10px 8px",
-                        borderRadius: 10,
-                        background: "rgba(239,159,39,0.1)",
-                        border: "1px solid rgba(239,159,39,0.35)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <span style={{ fontSize: 15, fontWeight: 800, color: "#EF9F27" }}>🏳️ {spinLabel}</span>
+                    <div className="overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-[rgba(239,159,39,0.35)] bg-[rgba(239,159,39,0.1)] p-[10px_8px] text-center">
+                      <span className="text-[15px] font-extrabold text-[#EF9F27]">🏳️ {spinLabel}</span>
                     </div>
                   )}
 
                   {!team && !isSpinning && manualPick === p.id && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
                       {teams
                         .filter(t => !usedTeams.has(t))
                         .map(t => (
                           <button
                             key={t}
                             onClick={() => assignManually(p.id, t)}
-                            style={{ ...S.btn("ghost"), width: "auto", padding: "8px 14px", fontSize: 13, borderRadius: 8 }}
+                            className={clsx(T.btn("ghost"), "w-auto rounded-lg px-3.5 py-2 text-[13px]")}
                           >
                             {t}
                           </button>
@@ -326,34 +290,27 @@ export function TeamConfigPanel<Id extends string | number>({
             })}
           </div>
 
-          <div style={S.card}>
-            <span style={S.label}>
+          <div className={T.card}>
+            <span className={T.label}>
               Equipos restantes ({teams.length - usedTeams.size} de {teams.length})
             </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div className="flex flex-wrap gap-2">
               {teams.map(t => {
                 const taken = usedTeams.has(t);
                 const landed = !!spinningId && spinLabel === t;
                 return (
                   <span
                     key={t}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      padding: "4px 12px",
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      maxWidth: "100%",
-                      transition: "background 0.08s, border-color 0.08s, color 0.08s",
-                      background: landed ? "rgba(239,159,39,0.18)" : taken ? "rgba(255,255,255,0.03)" : "rgba(93,202,165,0.1)",
-                      color: landed ? "#EF9F27" : taken ? "#4a4568" : "#5DCAA5",
-                      border: `1px solid ${landed ? "rgba(239,159,39,0.5)" : taken ? "rgba(255,255,255,0.06)" : "rgba(93,202,165,0.3)"}`,
-                      textDecoration: taken && !landed ? "line-through" : "none",
-                    }}
+                    className={clsx(
+                      "inline-flex items-center gap-1 rounded-[20px] px-3 py-1 text-xs font-bold max-w-full transition-[background,border-color,color] duration-[80ms]",
+                      landed
+                        ? "bg-[rgba(239,159,39,0.18)] text-[#EF9F27] border border-[rgba(239,159,39,0.5)]"
+                        : taken
+                          ? "bg-white/[0.03] text-[#4a4568] border border-white/[0.06] line-through"
+                          : "bg-[rgba(93,202,165,0.1)] text-[#5DCAA5] border border-[rgba(93,202,165,0.3)]",
+                    )}
                   >
-                    🏳️ <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t}</span>
+                    🏳️ <span className="overflow-hidden text-ellipsis whitespace-nowrap">{t}</span>
                   </span>
                 );
               })}
@@ -363,27 +320,25 @@ export function TeamConfigPanel<Id extends string | number>({
       )}
 
       {tab === "bracket" && (
-        <div style={S.card}>
-          <span style={S.label}>Cruces de la primera ronda</span>
-          <p style={{ ...S.muted, marginBottom: 12 }}>
-            Cada par se enfrenta entre sí. Usá las flechas para reordenar, o sorteá el orden al azar.
-          </p>
-          <Btn variant="ghost" onClick={randomizeSeed} style={{ marginBottom: 12 }}>
+        <div className={T.card}>
+          <span className={T.label}>Cruces de la primera ronda</span>
+          <p className={clsx(T.muted, "mb-3")}>Cada par se enfrenta entre sí. Usá las flechas para reordenar, o sorteá el orden al azar.</p>
+          <Btn variant="ghost" onClick={randomizeSeed} className="mb-3">
             🎲 Sortear cruces al azar
           </Btn>
           {seedWasDiscarded && (
-            <p style={{ fontSize: 12, color: "#E2C44A", marginBottom: 12 }}>
+            <p className="mb-3 text-xs text-[#E2C44A]">
               El orden que habían armado se reinició porque cambió la lista de jugadores — se volvió a un orden simple.
             </p>
           )}
           {byeCount > 0 && (
-            <p style={{ ...S.muted, marginBottom: 12 }}>
+            <p className={clsx(T.muted, "mb-3")}>
               {order.length} jugadores no completan un cuadro parejo:{" "}
               {byeCount === 1 ? "el último de la lista" : `los últimos ${byeCount} de la lista`} pasa
               {byeCount === 1 ? "" : "n"} directo a la siguiente ronda (bye).
             </p>
           )}
-          {order.length < 2 && <p style={S.muted}>Necesitás al menos 2 jugadores para armar los cruces.</p>}
+          {order.length < 2 && <p className={T.muted}>Necesitás al menos 2 jugadores para armar los cruces.</p>}
           {Array.from({ length: pairCount }, (_, pairIdx) => {
             const isRealPair = pairIdx < normalPairs;
             const idxA = isRealPair ? pairIdx * 2 : normalPairs * 2 + (pairIdx - normalPairs);
@@ -396,53 +351,24 @@ export function TeamConfigPanel<Id extends string | number>({
             if (!pA) return null;
 
             const row = (p: TeamConfigPlayer<Id>, idx: number) => (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+              <div className="flex flex-1 min-w-0 items-center gap-2.5">
                 <Avatar name={p.name} size={28} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{ margin: 0, fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                  >
-                    {p.name}
-                  </p>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: 11,
-                      color: "#7F77DD",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                <div className="flex-1 min-w-0">
+                  <p className="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-bold">{p.name}</p>
+                  <p className="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-[#7F77DD]">
                     {assignments[p.id] || "sin equipo"}
                   </p>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2, flexShrink: 0 }}>
+                <div className="flex shrink-0 flex-col gap-0.5">
                   <button
                     onClick={() => idx > 0 && moveSeed(idx, -1)}
-                    style={{
-                      ...S.btn("ghost", idx === 0),
-                      width: 24,
-                      height: 18,
-                      padding: 0,
-                      borderRadius: 6,
-                      fontSize: 10,
-                      lineHeight: 1,
-                    }}
+                    className={clsx(T.btn("ghost", idx === 0), "h-[18px] w-6 rounded-md p-0 text-[10px] leading-none")}
                   >
                     ▲
                   </button>
                   <button
                     onClick={() => idx < order.length - 1 && moveSeed(idx, 1)}
-                    style={{
-                      ...S.btn("ghost", idx === order.length - 1),
-                      width: 24,
-                      height: 18,
-                      padding: 0,
-                      borderRadius: 6,
-                      fontSize: 10,
-                      lineHeight: 1,
-                    }}
+                    className={clsx(T.btn("ghost", idx === order.length - 1), "h-[18px] w-6 rounded-md p-0 text-[10px] leading-none")}
                   >
                     ▼
                   </button>
@@ -451,35 +377,22 @@ export function TeamConfigPanel<Id extends string | number>({
             );
 
             return (
-              <div
-                key={pairIdx}
-                style={{
-                  border: `1px solid ${isBye ? "rgba(255,255,255,0.08)" : "rgba(127,119,221,0.35)"}`,
-                  background: isBye ? "rgba(255,255,255,0.02)" : "rgba(127,119,221,0.06)",
-                  borderRadius: 12,
-                  padding: "10px 12px",
-                  marginBottom: 10,
-                }}
-              >
+              <div key={pairIdx} className={T.bracketPairCard(isBye)}>
                 <p
-                  style={{
-                    margin: "0 0 6px",
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    color: isBye ? "#6b6490" : "#7F77DD",
-                  }}
+                  className={clsx(
+                    "mb-1.5 text-[10px] font-extrabold uppercase tracking-[0.06em]",
+                    isBye ? "text-[#6b6490]" : "text-[#7F77DD]",
+                  )}
                 >
                   {isBye ? "Pasa directo (bye)" : `Cruce ${pairIdx + 1}`}
                 </p>
                 {row(pA, idxA)}
                 {!isBye && (
                   <>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0" }}>
-                      <div style={{ flex: 1, height: 1, background: "rgba(127,119,221,0.18)" }} />
-                      <span style={{ fontSize: 10, fontWeight: 800, color: "#6b6490" }}>VS</span>
-                      <div style={{ flex: 1, height: 1, background: "rgba(127,119,221,0.18)" }} />
+                    <div className="my-1.5 flex items-center gap-2.5">
+                      <div className="h-px flex-1 bg-[rgba(127,119,221,0.18)]" />
+                      <span className="text-[10px] font-extrabold text-[#6b6490]">VS</span>
+                      <div className="h-px flex-1 bg-[rgba(127,119,221,0.18)]" />
                     </div>
                     {row(pB!, idxB!)}
                   </>

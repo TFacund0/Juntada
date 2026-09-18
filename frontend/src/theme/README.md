@@ -5,12 +5,12 @@ puntual reemplazarlo por su propia paleta. Ver también la entrada de
 `useGameTheme.ts` en `hooks/README.md` — ese es el hook que efectivamente
 aplica todo lo que se describe acá.
 
-- **`styles.ts`** — `S`, el diccionario de estilos inline que usa casi toda
-  pantalla (`S.card`, `S.btn(...)`, `S.label`, ...). Dividido en dos
-  secciones: los tokens compartidos por (casi) todo juego/pantalla arriba, y
-  los tokens usados solo por la pantalla de inicio
-  (`AppHeader`/`GamePicker`/`ModePicker`) abajo — ver los comentarios de
-  sección dentro del archivo.
+- **`styles/`** — `S`, el diccionario de estilos inline que usa casi toda
+  pantalla (`S.card`, `S.btn(...)`, `S.label`, ...), re-exportado desde
+  `styles/index.ts`. Dividido en dos archivos por cluster real de contenido:
+  `styles/tokens.ts` (compartidos por (casi) todo juego/pantalla) y
+  `styles/homeScreen.ts` (usados solo por la pantalla de inicio —
+  `AppHeader`/`GamePicker`/`ModePicker`).
 - **`sharedChrome.css`** — las variables CSS `--jt-*` que leen `CodeDisplay`,
   `QRDialog`, y las variantes "success"/"ghost" de `S.btn` en vez de un
   color hardcodeado, con los valores por defecto del look normal de la app
@@ -55,8 +55,9 @@ aplica todo lo que se describe acá.
 
 ## Si necesitás cambiar algo
 
-- ¿El look por defecto (sin tema) de la app? → `styles.ts` y/o los valores
-  por defecto de `:root` en `sharedChrome.css`.
+- ¿El look por defecto (sin tema) de la app? → `styles/tokens.ts` /
+  `styles/homeScreen.ts` y/o los valores por defecto de `:root` en
+  `sharedChrome.css`.
 - ¿Agregar o ajustar la paleta de un juego con tema propio? → `gameThemes.ts`.
 - ¿El timing/look de la transición de cortina? → `useCurtainTransition.ts` /
   `curtain.css`.

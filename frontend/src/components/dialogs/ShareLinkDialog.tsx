@@ -1,6 +1,6 @@
 import { Btn } from "../ui/Btn";
 import { DialogFrame } from "./DialogFrame";
-import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
+import { useCopyToClipboard } from "../../hooks/ui/useCopyToClipboard";
 
 interface ShareLinkDialogProps {
   title: string;
@@ -11,6 +11,8 @@ interface ShareLinkDialogProps {
 
 // Ver comentario en QRDialog — mismo motivo de cast explícito.
 const canShare = typeof (navigator as { share?: unknown }).share === "function";
+
+const TITLE_ID = "jt-sharelink-title-label";
 
 /**
  * Bloque centrado (mismo marco que QRDialog) para compartir el enlace de
@@ -32,11 +34,14 @@ export function ShareLinkDialog({ title, subtitle, value, onClose }: ShareLinkDi
   return (
     <DialogFrame
       onClose={onClose}
+      titleId={TITLE_ID}
       maxWidth={360}
       textAlign="center"
       cardStyle={{ background: "var(--jt-surface)", border: "1px solid var(--jt-accent-border)" }}
     >
-      <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>{title}</p>
+      <p id={TITLE_ID} style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>
+        {title}
+      </p>
       {subtitle && <p style={{ color: "var(--jt-muted)", fontSize: 13, margin: "0 0 18px", lineHeight: 1.4 }}>{subtitle}</p>}
       <div
         onClick={() => copyLink(value)}

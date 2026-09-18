@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { RAYADO_RAINBOW } from "../rainbow";
 
 /**
@@ -19,17 +20,8 @@ export function WordChoiceFan({
   label?: string;
 }) {
   return (
-    <div
-      style={{
-        minHeight: "min(50vh, 420px)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-      }}
-    >
-      <span style={{ ...S.label, display: "block", marginBottom: 22 }}>{label}</span>
+    <div className="min-h-[min(50vh,420px)] flex flex-col items-center justify-center text-center">
+      <span className={clsx(T.label, "block mb-[22px]")}>{label}</span>
       <style>{`
         .rl-word-fan { display: flex; justify-content: center; align-items: flex-end; gap: 4px; flex-wrap: wrap; }
         .rl-word-card {

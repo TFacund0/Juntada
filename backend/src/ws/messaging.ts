@@ -68,6 +68,7 @@ function getRoomPublicState(room: Room): RoomPublicState {
     phase: room.phase,
     players: room.players.map(p => ({
       id: p.id,
+      accountId: p.accountId,
       name: p.name,
       ready: p.ready,
       online: p.online,

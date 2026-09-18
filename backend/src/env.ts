@@ -25,6 +25,38 @@ const schema = z.object({
   // is set; each deployment sharing a database should set this to something
   // unique to it (e.g. "juntada-staging" vs "juntada-production").
   REDIS_NAMESPACE: z.string().min(1).default("juntada"),
+  // Postgres connection string for the account/auth data layer (see
+  // backend/src/db/). Supabase's "Connection pooling" string works here.
+  // Still Zod-optional (not `.min(1)` required) even though the auth routes
+  // now depend on it: `db/client.ts#getDb()` is lazy and throws its own
+  // clear error the first time a query actually runs without it configured,
+  // which lets every non-auth test (and this file's own parsing) keep
+  // working without a real Postgres instance available. Production MUST set
+  // this or every auth request fails at the DB call, not at boot.
+  DATABASE_URL: z.string().url().optional(),
+  // HS256 signing secrets for short-lived access JWTs and the opaque
+  // refresh-token pair (see auth/tokenService.ts). Same lazy-optional
+  // rationale as DATABASE_URL above — tokenService.ts throws a clear error
+  // the first time it's asked to sign/verify without one set, instead of
+  // this file exiting the whole process (including unrelated non-auth
+  // tests) at import time.
+  JWT_ACCESS_SECRET: z.string().min(1).optional(),
+  JWT_REFRESH_SECRET: z.string().min(1).optional(),
+  // Resend API key for transactional email (password reset). Optional for
+  // the same reason: auth/mail/resendMailer.ts throws a clear error lazily
+  // when a reset email is actually sent without it configured. Currently
+  // ships against Resend's shared test domain (see design doc — only
+  // delivers to the developer's own Resend account until a custom domain is
+  // verified, tracked as a production release gate).
+  RESEND_API_KEY: z.string().min(1).optional(),
+  // "from" address used for outgoing auth email (password reset). Defaults
+  // to Resend's shared test-domain sender so local dev works without any
+  // Resend account configured at all.
+  MAIL_FROM: z.string().min(1).default("Juntada <onboarding@resend.dev>"),
+  // Base URL the frontend is served from — used to build the password-reset
+  // link embedded in the email (e.g. `${APP_URL}/reset/${token}`). Falls
+  // back to localhost so local dev needs no extra config.
+  APP_URL: z.string().url().default("http://localhost:5173"),
 });
 
 const parsed = schema.safeParse(process.env);

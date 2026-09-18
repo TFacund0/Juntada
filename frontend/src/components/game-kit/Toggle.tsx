@@ -1,4 +1,5 @@
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 
 interface ToggleProps {
   label: string;
@@ -10,27 +11,17 @@ interface ToggleProps {
 export function Toggle({ label, value, onChange }: ToggleProps) {
   return (
     <label
-      className="jt-btn-anim"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        cursor: "pointer",
-        width: "fit-content",
-        transition: "transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)",
-      }}
+      className="jt-btn-anim flex items-center gap-2.5 cursor-pointer w-fit transition-transform duration-150 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
       onClick={() => onChange(!value)}
     >
-      <div style={S.toggle(value)}>
-        <div style={S.knob(value)} />
+      <div className={T.toggle(value)}>
+        <div className={T.knob(value)} />
       </div>
       <span
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: value ? "#5DCAA5" : "var(--jt-muted-text)",
-          transition: "color 0.2s",
-        }}
+        className={clsx(
+          "text-[13px] font-semibold transition-colors duration-200",
+          value ? "text-[#5DCAA5]" : "text-[var(--jt-muted-text)]",
+        )}
       >
         {label}
       </span>

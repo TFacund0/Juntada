@@ -1,4 +1,5 @@
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import logo from "../../assets/logo.webp";
 
 interface FlipRevealCardProps {
@@ -53,65 +54,39 @@ export function FlipRevealCard({
         }
       `}</style>
       <div
-        className={`impostor-reveal-flip-card${visible ? " is-flipped" : ""}`}
-        style={{ minHeight, cursor: "pointer", userSelect: "none" }}
+        className={clsx("impostor-reveal-flip-card cursor-pointer select-none", visible && "is-flipped")}
+        style={{ minHeight }}
         onClick={onToggle}
       >
         {/* Cara oculta: nuestro logo, "tocá para ver tu carta" */}
-        <div
-          className="impostor-reveal-flip-face"
-          style={{
-            ...S.card,
-            position: "absolute",
-            inset: 0,
-            textAlign: "center",
-            background: "rgba(0,0,0,0.25)",
-            border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.3))",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <img src={logo} alt="" style={{ width: 64, height: 64, objectFit: "contain", borderRadius: 16, marginBottom: 14 }} />
-          <p style={{ color: "var(--jt-muted-text)", fontSize: 15, fontWeight: 700 }}>Tocá para ver tu carta</p>
+        <div className={clsx("impostor-reveal-flip-face", T.card, T.flipFaceFront)}>
+          <img src={logo} alt="" className={T.flipLogoImg} />
+          <p className={T.flipHintLabel}>Tocá para ver tu carta</p>
         </div>
 
         {/* Cara revelada */}
-        <div
-          className="impostor-reveal-flip-face impostor-reveal-flip-face-back"
-          style={{
-            ...S.card,
-            textAlign: "center",
-            background: "var(--jt-card-bg, rgba(255,255,255,0.04))",
-            border: isImpostor ? "1px solid rgba(224,32,43,0.4)" : "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.3))",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <div className={clsx("impostor-reveal-flip-face impostor-reveal-flip-face-back", T.card, T.flipFaceBack(isImpostor))}>
           {isImpostor ? (
-            <p style={{ fontSize: 22, fontWeight: 800, color: "#F09595", margin: "0 0 4px" }}>¡Eres el impostor!</p>
+            <p className={T.flipRoleTitle}>¡Eres el impostor!</p>
           ) : (
             <>
-              <p style={{ fontSize: 13, color: "var(--jt-muted-text)", marginBottom: 6 }}>Tu palabra</p>
-              <p style={S.bigReveal}>{word}</p>
+              <p className={T.flipSubLabel}>Tu palabra</p>
+              <p className={T.bigReveal}>{word}</p>
             </>
           )}
           {isImpostor && hint && (
-            <p style={{ fontSize: 13, color: "var(--jt-muted-text)", margin: "8px 0 0" }}>
-              <span style={{ fontWeight: 800, color: "#e8e4f0" }}>Pista: </span>
+            <p className={T.flipMetaLine}>
+              <span className={T.flipMetaLineLabel}>Pista: </span>
               {hint}
             </p>
           )}
           {showCategory && (
-            <p style={{ fontSize: 13, color: "var(--jt-muted-text)", margin: "8px 0 0" }}>
-              <span style={{ fontWeight: 800, color: "#e8e4f0" }}>Categoría: </span>
+            <p className={T.flipMetaLine}>
+              <span className={T.flipMetaLineLabel}>Categoría: </span>
               {categoryLabel}
             </p>
           )}
-          <p style={{ fontSize: 12, color: "var(--jt-muted-text)", marginTop: 10 }}>Tocá para ocultar</p>
+          <p className={T.flipFooterHint}>Tocá para ocultar</p>
         </div>
       </div>
     </div>

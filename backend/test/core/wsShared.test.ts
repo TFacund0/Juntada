@@ -18,9 +18,9 @@ beforeEach(() => {
 });
 
 function makeDrawingRoom() {
-  const { room } = roomService.createRoom(fakeSocket(), { playerName: "Ana", gameType: "rayado-libre" });
-  roomService.joinRoom(fakeSocket(), { code: room.code, playerName: "Beto" });
-  roomService.joinRoom(fakeSocket(), { code: room.code, playerName: "Caro" });
+  const { room } = roomService.createRoom(fakeSocket(), { accountId: "acc-ana", username: "Ana", gameType: "rayado-libre" });
+  roomService.joinRoom(fakeSocket(), { code: room.code, accountId: "acc-beto", username: "Beto" });
+  roomService.joinRoom(fakeSocket(), { code: room.code, accountId: "acc-caro", username: "Caro" });
   Object.keys(room.config.enabledCategories).forEach((k: string) => {
     room.config.enabledCategories[k] = true;
   });

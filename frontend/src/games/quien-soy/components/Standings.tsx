@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Avatar } from "../../../components/ui/Avatar";
 import { computeMatchRanks, type QuienSoyResult } from "@juntada/quien-soy-data";
 
@@ -56,33 +57,29 @@ export function buildStandingEntries(
 // results screen and the online RoundView's "result" phase.
 export function Standings({ entries }: { entries: StandingEntry[] }) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>Resultados</span>
+    <div className={T.card}>
+      <span className={T.label}>Resultados</span>
       {entries.map(entry => (
-        <div
-          key={entry.id}
-          style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(127,119,221,0.08)" }}
-        >
-          <span style={{ width: 24, textAlign: "center", fontSize: 13, fontWeight: 800, color: entry.rank === 1 ? "#E2C44A" : "#6b6490" }}>
+        <div key={entry.id} className="flex items-center gap-2.5 py-2 border-b border-[rgba(127,119,221,0.08)]">
+          <span className={clsx("w-6 text-center text-[13px] font-extrabold", entry.rank === 1 ? "text-[#E2C44A]" : "text-[#6b6490]")}>
             {entry.rank ? (entry.rank === 1 ? "🏆" : `#${entry.rank}`) : "—"}
           </span>
           <Avatar name={entry.name} size={28} />
-          <div style={{ flex: 1 }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>{entry.name}</p>
+          <div className="flex-1">
+            <p className="font-bold text-sm">{entry.name}</p>
             <p
-              style={{
-                margin: 0,
-                fontSize: 12,
-                color: entry.outcome === "solved" ? "#5DCAA5" : entry.outcome === "playing" ? "#9089c0" : "#F09595",
-              }}
+              className={clsx(
+                "text-xs",
+                entry.outcome === "solved" ? "text-[#5DCAA5]" : entry.outcome === "playing" ? "text-[#9089c0]" : "text-[#F09595]",
+              )}
             >
               {OUTCOME_LABEL[entry.outcome]}
               {entry.word ? ` — era "${entry.word}"` : ""}
             </p>
           </div>
-          <div style={{ textAlign: "right" }}>
-            {entry.points > 0 && <span style={{ fontWeight: 800, color: "#AFA9EC" }}>+{entry.points}</span>}
-            {entry.totalScore != null && <p style={{ margin: "2px 0 0", fontSize: 11, color: "#6b6490" }}>Total: {entry.totalScore}</p>}
+          <div className="text-right">
+            {entry.points > 0 && <span className="font-extrabold text-[#AFA9EC]">+{entry.points}</span>}
+            {entry.totalScore != null && <p className="mt-0.5 text-[11px] text-[#6b6490]">Total: {entry.totalScore}</p>}
           </div>
         </div>
       ))}

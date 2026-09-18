@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import "./recamara.css";
+import "./css/index.css";
 import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
 import { StartButton } from "../../components/setup/StartButton";
 import {
@@ -167,8 +167,14 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // shell count, not just whoever taps through fastest. Shared with
   // LocalGame's version of this same countdown (there it calls enterDuel
   // directly instead of sending ready_for_duel) via useChamberCountdown.
+  const myEngineId = round?.seatOrder.indexOf(myPlayerId ?? "") ?? -1;
+  const myPlayer = round?.state.players.find(p => p.id === myEngineId);
+  const amAlive = !myPlayer || myPlayer.lives > 0;
+
   const introEndsAt = useChamberCountdown(round?.subPhase === "reveal" && revealStage === "chamber", ROUND_INTRO_MS, () => {
-    send({ type: "ready_for_duel" });
+    if (amAlive) {
+      send({ type: "ready_for_duel" });
+    }
     setReadySent(true);
   });
 
@@ -300,8 +306,6 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   // Same idea as effectiveState, but for the log — see frozenLog's
   // comment near its declaration.
   const effectiveLog = frozenLog ?? round.log;
-  const myEngineId = round.seatOrder.indexOf(myPlayerId);
-  const myPlayer = effectiveState.players.find(p => p.id === myEngineId);
 
   if ((round.subPhase === "reveal" || !showDuel) && !busy) {
     // Only alive players draw new items on a reload (see
@@ -311,33 +315,12 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     // the duel, and an eliminated player never has to click through their
     // own (empty) chest/chamber beats either.
     const alivePlayerIds = new Set(round.state.players.filter(p => p.lives > 0).map(p => round.seatOrder[p.id]));
-    const amAlive = !myPlayer || myPlayer.lives > 0;
-
-    if (!amAlive) {
-      return (
-        <div className="recamara">
-          <div className="table" style={{ textAlign: "center" }}>
-            <p className="mono eyebrow">Estás eliminado — mirando la partida</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
-              {round.seatOrder
-                .filter(id => alivePlayerIds.has(id))
-                .map(id => (
-                  <p key={id} style={{ margin: 0 }}>
-                    {round.readyForDuel.includes(id) ? "✅" : "⏳"} {nameFor(id)}
-                  </p>
-                ))}
-            </div>
-          </div>
-          {duelTransition && <FlashOverlay text="A disparar" />}
-        </div>
-      );
-    }
 
     if (readySent) {
       return (
         <div className="recamara">
           <div className="table" style={{ textAlign: "center" }}>
-            <p className="mono eyebrow">Esperando a los demás</p>
+            <p className="mono eyebrow">{amAlive ? "Esperando a los demás" : "Estás eliminado — mirando la partida"}</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
               {round.seatOrder
                 .filter(id => alivePlayerIds.has(id))
@@ -361,10 +344,10 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         <RoundAnnounce
           roundNumber={round.roundNumber}
           previousRoundNumber={endedRoundNumber ?? undefined}
-          // Round 1 plays with no items (see createInitialState) — nothing
-          // for any chest to reveal yet, so skip straight to the chamber
-          // instead of cycling through empty chests.
-          onDone={() => setRevealStage(round.roundNumber === 1 ? "chamber" : "chests")}
+          // Round 1 plays with no items (see createInitialState), and eliminated
+          // players never draw items either — so skip straight to the chamber
+          // card instead of showing an empty chest.
+          onDone={() => setRevealStage(!amAlive || round.roundNumber === 1 ? "chamber" : "chests")}
         />
       );
 
@@ -402,16 +385,23 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         introMs={ROUND_INTRO_MS}
         showLegend={round.roundNumber === 1}
         controls={
-          <button
-            className="act primary"
-            onClick={() => {
-              send({ type: "ready_for_duel" });
-              setReadySent(true);
-            }}
-          >
-            Listo, a disparar
-          </button>
+          amAlive ? (
+            <button
+              className="act primary"
+              onClick={() => {
+                send({ type: "ready_for_duel" });
+                setReadySent(true);
+              }}
+            >
+              Listo, a disparar
+            </button>
+          ) : (
+            <button className="act" disabled style={{ opacity: 0.75, cursor: "default" }}>
+              👁️ Mirando como espectador
+            </button>
+          )
         }
+        overlay={duelTransition && <FlashOverlay text="A disparar" />}
       />
     );
   }
@@ -552,10 +542,18 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         round.pendingFire &&
         (() => {
           const outcome = describeFireOutcome(round.pendingFire, nameFor);
+          const targetEngineId = round.seatOrder.indexOf(round.pendingFire.targetId);
+          const targetBefore = frozenState?.players.find(p => p.id === targetEngineId);
+          const targetAfter = round.state.players.find(p => p.id === targetEngineId);
+          const isElimination = (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0;
+          const eliminatedName = isElimination ? nameFor(round.pendingFire.targetId) : undefined;
+
           return (
             <OutcomeBanner
               line={{ text: outcome.actionLine }}
               subLine={{ text: outcome.shellLine, cls: outcome.cls }}
+              isElimination={isElimination}
+              eliminatedName={eliminatedName}
               onContinue={continueAfterFire}
             />
           );

@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 
 interface RoundsPickerProps {
   value: number;
@@ -16,17 +17,13 @@ interface RoundsPickerProps {
  */
 export function RoundsPicker({ value, onChange }: RoundsPickerProps) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>
+    <div className={T.card}>
+      <span className={T.label}>
         Vueltas: cada jugador dibuja {value} {value === 1 ? "vez" : "veces"}
       </span>
-      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+      <div className="flex gap-2 mt-2">
         {[1, 2, 3, 4, 5].map(n => (
-          <button
-            key={n}
-            onClick={() => onChange(n)}
-            style={{ ...S.btn(value === n ? "primary" : "ghost"), flex: 1, padding: "8px", fontSize: 13 }}
-          >
+          <button key={n} onClick={() => onChange(n)} className={clsx(T.btn(value === n ? "primary" : "ghost"), "flex-1 p-2 text-[13px]")}>
             {n}
           </button>
         ))}

@@ -6,7 +6,7 @@ import type { GameDef } from "../gameTypes";
 // revelan los votos juntos. Menu entry only for now — see ComingSoon.
 export const masProbableGame: GameDef = {
   id: "mas-probable",
-  label: "¿Quién es Más Probable Que...?",
+  label: "Más Probable",
   icon: "🤔",
   description:
     "Aparece una pregunta como '¿quién es más probable que llegue tarde a todo?' y todos votan en secreto por alguien del grupo.",
@@ -19,7 +19,7 @@ export const masProbableGame: GameDef = {
     "Se revelan todos los votos al mismo tiempo.",
     "Se pasa a la siguiente pregunta.",
   ],
-  LocalGame: () => <ComingSoon label="¿Quién es Más Probable Que...?" />,
-  ConfigPanel: () => <ComingSoon label="¿Quién es Más Probable Que...?" />,
-  RoundView: () => <ComingSoon label="¿Quién es Más Probable Que...?" />,
+  LocalGame: () => <ComingSoon label="Más Probable" />,
+  ConfigPanel: () => <ComingSoon label="Más Probable" />,
+  RoundView: () => <ComingSoon label="Más Probable" />,
 };

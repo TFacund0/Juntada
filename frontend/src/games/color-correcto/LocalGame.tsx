@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { StartButton } from "../../components/setup/StartButton";
 import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
 import { Timer } from "../../components/game-kit/Timer";
@@ -13,6 +14,7 @@ import { PlayersConfig } from "./components/PlayersConfig";
 import { GuessTimerConfig } from "./components/GuessTimerConfig";
 import { Leaderboard } from "./components/Leaderboard";
 import { TargetSwatch } from "./components/TargetSwatch";
+import type { Phase } from "./types/localGame";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENCUENTRA EL COLOR CORRECTO — un solo dispositivo, pasándoselo por turnos.
@@ -24,8 +26,6 @@ import { TargetSwatch } from "./components/TargetSwatch";
 
 const SHOW_DURATION_MS = SHOW_SECONDS * 1000;
 const ROUND_OPTIONS = [3, 5, 7];
-
-type Phase = "setup" | "handoff" | "show" | "guess" | "roundResult" | "final";
 
 export function LocalGame() {
   const [phase, setPhase] = useState<Phase>("setup");
@@ -134,18 +134,18 @@ export function LocalGame() {
 
   if (phase === "setup")
     return (
-      <div style={{ paddingBottom: 88 }}>
+      <div className="pb-[88px]">
         <SetupTabs tab={setupTab} onChange={setSetupTab} />
 
         {setupTab === "players" && <PlayersConfig names={names} onChange={setNames} />}
 
         {setupTab === "config" && (
           <>
-            <div style={S.card}>
-              <span style={S.label}>Rondas</span>
-              <div style={S.segmentedControl}>
+            <div className={T.card}>
+              <span className={T.label}>Rondas</span>
+              <div className={T.segmentedControl}>
                 {ROUND_OPTIONS.map(r => (
-                  <button key={r} style={r === rounds ? S.segmentedOptionActive : S.segmentedOption} onClick={() => setRounds(r)}>
+                  <button key={r} className={T.segmentedOption(r === rounds)} onClick={() => setRounds(r)}>
                     {r}
                   </button>
                 ))}
@@ -165,12 +165,12 @@ export function LocalGame() {
   if (phase === "handoff")
     return (
       <div>
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <p style={{ ...S.label, marginBottom: 4 }}>
+        <div className={clsx(T.cardHighlight, "text-center")}>
+          <p className={clsx(T.label, "mb-1")}>
             Ronda {roundNumber} / {rounds}
           </p>
-          <p style={S.bigReveal}>{names[playerIndex]}</p>
-          <p style={S.muted}>Pasále el dispositivo. Tocá cuando estés listo para ver el color.</p>
+          <p className={T.bigReveal}>{names[playerIndex]}</p>
+          <p className={T.muted}>Pasále el dispositivo. Tocá cuando estés listo para ver el color.</p>
         </div>
         <StartButton onClick={beginTurn}>Ver el color</StartButton>
       </div>
@@ -182,9 +182,9 @@ export function LocalGame() {
     return (
       <div>
         {guessEndsAt > 0 && <Timer timerEnd={guessEndsAt} total={guessSeconds} label="Tiempo para adivinar" />}
-        <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>¿Cuál era el color? Elegí el más parecido.</p>
+        <p className={clsx(T.muted, "text-center mb-2.5")}>¿Cuál era el color? Elegí el más parecido.</p>
         <ColorPicker value={guess} onChange={setGuess} />
-        <div style={{ marginTop: 14 }}>
+        <div className="mt-3.5">
           <StartButton onClick={confirmGuess}>Confirmar</StartButton>
         </div>
       </div>
@@ -197,7 +197,7 @@ export function LocalGame() {
     const roundBestScore = names.length > 1 ? Math.max(...roundScores) : -1;
     return (
       <div>
-        <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Ronda {roundNumber} — así quedó cada uno</p>
+        <p className={clsx(T.muted, "text-center mb-2.5")}>Ronda {roundNumber} — así quedó cada uno</p>
         {names.map((name, i) => (
           <ColorCompareRow
             key={name}

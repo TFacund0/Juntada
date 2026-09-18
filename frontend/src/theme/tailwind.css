@@ -1,0 +1,19 @@
+/* Entry point de Tailwind — sin bloque @theme: la paleta de la app ya vive en
+   las variables --jt-* de sharedChrome.css, sobreescritas en runtime por
+   juego con tema propio (ver hooks/useGameTheme.ts). Redefinirlas acá
+   duplicaría la fuente de verdad — las utilities de Tailwind leen esas
+   mismas variables vía sintaxis de valor arbitrario (bg-[var(--jt-accent)])
+   en vez de un theme propio. */
+@import "tailwindcss";
+
+/* Usado por OfflineScreen.tsx (animate-[jt-offline-screen-fade-in_...]) —
+   Tailwind's arbitrary `animate-[name_...]` utility only sets the
+   animation-name/timing, no genera el @keyframes en sí. */
+@keyframes jt-offline-screen-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

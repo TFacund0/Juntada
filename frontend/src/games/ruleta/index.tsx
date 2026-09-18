@@ -1,13 +1,14 @@
 import { lazy } from "react";
 import type { GameDef } from "../gameTypes";
+import { getRuletaConfig } from "./utils/roomConfig";
 
 // Dynamic import() creates its own chunk even though this metadata object is
 // imported eagerly by the registry — this keeps every game's actual code out
 // of the initial bundle until the player picks that game (see registry.js).
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
-const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
-const LobbyInfo = lazy(() => import("./LobbyInfo").then(m => ({ default: m.LobbyInfo })));
+const LobbyInfo = lazy(() => import("./components/LobbyInfo").then(m => ({ default: m.LobbyInfo })));
 
 // A configurable spinner: the group loads whatever options they want
 // ("quién arranca", "qué comemos", prendas/consecuencias con descripción, etc.)
@@ -39,6 +40,6 @@ export const ruletaGame: GameDef = {
   // Mirrors LocalGame.tsx's own `disabled={entries.length < 2}` check on
   // "Empezar a girar" — online and local should never disagree on when the
   // wheel is actually startable.
-  canStart: room => (((room.config as { entries?: unknown[] })?.entries?.length ?? 0) < 2 ? "Cargá al menos 2 entradas" : null),
+  canStart: room => ((getRuletaConfig(room).entries?.length ?? 0) < 2 ? "Cargá al menos 2 entradas" : null),
   startLabel: "Empezar a girar",
 };

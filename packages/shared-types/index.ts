@@ -9,7 +9,6 @@
 
 import { z } from "zod";
 
-const name = z.string().trim().min(1).max(40).optional();
 const roomCode = z.string().trim().min(1).max(8);
 const uuid = z.string().uuid();
 
@@ -38,14 +37,12 @@ const drawCoord = z.number().min(-200).max(1000);
 export const SCHEMAS = {
   create_room: z.object({
     type: z.literal("create_room"),
-    playerName: name,
     roomName: z.string().trim().max(60).optional(),
     gameType: z.string().max(30),
   }),
   join_room: z.object({
     type: z.literal("join_room"),
     code: roomCode,
-    playerName: name,
   }),
   // Read-only lookup so the join form can preview which room a code points
   // to (name + game) before the player commits to joining it — no side
@@ -54,26 +51,25 @@ export const SCHEMAS = {
     type: z.literal("check_room_code"),
     code: roomCode,
   }),
+  // Identity is resolved entirely from the authenticated WS handshake (the
+  // JWT's accountId) — no client-supplied playerId anymore (see
+  // design.md's account-reconnection delta).
   rejoin: z.object({
     type: z.literal("rejoin"),
     roomCode,
-    playerId: uuid,
   }),
   create_group: z.object({
     type: z.literal("create_group"),
-    playerName: name,
     groupName: z.string().trim().max(60).optional(),
   }),
   join_group: z.object({
     type: z.literal("join_group"),
     code: roomCode,
-    playerName: name,
     groupName: z.string().trim().max(60).optional(),
   }),
   rejoin_group: z.object({
     type: z.literal("rejoin_group"),
     groupCode: roomCode,
-    playerId: uuid,
   }),
   create_instance: z.object({
     type: z.literal("create_instance"),
@@ -343,6 +339,12 @@ export interface ChatMessage {
 
 export interface Player {
   id: string;
+  // The authenticated account this seat belongs to — resolved from the WS
+  // handshake JWT, never client-supplied. `id` stays the per-room seat id
+  // every game engine already keys on (see design.md "no engine changes
+  // needed"); `accountId` is what account-reconnection (rejoin) resolves
+  // the seat by instead.
+  accountId: string;
   name: string;
   ready: boolean;
   online: boolean;
@@ -398,6 +400,7 @@ export interface RoomPublicState {
 // their own whether to join it, independent of what anyone else is doing.
 export interface GroupMember {
   id: string;
+  accountId: string;
   name: string;
   online: boolean;
 }

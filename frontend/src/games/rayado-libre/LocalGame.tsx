@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRevealCountdown } from "../../components/game-kit/RevealCountdown";
 import type { SetupTab } from "../../components/setup/SetupTabs";
-import { useFlashError } from "../../hooks/useFlashError";
+import { useFlashError } from "../../hooks/ui/useFlashError";
 import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/nextPlayerName";
 import { CATEGORIES, activeWordPool, pickThreeWords as pickThreeWordsFromPool } from "@juntada/rayado-libre-data";

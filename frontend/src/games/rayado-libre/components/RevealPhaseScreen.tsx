@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
@@ -67,8 +68,8 @@ export function RevealPhaseScreen({ room, round, me, myPlayer, send }: RevealPha
               {isLastTurn ? "Listo para ver los resultados" : "Listo para el siguiente turno"}
             </Btn>
           ) : (
-            <div style={{ ...S.card, textAlign: "center", marginBottom: 0 }}>
-              <p style={{ color: "#5DCAA5" }}>
+            <div className={clsx(T.card, "text-center mb-0")}>
+              <p className="text-[#5DCAA5]">
                 Listo — esperando a los demás ({readyCount}/{onlinePlayers.length})
               </p>
             </div>

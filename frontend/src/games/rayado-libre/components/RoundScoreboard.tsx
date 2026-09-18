@@ -1,5 +1,6 @@
+import clsx from "clsx";
 import { Avatar } from "../../../components/ui/Avatar";
-import { S } from "../../../theme/styles";
+import { T } from "../../../theme/styles/classes";
 import { RAYADO_RAINBOW } from "../rainbow";
 import type { ScoreboardEntry } from "./Scoreboard";
 
@@ -25,45 +26,39 @@ export interface RoundScoreboardEntry extends ScoreboardEntry {
 export function RoundScoreboard({ entries, title = "Tabla de puntos" }: { entries: RoundScoreboardEntry[]; title?: string }) {
   const ranked = [...entries].sort((a, b) => b.score - a.score);
   return (
-    <div style={S.card}>
-      <span style={S.label}>{title}</span>
+    <div className={T.card}>
+      <span className={T.label}>{title}</span>
       {ranked.map((e, i) => {
         const leading = i === 0;
         return (
           <div
             key={e.id}
+            className={clsx("flex items-center gap-2 rounded-lg py-1.5 px-2", i === 0 ? "mt-0.5" : "mt-0")}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 8px",
-              borderRadius: 8,
-              marginTop: i === 0 ? 2 : 0,
               background: leading ? `color-mix(in srgb, ${LEADER_ACCENT} 12%, transparent)` : "transparent",
               borderLeft: leading ? `3px solid ${LEADER_ACCENT}` : "3px solid transparent",
             }}
           >
-            <span style={{ width: 16, fontSize: 12, fontWeight: 800, color: leading ? LEADER_ACCENT : "#6b6490" }}>{i + 1}</span>
+            <span className="w-4 text-xs font-extrabold" style={{ color: leading ? LEADER_ACCENT : "#6b6490" }}>
+              {i + 1}
+            </span>
             <Avatar name={e.name} size={22} />
-            <span style={{ flex: 1, fontWeight: 700, fontSize: 12 }}>
+            <span className="flex-1 font-bold text-xs">
               {e.name}
               {e.isMe && " (vos)"}
             </span>
-            {!!e.roundPoints && <span style={{ fontSize: 11, fontWeight: 700, color: "#5DCAA5" }}>+{e.roundPoints}</span>}
-            <span style={{ fontSize: 12, fontWeight: 800, color: leading ? LEADER_ACCENT : "#5DCAA5" }}>{e.score} pts</span>
+            {!!e.roundPoints && <span className="text-[11px] font-bold text-[#5DCAA5]">+{e.roundPoints}</span>}
+            <span className="text-xs font-extrabold" style={{ color: leading ? LEADER_ACCENT : "#5DCAA5" }}>
+              {e.score} pts
+            </span>
             {e.ready !== undefined && (
               <span
                 title={e.ready ? "Listo" : "Todavía no está listo"}
                 aria-label={e.ready ? "Listo" : "Todavía no está listo"}
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  background: e.ready ? "#5DCAA5" : "#4a4568",
-                  boxShadow: e.ready ? "0 0 0 3px rgba(93,202,165,0.2)" : "none",
-                  transition: "background 0.3s ease, box-shadow 0.3s ease",
-                }}
+                className={clsx(
+                  "w-2.5 h-2.5 rounded-full shrink-0 transition-[background,box-shadow] duration-300 ease-in-out",
+                  e.ready ? "bg-[#5DCAA5] shadow-[0_0_0_3px_rgba(93,202,165,0.2)]" : "bg-[#4a4568] shadow-none",
+                )}
               />
             )}
           </div>

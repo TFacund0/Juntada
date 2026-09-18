@@ -7,12 +7,12 @@ import type { GameDef } from "../gameTypes";
 // todos compiten a la vez sobre el mismo color, con tabla de puntuación en
 // vivo. Local: un solo dispositivo, pasándoselo por turnos.
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
-const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
 
 export const colorCorrectoGame: GameDef = {
   id: "color-correcto",
-  label: "Encuentra el Color Correcto",
+  label: "Color Correcto",
   icon: "🟪",
   description:
     "Aparece un color en pantalla y después desaparece. Hay que elegir con el selector el color más parecido posible a lo que viste — cuanto más cerca, más puntos.",

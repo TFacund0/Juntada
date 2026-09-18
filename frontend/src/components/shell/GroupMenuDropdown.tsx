@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useClickOutside } from "../../hooks/useClickOutside";
+import { useClickOutside } from "../../hooks/ui/useClickOutside";
 import "./GroupMenuDropdown.css";
 
 /**

@@ -1,10 +1,11 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { StartButton } from "../../../components/setup/StartButton";
 import { LeaveToLobbyButton } from "../../../components/game-kit/LeaveToLobbyButton";
 import { Avatar } from "../../../components/ui/Avatar";
 import type { RoundViewProps } from "../../gameTypes";
-import type { Entrant, Match } from "../types";
-import { ROUND_NAMES } from "../types";
+import type { Entrant, Match } from "../types/roundView";
+import { ROUND_NAMES } from "../types/roundView";
 
 // ── CHAMPION: final standings, top scorer/leakiest defense (if trackGoals),
 // and the full path the bracket took to get here ──
@@ -51,56 +52,39 @@ export function ChampionPhase({
 
   return (
     <div>
-      <div style={{ textAlign: "center", padding: "10px 0 20px" }}>
-        <div style={{ fontSize: 56 }}>🏆</div>
-        <p style={S.title}>{champion.name}</p>
-        <p style={{ color: "#7F77DD", fontSize: 15, fontWeight: 700, marginTop: 4 }}>
+      <div className="text-center p-[10px_0_20px]">
+        <div className="text-[56px]">🏆</div>
+        <p className={T.title}>{champion.name}</p>
+        <p className="mt-1 text-[15px] font-bold text-[#7F77DD]">
           {amIChampion ? "¡Sos el campeón del torneo!" : "Campeón del torneo"} con {champion.team}
         </p>
       </div>
 
       {trackGoals && (
-        <div style={S.card}>
-          <span style={S.label}>Tabla de jugadores</span>
-          <div
-            style={{
-              display: "flex",
-              fontSize: 11,
-              color: "#6b6490",
-              padding: "0 0 8px",
-              borderBottom: "1px solid rgba(127,119,221,0.15)",
-            }}
-          >
-            <span style={{ flex: 1 }}>Jugador</span>
-            <span style={{ width: 32, flexShrink: 0, textAlign: "center" }}>PJ</span>
-            <span style={{ width: 32, flexShrink: 0, textAlign: "center" }}>GF</span>
-            <span style={{ width: 32, flexShrink: 0, textAlign: "center" }}>GC</span>
-            <span style={{ width: 40, flexShrink: 0, textAlign: "center" }}>DG</span>
+        <div className={T.card}>
+          <span className={T.label}>Tabla de jugadores</span>
+          <div className={T.statTableHeader}>
+            <span className="flex-1">Jugador</span>
+            <span className={T.statTableCol}>PJ</span>
+            <span className={T.statTableCol}>GF</span>
+            <span className={T.statTableCol}>GC</span>
+            <span className={T.statTableColWide(false)}>DG</span>
           </div>
           {s.map(row => (
-            <div
-              key={row.player.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "8px 0",
-                borderBottom: "1px solid rgba(127,119,221,0.08)",
-                fontSize: 13,
-              }}
-            >
-              <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={row.player.id} className={T.statTableRow}>
+              <span className="flex flex-1 min-w-0 items-center gap-2">
                 <Avatar name={row.player.name} size={24} />
-                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.player.name}</span>
+                <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{row.player.name}</span>
                 {row.player.id === champion.id && (
-                  <span title="Campeón" style={{ flexShrink: 0 }}>
+                  <span title="Campeón" className="shrink-0">
                     🏆
                   </span>
                 )}
               </span>
-              <span style={{ width: 32, flexShrink: 0, textAlign: "center", color: "#9089c0" }}>{row.played}</span>
-              <span style={{ width: 32, flexShrink: 0, textAlign: "center", color: "#5DCAA5" }}>{row.goalsFor}</span>
-              <span style={{ width: 32, flexShrink: 0, textAlign: "center", color: "#F09595" }}>{row.goalsAgainst}</span>
-              <span style={{ width: 40, flexShrink: 0, textAlign: "center", fontWeight: 700 }}>
+              <span className={clsx(T.statTableCol, "text-[#9089c0]")}>{row.played}</span>
+              <span className={clsx(T.statTableCol, "text-[#5DCAA5]")}>{row.goalsFor}</span>
+              <span className={clsx(T.statTableCol, "text-[#F09595]")}>{row.goalsAgainst}</span>
+              <span className={T.statTableColWide(true)}>
                 {row.goalsFor - row.goalsAgainst >= 0 ? "+" : ""}
                 {row.goalsFor - row.goalsAgainst}
               </span>
@@ -110,73 +94,39 @@ export function ChampionPhase({
       )}
 
       {trackGoals && (
-        <div style={S.card}>
-          <span style={S.label}>Estadísticas del torneo</span>
+        <div className={T.card}>
+          <span className={T.label}>Estadísticas del torneo</span>
           {topScorer && topScorer.goalsFor > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 20 }}>⚽</span>
-              <span style={{ fontSize: 13 }}>
-                Máximo goleador: <strong style={{ color: "#5DCAA5" }}>{topScorer.player.name}</strong> ({topScorer.goalsFor} goles)
+            <div className="mb-2.5 flex items-center gap-2.5">
+              <span className="text-xl">⚽</span>
+              <span className="text-[13px]">
+                Máximo goleador: <strong className="text-[#5DCAA5]">{topScorer.player.name}</strong> ({topScorer.goalsFor} goles)
               </span>
             </div>
           )}
           {leakiest && leakiest.goalsAgainst > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20 }}>🥅</span>
-              <span style={{ fontSize: 13 }}>
-                Valla más goleada: <strong style={{ color: "#F09595" }}>{leakiest.player.name}</strong> ({leakiest.goalsAgainst} recibidos)
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">🥅</span>
+              <span className="text-[13px]">
+                Valla más goleada: <strong className="text-[#F09595]">{leakiest.player.name}</strong> ({leakiest.goalsAgainst} recibidos)
               </span>
             </div>
           )}
         </div>
       )}
 
-      <div style={S.card}>
-        <span style={S.label}>Camino del torneo</span>
+      <div className={T.card}>
+        <span className={T.label}>Camino del torneo</span>
         {rounds.map((round, ri) => (
-          <div key={ri} style={{ marginBottom: 10 }}>
-            <p
-              style={{
-                fontSize: 11,
-                color: "#7F77DD",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                margin: "0 0 6px",
-              }}
-            >
+          <div key={ri} className="mb-2.5">
+            <p className={T.pathRoundLabel}>
               {roundNames[ri]} ({ri + 1}/{rounds.length})
             </p>
             {round.map((m, mi) => (
-              <div key={mi} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 13 }}>
-                <span
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    textAlign: "right",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    color: m.winner?.id === m.a?.id ? "#5DCAA5" : "#9089c0",
-                  }}
-                >
-                  {m.a ? m.a.name : "—"}
-                </span>
-                <span style={{ flexShrink: 0, color: "#6b6490", fontSize: 12 }}>
-                  {m.goalsA != null ? `${m.goalsA} - ${m.goalsB}` : "vs"}
-                </span>
-                <span
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    color: m.winner?.id === m.b?.id ? "#5DCAA5" : "#9089c0",
-                  }}
-                >
-                  {m.b ? m.b.name : "—"}
-                </span>
+              <div key={mi} className={T.pathMatchRow}>
+                <span className={clsx(T.pathEntrantName(m.winner?.id === m.a?.id), "text-right")}>{m.a ? m.a.name : "—"}</span>
+                <span className="shrink-0 text-xs text-[#6b6490]">{m.goalsA != null ? `${m.goalsA} - ${m.goalsB}` : "vs"}</span>
+                <span className={T.pathEntrantName(m.winner?.id === m.b?.id)}>{m.b ? m.b.name : "—"}</span>
               </div>
             ))}
           </div>
@@ -186,8 +136,8 @@ export function ChampionPhase({
       {isHost ? (
         <StartButton onClick={() => send({ type: "back_to_lobby" })}>Nuevo torneo</StartButton>
       ) : (
-        <div style={{ ...S.card, textAlign: "center" }}>
-          <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión arme otro torneo</p>
+        <div className={clsx(T.card, "text-center")}>
+          <p className="text-sm text-[#9089c0]">Esperando que el anfitrión arme otro torneo</p>
         </div>
       )}
       {/* Group instances use the shell's persistent "Volver al grupo" link instead.

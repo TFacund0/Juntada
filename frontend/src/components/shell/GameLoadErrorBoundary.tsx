@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Btn } from "../ui/Btn";
 import { AlertIcon } from "../ui/icons";
 import "./GameLoadErrorBoundary.css";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 // Every game's LocalGame/ConfigPanel/RoundView is React.lazy() (see
 // games/*/index.tsx) — a dynamic import() that fails throws inside the
@@ -50,7 +51,7 @@ export class GameLoadErrorBoundary extends Component<{ children: ReactNode }, St
     return (
       <div className="jt-game-load-error">
         <span className="jt-game-load-error-icon" aria-hidden>
-          <AlertIcon size={22} color="var(--jt-danger-text, #f09595)" />
+          <AlertIcon size={22} color={`var(--jt-danger-text, ${DEFAULT_COLORS.dangerText})`} />
         </span>
         <p className="jt-game-load-error-title">
           {this.state.isChunkError ? "Hay una versión nueva disponible" : "Hubo un problema cargando el juego"}

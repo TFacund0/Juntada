@@ -1,7 +1,7 @@
 import { Btn } from "../ui/Btn";
 import { DialogFrame } from "./DialogFrame";
 import { QRCode } from "../ui/QRCode";
-import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
+import { useCopyToClipboard } from "../../hooks/ui/useCopyToClipboard";
 
 interface QRDialogProps {
   title: string;
@@ -20,6 +20,8 @@ interface QRDialogProps {
 // lo que impide el narrowing por feature-detection — se chequea con un cast
 // explícito en su lugar.
 const canShare = typeof (navigator as { share?: unknown }).share === "function";
+
+const TITLE_ID = "jt-qr-title-label";
 
 /** Muestra un código de sala/grupo como QR, opcionalmente con un botón de compartir/copiar link. */
 export function QRDialog({ title, subtitle, value, onClose, showShare = true }: QRDialogProps) {
@@ -44,11 +46,14 @@ export function QRDialog({ title, subtitle, value, onClose, showShare = true }: 
   return (
     <DialogFrame
       onClose={onClose}
+      titleId={TITLE_ID}
       maxWidth={340}
       textAlign="center"
       cardStyle={{ background: "var(--jt-surface)", border: "1px solid var(--jt-accent-border)" }}
     >
-      <p style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>{title}</p>
+      <p id={TITLE_ID} style={{ fontWeight: 800, fontSize: 17, margin: "0 0 6px" }}>
+        {title}
+      </p>
       {subtitle && <p style={{ color: "var(--jt-muted)", fontSize: 13, margin: "0 0 18px", lineHeight: 1.4 }}>{subtitle}</p>}
       <div style={{ display: "flex", justifyContent: "center", padding: 12, background: "#f2f0fb", borderRadius: 14, marginBottom: 18 }}>
         <QRCode value={value} />

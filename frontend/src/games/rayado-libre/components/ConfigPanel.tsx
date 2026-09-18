@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import type { ConfigPanelProps } from "../../gameTypes";
 import { CategoryPicker } from "./CategoryPicker";
 import { RoundsPicker } from "./RoundsPicker";
@@ -12,13 +13,13 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
 
   return (
     <div>
-      <div style={S.card}>
+      <div className={T.card}>
         <CategoryPicker
           enabled={enabledCategories}
           onChange={next => updateConfig({ enabledCategories: next })}
           description="Palabras de qué categorías se ofrecen para dibujar."
         />
-        <p style={{ ...S.muted, marginTop: 14 }}>
+        <p className={clsx(T.muted, "mt-3.5")}>
           {activeCount === 0
             ? "No elegiste ninguna categoría todavía."
             : `${activeCount} categoría${activeCount === 1 ? "" : "s"} activa${activeCount === 1 ? "" : "s"}.`}

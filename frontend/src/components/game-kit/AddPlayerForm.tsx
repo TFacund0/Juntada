@@ -1,4 +1,5 @@
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../ui/Btn";
 import { ErrorBanner } from "../ui/ErrorBanner";
 
@@ -24,11 +25,11 @@ export function AddPlayerForm({
   errorKey: number;
 }) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>Sumar jugador</span>
-      <div style={{ display: "flex", gap: 8 }}>
+    <div className={T.card}>
+      <span className={T.label}>Sumar jugador</span>
+      <div className="flex gap-2">
         <input
-          style={{ ...S.input, flex: 1 }}
+          className={clsx(T.input, "flex-1 min-w-0")}
           placeholder="Nombre"
           value={name}
           onChange={e => onNameChange(e.target.value)}

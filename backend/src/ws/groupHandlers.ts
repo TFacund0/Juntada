@@ -22,6 +22,7 @@ const { getEngine } = require("../games/registry") as {
 };
 const roomService = require("../rooms/roomService");
 const groupService = require("../rooms/groupService");
+const { authService } = require("../auth") as { authService: { getSelf: (userId: string) => Promise<{ username: string }> } };
 const {
   sendTo,
   sendError,
@@ -35,10 +36,13 @@ const {
 } = require("./messaging");
 const { syncPhaseTimer, cleanupRoomIfEmpty, releaseStaleIdentity, PLAYER_OFFLINE_TIMEOUT_MS } = require("./shared");
 
-function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" }>): void {
+async function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" }>, info: ClientInfo): Promise<void> {
+  if (!info.accountId) return;
   const prevInfo = clients.get(ws);
+  const self = await authService.getSelf(info.accountId);
   const { group, playerId, error } = groupService.createGroup(ws, {
-    playerName: msg.playerName,
+    accountId: info.accountId,
+    username: self.username,
     groupName: msg.groupName,
   });
   if (error) {
@@ -49,11 +53,14 @@ function createGroup(ws: WS, msg: Extract<ClientMessage, { type: "create_group" 
   sendTo(ws, { type: "group_joined", playerId, groupCode: group.code, group: getGroupPublicState(group) });
 }
 
-function joinGroup(ws: WS, msg: Extract<ClientMessage, { type: "join_group" }>): void {
+async function joinGroup(ws: WS, msg: Extract<ClientMessage, { type: "join_group" }>, info: ClientInfo): Promise<void> {
+  if (!info.accountId) return;
   const prevInfo = clients.get(ws);
+  const self = await authService.getSelf(info.accountId);
   const { group, playerId, error } = groupService.joinGroup(ws, {
     code: msg.code,
-    playerName: msg.playerName,
+    accountId: info.accountId,
+    username: self.username,
     groupName: msg.groupName,
   });
   if (error) {
@@ -65,11 +72,14 @@ function joinGroup(ws: WS, msg: Extract<ClientMessage, { type: "join_group" }>):
   broadcastGroupState(group);
 }
 
-// Restores group membership after a dropped socket, and — since a group
-// member's current instance isn't tracked on the group itself — re-derives
-// it by checking whether any room still has them in its player list.
-function rejoinGroup(ws: WS, msg: Extract<ClientMessage, { type: "rejoin_group" }>): void {
-  const { group, playerId, error } = groupService.rejoinGroup(ws, { groupCode: msg.groupCode, playerId: msg.playerId });
+// Restores group membership after a dropped socket, resolved purely from the
+// authenticated accountId (handshake JWT) — no client-supplied playerId
+// anymore. Since a group member's current instance isn't tracked on the
+// group itself, it's re-derived by checking whether any room still has them
+// in its player list.
+function rejoinGroup(ws: WS, msg: Extract<ClientMessage, { type: "rejoin_group" }>, info: ClientInfo): void {
+  if (!info.accountId) return;
+  const { group, playerId, error } = groupService.rejoinGroup(ws, { groupCode: msg.groupCode, accountId: info.accountId });
   if (error) {
     sendError(ws, "REJOIN_GROUP_FAILED", error);
     return;
@@ -80,7 +90,7 @@ function rejoinGroup(ws: WS, msg: Extract<ClientMessage, { type: "rejoin_group" 
   if (instance) {
     const player = instance.players.find(p => p.id === playerId)!;
     player.online = true;
-    clients.set(ws, { groupCode: group.code, roomCode: instance.code, playerId });
+    clients.set(ws, { groupCode: group.code, roomCode: instance.code, playerId, accountId: info.accountId });
 
     // Same re-check as the standalone-room rejoin (see roomHandlers.rejoin):
     // reconnecting can be exactly what a phase was waiting on.
@@ -108,12 +118,12 @@ function createInstance(ws: WS, msg: Extract<ClientMessage, { type: "create_inst
   const member = group.members.find(m => m.id === info.playerId);
   if (!member) return;
 
-  const { room, error } = roomService.createInstanceRoom(group.code, msg.gameType, member.id, member.name, group.name);
+  const { room, error } = roomService.createInstanceRoom(group.code, msg.gameType, member.id, member.accountId, member.name, group.name);
   if (error) {
     sendError(ws, "CREATE_INSTANCE_FAILED", error);
     return;
   }
-  clients.set(ws, { groupCode: group.code, roomCode: room.code, playerId: member.id });
+  clients.set(ws, { groupCode: group.code, roomCode: room.code, playerId: member.id, accountId: member.accountId });
   sendTo(ws, { type: "joined", playerId: member.id, roomCode: room.code, room: getRoomPublicState(room) });
   broadcastGroupState(group);
 }
@@ -129,12 +139,12 @@ function joinInstance(ws: WS, msg: Extract<ClientMessage, { type: "join_instance
 
   if (info.roomCode && info.roomCode !== msg.roomCode) leavePlayerFromInstance(info.roomCode, member.id, group);
 
-  const { room, error } = roomService.joinInstanceRoom(msg.roomCode, member.id, member.name);
+  const { room, error } = roomService.joinInstanceRoom(msg.roomCode, member.id, member.accountId, member.name);
   if (error) {
     sendError(ws, "JOIN_INSTANCE_FAILED", error);
     return;
   }
-  clients.set(ws, { groupCode: group.code, roomCode: room.code, playerId: member.id });
+  clients.set(ws, { groupCode: group.code, roomCode: room.code, playerId: member.id, accountId: member.accountId });
   sendTo(ws, { type: "joined", playerId: member.id, roomCode: room.code, room: getRoomPublicState(room) });
   broadcast(room.code, { type: "state", room: getRoomPublicState(room) }, ws);
   broadcastGroupState(group);
@@ -167,7 +177,7 @@ function leaveInstance(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   const group = groups.get(info.groupCode);
   if (!group) return;
   leavePlayerFromInstance(info.roomCode, info.playerId, group);
-  clients.set(ws, { groupCode: info.groupCode, roomCode: null, playerId: info.playerId });
+  clients.set(ws, { groupCode: info.groupCode, roomCode: null, playerId: info.playerId, accountId: info.accountId });
   sendTo(ws, { type: "left_instance" });
 }
 
@@ -182,7 +192,7 @@ function leaveGroup(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   if (info.roomCode) leavePlayerFromInstance(info.roomCode, info.playerId, group);
 
   groupService.leaveGroup(group, info.playerId);
-  clients.set(ws, { groupCode: null, roomCode: null, playerId: null });
+  clients.set(ws, { groupCode: null, roomCode: null, playerId: null, accountId: info.accountId });
   sendTo(ws, { type: "left_group" });
 
   if (group.members.length === 0) groups.delete(group.code);
@@ -207,7 +217,7 @@ function kickMember(ws: WS, msg: Extract<ClientMessage, { type: "kick_member" }>
   for (const [ws2, i2] of clients) {
     if (i2.playerId !== msg.targetId) continue;
     if (i2.groupCode === group.code && i2.roomCode) leavePlayerFromInstance(i2.roomCode, msg.targetId, group);
-    clients.set(ws2, { groupCode: null, roomCode: null, playerId: msg.targetId });
+    clients.set(ws2, { groupCode: null, roomCode: null, playerId: msg.targetId, accountId: i2.accountId });
     sendTo(ws2, { type: "kicked_from_group" });
   }
 

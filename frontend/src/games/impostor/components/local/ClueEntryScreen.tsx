@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { Btn } from "../../../../components/ui/Btn";
 import { TurnCircle } from "../../../../components/game-kit/TurnCircle";
 import { CluesReview } from "../shared/CluesReview";
@@ -58,7 +59,7 @@ export function ClueEntryScreen({
   if (!player) return null;
 
   return (
-    <div style={{ minHeight: "calc(100dvh - 140px)", display: "flex", flexDirection: "column" }}>
+    <div className="flex min-h-[calc(100dvh-140px)] flex-col">
       <style>{actionBtnStyle}</style>
       <style>{`
         .impostor-clue-turn {
@@ -77,28 +78,13 @@ export function ClueEntryScreen({
         }
       `}</style>
 
-      <div
-        className={`impostor-clue-turn${handingOff ? " is-handing-off" : ""}`}
-        key={clueIdx}
-        style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
-      >
-        <p style={{ ...S.muted, textAlign: "center", marginBottom: 10, fontSize: 12 }}>
+      <div className={clsx("impostor-clue-turn flex min-h-0 flex-1 flex-col", handingOff && "is-handing-off")} key={clueIdx}>
+        <p className={clsx(T.muted, "mb-2.5 text-center text-xs")}>
           Jugador {clueIdx + 1} de {order.length}
         </p>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <p
-            style={{
-              margin: "0 0 4px",
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "var(--jt-accent, #7F77DD)",
-            }}
-          >
-            Turno de
-          </p>
-          <p style={{ margin: 0, fontWeight: 800, fontSize: 24 }}>{player.name}</p>
+        <div className="mb-7 text-center">
+          <p className="m-0 mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#7F77DD)]">Turno de</p>
+          <p className="m-0 text-2xl font-extrabold">{player.name}</p>
         </div>
 
         <TurnCircle
@@ -111,10 +97,10 @@ export function ClueEntryScreen({
         <CluesReview clues={clues} players={players} label="Palabras de los jugadores" maxHeight={140} />
       </div>
 
-      <div style={S.card}>
-        <span style={S.label}>Tu palabra</span>
+      <div className={T.card}>
+        <span className={T.label}>Tu palabra</span>
         <input
-          style={S.input}
+          className={T.input}
           placeholder="Escribí tu palabra antes de pasar el dispositivo..."
           value={clueInput}
           onChange={e => setClueInput(e.target.value)}

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 
 /**
  * Card de letra — compartida por las 4 fases, con dos variantes:
@@ -53,33 +54,27 @@ export function LetterReveal({
 
   return (
     <div
-      // El modo hero no lleva la card rectangular (S.cardHighlight) — es la
+      // El modo hero no lleva la card rectangular (T.cardHighlight) — es la
       // insignia circular sola, flotando sobre el fondo, sin ningún bloque
       // encuadrándola. El glow radial de fondo (tf-letter-card--hero::before)
       // se mantiene, pero ya no recortado por los bordes de una card.
-      style={
-        hero
-          ? { textAlign: "center", position: "relative" }
-          : { ...S.cardHighlight, textAlign: "center", padding: "18px 20px", position: "relative", overflow: "hidden" }
-      }
-      className={hero ? "tf-letter-card--hero" : "tf-letter-card"}
+      className={clsx(
+        "text-center relative",
+        hero ? "tf-letter-card--hero" : clsx(T.cardHighlight, "tf-letter-card p-[18px_20px] overflow-hidden"),
+      )}
     >
-      <p style={{ fontSize: hero ? 13 : 12, color: "var(--jt-muted-text, #9089c0)", marginBottom: hero ? 14 : 4 }}>{label}</p>
+      <p className={clsx("text-[var(--jt-muted-text,#9089c0)]", hero ? "text-[13px] mb-3.5" : "text-xs mb-1")}>{label}</p>
       {pending ? (
-        <p className="tf-letter-badge tf-letter-spin" style={{ margin: "0 auto", fontWeight: 800, color: "#fff" }}>
-          🍀
-        </p>
+        <p className="tf-letter-badge tf-letter-spin mx-auto font-extrabold text-white">🍀</p>
       ) : (
         <p
           key={letter}
-          className={[hero ? "tf-letter-badge" : "", animate ? (hero ? "tf-letter-flip" : "tf-letter-pop") : hero ? "tf-letter-float" : ""]
-            .filter(Boolean)
-            .join(" ")}
-          style={
+          className={clsx(
             hero
-              ? { margin: "0 auto", fontWeight: 800, color: "#fff" }
-              : { fontSize: 32, fontWeight: 800, color: "var(--jt-accent-strong, #AFA9EC)", margin: 0, lineHeight: 1 }
-          }
+              ? "tf-letter-badge mx-auto font-extrabold text-white"
+              : "text-[32px] font-extrabold m-0 leading-none text-[var(--jt-accent-strong,#AFA9EC)]",
+            animate ? (hero ? "tf-letter-flip" : "tf-letter-pop") : hero ? "tf-letter-float" : "",
+          )}
         >
           {letter || "?"}
         </p>
