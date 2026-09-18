@@ -9,12 +9,22 @@ import { WS_URL, MAX_RECONNECT_ATTEMPTS, reconnectDelayMs, WATCHDOG_CHECK_MS, PI
 export interface MultiplayerSocketServiceConfig {
   getRejoinMessage: () => Record<string, unknown> | null;
   shouldReconnect: () => boolean;
+  // The WS handshake now requires a JWT (backend/src/ws/server.ts closes
+  // with code 4000 "unauthorized" otherwise) — passed as the ws subprotocol
+  // ["jwt.<token>"], the only browser-settable handshake header. A getter
+  // (not a value) so the service — constructed once and never recreated —
+  // always reads AuthContext's latest token instead of a stale closure.
+  getAccessToken: () => string | null;
   onOpen?: () => void;
   onMessage: (raw: string) => void;
   onClose?: () => void;
   onError?: () => void;
   onReconnectAttempt?: (attempt: number) => void;
   onReconnectFailed?: () => void;
+  // Fired on close code 4001 "session_replaced" (see design's multi-device
+  // eviction policy) — a distinct case from onError/onClose since the
+  // socket must NOT auto-reconnect here (see the handler below).
+  onSessionReplaced?: () => void;
 }
 
 export interface MultiplayerSocketService {
@@ -40,12 +50,14 @@ export function createMultiplayerSocketService(config: MultiplayerSocketServiceC
   const {
     getRejoinMessage,
     shouldReconnect,
+    getAccessToken,
     onOpen: onOpenConfig,
     onMessage,
     onClose,
     onError,
     onReconnectAttempt,
     onReconnectFailed,
+    onSessionReplaced,
   } = config;
 
   let ws: WebSocket | null = null;
@@ -68,7 +80,8 @@ export function createMultiplayerSocketService(config: MultiplayerSocketServiceC
       explicitOnOpen?.(ws);
       return;
     }
-    const socket = new WebSocket(WS_URL);
+    const token = getAccessToken();
+    const socket = token ? new WebSocket(WS_URL, [`jwt.${token}`]) : new WebSocket(WS_URL);
     ws = socket;
     socket.onopen = () => {
       lastMessageAt = Date.now();
@@ -83,8 +96,19 @@ export function createMultiplayerSocketService(config: MultiplayerSocketServiceC
       lastMessageAt = Date.now();
       onMessage(e.data);
     };
-    socket.onclose = () => {
-      if (disposed || !shouldReconnect()) return;
+    socket.onclose = event => {
+      if (disposed) return;
+      // 4001 "session_replaced" — a newer device authenticated as the same
+      // account and took over the seat (see design's multi-device eviction
+      // policy). This is a deliberate takeover, not a dropped connection:
+      // auto-reconnecting would just immediately evict the *other* device
+      // in an infinite tug-of-war, so this surfaces once via onError and
+      // never retries.
+      if (event.code === 4001) {
+        onSessionReplaced?.();
+        return;
+      }
+      if (!shouldReconnect()) return;
       onClose?.();
       const attempt = reconnectAttempt + 1;
       reconnectAttempt = attempt;

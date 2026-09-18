@@ -130,7 +130,6 @@ describe("useMultiplayerGameShell", () => {
       const payload = JSON.parse(ws.send.mock.calls[0][0]);
       expect(payload).toEqual({
         type: "create_room",
-        playerName: "Ana",
         roomName: getGame("impostor")?.label,
         gameType: "impostor",
       });
@@ -146,7 +145,6 @@ describe("useMultiplayerGameShell", () => {
       act(() => result.current.createRoom());
       expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
         type: "create_group",
-        playerName: "Ana",
         groupName: undefined,
       });
 
@@ -154,7 +152,6 @@ describe("useMultiplayerGameShell", () => {
       act(() => result.current.createRoom());
       expect(JSON.parse(ws.send.mock.calls[1][0])).toEqual({
         type: "create_group",
-        playerName: "Ana",
         groupName: "Mi Grupo",
       });
     });
@@ -198,7 +195,7 @@ describe("useMultiplayerGameShell", () => {
       // soon as joinCode reaches 5 trimmed chars); joinRoom's own send is
       // the next one.
       const payload = JSON.parse(ws.send.mock.calls[1][0]);
-      expect(payload).toEqual({ type: "join_room", code: "ABCDE", playerName: "Ana" });
+      expect(payload).toEqual({ type: "join_room", code: "ABCDE" });
     });
 
     test("non-blank code (group) sends join_group instead of join_room (discriminating case)", () => {
@@ -210,7 +207,7 @@ describe("useMultiplayerGameShell", () => {
       // entryKind "group" skips the live-preview effect entirely, so
       // joinRoom's send is the only one.
       const payload = JSON.parse(ws.send.mock.calls[0][0]);
-      expect(payload).toEqual({ type: "join_group", code: "ABCDE", playerName: "Ana" });
+      expect(payload).toEqual({ type: "join_group", code: "ABCDE" });
     });
   });
 
@@ -240,7 +237,7 @@ describe("useMultiplayerGameShell", () => {
 
       expect(socket.setConnectionPhase).toHaveBeenCalledWith("join");
       const payload = JSON.parse(ws.send.mock.calls[0][0]);
-      expect(payload).toEqual({ type: "join_room", code: "ABCDE", playerName: "Ana" });
+      expect(payload).toEqual({ type: "join_room", code: "ABCDE" });
       expect(socket.connect).toHaveBeenCalledTimes(1);
 
       // Unrelated rerender (mount-only guard, autoJoiningRef): must not re-fire.

@@ -84,11 +84,15 @@ export function useMultiplayerSession({ entryKind }: { entryKind?: "room" | "gro
     return Boolean((roomSessionEnabled && s?.room) || (groupSessionEnabled && s?.group));
   });
 
+  // `rejoin`/`rejoin_group` no longer carry `playerId` — the server resolves
+  // the seat from the handshake-verified JWT's accountId (see design's WS
+  // Message Changes table). `playerId` stays on RoomSession/GroupSession
+  // itself (still useful client-side to identify "which player in the
+  // roster is me") but is never sent over the wire anymore.
   const getRejoinMessage = useCallback(() => {
     if (groupSessionEnabledRef.current && groupMeRef.current)
-      return { type: "rejoin_group" as const, groupCode: groupMeRef.current.groupCode, playerId: groupMeRef.current.playerId };
-    if (roomSessionEnabledRef.current && meRef.current)
-      return { type: "rejoin" as const, roomCode: meRef.current.roomCode, playerId: meRef.current.playerId };
+      return { type: "rejoin_group" as const, groupCode: groupMeRef.current.groupCode };
+    if (roomSessionEnabledRef.current && meRef.current) return { type: "rejoin" as const, roomCode: meRef.current.roomCode };
     return null;
   }, []);
 

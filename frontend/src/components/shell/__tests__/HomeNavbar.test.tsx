@@ -1,7 +1,19 @@
-import { describe, test, expect, vi } from "vitest";
+import { describe, test, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { createRef } from "react";
+import { createRef, type ReactElement } from "react";
 import { HomeNavbar } from "../HomeNavbar";
+import { AuthProvider } from "../../../features/auth/context/AuthContext";
+
+// ProfilePanel (rendered when showProfileMenu is true) reads useAuth() —
+// stub fetch so AuthProvider's boot-time silent refresh resolves to
+// "no session" instead of leaving a dangling network call in these tests.
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ error: "no_session" }) }));
+});
+
+function renderWithAuth(ui: ReactElement) {
+  return render(<AuthProvider>{ui}</AuthProvider>);
+}
 
 const baseProps = {
   mutedColor: "#999",
@@ -15,32 +27,32 @@ const baseProps = {
 
 describe("HomeNavbar", () => {
   test("renders the greeting with the player name", () => {
-    render(<HomeNavbar {...baseProps} />);
+    renderWithAuth(<HomeNavbar {...baseProps} />);
     expect(screen.getByText("Hola, Ana")).toBeTruthy();
   });
 
   test('calls onStartGroupFlow("join") when "Unirme" is clicked', () => {
     const onStartGroupFlow = vi.fn();
-    render(<HomeNavbar {...baseProps} onStartGroupFlow={onStartGroupFlow} />);
+    renderWithAuth(<HomeNavbar {...baseProps} onStartGroupFlow={onStartGroupFlow} />);
     fireEvent.click(screen.getByText("Unirme"));
     expect(onStartGroupFlow).toHaveBeenCalledWith("join");
   });
 
   test('calls onStartGroupFlow("create") when "Crear grupo" is clicked', () => {
     const onStartGroupFlow = vi.fn();
-    render(<HomeNavbar {...baseProps} onStartGroupFlow={onStartGroupFlow} />);
+    renderWithAuth(<HomeNavbar {...baseProps} onStartGroupFlow={onStartGroupFlow} />);
     fireEvent.click(screen.getByText("Crear grupo"));
     expect(onStartGroupFlow).toHaveBeenCalledWith("create");
   });
 
   test("does not show ProfilePanel when showProfileMenu is false", () => {
-    const { container } = render(<HomeNavbar {...baseProps} showProfileMenu={false} />);
+    const { container } = renderWithAuth(<HomeNavbar {...baseProps} showProfileMenu={false} />);
     expect(container.querySelector(".jt-profile-trigger")).not.toBeNull();
     expect(screen.queryByText("Guardar")).toBeNull();
   });
 
   test("shows ProfilePanel when showProfileMenu is true", () => {
-    render(<HomeNavbar {...baseProps} showProfileMenu={true} />);
+    renderWithAuth(<HomeNavbar {...baseProps} showProfileMenu={true} />);
     expect(screen.getByText("Guardar")).toBeTruthy();
   });
 });

@@ -12,6 +12,7 @@ import {
 } from "../services/multiplayerMessageHandlers";
 import { useMultiplayerSession } from "./useMultiplayerSession";
 import { useReconnectOverlay, type OverlayMode } from "./useReconnectOverlay";
+import { getAccessToken } from "../../auth/context/AuthContext";
 
 // What SessionRecoveryOverlay should show, if anything — see useReconnectOverlay.
 export type { OverlayMode };
@@ -145,11 +146,19 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     serviceRef.current = createMultiplayerSocketService({
       getRejoinMessage: session.getRejoinMessage,
       shouldReconnect: session.readHasActiveSession,
+      getAccessToken,
       onMessage: handleInboundMessage,
       onClose: overlay.onSocketClosed,
       onError: () => flashError("No se pudo conectar al servidor"),
       onReconnectAttempt: overlay.setReconnectAttempt,
       onReconnectFailed: overlay.onReconnectGivenUp,
+      // Another device took over this account's seat (close 4001) — do NOT
+      // auto-reconnect (see multiplayerSocketService.ts's comment), just
+      // tell the player and drop back to the menu like an explicit leave.
+      onSessionReplaced: () => {
+        flashError("Tu cuenta se conectó desde otro dispositivo");
+        setConnectionPhase("menu");
+      },
     });
   }
 

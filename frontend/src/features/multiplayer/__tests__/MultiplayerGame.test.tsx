@@ -240,7 +240,7 @@ describe("MultiplayerGame — cold start (persisted session on mount)", () => {
 
     const ws = lastSocket();
     act(() => ws.simulateOpen());
-    expect(JSON.parse(ws.sent.at(-1)!)).toEqual({ type: "rejoin", roomCode: "ABCDE", playerId: "p1" });
+    expect(JSON.parse(ws.sent.at(-1)!)).toEqual({ type: "rejoin", roomCode: "ABCDE" });
 
     // The rejoin lands mid-round (not "lobby") — instead of silently
     // dropping the player back into a live game, it asks first.
@@ -287,7 +287,7 @@ describe("MultiplayerGame — cold start (persisted session on mount)", () => {
 
     const ws = lastSocket();
     act(() => ws.simulateOpen());
-    expect(JSON.parse(ws.sent.at(-1)!)).toEqual({ type: "rejoin_group", groupCode: "GRUPO1", playerId: "p1" });
+    expect(JSON.parse(ws.sent.at(-1)!)).toEqual({ type: "rejoin_group", groupCode: "GRUPO1" });
 
     act(() =>
       ws.simulateMessage({
