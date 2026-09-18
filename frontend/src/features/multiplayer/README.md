@@ -55,9 +55,9 @@ vez, mismo `playerId`).
    - `RoundScreen` — la partida en sí — delega entero al `RoundView` del
      juego activo (este shell no conoce las fases de ningún juego puntual).
 
-6. **`utils/joinLink.ts`** / **`utils/playerName.ts`** — helpers chicos y
-   sin estado: armar/leer el link de "escanear y unirse", y persistir el
-   nombre elegido en `localStorage`.
+6. **`utils/joinLink.ts`** — helper chico y sin estado: armar/leer el link
+   de "escanear y unirse". El nombre del jugador ya no se persiste acá —
+   viene del username de la cuenta logueada (ver `features/auth/`).
 
 7. **`services/`** — lógica de conexión/sesión extraída de los hooks cuando
    crece demasiado para vivir ahí (ej. `multiplayerSocketService.ts` para el

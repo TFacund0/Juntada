@@ -23,7 +23,7 @@ export interface ParsedRoute {
   code: string | null;
 }
 
-export type RouteId = "home" | "game" | "gameLocal" | "room" | "group" | "join";
+export type RouteId = "home" | "game" | "gameLocal" | "room" | "group" | "join" | "resetPassword";
 
 export const ROUTES: Record<RouteId, string> = {
   home: "/",
@@ -32,6 +32,7 @@ export const ROUTES: Record<RouteId, string> = {
   room: "/room/:gameId/:code?",
   group: "/group/:code?",
   join: "/join/:code",
+  resetPassword: "/reset/:token",
 };
 
 // Reads the matched route's id (assigned as its route object's `id` in

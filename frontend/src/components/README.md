@@ -18,7 +18,6 @@ Organizados en subcarpetas por para qué sirven, no alfabéticamente:
 - `GamePicker` / `GameDetailDialog` — el catálogo de juegos de la pantalla de
   inicio y el diálogo de vista previa que se abre al tocar una tarjeta.
 - `ModePicker` — "elegí cómo jugar": Multijugador online vs. Modo local.
-- `NameOnboardingScreen` — la primerísima pantalla de "¿cómo te llamás?".
 - `NamePillEditor` — la pill chica que muestra/edita el nombre guardado.
 - `GameRules` — renderiza el `GameDef.rules` de un juego.
 - `DevNoticeDialog` — el aviso único de "app en desarrollo".

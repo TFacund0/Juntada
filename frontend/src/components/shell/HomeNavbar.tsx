@@ -111,7 +111,7 @@ export function HomeNavbar({
             </button>
             {showProfileMenu && (
               <div style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 5 }}>
-                <ProfilePanel playerName={playerName} onSavePlayerName={onSavePlayerName} />
+                <ProfilePanel playerName={playerName} />
               </div>
             )}
           </div>

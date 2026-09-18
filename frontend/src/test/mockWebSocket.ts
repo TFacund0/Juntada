@@ -13,16 +13,21 @@ export class MockWebSocket {
   static instances: MockWebSocket[] = [];
 
   url: string;
+  // The WS handshake now needs the JWT subprotocol (see
+  // features/multiplayer/services/multiplayerSocketService.ts) — recorded
+  // here so tests can assert `new WebSocket(url, ["jwt.<token>"])` happened.
+  protocols: string[];
   readyState = MockWebSocket.CONNECTING;
   sent: string[] = [];
 
   onopen: (() => void) | null = null;
   onmessage: ((e: { data: string }) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: { code: number }) => void) | null = null;
   onerror: (() => void) | null = null;
 
-  constructor(url: string) {
+  constructor(url: string, protocols?: string | string[]) {
     this.url = url;
+    this.protocols = protocols ? (Array.isArray(protocols) ? protocols : [protocols]) : [];
     MockWebSocket.instances.push(this);
   }
 
@@ -37,9 +42,9 @@ export class MockWebSocket {
     this.onmessage?.({ data: JSON.stringify(data) });
   }
 
-  simulateClose(): void {
+  simulateClose(code = 1000): void {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.();
+    this.onclose?.({ code });
   }
 
   send(data: string): void {
@@ -48,7 +53,7 @@ export class MockWebSocket {
 
   close(): void {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.();
+    this.onclose?.({ code: 1000 });
   }
 
   static reset(): void {

@@ -139,7 +139,7 @@ export function useMultiplayerGameShell({
       setConnectionPhase("join");
       autoJoiningRef.current = true;
       const code = initialJoinCode.toUpperCase().trim();
-      connect(ws => ws.send(JSON.stringify({ type: inGroup ? "join_group" : "join_room", code, playerName })));
+      connect(ws => ws.send(JSON.stringify({ type: inGroup ? "join_group" : "join_room", code })));
     } else if (initialGroupIntent) setConnectionPhase(initialGroupIntent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -235,12 +235,11 @@ export function useMultiplayerGameShell({
     // collisions/weak codes like "1234" for no real benefit.
     connect(ws => {
       if (inGroup) {
-        ws.send(JSON.stringify({ type: "create_group", playerName, groupName: roomName.trim() || undefined }));
+        ws.send(JSON.stringify({ type: "create_group", groupName: roomName.trim() || undefined }));
       } else {
         ws.send(
           JSON.stringify({
             type: "create_room",
-            playerName,
             roomName: selectedGame?.label ?? "Mi sala",
             gameType: gameId,
           }),
@@ -258,7 +257,6 @@ export function useMultiplayerGameShell({
         JSON.stringify({
           type: inGroup ? "join_group" : "join_room",
           code,
-          playerName,
         }),
       ),
     );

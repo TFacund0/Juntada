@@ -121,14 +121,14 @@ describe("getRejoinMessage", () => {
     const { result } = renderHook(() => useMultiplayerSession({}));
     act(() => result.current.setGroupMe({ playerId: "p1", groupCode: "GRUPO" }));
 
-    expect(result.current.getRejoinMessage()).toEqual({ type: "rejoin_group", groupCode: "GRUPO", playerId: "p1" });
+    expect(result.current.getRejoinMessage()).toEqual({ type: "rejoin_group", groupCode: "GRUPO" });
   });
 
   test("falls back to rejoin when only a room session is present", () => {
     const { result } = renderHook(() => useMultiplayerSession({}));
     act(() => result.current.setMe({ playerId: "p1", roomCode: "ABCDE" }));
 
-    expect(result.current.getRejoinMessage()).toEqual({ type: "rejoin", roomCode: "ABCDE", playerId: "p1" });
+    expect(result.current.getRejoinMessage()).toEqual({ type: "rejoin", roomCode: "ABCDE" });
   });
 
   test("returns null when neither session is present", () => {
@@ -144,7 +144,7 @@ describe("getRejoinMessage", () => {
     );
     const { result } = renderHook(() => useMultiplayerSession({ entryKind: "room" }));
 
-    expect(result.current.getRejoinMessage()).toEqual({ type: "rejoin", roomCode: "ABCDE", playerId: "p1" });
+    expect(result.current.getRejoinMessage()).toEqual({ type: "rejoin", roomCode: "ABCDE" });
   });
 });
 

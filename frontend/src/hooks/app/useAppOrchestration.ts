@@ -13,7 +13,7 @@ import { useStepTransition } from "../navigation/useStepTransition";
 import { useAppShell } from "../navigation/useAppShell";
 import { useAppContextValues } from "../navigation/useAppContextValues";
 import { useDevNotice } from "../ui/useDevNotice";
-import { usePlayerName } from "../session/usePlayerName";
+import { useAuth } from "../../features/auth/context/AuthContext";
 import { setAppInGame } from "../../utils/appActivity";
 
 /**
@@ -85,7 +85,19 @@ export function useAppOrchestration() {
   const { showProfileMenu, setShowProfileMenu, profileMenuRef, showRules, setShowRules } = headerUI;
 
   const { showDevNotice, dismissDevNotice } = useDevNotice();
-  const { playerName, savePlayerName } = usePlayerName();
+  // Identity now comes from the account (see features/auth/), not a
+  // localStorage-only free-form name — playerName IS the account's
+  // username, and savePlayerName renames it via PATCH /api/me. Kept as the
+  // same `playerName`/`savePlayerName` prop contract that already threads
+  // through AppHeader/HomeNavbar/MultiplayerGame so those components don't
+  // need to change — the error surfacing needed for a taken-username rename
+  // (see design's user-profile spec) lives in ProfilePanel instead, which
+  // calls useAuth().updateProfile directly.
+  const { user, updateProfile } = useAuth();
+  const playerName = user?.username ?? "";
+  const savePlayerName = (name: string) => {
+    void updateProfile({ username: name });
+  };
 
   // Whether a themed game's reskin is actually on screen right now — used
   // to drive the body/theme-color sync effect. Computed above any early

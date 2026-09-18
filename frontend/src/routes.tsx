@@ -9,6 +9,7 @@ import { GameEntry } from "./pages/picker/GameEntry";
 import { LocalGamePage } from "./pages/game/LocalGamePage";
 import { RoomPage } from "./pages/game/RoomPage";
 import { GroupPage } from "./pages/game/GroupPage";
+import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
 
 // Route tree derived from ROUTES (routing/appRoutes.ts) — the single source of
 // truth for the app's path scheme. App itself stays a single, non-remounting
@@ -69,6 +70,11 @@ export const routes: RouteObject[] = [
         id: "join",
         path: ROUTES.join,
         element: <JoinRedirect />,
+      },
+      {
+        id: "resetPassword",
+        path: ROUTES.resetPassword,
+        element: <ResetPasswordPage />,
       },
       {
         path: "*",

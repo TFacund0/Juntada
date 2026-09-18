@@ -6,6 +6,7 @@ function makeConfig(overrides: Partial<MultiplayerSocketServiceConfig> = {}): Mu
   return {
     getRejoinMessage: () => null,
     shouldReconnect: () => true,
+    getAccessToken: () => null,
     onMessage: () => {},
     ...overrides,
   };
@@ -199,6 +200,33 @@ describe("multiplayerSocketService", () => {
   it("maxReconnectAttempts is exposed and matches the configured cap", () => {
     const service = createMultiplayerSocketService(makeConfig());
     expect(service.maxReconnectAttempts).toBe(10);
+    service.dispose();
+  });
+
+  it('opens the WebSocket with the ["jwt.<token>"] subprotocol when getAccessToken() returns a token', () => {
+    const service = createMultiplayerSocketService(makeConfig({ getAccessToken: () => "abc123" }));
+    service.connect();
+    expect(MockWebSocket.instances[0].protocols).toEqual(["jwt.abc123"]);
+    service.dispose();
+  });
+
+  it("opens the WebSocket with no subprotocol when getAccessToken() returns null", () => {
+    const service = createMultiplayerSocketService(makeConfig({ getAccessToken: () => null }));
+    service.connect();
+    expect(MockWebSocket.instances[0].protocols).toEqual([]);
+    service.dispose();
+  });
+
+  it("close code 4001 (session_replaced) calls onSessionReplaced and does NOT schedule a reconnect", () => {
+    const onSessionReplaced = vi.fn();
+    const onReconnectAttempt = vi.fn();
+    const service = createMultiplayerSocketService(makeConfig({ onSessionReplaced, onReconnectAttempt }));
+    service.connect();
+    MockWebSocket.instances[0].simulateClose(4001);
+    expect(onSessionReplaced).toHaveBeenCalledTimes(1);
+    expect(onReconnectAttempt).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60_000);
+    expect(MockWebSocket.instances).toHaveLength(1);
     service.dispose();
   });
 

@@ -4,10 +4,11 @@ import "./theme/tailwind.css";
 import "./theme/curtain.css";
 import "./theme/sharedChrome.css";
 import "./theme/homeDesign.css";
-import { NameOnboardingScreen } from "./components/shell/NameOnboardingScreen";
+import { AuthScreen } from "./features/auth/screens/AuthScreen";
 import { AppMainContent } from "./components/shell/AppMainContent";
 import { AppOverlays } from "./components/shell/AppOverlays";
 import { useAppOrchestration } from "./hooks/app/useAppOrchestration";
+import { useAuth } from "./features/auth/context/AuthContext";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROOT APP — pathless PARENT/layout route. Delegates the 12-hook composition
@@ -18,6 +19,7 @@ import { useAppOrchestration } from "./hooks/app/useAppOrchestration";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function App() {
+  const { user, loading: authLoading } = useAuth();
   const {
     gameId,
     mode,
@@ -57,7 +59,11 @@ export default function App() {
     contextValues,
   } = useAppOrchestration();
 
-  if (!playerName) return <NameOnboardingScreen onSave={savePlayerName} />;
+  // Silent refresh-on-boot (AuthProvider) hasn't resolved yet — render
+  // nothing rather than flashing AuthScreen for a logged-in user whose
+  // cookie is still being exchanged for a fresh access token.
+  if (authLoading) return null;
+  if (!user) return <AuthScreen />;
 
   return (
     <div className={clsx(T.app, "relative transition-[background-color,color] duration-[400ms] ease")} style={activeTheme?.app}>

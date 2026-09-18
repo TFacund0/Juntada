@@ -23,11 +23,10 @@ hooks de React de verdad, organizados en subcarpetas por dominio.
   selector de juegos. (El consumo del link de unión escaneado/compartido,
   que sí conoce multijugador, vive en
   `features/multiplayer/hooks/useValidJoinLink.ts`, no acá.)
-- **`usePlayerName.ts`** — el nombre del jugador, extraído de `App.tsx`. Se
-  pregunta una sola vez (`NameOnboardingScreen`) y queda guardado localmente
-  (vía `features/multiplayer/utils/playerName.ts`) para que nada más
-  adelante tenga que volver a pedirlo; editable después desde la pantalla de
-  inicio.
+- El nombre del jugador ya no vive acá — desde `user-accounts`, la identidad
+  viene de la cuenta (`features/auth/context/AuthContext.tsx`,
+  `user.username`) y se edita vía `PATCH /api/me` (ver `ProfilePanel.tsx`),
+  no de un input libre guardado en `localStorage`.
 
 ## `navigation/` — moverse entre pantallas/pasos
 
