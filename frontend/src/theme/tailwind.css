@@ -95,17 +95,33 @@
   }
 }
 
-/* Scrim de GroupEntryModal/RoomEntryModal — el backdrop-filter:blur tarda un
-   frame en asentarse en algunos navegadores: se llegaba a ver el navbar de
-   atrás sin blur durante ese instante. Un fade desde opacity:0 empeora esto
-   (deja al scrim más transparente, no menos, durante toda la animación) —
-   arranca ya bastante oscuro (.55, nunca "ventana" transparente) y solo
-   remata la opacidad final, tapando el frame sin blur en vez de exponerlo. */
+/* Scrim de GroupEntryModal/RoomEntryModal y de GameNavbar — el
+   background-color de estos elementos NUNCA anima su opacidad (queda fijo
+   en su valor final desde el frame 0, ver className en cada componente):
+   cualquier fade de opacidad, aunque arranque ya oscuro, sigue siendo una
+   "ventana" semi-transparente durante toda la animación, y texto en negrita
+   detrás (ej. el subtítulo "Grupo" de GameNavbar) se alcanza a leer a
+   través de eso. Lo único que anima acá es el blur, de 0 a su valor final
+   — el tinte oscuro ya tapa todo por completo desde el primer frame, el
+   blur solo termina de asentar el efecto vidrio esmerilado por encima. */
 @keyframes jt-modal-scrim-in {
   from {
-    opacity: 0.55;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
   }
   to {
-    opacity: 1;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+}
+
+@keyframes jt-navbar-blur-in {
+  from {
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
   }
 }

@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { LobbyRoomInvite } from "../LobbyRoomInvite";
 import type { RoomPublicState } from "@juntada/shared-types";
 
@@ -29,7 +29,7 @@ describe("LobbyRoomInvite", () => {
       />,
     );
     expect(screen.getByTestId("code-display")).not.toHaveTextContent("ABC123");
-    screen.getByLabelText("Mostrar código").click();
+    fireEvent.click(screen.getByLabelText("Mostrar código"));
     expect(screen.getByTestId("code-display")).toHaveTextContent("ABC123");
   });
 

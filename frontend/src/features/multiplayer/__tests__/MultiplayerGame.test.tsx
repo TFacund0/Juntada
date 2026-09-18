@@ -100,7 +100,9 @@ describe("MultiplayerGame — standalone room lobby", () => {
 
   test("host sees the room code, the player list, and a start button gated on min players", async () => {
     await createRoomAsHost();
-    expect(await screen.findByText("ABCDE")).toBeInTheDocument();
+    // El código empieza oculto (enmascarado) por defecto — ver code-display,
+    // no el texto plano.
+    expect(await screen.findByTestId("code-display")).toBeInTheDocument();
     expect(screen.getByText(/^Ana/, { selector: "span" })).toBeInTheDocument();
     // tateti needs 2 players — only 1 is in the room, so starting is blocked.
     expect(await screen.findByText(/Necesitás mínimo 2 jugadores/)).toBeInTheDocument();
@@ -108,7 +110,7 @@ describe("MultiplayerGame — standalone room lobby", () => {
 
   test("start button enables once the room has enough players", async () => {
     const { ws } = await createRoomAsHost();
-    await screen.findByText("ABCDE");
+    await screen.findByTestId("code-display");
 
     act(() =>
       ws.simulateMessage({
@@ -149,7 +151,7 @@ describe("MultiplayerGame — in-round view", () => {
 
     // Lobby-only chrome (the room code card) is gone; tateti's RoundView owns
     // the screen now.
-    await waitFor(() => expect(screen.queryByText("ABCDE")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByTestId("code-display")).not.toBeInTheDocument());
     expect(screen.queryByText(/Necesitás mínimo/)).not.toBeInTheDocument();
   });
 });
@@ -158,6 +160,9 @@ describe("MultiplayerGame — group flow", () => {
   test("creating a group shows its code and member list", async () => {
     const user = userEvent.setup();
     render(<MultiplayerGame entryKind="group" gameId={null} playerName="Ana" />);
+    // El nombre del grupo es obligatorio — el botón queda deshabilitado hasta
+    // que se escriba algo (ver GroupEntryCard.tsx).
+    await user.type(screen.getByPlaceholderText("Ej: Los pibes"), "Los pibes");
     await user.click(screen.getByRole("button", { name: "Crear grupo" }));
 
     const ws = lastSocket();
@@ -183,7 +188,9 @@ describe("MultiplayerGame — group flow", () => {
     // card grande de mobile) y CSS decide cuál se ve según el ancho de
     // pantalla — jsdom no evalúa @media, así que ambas están siempre en el
     // DOM en este entorno de test.
-    expect((await screen.findAllByText("GRP01")).length).toBeGreaterThan(0);
+    // El código empieza oculto (enmascarado) por defecto en ambas
+    // renderizaciones (chip compacto + card grande) — ver code-display.
+    expect((await screen.findAllByTestId("code-display")).length).toBeGreaterThan(0);
     expect(screen.getByText("Los pibes")).toBeInTheDocument();
     expect(screen.getByText("Nadie abrió una partida todavía.")).toBeInTheDocument();
   });
@@ -199,7 +206,7 @@ describe("MultiplayerGame — reconnect banner", () => {
     const ws = lastSocket();
     act(() => ws.simulateOpen());
     act(() => ws.simulateMessage(joinedMessage()));
-    await screen.findByText("ABCDE");
+    await screen.findByTestId("code-display");
 
     act(() => ws.simulateClose());
     expect(await screen.findByText(/Reconectando a la sala/)).toBeInTheDocument();

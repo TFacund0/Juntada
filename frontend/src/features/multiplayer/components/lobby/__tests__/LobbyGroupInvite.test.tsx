@@ -1,13 +1,13 @@
 import { describe, test, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { LobbyGroupInvite } from "../LobbyGroupInvite";
 
 describe("LobbyGroupInvite", () => {
   test("shows the group code with the GRUPO label (hidden by default, revealed after tapping the eye icon)", () => {
     render(<LobbyGroupInvite groupCode="GRP789" showQR={false} onShowQR={() => {}} showShareLink={false} onShowShareLink={() => {}} />);
-    expect(screen.getByText((_, element) => element?.textContent === "CÓDIGO DE GRUPO")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "P" && element.textContent === "CÓDIGO DE GRUPO")).toBeInTheDocument();
     expect(screen.getByTestId("code-display")).not.toHaveTextContent("GRP789");
-    screen.getByLabelText("Mostrar código").click();
+    fireEvent.click(screen.getByLabelText("Mostrar código"));
     expect(screen.getByTestId("code-display")).toHaveTextContent("GRP789");
   });
 

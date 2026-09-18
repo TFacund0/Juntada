@@ -88,6 +88,7 @@ export function PlayerChip({
               onTransferHost={transferHost}
               onKickMember={kickMember}
               onClose={() => onToggleMenu(null)}
+              scope="room"
             />
           )}
         </div>

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { CloseIcon } from "../../../components/ui/icons";
 
 const SCRIM =
-  "fixed inset-0 z-40 flex items-center justify-center p-5 bg-[color-mix(in_srgb,var(--jt-bg)_74%,transparent)] backdrop-blur-[18px] animate-[jt-modal-scrim-in_100ms_ease-out] motion-reduce:animate-none";
+  "fixed inset-0 z-40 flex items-center justify-center p-5 bg-[color-mix(in_srgb,var(--jt-bg)_74%,transparent)] animate-[jt-modal-scrim-in_100ms_ease-out_forwards] motion-reduce:backdrop-blur-[18px] motion-reduce:animate-none";
 
 // Haz diagonal difuminado que cruza el scrim — un solo elemento en vez de
 // los dos blobs redondos del modal de grupo, para que el fondo detrás de la
