@@ -18,7 +18,7 @@ beforeEach(() => {
 
 test("kickPlayer ignores a host targeting their own playerId instead of emptying the room", () => {
   const hostWs = fakeSocket();
-  const { room, playerId: hostId } = roomService.createRoom(hostWs, { playerName: "Ana", gameType: "impostor" });
+  const { room, playerId: hostId } = roomService.createRoom(hostWs, { accountId: "acc-ana", username: "Ana", gameType: "impostor" });
 
   roomHandlers.kickPlayer(hostWs, { type: "kick_player", targetId: hostId }, clients.get(hostWs));
 
@@ -28,9 +28,9 @@ test("kickPlayer ignores a host targeting their own playerId instead of emptying
 
 test("kickPlayer still lets the host remove someone else as usual", () => {
   const hostWs = fakeSocket();
-  const { room } = roomService.createRoom(hostWs, { playerName: "Ana", gameType: "impostor" });
+  const { room } = roomService.createRoom(hostWs, { accountId: "acc-ana", username: "Ana", gameType: "impostor" });
   const targetWs = fakeSocket();
-  const { playerId: targetId } = roomService.joinRoom(targetWs, { code: room.code, playerName: "Beto" });
+  const { playerId: targetId } = roomService.joinRoom(targetWs, { code: room.code, accountId: "acc-beto", username: "Beto" });
 
   roomHandlers.kickPlayer(hostWs, { type: "kick_player", targetId }, clients.get(hostWs));
 

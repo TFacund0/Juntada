@@ -7,8 +7,8 @@ import { RoundView } from "../RoundView";
 
 function makePlayers(): PublicPlayer[] {
   return [
-    { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-    { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+    { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+    { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
   ];
 }
 
@@ -59,7 +59,7 @@ describe("Limón Limón RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -78,7 +78,7 @@ describe("Limón Limón RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round", { current: { suit: "oro", value: 1 } })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -96,7 +96,7 @@ describe("Limón Limón RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round", { current: { suit: "oro", value: 1 } })}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={false}
@@ -114,7 +114,7 @@ describe("Limón Limón RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -137,7 +137,7 @@ describe("Limón Limón RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { remaining: 0, pileCounts: { p1: 3, p2: 1 } })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -163,7 +163,7 @@ describe("Limón Limón RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { remaining: 0, pileCounts: { p1: 3, p2: 1 } })}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={false}

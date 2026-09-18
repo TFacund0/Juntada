@@ -49,8 +49,8 @@ test("GET /join/:code injects dynamic tags when matching an active room", async 
     groupCode: null,
     phase: "lobby",
     players: [
-      { id: "h1", name: "Host", ready: false, online: true },
-      { id: "p2", name: "Player 2", ready: false, online: true },
+      { id: "h1", accountId: "acc-h1", name: "Host", ready: false, online: true },
+      { id: "p2", accountId: "acc-p2", name: "Player 2", ready: false, online: true },
     ],
     config: {},
     round: null,
@@ -75,9 +75,9 @@ test("GET /join/:code injects dynamic tags when matching an active group", async
     name: "Los Amigos",
     hostId: "h1",
     members: [
-      { id: "h1", name: "Host", online: true },
-      { id: "m2", name: "M2", online: true },
-      { id: "m3", name: "M3", online: true },
+      { id: "h1", accountId: "acc-h1", name: "Host", online: true },
+      { id: "m2", accountId: "acc-m2", name: "M2", online: true },
+      { id: "m3", accountId: "acc-m3", name: "M3", online: true },
     ],
     chat: [],
   };
@@ -101,8 +101,8 @@ test("GET /room/:gameId/:code injects dynamic tags for active room", async () =>
     groupCode: null,
     phase: "lobby",
     players: [
-      { id: "h1", name: "Host", ready: false, online: true },
-      { id: "p2", name: "Player 2", ready: false, online: true },
+      { id: "h1", accountId: "acc-h1", name: "Host", ready: false, online: true },
+      { id: "p2", accountId: "acc-p2", name: "Player 2", ready: false, online: true },
     ],
     config: {},
     round: null,
@@ -126,7 +126,7 @@ test("GET /group/:code injects dynamic tags for active group", async () => {
     code: "GR001",
     name: "La Banda",
     hostId: "h1",
-    members: [{ id: "h1", name: "Host", online: true }],
+    members: [{ id: "h1", accountId: "acc-h1", name: "Host", online: true }],
     chat: [],
   };
   groups.set("GR001", testGroup);

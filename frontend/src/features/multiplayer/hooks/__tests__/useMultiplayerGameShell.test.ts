@@ -43,7 +43,7 @@ function makeSocket(overrides: Partial<Record<string, unknown>> = {}) {
 }
 
 function makePlayer(overrides: Partial<PublicPlayer> = {}): PublicPlayer {
-  return { id: "p1", name: "Ana", ready: false, online: true, hasVoted: false, ...overrides };
+  return { id: "p1", accountId: "p1", name: "Ana", ready: false, online: true, hasVoted: false, ...overrides };
 }
 
 function makeRoom(overrides: Partial<RoomPublicState> = {}): RoomPublicState {
@@ -397,7 +397,7 @@ describe("useMultiplayerGameShell", () => {
       const { result, socket, rerender, props } = setup();
       socket.room = makeRoom({
         hostId: "p1",
-        players: [makePlayer({ id: "p1", name: "Carla" }), makePlayer({ id: "p2", name: "Dani" })],
+        players: [makePlayer({ id: "p1", accountId: "p1", name: "Carla" }), makePlayer({ id: "p2", accountId: "p2", name: "Dani" })],
       });
       rerender(props);
 

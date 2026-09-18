@@ -6,8 +6,8 @@ import { RoundView } from "../RoundView";
 
 function makePlayers(): PublicPlayer[] {
   return [
-    { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-    { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+    { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+    { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
   ];
 }
 

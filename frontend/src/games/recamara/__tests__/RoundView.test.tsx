@@ -6,8 +6,8 @@ import { RoundView } from "../RoundView";
 
 function makePlayers(): PublicPlayer[] {
   return [
-    { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-    { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+    { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+    { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
   ];
 }
 
@@ -64,7 +64,7 @@ function makeRoom(roundOverrides: Record<string, unknown> = {}): RoomPublicState
 }
 
 const meP1 = { playerId: "p1", roomCode: "TEST1" };
-const myPlayerP1: PublicPlayer = { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false };
+const myPlayerP1: PublicPlayer = { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false };
 
 describe("Recámara RoundView — reveal", () => {
   test("round 1 has no items to reveal — skips straight from the announcement to the chamber card, with the bullet legend", async () => {

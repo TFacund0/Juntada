@@ -12,15 +12,15 @@ import type { ClientInfo } from "../state/roomStore";
 import { logger } from "../logger";
 
 const { v4: uuidv4 } = require("uuid");
-const { groups, clients, activeSockets } = require("../state/roomStore") as {
+const { groups, clients, activeSockets, evictPreviousAccountSocket } = require("../state/roomStore") as {
   groups: Map<string, Group>;
   clients: Map<WebSocket, ClientInfo>;
   activeSockets: Map<string, WebSocket>;
+  evictPreviousAccountSocket: (scopeCode: string, accountId: string, newWs: WebSocket) => void;
 };
 const { generateUniqueRoomCode } = require("./roomCode") as { generateUniqueRoomCode: () => string };
 const { ONLINE_CLEANUP_DELAY_MS } = require("./constants") as { ONLINE_CLEANUP_DELAY_MS: number };
-const { isNameTaken, pickHostReplacement } = require("./rosterUtils") as {
-  isNameTaken: (roster: { id: string; name: string; online: boolean }[], name: string) => boolean;
+const { pickHostReplacement } = require("./rosterUtils") as {
   pickHostReplacement: (roster: { id: string; name: string; online: boolean }[], leavingId: string) => { id: string } | undefined;
 };
 
@@ -33,7 +33,10 @@ interface GroupResult {
   error?: string;
 }
 
-function createGroup(ws: WebSocket, { playerName, groupName }: { playerName?: string; groupName?: string }): GroupResult {
+function createGroup(
+  ws: WebSocket,
+  { accountId, username, groupName }: { accountId: string; username: string; groupName?: string },
+): GroupResult {
   if (groups.size >= MAX_TOTAL_GROUPS) return { error: "El servidor está lleno, probá de nuevo en un rato" };
 
   const code = generateUniqueRoomCode();
@@ -42,19 +45,20 @@ function createGroup(ws: WebSocket, { playerName, groupName }: { playerName?: st
     code,
     name: groupName || "Grupo sin nombre",
     hostId: playerId,
-    members: [{ id: playerId, name: playerName || "Anfitrión", online: true }],
+    members: [{ id: playerId, accountId, name: username, online: true }],
     chat: [],
   };
   groups.set(code, group);
-  clients.set(ws, { groupCode: code, roomCode: null, playerId });
+  clients.set(ws, { groupCode: code, roomCode: null, playerId, accountId });
   activeSockets.set(playerId, ws);
+  evictPreviousAccountSocket(code, accountId, ws);
   logger.info({ groupCode: code, memberCount: groups.size }, "group created");
   return { group, playerId };
 }
 
 function joinGroup(
   ws: WebSocket,
-  { code, playerName, groupName }: { code?: string; playerName?: string; groupName?: string },
+  { code, accountId, username, groupName }: { code?: string; accountId: string; username: string; groupName?: string },
 ): GroupResult {
   const group = groups.get(code?.toUpperCase() ?? "");
   if (!group) return { error: "No existe ningún grupo con ese código" };
@@ -67,28 +71,29 @@ function joinGroup(
   }
   if (group.members.length >= MAX_MEMBERS_PER_GROUP) return { error: "El grupo está lleno" };
 
-  const name = playerName || "Jugador";
-  if (isNameTaken(group.members, name)) return { error: "Ese nombre ya está en uso en este grupo" };
-
   const playerId: string = uuidv4();
-  group.members.push({ id: playerId, name, online: true });
-  clients.set(ws, { groupCode: group.code, roomCode: null, playerId });
+  group.members.push({ id: playerId, accountId, name: username, online: true });
+  clients.set(ws, { groupCode: group.code, roomCode: null, playerId, accountId });
   activeSockets.set(playerId, ws);
+  evictPreviousAccountSocket(group.code, accountId, ws);
   return { group, playerId };
 }
 
-// Restores membership after a dropped socket. Doesn't restore which
-// instance (if any) the player was attached to — the caller (ws/handlers.ts)
+// Restores membership after a dropped socket, resolved purely from the
+// authenticated `accountId` — no client-supplied playerId anymore (see
+// design.md's account-reconnection delta). Doesn't restore which instance
+// (if any) the player was attached to — the caller (ws/handlers.ts)
 // re-derives that by checking whether any room still lists this playerId.
-function rejoinGroup(ws: WebSocket, { groupCode, playerId }: { groupCode: string; playerId: string }): GroupResult {
+function rejoinGroup(ws: WebSocket, { groupCode, accountId }: { groupCode: string; accountId: string }): GroupResult {
   const group = groups.get(groupCode);
   if (!group) return { error: "El grupo ya no existe" };
-  const member = group.members.find(m => m.id === playerId);
+  const member = group.members.find(m => m.accountId === accountId);
   if (!member) return { error: "Ya no formás parte de este grupo" };
   member.online = true;
-  clients.set(ws, { groupCode: group.code, roomCode: null, playerId });
-  activeSockets.set(playerId, ws);
-  return { group, playerId };
+  clients.set(ws, { groupCode: group.code, roomCode: null, playerId: member.id, accountId });
+  activeSockets.set(member.id, ws);
+  evictPreviousAccountSocket(group.code, accountId, ws);
+  return { group, playerId: member.id };
 }
 
 // A member choosing to leave the group entirely (not just an instance under

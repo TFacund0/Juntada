@@ -6,8 +6,8 @@ import { RoundView } from "../RoundView";
 
 function makePlayers(): PublicPlayer[] {
   return [
-    { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-    { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+    { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+    { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
   ];
 }
 
@@ -52,7 +52,7 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -70,7 +70,7 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round", { turn: "p2" })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -89,7 +89,7 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round", {}, { score: { p1: 1 } })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -106,7 +106,7 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -124,7 +124,7 @@ describe("Ta-Te-Ti RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round", {}, { score: { p1: 1 }, resetVotes: ["p2"] })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -149,7 +149,7 @@ describe("Ta-Te-Ti RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { winner: "p1", board: ["X", "X", "X", null, "O", "O", null, null, null], winningLine: [0, 1, 2] })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -169,7 +169,7 @@ describe("Ta-Te-Ti RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { winner: "draw" })}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={false}

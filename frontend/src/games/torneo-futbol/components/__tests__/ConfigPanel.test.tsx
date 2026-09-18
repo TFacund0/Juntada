@@ -12,8 +12,8 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     gameType: "torneo-futbol",
     phase: "lobby",
     players: [
-      { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-      { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+      { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+      { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
     ],
     maxPlayers: 16,
     groupCode: null,
@@ -64,6 +64,7 @@ describe("Torneo de Fútbol ConfigPanel", () => {
     const user = userEvent.setup();
     const players = Array.from({ length: 5 }, (_, i) => ({
       id: `p${i + 1}`,
+      accountId: `p${i + 1}`,
       name: `Jugador ${i + 1}`,
       ready: false,
       online: true,

@@ -6,13 +6,13 @@ import { RoundView } from "../RoundView";
 
 function makePlayers(): PublicPlayer[] {
   return [
-    { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-    { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+    { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+    { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
   ];
 }
 
-const ENTRANT_A = { id: "p1", name: "Jugador 1", team: "Argentina" };
-const ENTRANT_B = { id: "p2", name: "Jugador 2", team: "Brasil" };
+const ENTRANT_A = { id: "p1", accountId: "p1", name: "Jugador 1", team: "Argentina" };
+const ENTRANT_B = { id: "p2", accountId: "p2", name: "Jugador 2", team: "Brasil" };
 
 function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}): RoomPublicState {
   return {
@@ -46,7 +46,7 @@ describe("Torneo de Fútbol RoundView — bracket phase", () => {
       <RoundView
         room={makeRoom("bracket")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -70,7 +70,7 @@ describe("Torneo de Fútbol RoundView — bracket phase", () => {
       <RoundView
         room={makeRoom("bracket", { trackGoals: false })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -89,7 +89,7 @@ describe("Torneo de Fútbol RoundView — bracket phase", () => {
       <RoundView
         room={makeRoom("bracket")}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={false}
@@ -110,7 +110,7 @@ describe("Torneo de Fútbol RoundView — champion phase", () => {
       <RoundView
         room={makeRoom("champion", { rounds: [[{ a: ENTRANT_A, b: ENTRANT_B, winner: ENTRANT_A, goalsA: 2, goalsB: 1 }]] })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}

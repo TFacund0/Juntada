@@ -48,8 +48,8 @@ describe("Ruleta ConfigPanel", () => {
     const user = userEvent.setup();
     const updateConfig = vi.fn();
     const entries = [
-      { id: "e1", name: "Juan", description: "" },
-      { id: "e2", name: "Ana", description: "" },
+      { id: "e1", accountId: "e1", name: "Juan", description: "" },
+      { id: "e2", accountId: "e2", name: "Ana", description: "" },
     ];
     render(<ConfigPanel room={makeRoom({ entries })} updateConfig={updateConfig} />);
 
@@ -61,7 +61,12 @@ describe("Ruleta ConfigPanel", () => {
   test("adding a duplicate name is rejected with an inline error, without calling updateConfig", async () => {
     const user = userEvent.setup();
     const updateConfig = vi.fn();
-    render(<ConfigPanel room={makeRoom({ entries: [{ id: "e1", name: "Juan", description: "" }] })} updateConfig={updateConfig} />);
+    render(
+      <ConfigPanel
+        room={makeRoom({ entries: [{ id: "e1", accountId: "e1", name: "Juan", description: "" }] })}
+        updateConfig={updateConfig}
+      />,
+    );
 
     await user.type(screen.getByPlaceholderText(/Nombre/), "Juan");
     await user.click(screen.getByRole("button", { name: "Agregar a la ruleta" }));

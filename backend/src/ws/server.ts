@@ -14,6 +14,9 @@ const { validateMessage } = require("./validation");
 const { sendError } = require("./messaging");
 const { isAllowed } = require("./rateLimiter");
 const { captureException } = require("../sentry");
+const { verifyAccessToken } = require("../auth/service/tokenService") as {
+  verifyAccessToken: (token: string) => { sub: string };
+};
 
 // ws doesn't type this — it's a property we stamp on each socket ourselves
 // for the heartbeat below (see HEARTBEAT_INTERVAL_MS).
@@ -88,6 +91,39 @@ function isAllowedOrigin(req: IncomingMessage): boolean {
   }
 }
 
+// The access JWT travels as the WS subprotocol value `jwt.<token>` (see
+// design.md "Token transport") — a browser can't set custom headers on the
+// WS handshake, and a `?token=` query param would land in Render/proxy
+// access logs. `Sec-WebSocket-Protocol` is a comma-separated list (ws
+// clients can offer several); only the `jwt.` prefixed entry matters here.
+const JWT_PROTOCOL_PREFIX = "jwt.";
+
+function extractAccessToken(req: IncomingMessage): string | null {
+  const header = req.headers["sec-websocket-protocol"];
+  if (!header) return null;
+  const offered = String(header)
+    .split(",")
+    .map(p => p.trim());
+  const jwtEntry = offered.find(p => p.startsWith(JWT_PROTOCOL_PREFIX));
+  if (!jwtEntry) return null;
+  const token = jwtEntry.slice(JWT_PROTOCOL_PREFIX.length);
+  return token || null;
+}
+
+// Verifies the JWT and returns the authenticated accountId, or null if the
+// token is missing/expired/tampered. Never throws — verifyAccessToken's own
+// jwt.verify rejection is exactly the "invalid" case this WS handshake needs
+// to reject as cleanly as a missing token.
+function authenticateHandshake(req: IncomingMessage): string | null {
+  const token = extractAccessToken(req);
+  if (!token) return null;
+  try {
+    return verifyAccessToken(token).sub;
+  } catch {
+    return null;
+  }
+}
+
 // Caps concurrent open sockets per IP so one client can't cheaply exhaust
 // server memory/file descriptors by opening connections without ever
 // sending create_room (which is what the per-message rate limits above
@@ -135,6 +171,16 @@ function attachWebSocketServer(httpServer: Server) {
       return;
     }
 
+    // The JWT is verified before anything else about this connection is
+    // trusted — an invalid/missing token closes the socket immediately,
+    // before it's ever added to `clients` or counted against the per-IP
+    // connection cap, and before a single message is ever read from it.
+    const accountId = authenticateHandshake(req);
+    if (!accountId) {
+      ws.close(4000, "unauthorized");
+      return;
+    }
+
     const ip = clientIp(req);
     const openFromIp = (connectionsPerIp.get(ip) ?? 0) + 1;
     if (openFromIp > MAX_CONNECTIONS_PER_IP) {
@@ -143,7 +189,7 @@ function attachWebSocketServer(httpServer: Server) {
     }
     connectionsPerIp.set(ip, openFromIp);
 
-    clients.set(ws, { groupCode: null, roomCode: null, playerId: null });
+    clients.set(ws, { groupCode: null, roomCode: null, playerId: null, accountId });
     ws.isAlive = true;
     ws.on("pong", () => {
       ws.isAlive = true;
@@ -196,13 +242,18 @@ function attachWebSocketServer(httpServer: Server) {
 
       const handler = HANDLERS[data.type];
       const info = clients.get(ws);
-      try {
-        handler(ws, data, info);
-      } catch (err) {
-        logger.error({ err, messageType: data.type }, "handler threw");
-        captureException(err, { messageType: data.type });
-        sendError(ws, "INTERNAL_ERROR", "Ocurrió un error inesperado");
-      }
+      // A handful of handlers (create_room/join_room/create_group/
+      // join_group) are async — they resolve the account's current
+      // username via authService.getSelf before mutating any state.
+      // Promise.resolve(...) lets every handler, sync or async, funnel
+      // through the exact same error handling below.
+      Promise.resolve()
+        .then(() => handler(ws, data, info))
+        .catch((err: unknown) => {
+          logger.error({ err, messageType: data.type }, "handler threw");
+          captureException(err, { messageType: data.type });
+          sendError(ws, "INTERNAL_ERROR", "Ocurrió un error inesperado");
+        });
     });
 
     ws.on("close", () => {

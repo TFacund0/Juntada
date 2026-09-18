@@ -6,6 +6,7 @@ import { usePlayerPresenceToasts } from "../usePlayerPresenceToasts";
 function makePlayer(overrides: Partial<PublicPlayer>): PublicPlayer {
   return {
     id: "p1",
+    accountId: "p1",
     name: "Ana",
     ready: false,
     online: true,
@@ -35,7 +36,7 @@ function makeRoom(players: PublicPlayer[]): RoomPublicState {
 describe("usePlayerPresenceToasts", () => {
   test("emits reconnect toast when a player flips from offline to online", () => {
     const setStatusToast = vi.fn();
-    const player = makePlayer({ id: "p2", name: "Beto", online: false });
+    const player = makePlayer({ id: "p2", accountId: "p2", name: "Beto", online: false });
     const { rerender } = renderHook(({ room }) => usePlayerPresenceToasts({ room, myPlayerId: "p1", setStatusToast }), {
       initialProps: { room: makeRoom([makePlayer({ id: "p1" }), player]) },
     });
@@ -47,7 +48,7 @@ describe("usePlayerPresenceToasts", () => {
 
   test("emits disconnect toast when a player flips from online to offline", () => {
     const setStatusToast = vi.fn();
-    const player = makePlayer({ id: "p2", name: "Beto", online: true });
+    const player = makePlayer({ id: "p2", accountId: "p2", name: "Beto", online: true });
     const { rerender } = renderHook(({ room }) => usePlayerPresenceToasts({ room, myPlayerId: "p1", setStatusToast }), {
       initialProps: { room: makeRoom([makePlayer({ id: "p1" }), player]) },
     });
@@ -58,7 +59,7 @@ describe("usePlayerPresenceToasts", () => {
 
   test("does not emit a toast for the current player's own flip", () => {
     const setStatusToast = vi.fn();
-    const me = makePlayer({ id: "p1", name: "Ana", online: true });
+    const me = makePlayer({ id: "p1", accountId: "p1", name: "Ana", online: true });
     const { rerender } = renderHook(({ room }) => usePlayerPresenceToasts({ room, myPlayerId: "p1", setStatusToast }), {
       initialProps: { room: makeRoom([me]) },
     });
@@ -71,7 +72,7 @@ describe("usePlayerPresenceToasts", () => {
     const setStatusToast = vi.fn();
     renderHook(() =>
       usePlayerPresenceToasts({
-        room: makeRoom([makePlayer({ id: "p1" }), makePlayer({ id: "p2", name: "Beto", online: false })]),
+        room: makeRoom([makePlayer({ id: "p1" }), makePlayer({ id: "p2", accountId: "p2", name: "Beto", online: false })]),
         myPlayerId: "p1",
         setStatusToast,
       }),

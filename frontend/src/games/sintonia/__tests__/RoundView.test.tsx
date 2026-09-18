@@ -7,6 +7,7 @@ import { RoundView } from "../RoundView";
 function makePlayers(n: number): PublicPlayer[] {
   return Array.from({ length: n }, (_, i) => ({
     id: `p${i + 1}`,
+    accountId: `p${i + 1}`,
     name: `Jugador ${i + 1}`,
     ready: false,
     online: true,
@@ -52,7 +53,7 @@ describe("Sintonía RoundView — setup phase", () => {
       <RoundView
         room={makeRoom("setup")}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={false}
@@ -69,7 +70,7 @@ describe("Sintonía RoundView — setup phase", () => {
       <RoundView
         room={makeRoom("setup")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -90,7 +91,7 @@ describe("Sintonía RoundView — spectrum phase", () => {
       <RoundView
         room={makeRoom("spectrum", { left: null, right: null, target: null })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isPsychic: true, target: null }}
         wordReveal={null}
         isHost={false}
@@ -116,7 +117,7 @@ describe("Sintonía RoundView — spectrum phase", () => {
       <RoundView
         room={makeRoom("spectrum", { left: null, right: null, target: null })}
         me={{ playerId: "p3", roomCode: "TEST1" }}
-        myPlayer={{ id: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p3", accountId: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false }}
         myRole={{ isPsychic: false, target: null }}
         wordReveal={null}
         isHost={false}
@@ -137,7 +138,7 @@ describe("Sintonía RoundView — clue phase", () => {
       <RoundView
         room={makeRoom("clue")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isPsychic: true, target: 50 }}
         wordReveal={null}
         isHost={true}
@@ -157,7 +158,7 @@ describe("Sintonía RoundView — clue phase", () => {
       <RoundView
         room={makeRoom("clue")}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={{ isPsychic: false }}
         wordReveal={null}
         isHost={false}
@@ -178,7 +179,7 @@ describe("Sintonía RoundView — guess phase", () => {
       <RoundView
         room={makeRoom("guess", { clue: "Templado" })}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={{ isPsychic: false }}
         wordReveal={null}
         isHost={false}
@@ -196,7 +197,7 @@ describe("Sintonía RoundView — guess phase", () => {
       <RoundView
         room={makeRoom("guess", { clue: "Templado", submittedCount: 1 })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isPsychic: true }}
         wordReveal={null}
         isHost={true}
@@ -217,7 +218,7 @@ describe("Sintonía RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { clue: "Templado", psychicBonus: 4, pointsByPlayer: { p1: 4, p2: 4 }, guesses: { p2: 48 } })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
         isHost={true}
@@ -244,7 +245,7 @@ describe("Sintonía RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { clue: "Templado", psychicBonus: 4, pointsByPlayer: { p1: 4, p2: 4 } })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
         isHost={true}
@@ -276,7 +277,7 @@ describe("Sintonía RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { clue: "Templado", psychicBonus: 4, pointsByPlayer: { p1: 4, p2: 4 } })}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
         isHost={false}
@@ -302,7 +303,7 @@ describe("Sintonía RoundView — result phase", () => {
           playMode: "endless",
         })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={{ target: 50, left: "Frío", right: "Calor" }}
         isHost={true}
@@ -323,9 +324,9 @@ describe("Sintonía RoundView — result phase", () => {
   test("rounds mode's last round hides the winner/scoreboard behind a vote, only revealing them once everyone's tapped through", async () => {
     const send = vi.fn();
     const players: PublicPlayer[] = [
-      { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-      { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
-      { id: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false },
+      { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+      { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+      { id: "p3", accountId: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false },
     ];
     const room = makeRoom(
       "result",
