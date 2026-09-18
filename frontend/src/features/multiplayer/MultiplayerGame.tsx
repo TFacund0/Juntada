@@ -196,8 +196,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     setJoinCode,
     submitting,
     setSubmitting,
-    editingName,
-    setEditingName,
     showQR,
     setShowQR,
     showScanner,
@@ -213,7 +211,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     statusToast,
     setStatusToast,
     inGroup,
-    saveName,
     isHost,
     isGroupHost,
     myPlayer,
@@ -295,9 +292,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             error={error}
             errorKey={errorKey}
             playerName={playerName}
-            editingName={editingName}
-            onEditingChange={setEditingName}
-            onSaveName={saveName}
             onSetPhase={setConnectionPhase}
             roomName={roomName}
             onRoomNameChange={setRoomName}
@@ -326,9 +320,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
           error={error}
           errorKey={errorKey}
           playerName={playerName}
-          editingName={editingName}
-          onEditingChange={setEditingName}
-          onSaveName={saveName}
           onSetPhase={setConnectionPhase}
           onCreateRoom={() => {
             setSubmitting(true);

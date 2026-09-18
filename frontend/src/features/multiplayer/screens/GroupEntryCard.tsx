@@ -40,9 +40,6 @@ export function GroupEntryCard({
   error,
   errorKey,
   playerName,
-  editingName,
-  onEditingChange,
-  onSaveName,
   onSetPhase,
   roomName,
   onRoomNameChange,
@@ -59,9 +56,6 @@ export function GroupEntryCard({
   error: string;
   errorKey: number;
   playerName: string;
-  editingName: boolean;
-  onEditingChange: (editing: boolean) => void;
-  onSaveName: (name: string) => void;
   onSetPhase: (phase: "create" | "join" | "menu") => void;
   roomName: string;
   onRoomNameChange: (name: string) => void;
@@ -84,7 +78,7 @@ export function GroupEntryCard({
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
-        <NamePillEditor name={playerName} onSave={onSaveName} avatarSize={20} editing={editingName} onEditingChange={onEditingChange} />
+        <NamePillEditor name={playerName} avatarSize={20} />
       </div>
 
       <ErrorBanner message={error} flashKey={errorKey} variant="block" />

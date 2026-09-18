@@ -291,35 +291,15 @@ describe("useMultiplayerGameShell", () => {
     });
   });
 
-  describe('"ya está en uso" recovery effect', () => {
-    test("matching error opens name editing and settles the curtain", () => {
+  describe("error-triggered curtain settle", () => {
+    test("any error settles the curtain", () => {
       const onTransitionSettled = vi.fn();
       const { socket, rerender, props } = setup({ onTransitionSettled });
-
-      socket.error = "Ese nombre ya está en uso";
-      rerender(props);
-
-      expect(onTransitionSettled).toHaveBeenCalled();
-    });
-
-    test("non-matching error settles the curtain but does not open name editing (discriminating case)", () => {
-      const onTransitionSettled = vi.fn();
-      const { result, socket, rerender, props } = setup({ onTransitionSettled });
 
       socket.error = "La sala está llena";
       rerender(props);
 
       expect(onTransitionSettled).toHaveBeenCalled();
-      expect(result.current.editingName).toBe(false);
-    });
-
-    test("matching error actually flips editingName to true (positive assertion, paired with the case above)", () => {
-      const { result, socket, rerender, props } = setup();
-
-      socket.error = "Ese nombre ya está en uso";
-      rerender(props);
-
-      expect(result.current.editingName).toBe(true);
     });
   });
 
@@ -365,17 +345,7 @@ describe("useMultiplayerGameShell", () => {
     });
   });
 
-  describe("saveName + derived reconnectContext/rejoinHostName", () => {
-    test("saveName forwards the new name and clears the error", () => {
-      const onChangeName = vi.fn();
-      const { result, socket } = setup({ onChangeName });
-
-      act(() => result.current.saveName("Beto"));
-
-      expect(onChangeName).toHaveBeenCalledWith("Beto");
-      expect(socket.setError).toHaveBeenCalledWith("");
-    });
-
+  describe("derived reconnectContext/rejoinHostName", () => {
     test("reconnectContext is 'grupo' when groupMe is set", () => {
       const { result, socket, rerender, props } = setup();
       socket.groupMe = makeGroupMe();

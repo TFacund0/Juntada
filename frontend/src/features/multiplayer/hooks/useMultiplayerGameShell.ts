@@ -26,7 +26,6 @@ export function useMultiplayerGameShell({
   entryKind,
   gameId,
   playerName,
-  onChangeName,
   initialJoinCode,
   initialGroupIntent,
   onGameTypeChange,
@@ -72,9 +71,6 @@ export function useMultiplayerGameShell({
 
   const [roomName, setRoomName] = useState("");
   const [joinCode, setJoinCode] = useState(initialJoinCode ?? "");
-  // Controlled (not just owned by NamePillEditor itself) because the "ya
-  // está en uso" effect below also needs to force it open from outside.
-  const [editingName, setEditingName] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
 
@@ -187,28 +183,18 @@ export function useMultiplayerGameShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [joinCode, entryKind]);
 
-  // A join rejected for having a name someone else already has in that
-  // room/group is recoverable right here — open the inline rename instead
-  // of leaving the player stuck re-reading the same error with no way to
-  // act on it short of abandoning this screen to edit the name elsewhere.
+  // Once an error comes back, the auto-join attempt above is done
+  // (successfully or not) — let the live preview resume for any further
+  // manual retry.
   useEffect(() => {
     if (!error) return;
-    // The auto-join attempt above is done (successfully or not) once an
-    // error comes back — let the live preview resume for any further
-    // manual retry.
     autoJoiningRef.current = false;
-    if (error.includes("ya está en uso")) setEditingName(true);
     // Whatever runTransition's curtain was covering (create/join) is done
     // either way once an error comes back — an unresolved request would
     // otherwise leave it down until the safety timeout, hiding the error
     // banner from view for that whole stretch.
     curtain.settle();
   }, [error, curtain.settle]);
-
-  const saveName = (name: string) => {
-    onChangeName?.(name);
-    setError("");
-  };
 
   const { isHost, isGroupHost, myPlayer, selectedGame, activeGame } = useShellPermissions({
     me,
@@ -312,8 +298,6 @@ export function useMultiplayerGameShell({
     setJoinCode,
     submitting,
     setSubmitting,
-    editingName,
-    setEditingName,
     showQR,
     setShowQR,
     showScanner,
@@ -329,7 +313,6 @@ export function useMultiplayerGameShell({
     statusToast,
     setStatusToast,
     inGroup,
-    saveName,
     isHost,
     isGroupHost,
     myPlayer,
