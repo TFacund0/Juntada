@@ -5,7 +5,7 @@ import type { RoomSession } from "../../services/multiplayerSession";
 import { useShellPermissions } from "../useShellPermissions";
 
 function makePlayer(overrides: Partial<PublicPlayer> = {}): PublicPlayer {
-  return { id: "p1", name: "Ana", ready: false, online: true, hasVoted: false, ...overrides };
+  return { id: "p1", accountId: "p1", name: "Ana", ready: false, online: true, hasVoted: false, ...overrides };
 }
 
 function makeRoom(overrides: Partial<RoomPublicState> = {}): RoomPublicState {
@@ -68,7 +68,7 @@ describe("useShellPermissions", () => {
     const { result } = renderHook(() =>
       useShellPermissions({
         me: makeMe({ playerId: "p2" }),
-        room: makeRoom({ players: [makePlayer({ id: "p1" }), makePlayer({ id: "p2", name: "Beto" })] }),
+        room: makeRoom({ players: [makePlayer({ id: "p1" }), makePlayer({ id: "p2", accountId: "p2", name: "Beto" })] }),
         group: null,
         gameId: "impostor",
       }),

@@ -7,6 +7,7 @@ import { RoundView } from "../RoundView";
 function makePlayers(n: number): PublicPlayer[] {
   return Array.from({ length: n }, (_, i) => ({
     id: `p${i + 1}`,
+    accountId: `p${i + 1}`,
     name: `Jugador ${i + 1}`,
     ready: false,
     online: true,
@@ -61,7 +62,7 @@ describe("Tutifrutti RoundView — setup phase", () => {
       <RoundView
         room={makeRoom("setup")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -79,7 +80,7 @@ describe("Tutifrutti RoundView — setup phase", () => {
       <RoundView
         room={makeRoom("setup")}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={false}
@@ -99,7 +100,7 @@ describe("Tutifrutti RoundView — writing phase", () => {
       <RoundView
         room={makeRoom("writing")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ myAnswers: {} }}
         wordReveal={null}
         isHost={true}
@@ -121,7 +122,7 @@ describe("Tutifrutti RoundView — writing phase", () => {
       <RoundView
         room={makeRoom("writing")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ myAnswers: {} }}
         wordReveal={null}
         isHost={true}
@@ -147,7 +148,7 @@ describe("Tutifrutti RoundView — writing phase", () => {
       <RoundView
         room={makeRoom("writing")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: true, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: true, online: true, hasVoted: false }}
         myRole={{ myAnswers: { nombre: "Ana" } }}
         wordReveal={null}
         isHost={true}
@@ -165,7 +166,7 @@ describe("Tutifrutti RoundView — writing phase", () => {
       <RoundView
         room={makeRoom("writing", { endMode: "basta" })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ myAnswers: {} }}
         wordReveal={null}
         isHost={true}
@@ -186,7 +187,7 @@ describe("Tutifrutti RoundView — writing phase", () => {
       <RoundView
         room={makeRoom("writing")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ myAnswers: {} }}
         wordReveal={null}
         isHost={true}
@@ -207,7 +208,7 @@ describe("Tutifrutti RoundView — review phase", () => {
       <RoundView
         room={makeRoom("review", { answers: { p1: { nombre: "Ana" } } })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -227,7 +228,7 @@ describe("Tutifrutti RoundView — review phase", () => {
       <RoundView
         room={makeRoom("review")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -247,7 +248,7 @@ describe("Tutifrutti RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { pointsByPlayer: { p1: 10, p2: 5 } }, makePlayers(2))}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -267,7 +268,7 @@ describe("Tutifrutti RoundView — result phase", () => {
       <RoundView
         room={makeRoom("result", { pointsByPlayer: { p1: 10, p2: 5 }, isFinalRound: true })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}

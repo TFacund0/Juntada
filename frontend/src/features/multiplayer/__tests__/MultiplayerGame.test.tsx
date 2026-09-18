@@ -35,7 +35,7 @@ function makeRoom(overrides: Record<string, unknown> = {}) {
     gameType: GAME_ID,
     groupCode: null,
     phase: "lobby",
-    players: [{ id: "p1", name: "Ana", ready: false, online: true, hasVoted: false }],
+    players: [{ id: "p1", accountId: "p1", name: "Ana", ready: false, online: true, hasVoted: false }],
     maxPlayers: 4,
     config: {},
     round: null,
@@ -115,8 +115,8 @@ describe("MultiplayerGame — standalone room lobby", () => {
         type: "state",
         room: makeRoom({
           players: [
-            { id: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
-            { id: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
+            { id: "p1", accountId: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
+            { id: "p2", accountId: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
           ],
         }),
       }),
@@ -139,8 +139,8 @@ describe("MultiplayerGame — in-round view", () => {
         joinedMessage({
           phase: "round",
           players: [
-            { id: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
-            { id: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
+            { id: "p1", accountId: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
+            { id: "p2", accountId: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
           ],
           round: { board: Array(9).fill(null), turnId: "p1", winner: null },
         }),
@@ -171,7 +171,7 @@ describe("MultiplayerGame — group flow", () => {
           code: "GRP01",
           name: "Los pibes",
           hostId: "p1",
-          members: [{ id: "p1", name: "Ana", online: true }],
+          members: [{ id: "p1", accountId: "p1", name: "Ana", online: true }],
           maxMembers: 8,
           instances: [],
           chat: [],
@@ -298,7 +298,7 @@ describe("MultiplayerGame — cold start (persisted session on mount)", () => {
           code: "GRUPO1",
           name: "La banda",
           hostId: "p1",
-          members: [{ id: "p1", name: "Ana", online: true }],
+          members: [{ id: "p1", accountId: "p1", name: "Ana", online: true }],
           maxMembers: 8,
           instances: [],
           chat: [],

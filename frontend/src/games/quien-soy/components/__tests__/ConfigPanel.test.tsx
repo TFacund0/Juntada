@@ -12,9 +12,9 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     gameType: "quien-soy",
     phase: "lobby",
     players: [
-      { id: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
-      { id: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
-      { id: "p3", name: "Caro", ready: false, online: true, hasVoted: false },
+      { id: "p1", accountId: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
+      { id: "p2", accountId: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
+      { id: "p3", accountId: "p3", name: "Caro", ready: false, online: true, hasVoted: false },
     ],
     maxPlayers: 8,
     groupCode: null,

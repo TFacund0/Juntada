@@ -20,6 +20,7 @@ const { getEngine } = require("../games/registry") as {
   getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
 };
 const roomService = require("../rooms/roomService");
+const { authService } = require("../auth") as { authService: { getSelf: (userId: string) => Promise<{ username: string }> } };
 const {
   sendTo,
   sendError,
@@ -41,10 +42,16 @@ const {
   PLAYER_OFFLINE_TIMEOUT_MS,
 } = require("./shared");
 
-function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>): void {
+// The room's display name is always the account's current username — never
+// client-supplied (see design.md's room-membership delta). Resolved once per
+// create/join via the already-authenticated accountId from the handshake.
+async function createRoom(ws: WS, msg: Extract<ClientMessage, { type: "create_room" }>, info: ClientInfo): Promise<void> {
+  if (!info.accountId) return;
   const prevInfo = clients.get(ws);
+  const self = await authService.getSelf(info.accountId);
   const { room, error } = roomService.createRoom(ws, {
-    playerName: msg.playerName,
+    accountId: info.accountId,
+    username: self.username,
     roomName: msg.roomName,
     gameType: msg.gameType,
   });
@@ -75,9 +82,11 @@ function checkRoomCode(ws: WS, msg: Extract<ClientMessage, { type: "check_room_c
   sendTo(ws, { type: "room_preview", code: msg.code, found: false });
 }
 
-function joinRoom(ws: WS, msg: Extract<ClientMessage, { type: "join_room" }>): void {
+async function joinRoom(ws: WS, msg: Extract<ClientMessage, { type: "join_room" }>, info: ClientInfo): Promise<void> {
+  if (!info.accountId) return;
   const prevInfo = clients.get(ws);
-  const { room, playerId, error } = roomService.joinRoom(ws, { code: msg.code, playerName: msg.playerName });
+  const self = await authService.getSelf(info.accountId);
+  const { room, playerId, error } = roomService.joinRoom(ws, { code: msg.code, accountId: info.accountId, username: self.username });
   if (error) {
     sendError(ws, "JOIN_ROOM_FAILED", error);
     return;
@@ -89,8 +98,12 @@ function joinRoom(ws: WS, msg: Extract<ClientMessage, { type: "join_room" }>): v
   broadcast(room.code, { type: "state", room: getRoomPublicState(room) }, ws);
 }
 
-function rejoin(ws: WS, msg: Extract<ClientMessage, { type: "rejoin" }>): void {
-  const { room, playerId, error } = roomService.rejoinRoom(ws, { roomCode: msg.roomCode, playerId: msg.playerId });
+// The seat is resolved purely from the authenticated accountId (handshake
+// JWT) — no client-supplied playerId anymore (see design.md's
+// account-reconnection delta).
+function rejoin(ws: WS, msg: Extract<ClientMessage, { type: "rejoin" }>, info: ClientInfo): void {
+  if (!info.accountId) return;
+  const { room, playerId, error } = roomService.rejoinRoom(ws, { roomCode: msg.roomCode, accountId: info.accountId });
   if (error) {
     sendError(ws, "REJOIN_FAILED", error);
     return;
@@ -218,7 +231,7 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
   broadcastToRoom(room, (ws2: WS, i2: ClientInfo) => {
     if (i2.playerId === msg.targetId) {
       sendTo(ws2, { type: "kicked" });
-      clients.set(ws2, { groupCode: room.groupCode, roomCode: null, playerId: i2.playerId });
+      clients.set(ws2, { groupCode: room.groupCode, roomCode: null, playerId: i2.playerId, accountId: i2.accountId });
     }
   });
 

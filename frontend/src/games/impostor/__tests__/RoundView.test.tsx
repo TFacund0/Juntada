@@ -7,6 +7,7 @@ import { RoundView } from "../RoundView";
 function makePlayers(n: number): PublicPlayer[] {
   return Array.from({ length: n }, (_, i) => ({
     id: `p${i + 1}`,
+    accountId: `p${i + 1}`,
     name: `Jugador ${i + 1}`,
     ready: false,
     online: true,
@@ -56,7 +57,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={room}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: false, word: "Gato", hint: null }}
         wordReveal={null}
         isHost={true}
@@ -71,7 +72,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={rerolledRoom}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: false, word: "Perro", hint: null }}
         wordReveal={null}
         isHost={true}
@@ -99,7 +100,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: false, word: "Gato", hint: null }}
         wordReveal={null}
         isHost={true}
@@ -118,7 +119,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: true, hint: "Vive en el agua" }}
         wordReveal={null}
         isHost={false}
@@ -139,7 +140,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={room}
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: true, hint: null }}
         wordReveal={null}
         isHost={false}
@@ -152,7 +153,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={room}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: false, word: "Gato", hint: null }}
         wordReveal={null}
         isHost={true}
@@ -170,7 +171,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")} // turnIndex 0 -> p1's turn
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: false, word: "Gato", hint: null }}
         wordReveal={null}
         isHost={true}
@@ -189,7 +190,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={makeRoom("round")} // turnIndex 0 -> p1's turn, not p2's
         me={{ playerId: "p2", roomCode: "TEST1" }}
-        myPlayer={{ id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: true, hint: null }}
         wordReveal={null}
         isHost={false}
@@ -211,7 +212,7 @@ describe("Impostor RoundView — round phase", () => {
       <RoundView
         room={room}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={{ isImpostor: false, word: "Gato", hint: null }}
         wordReveal={null}
         isHost={true}
@@ -237,7 +238,7 @@ describe("Impostor RoundView — discussion phase", () => {
       <RoundView
         room={makeRoom("discussion")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -259,7 +260,7 @@ describe("Impostor RoundView — voting phase", () => {
       <RoundView
         room={makeRoom("voting")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -282,7 +283,7 @@ describe("Impostor RoundView — voting phase", () => {
       <RoundView
         room={makeRoom("voting", { revoteCandidates: ["p2", "p3"] })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={null}
         isHost={true}
@@ -311,7 +312,7 @@ describe("Impostor RoundView — result phase", () => {
           matchEliminated: ["p2"],
         })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={{ word: "Gato", categoryLabel: "Animales" }}
         isHost={true}
@@ -361,14 +362,14 @@ describe("Impostor RoundView — result phase", () => {
             matchEliminated: ["p2"],
           },
           [
-            { id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
-            { id: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
-            { id: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false },
-            { id: "p4", name: "Jugador 4", ready: false, online: true, hasVoted: false },
+            { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false },
+            { id: "p2", accountId: "p2", name: "Jugador 2", ready: false, online: true, hasVoted: false },
+            { id: "p3", accountId: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false },
+            { id: "p4", accountId: "p4", name: "Jugador 4", ready: false, online: true, hasVoted: false },
           ],
         )}
         me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={{ word: "Gato", categoryLabel: "Animales" }}
         isHost={true}
@@ -405,7 +406,7 @@ describe("Impostor RoundView — result phase", () => {
           matchEliminated: ["p2"],
         })}
         me={{ playerId: "p3", roomCode: "TEST1" }}
-        myPlayer={{ id: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false }}
+        myPlayer={{ id: "p3", accountId: "p3", name: "Jugador 3", ready: false, online: true, hasVoted: false }}
         myRole={null}
         wordReveal={{ word: "Gato", categoryLabel: "Animales" }}
         isHost={false}

@@ -10,7 +10,7 @@ function makeRoom(configOverrides: Record<string, unknown> = {}): RoomPublicStat
     hostId: "p1",
     gameType: "tutifruti",
     phase: "lobby",
-    players: [{ id: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }],
+    players: [{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }],
     maxPlayers: 16,
     groupCode: null,
     config: {

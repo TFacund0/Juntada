@@ -15,6 +15,13 @@ export interface ClientInfo {
   groupCode: string | null;
   roomCode: string | null;
   playerId: string | null;
+  // The authenticated account's id (JWT `sub`), verified once at the WS
+  // handshake (see ws/server.ts) and trusted for the lifetime of the
+  // connection — never re-derived from client-supplied data. Only null for
+  // a socket that somehow never went through the handshake check (shouldn't
+  // happen in practice; the handshake closes anything without a valid JWT
+  // before it's ever added to `clients`).
+  accountId: string | null;
 }
 
 const groups = new Map<string, Group>();
@@ -33,4 +40,26 @@ const timers = new Map<string, NodeJS.Timeout>();
 // treating a close event as a real disconnect.
 const activeSockets = new Map<string, WebSocket>();
 
-module.exports = { groups, rooms, clients, timers, activeSockets };
+// Multi-device policy (see design.md "Second socket on same account"): the
+// newest socket for a given account always wins. Keyed by `${scopeCode}:
+// ${accountId}` where scopeCode is a room or group code, so the same account
+// can independently hold one active socket in a room and one on a group
+// screen without either evicting the other. roomService.ts/groupService.ts
+// call evictPreviousAccountSocket whenever a socket successfully binds to an
+// accountId within a room/group (create/join/rejoin).
+const accountSockets = new Map<string, WebSocket>();
+
+function evictPreviousAccountSocket(scopeCode: string, accountId: string, newWs: WebSocket): void {
+  const key = `${scopeCode}:${accountId}`;
+  const prev = accountSockets.get(key);
+  if (prev && prev !== newWs) {
+    try {
+      prev.close(4001, "session_replaced");
+    } catch {
+      // Already closed/closing — nothing left to evict.
+    }
+  }
+  accountSockets.set(key, newWs);
+}
+
+module.exports = { groups, rooms, clients, timers, activeSockets, accountSockets, evictPreviousAccountSocket };

@@ -6,6 +6,7 @@ import { useRoomEventToasts } from "../useRoomEventToasts";
 function makePlayer(overrides: Partial<PublicPlayer>): PublicPlayer {
   return {
     id: "p1",
+    accountId: "p1",
     name: "Ana",
     ready: false,
     online: true,
@@ -50,7 +51,7 @@ describe("useRoomEventToasts", () => {
   test("emits 'volvió al grupo' toast when a member leaves a group instance", () => {
     const setStatusToast = vi.fn();
     const setLobbyTab = vi.fn();
-    const beto = makePlayer({ id: "p2", name: "Beto" });
+    const beto = makePlayer({ id: "p2", accountId: "p2", name: "Beto" });
     const { rerender } = renderHook(({ room }) => useRoomEventToasts({ room, setStatusToast, setLobbyTab }), {
       initialProps: {
         room: makeRoom({ groupCode: "GRP01", players: [makePlayer({ id: "p1" }), beto] }),
@@ -87,16 +88,16 @@ describe("useRoomEventToasts", () => {
   test("emits host change toast when hostId changes to another player", () => {
     const setStatusToast = vi.fn();
     const setLobbyTab = vi.fn();
-    const beto = makePlayer({ id: "p2", name: "Beto" });
+    const beto = makePlayer({ id: "p2", accountId: "p2", name: "Beto" });
     const { rerender } = renderHook(({ room }) => useRoomEventToasts({ room, myPlayerId: "p1", setStatusToast, setLobbyTab }), {
       initialProps: {
-        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", accountId: "p1", name: "Ana" }), beto] }),
       },
     });
     expect(setStatusToast).not.toHaveBeenCalled();
 
     rerender({
-      room: makeRoom({ hostId: "p2", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+      room: makeRoom({ hostId: "p2", players: [makePlayer({ id: "p1", accountId: "p1", name: "Ana" }), beto] }),
     });
     expect(setStatusToast).toHaveBeenCalledWith("Beto es el nuevo anfitrión");
   });
@@ -104,15 +105,15 @@ describe("useRoomEventToasts", () => {
   test("emits personalized toast when current player becomes host", () => {
     const setStatusToast = vi.fn();
     const setLobbyTab = vi.fn();
-    const beto = makePlayer({ id: "p2", name: "Beto" });
+    const beto = makePlayer({ id: "p2", accountId: "p2", name: "Beto" });
     const { rerender } = renderHook(({ room }) => useRoomEventToasts({ room, myPlayerId: "p2", setStatusToast, setLobbyTab }), {
       initialProps: {
-        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", accountId: "p1", name: "Ana" }), beto] }),
       },
     });
 
     rerender({
-      room: makeRoom({ hostId: "p2", players: [makePlayer({ id: "p1", name: "Ana" }), beto] }),
+      room: makeRoom({ hostId: "p2", players: [makePlayer({ id: "p1", accountId: "p1", name: "Ana" }), beto] }),
     });
     expect(setStatusToast).toHaveBeenCalledWith("Ahora sos el anfitrión");
   });
@@ -122,12 +123,12 @@ describe("useRoomEventToasts", () => {
     const setLobbyTab = vi.fn();
     const { rerender } = renderHook(({ room }) => useRoomEventToasts({ room, myPlayerId: "p1", setStatusToast, setLobbyTab }), {
       initialProps: {
-        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", name: "Ana" })] }),
+        room: makeRoom({ hostId: "p1", players: [makePlayer({ id: "p1", accountId: "p1", name: "Ana" })] }),
       },
     });
 
     rerender({
-      room: makeRoom({ hostId: "unknown-id", players: [makePlayer({ id: "p1", name: "Ana" })] }),
+      room: makeRoom({ hostId: "unknown-id", players: [makePlayer({ id: "p1", accountId: "p1", name: "Ana" })] }),
     });
     expect(setStatusToast).toHaveBeenCalledWith("Cambió el anfitrión");
   });
