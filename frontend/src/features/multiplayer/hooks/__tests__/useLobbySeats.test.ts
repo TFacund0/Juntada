@@ -57,22 +57,28 @@ describe("useLobbySeats", () => {
     expect(result.current.hiddenSeatCount).toBe(0);
   });
 
-  test("expanding via setShowAllSeats reveals every seat and toggling back collapses again", () => {
-    const room = makeRoom({ players: [makePlayer("p1")], maxPlayers: 8 });
+  test("showMoreSeats reveals 3 more at a time instead of jumping to all, and showFewerSeats resets to 5", () => {
+    const room = makeRoom({ players: [makePlayer("p1")], maxPlayers: 10 });
     const { result } = renderHook(() => useLobbySeats(room));
 
     expect(result.current.showAllSeats).toBe(false);
     expect(result.current.visibleSeats).toHaveLength(5);
+    expect(result.current.hiddenSeatCount).toBe(5);
 
-    act(() => result.current.setShowAllSeats(true));
+    act(() => result.current.showMoreSeats());
     expect(result.current.showAllSeats).toBe(true);
     expect(result.current.visibleSeats).toHaveLength(8);
+    expect(result.current.hiddenSeatCount).toBe(2);
+
+    // Un último click con menos de 3 ocultos revela solo lo que queda, no de más.
+    act(() => result.current.showMoreSeats());
+    expect(result.current.visibleSeats).toHaveLength(10);
     expect(result.current.hiddenSeatCount).toBe(0);
 
-    act(() => result.current.setShowAllSeats(false));
+    act(() => result.current.showFewerSeats());
     expect(result.current.showAllSeats).toBe(false);
     expect(result.current.visibleSeats).toHaveLength(5);
-    expect(result.current.hiddenSeatCount).toBe(3);
+    expect(result.current.hiddenSeatCount).toBe(5);
   });
 
   test("never produces negative empty seat count when players exceed maxPlayers", () => {

@@ -17,7 +17,7 @@ function makeRoom(overrides: Partial<RoomPublicState> = {}): RoomPublicState {
 }
 
 describe("LobbyRoomInvite", () => {
-  test("shows the room code, not a group label", () => {
+  test("shows the room code (hidden by default, revealed after tapping the eye icon), not a group label", () => {
     render(
       <LobbyRoomInvite
         room={makeRoom()}
@@ -28,6 +28,8 @@ describe("LobbyRoomInvite", () => {
         onShowShareLink={() => {}}
       />,
     );
+    expect(screen.getByTestId("code-display")).not.toHaveTextContent("ABC123");
+    screen.getByLabelText("Mostrar código").click();
     expect(screen.getByTestId("code-display")).toHaveTextContent("ABC123");
   });
 

@@ -135,30 +135,30 @@ describe("useMultiplayerGameShell", () => {
       });
     });
 
-    test("group entry sends create_group with trimmed roomName as groupName, undefined when blank", () => {
+    test("group entry sends create_group with trimmed roomName as groupName", () => {
       const { result, ws } = setup({ entryKind: "group" });
-
-      // Blank roomName (default state) -> groupName undefined. This is the
-      // discriminating counter-case against the "always includes groupName"
-      // mutation: if the `.trim() || undefined` guard were removed, this
-      // assertion would fail with groupName: "".
-      act(() => result.current.createRoom());
-      expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
-        type: "create_group",
-        groupName: undefined,
-      });
 
       act(() => result.current.setRoomName("  Mi Grupo  "));
       act(() => result.current.createRoom());
-      expect(JSON.parse(ws.send.mock.calls[1][0])).toEqual({
+      expect(JSON.parse(ws.send.mock.calls[0][0])).toEqual({
         type: "create_group",
         groupName: "Mi Grupo",
       });
     });
 
+    test("group entry with a blank roomName sets an error and never sends create_group (name is required)", () => {
+      const { result, ws, socket } = setup({ entryKind: "group" });
+
+      act(() => result.current.createRoom());
+
+      expect(ws.send).not.toHaveBeenCalled();
+      expect(socket.setError).toHaveBeenCalledWith("Ingresá un nombre para el grupo");
+    });
+
     test("armSubmitTimeout surfaces a mode-specific error after 8s with no server response", () => {
       const { result, socket } = setup({ entryKind: "group" });
 
+      act(() => result.current.setRoomName("Mi Grupo"));
       act(() => result.current.createRoom());
       act(() => vi.advanceTimersByTime(8000));
 

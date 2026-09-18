@@ -3,10 +3,12 @@ import { render, screen } from "@testing-library/react";
 import { LobbyGroupInvite } from "../LobbyGroupInvite";
 
 describe("LobbyGroupInvite", () => {
-  test("shows the group code with the GRUPO label", () => {
+  test("shows the group code with the GRUPO label (hidden by default, revealed after tapping the eye icon)", () => {
     render(<LobbyGroupInvite groupCode="GRP789" showQR={false} onShowQR={() => {}} showShareLink={false} onShowShareLink={() => {}} />);
-    expect(screen.getByTestId("code-display")).toHaveTextContent("GRP789");
     expect(screen.getByText((_, element) => element?.textContent === "CÓDIGO DE GRUPO")).toBeInTheDocument();
+    expect(screen.getByTestId("code-display")).not.toHaveTextContent("GRP789");
+    screen.getByLabelText("Mostrar código").click();
+    expect(screen.getByTestId("code-display")).toHaveTextContent("GRP789");
   });
 
   test("shows the QR dialog with the group join subtitle/url when showQR is true", () => {

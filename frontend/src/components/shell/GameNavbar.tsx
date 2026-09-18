@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import { CloseIcon, BackArrowIcon } from "../ui/icons";
 import type { GameDef } from "../../games/gameTypes";
 import logo from "../../assets/brand/logo.webp";
-import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 interface GameNavbarProps {
   mode: "local" | "multi" | null;
@@ -17,41 +16,24 @@ interface GameNavbarProps {
   backLabel: string;
 }
 
-// width/height NO van acá adentro (a propósito): quedan en la clase
-// .jt-nav-icon-btn (AppHeader.css) con su propio @media, porque un tamaño
-// puesto por `style` inline le gana siempre a cualquier regla de una hoja de
-// estilos — incluida una en un @media — así que si el tamaño va inline nunca
-// puede crecer en pantallas grandes.
-const navIconBtn = (accentColor: string): CSSProperties => ({
-  flexShrink: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: "50%",
-  background: "var(--jt-accent-soft, rgba(127,119,221,0.1))",
-  border: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.3))",
-  color: "var(--jt-accent-strong, " + accentColor + ")",
-  fontWeight: 700,
-  cursor: "pointer",
-  fontFamily: "inherit",
-  transition: "transform 0.15s, filter 0.15s",
-});
+const NAV_ICON_BTN =
+  "flex-shrink-0 flex items-center justify-center rounded-full w-[34px] h-[34px] min-[900px]:w-10 min-[900px]:h-10 font-bold cursor-pointer font-[inherit] scale-100 transition-[transform,filter,background] duration-150 bg-jt-accent-soft border border-jt-accent-border-soft text-jt-accent-strong hover:scale-[1.08] hover:brightness-[1.2] hover:!bg-jt-accent-border-soft active:scale-[0.92] active:brightness-95";
 
 // Chip del logo/ícono del juego en la navbar compacta — mismo lenguaje visual
 // que la miniatura de las cards del catálogo (GamePicker: catalogThumb, radial
 // gradient del acento + borde + glow) en vez de una imagen suelta sin fondo,
 // para que este navbar se sienta parte del mismo sistema que el resto del home
-// y no un componente aparte.
-const ingameIconWrap = (accentColor: string): CSSProperties => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-  overflow: "hidden",
-  background: `radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, ${accentColor} 26%, transparent), transparent 70%)`,
-  border: `1px solid color-mix(in srgb, ${accentColor} 35%, transparent)`,
-  boxShadow: `0 8px 20px -12px color-mix(in srgb, ${accentColor} 65%, transparent)`,
-});
+// y no un componente aparte. `accentColor` es un color real por juego (viene
+// de useGameTheme, no un token fijo) — no hay forma de generar una clase
+// Tailwind de antemano para un valor que solo se conoce en runtime, así que
+// el gradiente/borde/sombra siguen en `style` a propósito.
+function ingameIconWrap(accentColor: string): CSSProperties {
+  return {
+    background: `radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, ${accentColor} 26%, transparent), transparent 70%)`,
+    border: `1px solid color-mix(in srgb, ${accentColor} 35%, transparent)`,
+    boxShadow: `0 8px 20px -12px color-mix(in srgb, ${accentColor} 65%, transparent)`,
+  };
+}
 
 // Iconos en línea (Feather-style: viewBox 24, trazo currentColor) en vez de
 // glifos de texto/emoji — un glifo como "←" o "⌂" trae su propio
@@ -68,7 +50,7 @@ const iconProps = {
   strokeWidth: 2,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
-  style: { display: "block" } as CSSProperties,
+  className: "block",
 };
 
 function HelpIcon() {
@@ -101,7 +83,11 @@ function HomeIcon() {
  * — game es null ahí, así que cae al logo/"Juntada" por defecto.
  *
  * Ver AppHeader.tsx para la rama complementaria (HomeNavbar) y el
- * criterio que decide cuál de las dos se renderiza.
+ * criterio que decide cuál de las dos se renderiza. Reemplaza a HomeNavbar
+ * de un tirón en ese cambio (sin transición propia del lado de React) — el
+ * fade de 100ms de acá abajo evita que este navbar aparezca ya completo
+ * mientras GroupEntryModal/RoomEntryModal todavía están en pleno fade-in
+ * (mismo keyframe que esos dos, para que se sientan una sola transición).
  */
 export function GameNavbar({
   mode,
@@ -115,90 +101,52 @@ export function GameNavbar({
   onToggleRules,
   backLabel,
 }: GameNavbarProps) {
-  // Mismo criterio que el navbar del home (ver arriba): fixed + ancho
-  // completo de la ventana, con el contenido interno alineado vía
-  // jt-home-navbar-inner (AppHeader.css) en vez de quedarse fijo en 480px
-  // — texto/logo/iconos también escalan vía las clases jt-ingame-* /
-  // jt-nav-icon-btn (AppHeader.css), no por `style` inline, porque un
-  // tamaño inline nunca puede perder contra un @media.
   return (
     <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 20,
-        background: `color-mix(in srgb, var(--jt-bg, ${DEFAULT_COLORS.bg}) 78%, transparent)`,
-        backdropFilter: "blur(14px)",
-        borderBottom: "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.15))",
-      }}
+      className="fixed top-0 left-0 right-0 z-20 backdrop-blur-[14px] border-b border-jt-accent-border-soft
+        bg-[color-mix(in_srgb,var(--jt-bg)_78%,transparent)] animate-[jt-modal-scrim-in_100ms_ease-out] motion-reduce:animate-none"
     >
-      <div
-        className="jt-home-navbar-inner"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <div className="jt-ingame-logo" style={ingameIconWrap(accentColor)}>
+      <div className="jt-home-navbar-inner flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            className="jt-ingame-logo flex items-center justify-center flex-shrink-0 overflow-hidden w-9 h-9 rounded-[10px] min-[900px]:w-11 min-[900px]:h-11 min-[900px]:rounded-xl transition-[transform,filter] duration-150"
+            style={ingameIconWrap(accentColor)}
+          >
             {game?.logo ? (
-              <img src={game.logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={game.logo} alt="" className="w-full h-full object-cover" />
             ) : game?.icon ? (
-              <span style={{ fontSize: 22, lineHeight: 1 }}>{game.icon}</span>
+              <span className="text-[22px] leading-none">{game.icon}</span>
             ) : (
-              <img src={logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={logo} alt="" className="w-full h-full object-cover" />
             )}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
+          <div className="flex flex-col leading-[1.15] min-w-0">
             <span
-              className="jt-ingame-title"
+              className="text-base min-[900px]:text-lg font-extrabold tracking-[-0.02em] whitespace-nowrap overflow-hidden text-ellipsis"
               style={{
                 backgroundImage: `linear-gradient(100deg, color-mix(in srgb, ${accentColor} 100%, white 30%) 0%, ${accentColor} 55%, color-mix(in srgb, ${accentColor} 100%, white 30%) 100%)`,
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 color: "transparent",
-                letterSpacing: "-0.02em",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
               }}
             >
               {game?.label ?? "Juntada"}
             </span>
-            <span
-              className="jt-ingame-subtitle"
-              style={{ fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: mutedColor }}
-            >
+            <span className="text-[10px] min-[900px]:text-xs font-bold tracking-[0.06em] uppercase" style={{ color: mutedColor }}>
               {groupFlow ? "Grupo" : mode === "local" ? "Local · un dispositivo" : mode === "multi" ? "Online" : "Elegí cómo jugar"}
             </span>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {(game?.rules?.length ?? 0) > 0 && (
-            <button
-              onClick={onToggleRules}
-              className="jt-nav-icon-btn"
-              style={navIconBtn(accentColor)}
-              aria-label="¿Cómo se juega?"
-              title="¿Cómo se juega?"
-            >
+            <button onClick={onToggleRules} className={NAV_ICON_BTN} aria-label="¿Cómo se juega?" title="¿Cómo se juega?">
               {showRules ? <CloseIcon size={18} /> : <HelpIcon />}
             </button>
           )}
-          <button onClick={onBack} className="jt-nav-icon-btn" style={navIconBtn(accentColor)} aria-label={backLabel} title={backLabel}>
+          <button onClick={onBack} className={NAV_ICON_BTN} aria-label={backLabel} title={backLabel}>
             <BackArrowIcon size={18} />
           </button>
-          <button
-            onClick={onExit}
-            className="jt-nav-icon-btn"
-            style={navIconBtn(accentColor)}
-            aria-label="Menú principal"
-            title="Menú principal"
-          >
+          <button onClick={onExit} className={NAV_ICON_BTN} aria-label="Menú principal" title="Menú principal">
             <HomeIcon />
           </button>
         </div>

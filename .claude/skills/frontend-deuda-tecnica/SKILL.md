@@ -1,6 +1,6 @@
 ---
 name: frontend-deuda-tecnica
-description: Detecta y corrige deuda técnica estructural en frontend/src — CSS inline sin Tailwind, juegos sin lógica extraída a packages/, packages sin tests, imports cruzados entre juegos, esqueleto de juego inconsistente, layout no responsive. Usar SIEMPRE que se toque un archivo de frontend/src/games/ o frontend/src/components/ (nuevo o existente), incluso si el pedido no menciona "buenas prácticas" o "refactor" — migrar de paso lo que se toca, no solo lo nuevo.
+description: Detecta y corrige deuda técnica estructural en frontend/src — CSS inline o .css dedicado sin Tailwind, tokens de color repetidos sin nombrar en @theme, juegos sin lógica extraída a packages/, packages sin tests, imports cruzados entre juegos, esqueleto de juego inconsistente, layout no responsive. Usar SIEMPRE que se toque un archivo de frontend/src/games/ o frontend/src/components/ (nuevo o existente), incluso si el pedido no menciona "buenas prácticas" o "refactor" — migrar de paso lo que se toca, no solo lo nuevo.
 ---
 
 # Deuda técnica estructural del frontend — Juntada
@@ -27,6 +27,29 @@ Decisión tomada: la solución estándar es **Tailwind** (no CSS Modules, no sty
   como parte del mismo commit, no dejes una mezcla de ambos estilos en el mismo componente.
 - No migres archivos que no ibas a tocar — la migración es gradual, archivo por archivo, atada
   a trabajo real.
+- **También aplica a `.css` dedicado por componente** (ej. `AppHeader.css`, `HomeNavbar.css`,
+  `GroupMenuDropdown.css`, `ProfilePanel.css` antes de migrarse) con clases BEM (`jt-*`) — no
+  usan `style={{}}` con `S`, así que no entraron en el inventario original de 172 archivos, pero
+  van contra la misma decisión de fondo ("Tailwind, no CSS Modules, no styled-components"). Si tu
+  cambio ya toca uno de estos archivos, migralo a clases de Tailwind en el JSX y borrá el `.css`,
+  mismo criterio que el resto de este gap (ver `frontend/src/components/shell/ProfilePanel.tsx`
+  como referencia de la migración ya hecha).
+  - Excepción: keyframes de animación compartidos entre varios componentes (ej. `jt-dropdown-in`
+    en `theme/sharedChrome.css`) siguen viviendo en CSS global — Tailwind los invoca vía
+    `animate-[nombre-del-keyframe_...]` arbitrario en vez de duplicar la definición.
+- **Tokens de tema repetidos → nombrarlos en `@theme`**: este proyecto usa Tailwind v4
+  (config-in-CSS, `@theme` en `frontend/src/theme/tailwind.css`, no `tailwind.config.js`). Hoy
+  varios colores de tema se referencian como `var(--jt-accent,#7f77dd)`, `var(--jt-surface,#171329)`,
+  etc. repetidos como clase arbitraria (`bg-[var(--jt-accent,...)]`) en archivo tras archivo. Es
+  correcto seguir usando variables CSS para lo que cambia en runtime por juego/tema (Tailwind
+  estático no puede generar clases dinámicas), pero repetir el `var(--jt-*, fallback)` completo en
+  cada archivo es duplicación y propenso a typos.
+  - Si tu cambio ya toca un archivo con 2+ usos de la misma variable de tema, agregá (o reusá) un
+    token semántico en `@theme` de `theme/tailwind.css` (ej. `--color-jt-accent: var(--jt-accent,
+#7f77dd);`) y usá la clase corta resultante (`bg-jt-accent`) en vez de repetir
+    `bg-[var(--jt-accent,...)]`.
+  - No migres de golpe todos los `var(--jt-*)` del proyecto — igual que el resto de este gap, es
+    gradual y atado a archivos que ya estás tocando por otro motivo.
 
 ### 2. Juegos placeholder sin lógica extraída
 

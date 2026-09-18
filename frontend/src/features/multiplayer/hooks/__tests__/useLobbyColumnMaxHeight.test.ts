@@ -28,7 +28,7 @@ const baseProps: Props = {
   activeGameId: "tateti",
   playerCount: 2,
   maxPlayers: 4,
-  showAllSeats: false,
+  visibleSeatCount: 5,
 };
 
 function stubRect(el: HTMLElement, rect: Partial<DOMRect>) {

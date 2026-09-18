@@ -59,7 +59,7 @@ base("dos jugadores en Rayado Libre online recuperan la sesión tras desconexió
 
     // 3. Ana selecciona Rayado Libre e inicia la partida
     await ana.getByText("Elegir un juego").click();
-    await ana.getByText("Rayado Libre", { exact: true }).click();
+    await ana.getByText("Rayado", { exact: true }).click();
     await ana.getByText("Animales").click();
     await ana.getByRole("button", { name: "Iniciar ronda" }).click();
 

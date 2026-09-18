@@ -7,6 +7,7 @@ import { Btn } from "../../../components/ui/Btn";
 import { useAuth } from "../context/AuthContext";
 import { AuthApiError } from "../api/authApi";
 import { ForgotPasswordScreen } from "./ForgotPasswordScreen";
+import { AuthErrorBanner } from "../components/AuthErrorBanner";
 import "./AuthScreen.css";
 
 // Maps backend error codes (see backend/src/auth/http/authRoutes.ts) to
@@ -107,7 +108,7 @@ function LoginForm({ onForgot }: { onForgot: () => void }) {
       <div className="jt-onboarding-field">
         <span className={T.label}>Usuario o email</span>
         <input
-          className={T.input}
+          className={clsx(T.input, error && "border-jt-danger-border")}
           autoFocus
           placeholder="ej. nacho_23 o tu@email.com"
           value={identifier}
@@ -120,7 +121,7 @@ function LoginForm({ onForgot }: { onForgot: () => void }) {
       <div className="jt-onboarding-field">
         <span className={T.label}>Contraseña</span>
         <input
-          className={T.input}
+          className={clsx(T.input, error && "border-jt-danger-border")}
           type="password"
           placeholder="••••••••"
           value={password}
@@ -130,8 +131,8 @@ function LoginForm({ onForgot }: { onForgot: () => void }) {
           }}
         />
       </div>
-      {error && <p className={clsx(T.muted, "text-center mt-3", "text-[#F09595]")}>{error}</p>}
-      <Btn onClick={submit} disabled={busy || !identifier.trim() || !password} style={{ marginTop: 20 }}>
+      {error && <AuthErrorBanner>{error}</AuthErrorBanner>}
+      <Btn onClick={submit} disabled={busy || !identifier.trim() || !password} className="mt-5">
         {busy ? "Ingresando…" : "Ingresar"}
       </Btn>
       <button
@@ -326,7 +327,7 @@ function RegisterForm() {
         ) : null}
       </div>
 
-      {error && <p className={clsx(T.muted, "text-center mt-3", "text-[#F09595]")}>{error}</p>}
+      {error && <AuthErrorBanner>{error}</AuthErrorBanner>}
 
       {!canSubmit && hasStartedTyping && (
         <p className={clsx(T.muted, "text-center text-xs mt-3")}>
@@ -344,7 +345,7 @@ function RegisterForm() {
         </p>
       )}
 
-      <Btn onClick={submit} disabled={busy || !canSubmit} style={{ marginTop: 20 }}>
+      <Btn onClick={submit} disabled={busy || !canSubmit} className="mt-5">
         {busy ? "Creando cuenta…" : "Crear cuenta"}
       </Btn>
     </form>
