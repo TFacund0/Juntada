@@ -46,7 +46,14 @@ export function ForgotPasswordScreen({ onBack }: { onBack: () => void }) {
       <p className="jt-onboarding-sub">Te mandamos un link para restablecer tu contraseña.</p>
       <div className="jt-onboarding-field">
         <span className={T.label}>Email</span>
-        <input className={T.input} type="email" autoFocus value={email} onChange={e => setEmail(e.target.value)} />
+        <input
+          className={T.input}
+          type="email"
+          autoFocus
+          placeholder="ej. tu_email@ejemplo.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
       </div>
       <Btn onClick={submit} disabled={busy || !email.trim()} style={{ marginTop: 20 }}>
         {busy ? "Enviando…" : "Enviar link"}
