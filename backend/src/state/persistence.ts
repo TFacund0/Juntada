@@ -114,7 +114,11 @@ async function loadSnapshot(): Promise<void> {
   // player/member starts offline and reconnects (or doesn't) through the
   // existing rejoin/rejoin_group flow, exactly like a normal disconnect.
   for (const [code, room] of data.rooms) {
-    room.players.forEach(p => {
+    // A snapshot saved before waitingPlayers existed won't have the field at
+    // all — back it into shape rather than letting every waitingPlayers.push/
+    // .length call downstream throw on a restored room.
+    room.waitingPlayers ??= [];
+    [...room.players, ...room.waitingPlayers].forEach(p => {
       p.online = false;
     });
     rooms.set(code, room);

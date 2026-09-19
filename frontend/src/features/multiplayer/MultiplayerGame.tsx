@@ -7,6 +7,7 @@ import { GroupEntryModal } from "./screens/GroupEntryModal";
 import { GroupEntryCard } from "./screens/GroupEntryCard";
 import { GroupScreen } from "./screens/GroupScreen";
 import { LobbyScreen } from "./screens/LobbyScreen";
+import { WaitingScreen } from "./screens/WaitingScreen";
 import { RoundScreen } from "./screens/RoundScreen";
 import { SessionRecoveryOverlay } from "./screens/SessionRecoveryOverlay";
 import { FloatingChat } from "./components/FloatingChat";
@@ -416,12 +417,29 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     );
   }
 
-  // ── EN PARTIDA: cualquier fase que no sea menú/lobby/group es propia del
-  // juego, así que se delega entera — este shell no necesita conocer sus
-  // nombres. El banner de error se muestra acá (no dentro de cada RoundView)
-  // porque una acción rechazada por el servidor (turno equivocado, jugada
-  // inválida, etc.) es un caso genérico común a cualquier juego.
-  if (!["menu", "create", "join", "lobby", "group"].includes(connectionPhase) && room && activeGame) {
+  // ── ESPERANDO: se unió con la ronda ya en curso (ver roomService.joinRoom),
+  // invisible para el engine del juego — nada que delegarle todavía.
+  if (connectionPhase === "waiting" && room) {
+    return (
+      <>
+        <ScreenFade transitionKey="waiting" skipAnimation={skipFade}>
+          <WaitingScreen room={room} />
+        </ScreenFade>
+        <FloatingChat
+          channels={buildRoomScreenChannels({ room, group, groupMe, me, send, roomTitle: "Chat de la sala" })}
+          defaultChannelId="room"
+        />
+      </>
+    );
+  }
+
+  // ── EN PARTIDA: cualquier fase que no sea menú/lobby/group/waiting es
+  // propia del juego, así que se delega entera — este shell no necesita
+  // conocer sus nombres. El banner de error se muestra acá (no dentro de
+  // cada RoundView) porque una acción rechazada por el servidor (turno
+  // equivocado, jugada inválida, etc.) es un caso genérico común a cualquier
+  // juego.
+  if (!["menu", "create", "join", "lobby", "group", "waiting"].includes(connectionPhase) && room && activeGame) {
     return (
       <>
         <ScreenFade transitionKey="round" skipAnimation={skipFade}>

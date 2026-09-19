@@ -80,11 +80,37 @@ test("joinRoom rejects a code that doesn't exist", () => {
   assert.match(error, /no existe/i);
 });
 
-test("joinRoom rejects joining once the round has started", () => {
+test("joinRoom holds a joiner in waitingPlayers once the round has started, instead of rejecting them", () => {
   const { room: created } = roomService.createRoom(fakeSocket(), { accountId: "acc-ana", username: "Ana", gameType: "impostor" });
   created.phase = "round";
-  const { error } = roomService.joinRoom(fakeSocket(), { code: created.code, accountId: "acc-beto", username: "Beto" });
-  assert.match(error, /ya empezó/i);
+  const { room, playerId, waiting, error } = roomService.joinRoom(fakeSocket(), {
+    code: created.code,
+    accountId: "acc-beto",
+    username: "Beto",
+  });
+  assert.equal(error, undefined);
+  assert.equal(waiting, true);
+  assert.equal(
+    room.players.some((p: { id: string }) => p.id === playerId),
+    false,
+  );
+  assert.equal(
+    room.waitingPlayers.some((p: { id: string }) => p.id === playerId),
+    true,
+  );
+});
+
+test("joinRoom moves a waiting joiner into players once the room is back in the lobby", () => {
+  const { room: created } = roomService.createRoom(fakeSocket(), { accountId: "acc-ana", username: "Ana", gameType: "impostor" });
+  created.phase = "round";
+  const { playerId } = roomService.joinRoom(fakeSocket(), { code: created.code, accountId: "acc-beto", username: "Beto" });
+  created.phase = "lobby";
+  roomService.flushWaitingPlayers(created);
+  assert.equal(created.waitingPlayers.length, 0);
+  assert.equal(
+    created.players.some((p: { id: string }) => p.id === playerId),
+    true,
+  );
 });
 
 // Duplicate-name rejection is gone: usernames are unique at the account

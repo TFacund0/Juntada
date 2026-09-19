@@ -155,7 +155,13 @@ export function useMultiplayerGameShell({
   // fresh shell's own effect corrected it.
   useForwardProp(room?.gameType ?? null, onGameTypeChange, { clearOnUnmount: true });
 
-  useForwardProp(room?.phase ?? null, onRoomPhaseChange);
+  // While waiting for the current round to end (connectionPhase "waiting",
+  // see multiplayerMessageHandlers' effectivePhase), room.phase itself still
+  // reads whatever the round in progress is — reporting that up would make
+  // roomHasProgress() warn "vas a perder tu progreso" on a player who never
+  // got to play anything yet. Reported as "lobby" instead, same as someone
+  // who hasn't started a round.
+  useForwardProp(connectionPhase === "waiting" ? "lobby" : (room?.phase ?? null), onRoomPhaseChange);
 
   // The server-assigned code is only known once a room/group actually
   // exists (after create/join lands) — App.tsx uses this to put the real

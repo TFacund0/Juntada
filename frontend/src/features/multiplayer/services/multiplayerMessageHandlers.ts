@@ -93,22 +93,36 @@ export function neverJoinedAnything(ctx: InboundMessageContext): boolean {
   return !ctx.readRoom() && !(ctx.readGroupSessionEnabled() && ctx.readGroupMe());
 }
 
+// A joiner held in room.waitingPlayers (see roomService.joinRoom) is
+// invisible to the game engine — the round's real phase from the server
+// would otherwise land them on a RoundScreen built for an actual
+// participant (myPlayer, myRole, ... all undefined for them). Rendering
+// "waiting" instead lets MultiplayerGame show a dedicated screen until the
+// server flushes them into `players` once the round ends and the phase goes
+// back to "lobby".
+function effectivePhase(room: RoomPublicState, playerId: string | undefined): string {
+  if (playerId && (room.waitingPlayers ?? []).some(p => p.id === playerId)) return "waiting";
+  return room.phase;
+}
+
 export function handleJoined(msg: Extract<InboundMessage, { type: "joined" }>, ctx: InboundMessageContext): void {
   ctx.cancelJoinFallbacks();
   ctx.setMe({ playerId: msg.playerId, roomCode: msg.roomCode });
   ctx.setRoom(msg.room);
-  ctx.setConnectionPhase(msg.room.phase);
+  const phase = effectivePhase(msg.room, msg.playerId);
+  ctx.setConnectionPhase(phase);
   ctx.clearError();
   ctx.onReconnected();
-  ctx.resolveColdStart(msg.room.phase);
+  ctx.resolveColdStart(phase);
 }
 
 export function handleState(msg: Extract<InboundMessage, { type: "state" }>, ctx: InboundMessageContext): void {
   ctx.setRoom(msg.room);
-  ctx.setConnectionPhase(msg.room.phase);
+  const phase = effectivePhase(msg.room, ctx.readMe()?.playerId);
+  ctx.setConnectionPhase(phase);
   ctx.clearError();
   ctx.onReconnected();
-  ctx.resolveColdStart(msg.room.phase);
+  ctx.resolveColdStart(phase);
 }
 
 export function handleGroupJoined(msg: Extract<InboundMessage, { type: "group_joined" }>, ctx: InboundMessageContext): void {

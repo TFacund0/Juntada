@@ -370,6 +370,13 @@ export interface Room {
   groupCode: string | null;
   phase: string;
   players: Player[];
+  // Joined while a round was already in progress — held here (not in
+  // `players`) so no game engine has to know they exist: engines only ever
+  // read `players`, so a waiting joiner can't accidentally get a role, count
+  // toward a "ready" gate, or take a turn. Moved into `players` automatically
+  // once the room's phase returns to "lobby" (see ws/shared.ts's
+  // flushWaitingPlayers). Still counts against maxPlayers while waiting.
+  waitingPlayers: Player[];
   config: Record<string, unknown>;
   round: unknown;
   usedWords: Record<string, unknown>;
@@ -385,6 +392,10 @@ export interface RoomPublicState {
   groupCode: string | null;
   phase: string;
   players: PublicPlayer[];
+  // Optional only so existing test fixtures built before this field existed
+  // keep compiling — every real server response always sets it (see
+  // ws/messaging.ts's getRoomPublicState). Treat a missing value as empty.
+  waitingPlayers?: PublicPlayer[];
   maxPlayers: number;
   config: Record<string, unknown>;
   round: unknown;
