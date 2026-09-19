@@ -53,6 +53,15 @@ test("joinGroup allows two different accounts even if their usernames happen to 
   assert.equal(error, undefined);
 });
 
+test("joinGroup is idempotent for an accountId already in the group, instead of duplicating the roster entry", () => {
+  const { group: created, playerId: anaId } = groupService.createGroup(fakeSocket(), { accountId: "acc-ana", username: "Ana" });
+  const { group, playerId, error } = groupService.joinGroup(fakeSocket(), { code: created.code, accountId: "acc-ana", username: "Ana" });
+
+  assert.equal(error, undefined);
+  assert.equal(playerId, anaId, "same accountId re-joining reuses the existing seat");
+  assert.equal(group.members.length, 1);
+});
+
 test("joinGroup rejects once the group is at its member cap", () => {
   const { group: created } = groupService.createGroup(fakeSocket(), { accountId: "acc-host", username: "Host" });
   for (let i = created.members.length; i < 16; i++) {
