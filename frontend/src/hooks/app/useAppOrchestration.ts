@@ -67,11 +67,11 @@ export function useAppOrchestration() {
   });
   const { curtain, withCurtain, stepKey, stepDirection } = stepTransition;
 
-  const shell = useAppShell(session, dialogs, headerUI, withCurtain);
+  const shell = useAppShell(session, dialogs, headerUI, withCurtain, bridgeRefs.leaveRoomRef);
   const { confirmGoBack, goHome, startGroupFlow } = shell;
 
-  const { gameId, mode, game, groupFlow, groupAttached, inGameView } = session;
-  const { localGameResetRef, returnToGroupRef } = bridgeRefs;
+  const { gameId, mode, game, groupFlow, groupAttached, inGameView, roomRoster } = session;
+  const { localGameResetRef, returnToGroupRef, roomActionRef } = bridgeRefs;
   const {
     showExitConfirm,
     setShowExitConfirm,
@@ -159,6 +159,8 @@ export function useAppOrchestration() {
     dismissDevNotice,
     localGameResetRef,
     returnToGroupRef,
+    roomRoster,
+    roomActionRef,
     contextValues,
   };
 }

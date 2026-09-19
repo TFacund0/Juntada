@@ -1,4 +1,4 @@
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { createRef } from "react";
 import { AppHeader } from "../AppHeader";
@@ -21,6 +21,8 @@ const baseProps = {
   onStartGroupFlow: () => {},
   showRules: false,
   onToggleRules: () => {},
+  roomRoster: null,
+  roomActionRef: { current: vi.fn() },
 };
 
 describe("AppHeader", () => {

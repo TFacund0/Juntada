@@ -15,8 +15,34 @@
   --rec-hair: #3a322a;
   --rec-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
 
+  /* Escala compartida de "cajas" cuadradas (ítems/cofre) — antes cada una
+     tenía su propio px fijo sin relación entre sí (chest-big 96px,
+     chest-collected-item 30px, item-btn 40px) ni responsive. Un solo lugar
+     para las 3 escalas, cada una responsive vía clamp(); los consumidores
+     solo fijan `width` y `aspect-ratio: 1` (ver reveal.css/log-items.css/
+     overlays.css), nunca un px propio. */
+  --rec-box-sm: clamp(26px, 7vw, 32px);
+  --rec-box-md: clamp(36px, 9vw, 44px);
+  --rec-box-lg: clamp(76px, 22vw, 96px);
+
   font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
   color: var(--rec-ink);
+
+  /* Centra verticalmente el bloque de cada fase (setup, ronda, cámara,
+     cofre, final) dentro del espacio real debajo del navbar — antes
+     quedaban pegados arriba con todo el resto de la pantalla vacío abajo
+     en viewports altos. 132px aproxima el mismo presupuesto de navbar +
+     padding que ya usa el contenedor de nivel-app (AppShellLayout's
+     jt-content-pad-top: ~72px de navbar + 60px de padding inferior) — no
+     hay forma de leerlo en runtime desde acá, así que es una aproximación
+     a propósito, no un valor mágico sin motivo. Si el contenido de una fase
+     es más alto que ese espacio (ej. el duelo con el log abierto), el
+     `min-height` deja de mandar y el centrado no hace nada — nunca recorta
+     contenido. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100dvh - 132px);
 }
 
 @media (prefers-color-scheme: light) {
@@ -112,7 +138,14 @@
   cursor: not-allowed;
 }
 
-.recamara .table {
+/* Prefijo `rec-` a propósito (antes era `.table`, sin prefijo): esa clase
+   colisionaba con la utilidad de Tailwind del mismo nombre (`display:
+   table`), y como esta regla nunca fijaba su propio `display`, la de
+   Tailwind ganaba en cascada — el bloque quedaba shrink-to-fit (como
+   inline-block) en vez de ocupar el ancho completo, así que se veía chico,
+   pegado a la izquierda y sin centrar en TODOS los bloques del juego (mesa,
+   ronda, cofre — todos comparten esta clase). */
+.recamara .rec-table {
   position: relative;
   background:
     radial-gradient(ellipse at 50% 20%, rgba(255, 255, 255, 0.05), transparent 60%),
@@ -126,7 +159,7 @@
   overflow: hidden;
 }
 
-.recamara .table::before {
+.recamara .rec-table::before {
   content: "";
   position: absolute;
   inset: 0;

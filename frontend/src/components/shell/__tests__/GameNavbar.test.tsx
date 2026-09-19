@@ -2,6 +2,8 @@ import { describe, test, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { GameNavbar } from "../GameNavbar";
 import type { GameDef } from "../../../games/gameTypes";
+import type { RoomRoster } from "../../../pages/context/GameSessionContext";
+import type { RoomPublicState } from "@juntada/shared-types";
 
 const baseProps = {
   mode: null as "local" | "multi" | null,
@@ -14,6 +16,8 @@ const baseProps = {
   showRules: false,
   onToggleRules: () => {},
   backLabel: "Volver",
+  roomRoster: null,
+  roomActionRef: { current: vi.fn() },
 };
 
 function gameFixture(overrides: Partial<GameDef> = {}): GameDef {
@@ -24,6 +28,28 @@ function gameFixture(overrides: Partial<GameDef> = {}): GameDef {
     LocalGame: () => null,
     ...overrides,
   } as GameDef;
+}
+
+function rosterFixture(overrides: Partial<RoomRoster> = {}): RoomRoster {
+  const room = {
+    code: "ABCDE",
+    name: "Sala",
+    hostId: "p1",
+    gameType: "impostor",
+    groupCode: null,
+    phase: "round",
+    players: [
+      { id: "p1", accountId: "p1", name: "Ana", ready: false, online: true, hasVoted: false },
+      { id: "p2", accountId: "p2", name: "Beto", ready: false, online: true, hasVoted: false },
+    ],
+    maxPlayers: 8,
+    config: {},
+    round: null,
+    usedWords: {},
+    roundHistory: [],
+    chat: [],
+  } as unknown as RoomPublicState;
+  return { room, myPlayerId: "p1", ...overrides };
 }
 
 describe("GameNavbar", () => {
@@ -88,5 +114,33 @@ describe("GameNavbar", () => {
     render(<GameNavbar {...baseProps} onExit={onExit} />);
     fireEvent.click(screen.getByLabelText("Menú principal"));
     expect(onExit).toHaveBeenCalled();
+  });
+
+  test("does not render the Jugadores button when roomRoster is null (local mode, or no room yet)", () => {
+    render(<GameNavbar {...baseProps} roomRoster={null} />);
+    expect(screen.queryByLabelText("Jugadores")).toBeNull();
+  });
+
+  test("renders the Jugadores button and opens the players dialog when roomRoster is set", () => {
+    render(<GameNavbar {...baseProps} roomRoster={rosterFixture()} />);
+    fireEvent.click(screen.getByLabelText("Jugadores"));
+    expect(screen.getByText("Ana")).toBeTruthy();
+    expect(screen.getByText("Beto")).toBeTruthy();
+  });
+
+  test("host can kick a player from the Jugadores dialog", () => {
+    const roomActionRef = { current: vi.fn() };
+    render(<GameNavbar {...baseProps} roomActionRef={roomActionRef} roomRoster={rosterFixture({ myPlayerId: "p1" })} />);
+    fireEvent.click(screen.getByLabelText("Jugadores"));
+    fireEvent.click(screen.getByLabelText("Opciones para Beto"));
+    fireEvent.click(screen.getByText("Expulsar de la sala"));
+
+    expect(roomActionRef.current).toHaveBeenCalledWith({ type: "kick_player", targetId: "p2" });
+  });
+
+  test("a non-host cannot manage other players from the Jugadores dialog", () => {
+    render(<GameNavbar {...baseProps} roomRoster={rosterFixture({ myPlayerId: "p2" })} />);
+    fireEvent.click(screen.getByLabelText("Jugadores"));
+    expect(screen.queryByLabelText("Opciones para Ana")).toBeNull();
   });
 });

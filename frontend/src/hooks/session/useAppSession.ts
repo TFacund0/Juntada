@@ -5,6 +5,7 @@ import { isGameAvailable } from "../../games/maintenance";
 import { saveActive } from "./useActiveSession";
 import { routeInitFromMatches } from "../../routing/appRoutes";
 import type { JoinLink } from "../../features/multiplayer/utils/joinLink";
+import type { RoomRoster } from "../../pages/context/GameSessionContext";
 
 /**
  * Qué juego/modo está elegido y el flujo de grupo — extraído de
@@ -36,6 +37,7 @@ export function useAppSession(validJoinLink: JoinLink | null, restored: { gameId
   const [inRoom, setInRoom] = useState(false);
   const inGameView = game ? (game.localOnly ? isGameAvailable(game) : mode === "local" || (mode === "multi" && inRoom)) : false;
   const [roomPhase, setRoomPhase] = useState<string | null>(null);
+  const [roomRoster, setRoomRoster] = useState<RoomRoster | null>(null);
   // Read via a ref (not `gameId` directly) so this callback's identity stays
   // stable across the very setGameId calls it makes — MultiplayerGame's
   // shell effect that calls this on room.gameType change also uses it as its
@@ -92,6 +94,8 @@ export function useAppSession(validJoinLink: JoinLink | null, restored: { gameId
     inGameView,
     roomPhase,
     setRoomPhase,
+    roomRoster,
+    setRoomRoster,
     handleRoomGameType,
     GAME_LIST,
   };

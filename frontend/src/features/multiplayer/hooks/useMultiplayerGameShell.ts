@@ -35,6 +35,9 @@ export function useMultiplayerGameShell({
   onLeaveGroup,
   onGroupAttachedChange,
   onExposeReturnToGroup,
+  onExposeLeaveRoom,
+  onExposeRoomAction,
+  onRoomRosterChange,
   runTransition = action => action(),
   onTransitionSettled,
 }: MultiplayerGameProps) {
@@ -271,6 +274,37 @@ export function useMultiplayerGameShell({
     onExposeReturnToGroup?.(leaveInstance);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onExposeReturnToGroup]);
+
+  // The no-group counterpart of leaveInstance above — fire-and-forget, sent
+  // right before useAppShell's confirmGoBack unmounts this whole shell (see
+  // onExposeLeaveRoom's doc on MultiplayerGameProps), so there's no response
+  // to wait for here the way leaveInstance's "left_instance" has one.
+  const leaveRoom = () => send({ type: "leave_room" });
+
+  useEffect(() => {
+    onExposeLeaveRoom?.(leaveRoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onExposeLeaveRoom]);
+
+  // Generic room-action emitter for the global GameNavbar's host-only
+  // "Jugadores" panel (transfer_host/kick_player) — see onExposeRoomAction's
+  // doc on MultiplayerGameProps.
+  useEffect(() => {
+    onExposeRoomAction?.(send);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onExposeRoomAction]);
+
+  // Read side of that same panel: the room's full public state + which seat
+  // is "me", forwarded up whenever the room (any server broadcast) or the
+  // local seat changes — null once there's no active room, so the navbar
+  // hides its "Jugadores" button. Not built with useForwardProp: the derived
+  // object here is a fresh literal every render, so gating on `room` itself
+  // (not that literal) is what keeps this from re-forwarding on unrelated
+  // re-renders.
+  useEffect(() => {
+    onRoomRosterChange?.(room ? { room, myPlayerId: me?.playerId ?? null } : null);
+    return () => onRoomRosterChange?.(null);
+  }, [room, me?.playerId, onRoomRosterChange]);
 
   // Whether a session belongs to a room or a group is decided the same way
   // the socket itself decides which rejoin message to send on reconnect

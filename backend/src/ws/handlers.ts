@@ -179,6 +179,7 @@ const HANDLERS: Record<ClientMessageType, Handler> = {
   use_item: roomHandlers.gameAction("use_item"),
   ready_for_duel: roomHandlers.gameAction("ready_for_duel"),
   back_to_lobby: roomHandlers.backToLobby,
+  leave_room: roomHandlers.leaveRoom,
   kick_player: roomHandlers.kickPlayer,
   kick_member: groupHandlers.kickMember,
   // validateMessage (see server.ts) already narrowed `msg` to this exact

@@ -1,6 +1,9 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, RefObject } from "react";
+import { useState } from "react";
 import { CloseIcon, BackArrowIcon } from "../ui/icons";
 import type { GameDef } from "../../games/gameTypes";
+import type { RoomRoster } from "../../pages/context/GameSessionContext";
+import { RoomPlayersDialog } from "./RoomPlayersDialog";
 import logo from "../../assets/brand/logo.webp";
 
 interface GameNavbarProps {
@@ -14,6 +17,11 @@ interface GameNavbarProps {
   showRules: boolean;
   onToggleRules: () => void;
   backLabel: string;
+  // Only non-null while actually attached to an online room (any phase) —
+  // see GameSessionContext's RoomRoster doc. Drives the "Jugadores" button
+  // below; absent (local mode, or no room yet) hides it entirely.
+  roomRoster: RoomRoster | null;
+  roomActionRef: RefObject<(msg: Record<string, unknown>) => void>;
 }
 
 const NAV_ICON_BTN =
@@ -71,6 +79,17 @@ function HomeIcon() {
   );
 }
 
+function UsersIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
 /**
  * Cualquier pantalla con un juego ya elegido — desde "Elegí cómo jugar"
  * (mode todavía null) hasta la propia partida (`inGameView`) — comparte
@@ -105,7 +124,11 @@ export function GameNavbar({
   showRules,
   onToggleRules,
   backLabel,
+  roomRoster,
+  roomActionRef,
 }: GameNavbarProps) {
+  const [showPlayers, setShowPlayers] = useState(false);
+
   return (
     <div
       className="fixed top-0 left-0 right-0 z-20 border-b border-jt-accent-border-soft
@@ -143,6 +166,11 @@ export function GameNavbar({
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {roomRoster && (
+            <button onClick={() => setShowPlayers(true)} className={NAV_ICON_BTN} aria-label="Jugadores" title="Jugadores">
+              <UsersIcon />
+            </button>
+          )}
           {(game?.rules?.length ?? 0) > 0 && (
             <button onClick={onToggleRules} className={NAV_ICON_BTN} aria-label="¿Cómo se juega?" title="¿Cómo se juega?">
               {showRules ? <CloseIcon size={18} /> : <HelpIcon />}
@@ -156,6 +184,15 @@ export function GameNavbar({
           </button>
         </div>
       </div>
+
+      {showPlayers && roomRoster && (
+        <RoomPlayersDialog
+          roster={roomRoster}
+          onClose={() => setShowPlayers(false)}
+          onTransferHost={id => roomActionRef.current?.({ type: "transfer_host", targetId: id })}
+          onKickPlayer={id => roomActionRef.current?.({ type: "kick_player", targetId: id })}
+        />
+      )}
     </div>
   );
 }

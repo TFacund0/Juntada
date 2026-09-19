@@ -35,14 +35,19 @@ jobs:
       - name: Typecheck backend
         run: pnpm --filter @juntada/backend typecheck
 
+      # Antes de los tests de backend: ogRoutes.test.ts sirve frontend/dist/
+      # index.html para inyectar los tags de OpenGraph, así que necesita el
+      # build ya hecho — corrido antes acá arriba, no después de los tests
+      # como estaba, o esos tests fallan con ENOENT en CI (nunca se nota en
+      # local si ya tenés un build viejo de frontend/dist tirado por ahí).
+      - name: Build frontend
+        run: pnpm build:frontend
+
       - name: Run backend tests
         run: pnpm --filter @juntada/backend test
 
       - name: Run frontend tests
         run: pnpm --filter @juntada/frontend test
-
-      - name: Build frontend
-        run: pnpm build:frontend
 
       # E2E (Playwright) no corre en CI: los specs que abren varios
       # BrowserContexts con sockets reales (e2e/chat-visibilidad-online.spec.ts,

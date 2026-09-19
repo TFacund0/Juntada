@@ -69,9 +69,12 @@ export function GuessChatPanel({ chatLog, players, correctGuessers, roundPoints,
         (input.disabledReason ? (
           <p className={clsx(T.muted, "text-center")}>{input.disabledReason}</p>
         ) : (
-          <div className="flex gap-2">
+          // flex-wrap + min-w: mismo motivo que el resto de los inputs+botón
+          // de esta app — sin esto, el botón "Enviar" le come el ancho al
+          // input en un contenedor angosto.
+          <div className="flex flex-wrap gap-2">
             <input
-              className={clsx(T.input, "flex-1")}
+              className={clsx(T.input, "min-w-[140px] flex-1")}
               placeholder="Tu respuesta..."
               value={input.value}
               onChange={e => input.onChange(e.target.value)}

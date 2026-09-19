@@ -69,6 +69,14 @@ function joinGroup(
   if (groupName?.trim() && groupName.trim().toLowerCase() !== group.name.toLowerCase()) {
     return { error: "El nombre no coincide con el grupo de ese código" };
   }
+  const existingMember = group.members.find(m => m.accountId === accountId);
+  if (existingMember) {
+    existingMember.online = true;
+    clients.set(ws, { groupCode: group.code, roomCode: null, playerId: existingMember.id, accountId });
+    activeSockets.set(existingMember.id, ws);
+    evictPreviousAccountSocket(group.code, accountId, ws);
+    return { group, playerId: existingMember.id };
+  }
   if (group.members.length >= MAX_MEMBERS_PER_GROUP) return { error: "El grupo está lleno" };
 
   const playerId: string = uuidv4();

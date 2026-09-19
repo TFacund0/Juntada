@@ -67,13 +67,17 @@ describe("useAppShell memo stability", () => {
     const dialogs = stableDialogs();
     const headerUI = stableHeaderUI();
     const withCurtain = vi.fn();
+    const leaveRoomRef = { current: vi.fn() };
 
-    const { result, rerender } = renderHook(props => useAppShell(props.session, props.dialogs, props.headerUI, props.withCurtain), {
-      initialProps: { session, dialogs, headerUI, withCurtain },
-    });
+    const { result, rerender } = renderHook(
+      props => useAppShell(props.session, props.dialogs, props.headerUI, props.withCurtain, props.leaveRoomRef),
+      {
+        initialProps: { session, dialogs, headerUI, withCurtain, leaveRoomRef },
+      },
+    );
 
     const first = result.current;
-    rerender({ session, dialogs, headerUI, withCurtain });
+    rerender({ session, dialogs, headerUI, withCurtain, leaveRoomRef });
     const second = result.current;
 
     expect(second.confirmGoBack).toBe(first.confirmGoBack);

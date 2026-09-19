@@ -33,6 +33,7 @@ function baseGameSession(overrides: Partial<GameSessionContextValue> = {}): Part
     setGroupCode: vi.fn(),
     switchToGroupJoin: vi.fn(),
     setGroupAttached: vi.fn(),
+    setRoomRoster: vi.fn(),
     ...overrides,
   };
 }
@@ -45,7 +46,12 @@ function setupContexts(overrides: {
   appShell?: Partial<AppShellContextValue>;
 }) {
   gameSession.mockReturnValue(baseGameSession(overrides.gameSession));
-  gameBridge.mockReturnValue({ exposeReturnToGroup: vi.fn(), ...overrides.gameBridge });
+  gameBridge.mockReturnValue({
+    exposeReturnToGroup: vi.fn(),
+    exposeLeaveRoom: vi.fn(),
+    exposeRoomAction: vi.fn(),
+    ...overrides.gameBridge,
+  });
   curtainCtx.mockReturnValue({ withAsyncCurtain: vi.fn(), settleAsyncCurtain: vi.fn(), curtain: "none", ...overrides.curtain });
   playerSession.mockReturnValue({ playerName: "Ana", savePlayerName: vi.fn(), validJoinLink: null, ...overrides.playerSession });
   appShell.mockReturnValue({ goHome: vi.fn(), goBack: vi.fn(), ...overrides.appShell });
@@ -83,6 +89,9 @@ describe("useMultiplayerEntryProps", () => {
     expect(props.onSwitchToGroup).toBe(gs.switchToGroupJoin);
     expect(props.onGroupAttachedChange).toBe(gs.setGroupAttached);
     expect(props.onExposeReturnToGroup).toBe(gb.exposeReturnToGroup);
+    expect(props.onExposeLeaveRoom).toBe(gb.exposeLeaveRoom);
+    expect(props.onExposeRoomAction).toBe(gb.exposeRoomAction);
+    expect(props.onRoomRosterChange).toBe(gs.setRoomRoster);
     expect(props.onTransitionSettled).toBe(ct.settleAsyncCurtain);
     expect(props.curtain).toBe("none");
   });

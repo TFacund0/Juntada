@@ -11,6 +11,7 @@ interface AppOverlaysProps {
   showDevNotice: boolean;
   dismissDevNotice: () => void;
   showBackConfirm: boolean;
+  isOnlineRoom: boolean;
   confirmGoBack: () => void;
   setShowBackConfirm: (show: boolean) => void;
   showLocalResetConfirm: boolean;
@@ -38,6 +39,7 @@ export function AppOverlays({
   showDevNotice,
   dismissDevNotice,
   showBackConfirm,
+  isOnlineRoom,
   confirmGoBack,
   setShowBackConfirm,
   showLocalResetConfirm,
@@ -59,6 +61,7 @@ export function AppOverlays({
 
       <AppConfirmDialogs
         showBackConfirm={showBackConfirm}
+        isOnlineRoom={isOnlineRoom}
         onConfirmGoBack={confirmGoBack}
         onCancelBackConfirm={() => setShowBackConfirm(false)}
         showLocalResetConfirm={showLocalResetConfirm}

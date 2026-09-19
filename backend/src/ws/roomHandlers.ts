@@ -224,6 +224,28 @@ function backToLobby(ws: WS, msg: ClientMessage, info: ClientInfo): void {
   broadcastState(room);
 }
 
+// A player choosing to leave a standalone room on their own, mid-match — the
+// no-group counterpart of groupHandlers.leaveInstance. Removes them right
+// away (reassigning host if needed) instead of leaving the rest of the room
+// waiting on the 1-minute offline-kick grace period a plain disconnect would
+// trigger.
+function leaveRoom(ws: WS, msg: ClientMessage, info: ClientInfo): void {
+  const room = rooms.get(info.roomCode ?? "");
+  if (!room || !info.playerId) return;
+  roomService.removePlayer(room, info.playerId);
+  const engine = getEngine(room.gameType);
+  engine?.maybeAdvance(room);
+  clients.set(ws, { groupCode: null, roomCode: null, playerId: null, accountId: info.accountId });
+  sendTo(ws, { type: "left_room" });
+  if (room.players.length === 0) {
+    cleanupRoomIfEmpty(room);
+    return;
+  }
+  broadcastStateAndPrivateInfo(room);
+  if (room.phase === "result") broadcastRoundReveal(room);
+  syncPhaseTimer(room);
+}
+
 function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>, info: ClientInfo): void {
   const room = rooms.get(info.roomCode ?? "");
   if (!room || room.hostId !== info.playerId || msg.targetId === info.playerId) return;
@@ -308,6 +330,7 @@ module.exports = {
   gameAction,
   sendRoomChat,
   backToLobby,
+  leaveRoom,
   kickPlayer,
   schedulePlayerKick,
   PLAYER_OFFLINE_TIMEOUT_MS,

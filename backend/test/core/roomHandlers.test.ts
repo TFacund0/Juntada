@@ -38,3 +38,43 @@ test("kickPlayer still lets the host remove someone else as usual", () => {
   assert.ok(!room.players.some((p: any) => p.id === targetId));
   assert.equal(rooms.has(room.code), true);
 });
+
+// ─── ws/roomHandlers.ts: leaveRoom ───────────────────────────────────────────
+// The no-group counterpart of groupHandlers.leaveInstance — a player leaving
+// a standalone room mid-match on their own, right away instead of waiting
+// out the offline-kick grace period.
+
+test("leaveRoom removes the leaving player immediately and lets the rest of the room keep going", () => {
+  const hostWs = fakeSocket();
+  const { room } = roomService.createRoom(hostWs, { accountId: "acc-ana", username: "Ana", gameType: "impostor" });
+  const targetWs = fakeSocket();
+  const { playerId: targetId } = roomService.joinRoom(targetWs, { code: room.code, accountId: "acc-beto", username: "Beto" });
+
+  roomHandlers.leaveRoom(targetWs, { type: "leave_room" }, clients.get(targetWs));
+
+  assert.equal(room.players.length, 1);
+  assert.ok(!room.players.some((p: any) => p.id === targetId));
+  assert.equal(rooms.has(room.code), true, "the room stays open for whoever's left");
+  assert.deepEqual(clients.get(targetWs), { groupCode: null, roomCode: null, playerId: null, accountId: "acc-beto" });
+});
+
+test("leaveRoom hands the host role off when the host itself leaves", () => {
+  const hostWs = fakeSocket();
+  const { room, playerId: hostId } = roomService.createRoom(hostWs, { accountId: "acc-ana", username: "Ana", gameType: "impostor" });
+  const betoWs = fakeSocket();
+  const { playerId: betoId } = roomService.joinRoom(betoWs, { code: room.code, accountId: "acc-beto", username: "Beto" });
+
+  roomHandlers.leaveRoom(hostWs, { type: "leave_room" }, clients.get(hostWs));
+
+  assert.equal(room.hostId, betoId);
+  assert.ok(!room.players.some((p: any) => p.id === hostId));
+});
+
+test("leaveRoom closes the room once the last player leaves", () => {
+  const hostWs = fakeSocket();
+  const { room } = roomService.createRoom(hostWs, { accountId: "acc-ana", username: "Ana", gameType: "impostor" });
+
+  roomHandlers.leaveRoom(hostWs, { type: "leave_room" }, clients.get(hostWs));
+
+  assert.equal(rooms.has(room.code), false);
+});

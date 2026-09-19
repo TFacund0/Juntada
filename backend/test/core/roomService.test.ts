@@ -1,12 +1,14 @@
 const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
-const { rooms, clients } = require("../../src/state/roomStore");
+const { rooms, clients, activeSockets, accountSockets } = require("../../src/state/roomStore");
 const roomService = require("../../src/rooms/roomService");
 const { fakeSocket } = require("../testUtils");
 
 beforeEach(() => {
   rooms.clear();
   clients.clear();
+  activeSockets.clear();
+  accountSockets.clear();
 });
 
 test("createRoom creates a room, registers the host and stores it in rooms", () => {
@@ -42,7 +44,7 @@ test("createRoom refuses once the server hits MAX_TOTAL_ROOMS", () => {
 });
 
 test("createInstanceRoom links the new room back to the group and reuses the given identity", () => {
-  const { room } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "acc-ana", "Ana", "Grupo de Ana");
+  const { room } = roomService.createInstanceRoom(fakeSocket(), "GRUPO1", "impostor", "host-id", "acc-ana", "Ana", "Grupo de Ana");
 
   assert.equal(room.groupCode, "GRUPO1");
   assert.equal(room.gameType, "impostor");
@@ -56,8 +58,24 @@ test("createInstanceRoom links the new room back to the group and reuses the giv
 });
 
 test("createInstanceRoom rejects an unknown gameType", () => {
-  const { error } = roomService.createInstanceRoom("GRUPO1", "no-existe", "host-id", "acc-ana", "Ana", "Grupo de Ana");
+  const { error } = roomService.createInstanceRoom(fakeSocket(), "GRUPO1", "no-existe", "host-id", "acc-ana", "Ana", "Grupo de Ana");
   assert.match(error, /desconocido/i);
+});
+
+test("createInstanceRoom/joinInstanceRoom evict the account's previous socket in that room's scope, same as createRoom/joinRoom", () => {
+  let closedCode: number | undefined;
+  const staleWs = {
+    close: (code: number) => {
+      closedCode = code;
+    },
+  };
+  const { room } = roomService.createInstanceRoom(staleWs, "GRUPO1", "impostor", "host-id", "acc-ana", "Ana", "Grupo de Ana");
+
+  const ws2 = fakeSocket();
+  roomService.joinInstanceRoom(ws2, room.code, "host-id", "acc-ana", "Ana");
+
+  assert.equal(closedCode, 4001);
+  assert.equal(activeSockets.get("host-id"), ws2);
 });
 
 test("joinRoom adds a player to an existing lobby room", () => {
@@ -134,8 +152,8 @@ test("joinRoom rejects once the room is at its player cap", () => {
 });
 
 test("joinInstanceRoom reuses the given playerId instead of minting a new one", () => {
-  const { room: created } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "acc-ana", "Ana", "Grupo de Ana");
-  const { room, error } = roomService.joinInstanceRoom(created.code, "member-2", "acc-beto", "Beto");
+  const { room: created } = roomService.createInstanceRoom(fakeSocket(), "GRUPO1", "impostor", "host-id", "acc-ana", "Ana", "Grupo de Ana");
+  const { room, error } = roomService.joinInstanceRoom(fakeSocket(), created.code, "member-2", "acc-beto", "Beto");
 
   assert.equal(error, undefined);
   assert.equal(room.players.length, 2);
@@ -143,16 +161,16 @@ test("joinInstanceRoom reuses the given playerId instead of minting a new one", 
 });
 
 test("joinInstanceRoom is idempotent when the player already joined", () => {
-  const { room: created } = roomService.createInstanceRoom("GRUPO1", "impostor", "host-id", "acc-ana", "Ana", "Grupo de Ana");
-  roomService.joinInstanceRoom(created.code, "member-2", "acc-beto", "Beto");
-  const { room, error } = roomService.joinInstanceRoom(created.code, "member-2", "acc-beto", "Beto");
+  const { room: created } = roomService.createInstanceRoom(fakeSocket(), "GRUPO1", "impostor", "host-id", "acc-ana", "Ana", "Grupo de Ana");
+  roomService.joinInstanceRoom(fakeSocket(), created.code, "member-2", "acc-beto", "Beto");
+  const { room, error } = roomService.joinInstanceRoom(fakeSocket(), created.code, "member-2", "acc-beto", "Beto");
 
   assert.equal(error, undefined);
   assert.equal(room.players.length, 2);
 });
 
 test("joinInstanceRoom rejects a room that no longer exists", () => {
-  const { error } = roomService.joinInstanceRoom("ZZZZZ", "member-2", "acc-beto", "Beto");
+  const { error } = roomService.joinInstanceRoom(fakeSocket(), "ZZZZZ", "member-2", "acc-beto", "Beto");
   assert.match(error, /ya no existe/i);
 });
 

@@ -12,6 +12,7 @@ function renderAppOverlays(overrides: Partial<React.ComponentProps<typeof AppOve
     showDevNotice: false,
     dismissDevNotice: vi.fn(),
     showBackConfirm: false,
+    isOnlineRoom: false,
     confirmGoBack: vi.fn(),
     setShowBackConfirm: vi.fn(),
     showLocalResetConfirm: false,
@@ -74,6 +75,16 @@ describe("AppOverlays", () => {
     renderAppOverlays({ showBackConfirm: true, setShowBackConfirm });
     fireEvent.click(screen.getByText("Seguir jugando"));
     expect(setShowBackConfirm).toHaveBeenCalledWith(false);
+  });
+
+  test("back dialog warns about losing local progress when isOnlineRoom is false", () => {
+    renderAppOverlays({ showBackConfirm: true, isOnlineRoom: false });
+    expect(screen.getByText(/Vas a salir del juego actual y perder el progreso/)).toBeTruthy();
+  });
+
+  test("back dialog says the rest can keep playing when isOnlineRoom is true", () => {
+    renderAppOverlays({ showBackConfirm: true, isOnlineRoom: true });
+    expect(screen.getByText(/El resto puede seguir jugando sin vos/)).toBeTruthy();
   });
 
   test("showLocalResetConfirm=true shows the local reset confirm dialog", () => {

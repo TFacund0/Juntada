@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { RoomRoster } from "../../pages/context/GameSessionContext";
 import { getGame } from "../../games/registry";
 import { extractScannedCode } from "./utils/joinLink";
 import { RoomEntryModal } from "./screens/RoomEntryModal";
@@ -125,6 +126,25 @@ export interface MultiplayerGameProps {
   // the group screen (the server's leave_instance is a no-op with nothing
   // attached), so mashing "Volver" repeatedly just leaves the player there.
   onExposeReturnToGroup?: (fn: () => void) => void;
+  // Only meaningful for entryKind "room" — same idea as onExposeReturnToGroup,
+  // but for a standalone (groupless) room: lets the global header's "Volver"
+  // button send an explicit leave_room right before this shell unmounts and
+  // drops the socket, instead of the server only finding out via the plain
+  // socket close a moment later (see useAppShell's confirmGoBack).
+  onExposeLeaveRoom?: (fn: () => void) => void;
+  // Only meaningful for entryKind "room" — lets the global GameNavbar's host-
+  // only "Jugadores" panel (see RoomPlayersDialog) send transfer_host/
+  // kick_player for whichever room is active, without that navbar (rendered
+  // outside this shell, see AppHeader.tsx) needing its own socket. Paired
+  // with onRoomRosterChange below, which is the read side of that same panel.
+  onExposeRoomAction?: (fn: (msg: Record<string, unknown>) => void) => void;
+  // Only meaningful for entryKind "room" — forwards the room's full public
+  // state + which seat is "me" up to session state (see GameSessionContext's
+  // RoomRoster) whenever it changes, null once there's no active room. The
+  // global GameNavbar reads this (as an explicit prop, not through context —
+  // it sits outside this shell's Provider tree) to render its "Jugadores"
+  // panel in any phase, not just while LobbyScreen itself is mounted.
+  onRoomRosterChange?: (roster: RoomRoster | null) => void;
   // Wraps "Crear partida"/"Unirse" so a themed game (see gameTheme on
   // GameDef) gets the same fade-to-black transition on the way into the
   // room as it already gets entering online mode itself — App.tsx passes

@@ -23,6 +23,7 @@ export function useAppShell(
   dialogs: AppDialogs,
   headerUI: HeaderUI,
   withCurtain: (action: () => void, themed: boolean) => void,
+  leaveRoomRef: { current: () => void },
 ) {
   // Whether a themed game's reskin (see gameTheme on GameDef) is actually
   // live right now — used below to decide whether leaving needs the
@@ -31,7 +32,16 @@ export function useAppShell(
 
   const confirmGoBack = useCallback(() => {
     withCurtain(() => {
-      if (session.mode === "multi") clearMultiplayerSession();
+      // Reaching this dialog with mode "multi" only ever means a standalone
+      // room (groupAttached takes the separate return-to-group/exit dialogs
+      // instead, see useBackNavigation's goBack) — tell the server right
+      // away, before the shell below unmounts and drops the socket, instead
+      // of leaving the rest of the room waiting on the 1-minute offline-kick
+      // grace period a plain socket close would trigger.
+      if (session.mode === "multi") {
+        leaveRoomRef.current();
+        clearMultiplayerSession();
+      }
       session.setMode(null);
       session.setRoomCode(null);
       // Group flow jumps straight from home into multi mode with no "pick
@@ -52,6 +62,7 @@ export function useAppShell(
     dialogs.setShowBackConfirm,
     withCurtain,
     themeIsLive,
+    leaveRoomRef,
   ]);
 
   const goHome = useCallback(() => {

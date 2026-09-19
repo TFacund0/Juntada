@@ -23,11 +23,14 @@ function baseContextValues(): AppContextValues {
       groupAttached: false,
       setGroupAttached: vi.fn(),
       setRoomPhase: vi.fn(),
+      setRoomRoster: vi.fn(),
       handleRoomGameType: vi.fn(),
       GAME_LIST: [],
     },
     gameBridge: {
       exposeReturnToGroup: vi.fn(),
+      exposeLeaveRoom: vi.fn(),
+      exposeRoomAction: vi.fn(),
       exposeLocalGameBack: vi.fn(),
       exposeLocalGameReset: vi.fn(),
     },
@@ -74,6 +77,8 @@ function renderAppMainContent(overrides: Partial<React.ComponentProps<typeof App
     curtain: "none",
     contextValues: baseContextValues(),
     inGameView: false,
+    roomRoster: null,
+    roomActionRef: { current: vi.fn() },
     ...overrides,
   };
 

@@ -38,10 +38,8 @@
 }
 
 .recamara .rec-overlay.winner-overlay {
-  /* .rec-overlay defaults to align-items: flex-end (the bottom-sheet look
-     shared with PlayerItemsSheet/ItemUseModal) — the winner card needs to
-     sit centered on screen instead, same as .rec-modal above. */
-  align-items: center;
+  /* .rec-overlay ya centra por defecto (ver overlays.css) — acá solo suma
+     su propia animación de entrada. */
   animation: rec-fade-in 0.6s ease-out;
 }
 

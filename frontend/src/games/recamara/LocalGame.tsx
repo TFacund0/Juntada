@@ -409,7 +409,7 @@ export function LocalGame() {
 
       return (
         <div className="recamara">
-          <div className="table">
+          <div className="rec-table">
             {aliveOrder.length > 1 && (
               <p className="reveal-progress mono">
                 Jugador {revealIdx + 1} de {aliveOrder.length}
@@ -462,7 +462,7 @@ export function LocalGame() {
 
   return (
     <div className="recamara">
-      <div className="table">
+      <div className="rec-table">
         <div className="turn-banner">
           <span className="dot" />
           <span className="txt">
@@ -600,7 +600,7 @@ export function LocalGame() {
 
       {showWinner && winner && (
         <div className="rec-overlay winner-overlay">
-          <div className="table final-card winner-in" style={{ maxWidth: 420 }}>
+          <div className="rec-table final-card winner-in" style={{ maxWidth: 420 }}>
             <p className="mono eyebrow">Fin del duelo</p>
             <p className="display winner">
               Gana <span>{winner.name}</span>

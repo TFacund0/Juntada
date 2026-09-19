@@ -1,21 +1,33 @@
-/* Overlays shared by PlayerItemsSheet and ItemUseModal. */
+/* Overlays shared by PlayerItemsSheet, ItemUseModal, OutcomeBanner, etc.
+   Centrado por defecto (el caso común: casi todo consumidor pone un
+   `.rec-modal` adentro y lo quiere centrado) — antes era al revés
+   (`align-items: flex-end` por defecto + `.rec-overlay:has(.rec-modal)`
+   forzando el centrado), lo que dependía de que el navegador soportara
+   `:has()`. Un navegador sin soporte (o con soporte parcial) hacía que el
+   centrado se cayera en silencio y el modal quedara pegado abajo — el
+   "error visual" que seguía apareciendo pese a que el código ya tenía un
+   parche. `.rec-overlay-sheet` es ahora el opt-in explícito para el único
+   caso que sí quiere el look de bottom-sheet (PlayerItemsSheet). */
 .recamara .rec-overlay {
   position: fixed;
   inset: 0;
   z-index: var(--jt-z-fullscreen-flash, 200);
   background: rgba(0, 0, 0, 0.55);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   animation: rec-fade-in 0.2s ease-out;
 }
 
-/* FlashOverlay's own variant — fully opaque and centered, so whatever
-   screen it's covering (e.g. RoundView's "esperando a los demás" list)
-   never bleeds through behind the flashed text. */
+.recamara .rec-overlay-sheet {
+  align-items: flex-end;
+}
+
+/* FlashOverlay's own variant — fully opaque, mismo centrado que el resto,
+   así lo que sea que esté tapando (ej. la lista de "esperando a los demás"
+   de RoundView) nunca se traslucja detrás del texto flasheado. */
 .recamara .rec-overlay-solid {
   background: var(--rec-bg);
-  align-items: center;
 }
 
 .recamara .rec-sheet {
@@ -42,23 +54,29 @@
   font-size: 0.85rem;
 }
 
+/* Grilla de cajas, misma familia visual que .item-btn/.chest-collected-item
+   (antes: filas full-width en columna, la única de las 4 vistas de ítems que
+   no usaba el sistema de cajas — ver base.css's --rec-box-*). */
 .recamara .rec-sheet-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--rec-box-lg), 1fr));
   gap: 8px;
 }
 
 .recamara .rec-sheet-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 4px;
+  aspect-ratio: 1;
   background: var(--rec-bg);
   border: 1px solid var(--rec-hair);
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 6px;
   font-family: inherit;
   color: var(--rec-ink);
-  text-align: left;
+  text-align: center;
   cursor: default;
 }
 
@@ -71,11 +89,12 @@
 }
 
 .recamara .rec-sheet-item .icon {
-  font-size: 18px;
+  font-size: calc(var(--rec-box-lg) * 0.22);
 }
 
 .recamara .rec-sheet-item .label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
+  line-height: 1.15;
   color: var(--rec-ink-dim);
 }
 
@@ -89,10 +108,6 @@
   padding: 24px 20px;
   text-align: center;
   animation: rec-fade-in 0.2s ease-out;
-}
-
-.recamara .rec-overlay:has(.rec-modal) {
-  align-items: center;
 }
 
 .recamara .rec-modal-icon {
@@ -191,11 +206,22 @@
 }
 
 @keyframes rec-banner-shake {
-  0%, 100% { transform: translate(0, 0); }
-  20% { transform: translate(-6px, 3px) rotate(-1deg); }
-  40% { transform: translate(6px, -3px) rotate(1deg); }
-  60% { transform: translate(-4px, 2px); }
-  80% { transform: translate(3px, -1px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-6px, 3px) rotate(-1deg);
+  }
+  40% {
+    transform: translate(6px, -3px) rotate(1deg);
+  }
+  60% {
+    transform: translate(-4px, 2px);
+  }
+  80% {
+    transform: translate(3px, -1px);
+  }
 }
 
 .recamara .rec-elimination-callout {

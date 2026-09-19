@@ -27,9 +27,13 @@ export function AddPlayerForm({
   return (
     <div className={T.card}>
       <span className={T.label}>Sumar jugador</span>
-      <div className="flex gap-2">
+      {/* flex-wrap + min-w: el min-w-0 anterior le sacaba al input hasta el
+          piso de ancho por default del navegador, así que en un contenedor
+          angosto el botón "Sumar" (no se achica más allá de su texto+
+          padding) lo dejaba casi sin espacio. */}
+      <div className="flex flex-wrap gap-2">
         <input
-          className={clsx(T.input, "flex-1 min-w-0")}
+          className={clsx(T.input, "min-w-[100px] flex-1")}
           placeholder="Nombre"
           value={name}
           onChange={e => onNameChange(e.target.value)}

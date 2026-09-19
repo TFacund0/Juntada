@@ -5,6 +5,8 @@ import { createRequiredContext } from "./createRequiredContext";
 // needing to know how each game implements them.
 export interface GameBridgeContextValue {
   exposeReturnToGroup: (fn: () => void) => void;
+  exposeLeaveRoom: (fn: () => void) => void;
+  exposeRoomAction: (fn: (msg: Record<string, unknown>) => void) => void;
   exposeLocalGameBack: (fn: () => boolean) => void;
   exposeLocalGameReset: (fn: () => void) => void;
 }

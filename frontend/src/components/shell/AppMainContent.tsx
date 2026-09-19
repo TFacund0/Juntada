@@ -2,6 +2,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import { Outlet } from "react-router-dom";
 import type { GameDef } from "../../games/gameTypes";
 import type { AppContextValues } from "../../hooks/navigation/useAppContextValues";
+import type { RoomRoster } from "../../pages/context/GameSessionContext";
 import { GameSessionContext } from "../../pages/context/GameSessionContext";
 import { GameBridgeContext } from "../../pages/context/GameBridgeContext";
 import { CurtainContext } from "../../pages/context/CurtainContext";
@@ -35,6 +36,8 @@ interface AppMainContentProps {
   curtain: "none" | "in" | "out";
   contextValues: AppContextValues;
   inGameView: boolean;
+  roomRoster: RoomRoster | null;
+  roomActionRef: RefObject<(msg: Record<string, unknown>) => void>;
 }
 
 /**
@@ -67,6 +70,8 @@ export function AppMainContent({
   curtain,
   contextValues,
   inGameView,
+  roomRoster,
+  roomActionRef,
 }: AppMainContentProps) {
   const header = (
     <AppHeader
@@ -87,6 +92,8 @@ export function AppMainContent({
       onStartGroupFlow={startGroupFlow}
       showRules={showRules}
       onToggleRules={() => setShowRules(v => !v)}
+      roomRoster={roomRoster}
+      roomActionRef={roomActionRef}
     />
   );
 

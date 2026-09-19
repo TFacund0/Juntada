@@ -59,9 +59,12 @@ export function DiscussionChat({ chat, myPlayerId, send }: DiscussionChatProps) 
           })
         )}
       </div>
-      <div className="flex gap-2">
+      {/* flex-wrap + min-w: mismo motivo que el resto de los inputs+botón de
+          esta app — sin esto, el botón le come el ancho al input en un
+          contenedor angosto. */}
+      <div className="flex flex-wrap gap-2">
         <input
-          className={clsx(T.input, "flex-1")}
+          className={clsx(T.input, "min-w-[140px] flex-1")}
           placeholder="Escribí un mensaje..."
           value={text}
           onChange={e => setText(e.target.value)}
