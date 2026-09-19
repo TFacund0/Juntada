@@ -271,7 +271,7 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
 // A game can override how long its own disconnected players get before
 // getting auto-kicked (see GameEngine's offlineKickTimeoutMs — e.g. Impostor
 // shortens this during voting, where a stuck vote blocks everyone else).
-// Falls back to the generic 10-minute grace period otherwise.
+// Falls back to the generic 1-minute grace period otherwise.
 function schedulePlayerKick(roomCode: string, playerId: string): void {
   const room = rooms.get(roomCode);
   const timeoutMs = getEngine(room?.gameType)?.offlineKickTimeoutMs?.(room!, playerId) ?? PLAYER_OFFLINE_TIMEOUT_MS;

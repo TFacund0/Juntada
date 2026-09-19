@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import * as authApi from "../api/authApi";
 import type { SelfUser } from "../api/authApi";
 
@@ -16,6 +16,11 @@ const accessTokenRef: { current: string | null } = { current: null };
 export function getAccessToken(): string | null {
   return accessTokenRef.current;
 }
+
+// Margen antes de que el access token venza para disparar el refresh
+// silencioso — no justo al filo, para no perder la ventana si el timer del
+// navegador se atrasa un poco (tabs en background lo throttlean).
+const REFRESH_MARGIN_SECONDS = 60;
 
 interface AuthContextValue {
   user: SelfUser | null;
@@ -38,6 +43,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessTokenState(token);
   }, []);
 
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Dedupe: el timer proactivo y el handler reactivo (401 de una llamada
+  // autenticada) pueden disparar casi al mismo tiempo — sin esto, los dos
+  // pedirían un refresh_token "de un solo uso" en simultáneo y uno de los
+  // dos perdería la carrera contra el otro.
+  const refreshInFlightRef = useRef<Promise<string> | null>(null);
+
+  const clearRefreshTimer = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
+
+  // Programa el próximo refresh automático `REFRESH_MARGIN_SECONDS` antes de
+  // que el access token actual venza — usado tras cada login/register/
+  // refresh (todos devuelven un `expiresIn` nuevo, ver TokenResponse).
+  const scheduleRefresh = useCallback(
+    (expiresIn: number) => {
+      clearRefreshTimer();
+      refreshTimerRef.current = setTimeout(() => void doRefreshRef.current(), Math.max(0, expiresIn - REFRESH_MARGIN_SECONDS) * 1000);
+    },
+    [clearRefreshTimer],
+  );
+
+  // Ref (no useCallback) porque scheduleRefresh se define antes que
+  // doRefresh pero necesita invocarlo — se asigna la implementación real
+  // apenas doRefresh se crea, un par de líneas más abajo.
+  const doRefreshRef = useRef<() => Promise<string>>(() => Promise.reject(new Error("doRefresh not ready")));
+
+  // Refresca el access token, guarda el resultado, y reprograma el próximo
+  // timer. Devuelve el token nuevo — tanto el timer como el handler
+  // reactivo de 401 (registrado más abajo) lo llaman por igual.
+  const doRefresh = useCallback((): Promise<string> => {
+    if (refreshInFlightRef.current) return refreshInFlightRef.current;
+    const promise = (async () => {
+      try {
+        const { accessToken: token, expiresIn } = await authApi.refresh();
+        setAccessToken(token);
+        scheduleRefresh(expiresIn);
+        return token;
+      } finally {
+        refreshInFlightRef.current = null;
+      }
+    })();
+    refreshInFlightRef.current = promise;
+    return promise;
+  }, [setAccessToken, scheduleRefresh]);
+  doRefreshRef.current = doRefresh;
+
+  // Red de seguridad para cuando el timer de arriba no llegó a correr (tab en
+  // segundo plano throttleada) — cualquier llamada autenticada que pegue
+  // contra un token ya vencido dispara este mismo refresh en vez de tirarle
+  // un error al jugador. Ver authApi.ts#authedRequest.
+  useEffect(() => {
+    authApi.registerUnauthorizedHandler(doRefresh);
+    return () => authApi.registerUnauthorizedHandler(null);
+  }, [doRefresh]);
+
   // Boot: try a silent refresh (the httpOnly cookie travels automatically).
   // Success means a valid session persisted across a reload — fetch the
   // profile and consider the user authenticated. Any failure (no cookie,
@@ -47,11 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     (async () => {
       try {
-        const { accessToken: token } = await authApi.refresh();
+        const { accessToken: token, expiresIn } = await authApi.refresh();
         const { user: self } = await authApi.getMe(token);
         if (!active) return;
         setAccessToken(token);
         setUser(self);
+        scheduleRefresh(expiresIn);
       } catch {
         // no valid session — stay logged out
       } finally {
@@ -60,35 +125,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
     return () => {
       active = false;
+      clearRefreshTimer();
     };
-  }, [setAccessToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = useCallback(
     async (identifier: string, password: string) => {
-      const { user: self, accessToken: token } = await authApi.login(identifier, password);
+      const { user: self, accessToken: token, expiresIn } = await authApi.login(identifier, password);
       setAccessToken(token);
       setUser(self);
+      scheduleRefresh(expiresIn);
     },
-    [setAccessToken],
+    [setAccessToken, scheduleRefresh],
   );
 
   const register = useCallback(
     async (payload: authApi.RegisterPayload) => {
-      const { user: self, accessToken: token } = await authApi.register(payload);
+      const { user: self, accessToken: token, expiresIn } = await authApi.register(payload);
       setAccessToken(token);
       setUser(self);
+      scheduleRefresh(expiresIn);
     },
-    [setAccessToken],
+    [setAccessToken, scheduleRefresh],
   );
 
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } finally {
+      clearRefreshTimer();
       setAccessToken(null);
       setUser(null);
     }
-  }, [setAccessToken]);
+  }, [setAccessToken, clearRefreshTimer]);
 
   const updateProfile = useCallback(async (payload: authApi.UpdateProfilePayload): Promise<{ ok: true } | { ok: false; error: string }> => {
     if (!accessTokenRef.current) return { ok: false, error: "not_authenticated" };

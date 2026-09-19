@@ -36,17 +36,17 @@ test("scheduleOfflineReaction leaves the turn alone before the grace period elap
   room.players.find((p: any) => p.id === drawerId).online = false;
 
   scheduleOfflineReaction(room.code, drawerId);
-  t.mock.timers.tick(59_000);
-  assert.equal(room.phase, "drawing", "should still be waiting — the minute hasn't fully elapsed");
+  t.mock.timers.tick(19_000);
+  assert.equal(room.phase, "drawing", "should still be waiting — the grace period hasn't fully elapsed");
 });
 
-test("scheduleOfflineReaction reacts (ends the drawer's turn) once a full minute of being offline has passed", (t: any) => {
+test("scheduleOfflineReaction reacts (ends the drawer's turn) once the full grace period of being offline has passed", (t: any) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { room, drawerId } = makeDrawingRoom();
   room.players.find((p: any) => p.id === drawerId).online = false;
 
   scheduleOfflineReaction(room.code, drawerId);
-  t.mock.timers.tick(60_000);
+  t.mock.timers.tick(20_000);
   assert.equal(room.phase, "reveal", "the drawer's turn should have ended once the grace period ran out");
 });
 
@@ -58,7 +58,7 @@ test("scheduleOfflineReaction does nothing if the player reconnected before the 
   scheduleOfflineReaction(room.code, drawerId);
   room.players.find((p: any) => p.id === drawerId).online = true; // reconnected
 
-  t.mock.timers.tick(60_000);
+  t.mock.timers.tick(20_000);
   assert.equal(room.phase, "drawing", "reconnecting in time should cancel the reaction");
 });
 
