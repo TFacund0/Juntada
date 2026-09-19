@@ -16,7 +16,7 @@ describe("AuthProvider — boot-time silent refresh", () => {
   test("a valid refresh cookie resolves to a logged-in user without any user action", async () => {
     const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
       if (url.includes("/auth/refresh")) {
-        return { ok: true, status: 200, json: async () => ({ accessToken: "tok-1" }) } as Response;
+        return { ok: true, status: 200, json: async () => ({ accessToken: "tok-1", expiresIn: 900 }) } as Response;
       }
       if (url.includes("/me")) {
         return {
@@ -74,6 +74,7 @@ describe("AuthProvider — boot-time silent refresh", () => {
             json: async () => ({
               user: { id: "u1", username: "Ana", email: "a@a.com", firstName: "Ana", lastName: "L" },
               accessToken: "tok-login",
+              expiresIn: 900,
             }),
           } as Response;
         }

@@ -142,7 +142,7 @@ function registerAuthRoutes(router: Router, deps: { authService: AuthService }):
     try {
       const { user, tokens } = await authService.register(parsed.data);
       setRefreshCookie(res, tokens.refreshToken);
-      res.status(201).json({ user, accessToken: tokens.accessToken });
+      res.status(201).json({ user, accessToken: tokens.accessToken, expiresIn: tokens.accessTokenExpiresInSeconds });
     } catch (err) {
       handleError(err, res);
     }
@@ -157,7 +157,7 @@ function registerAuthRoutes(router: Router, deps: { authService: AuthService }):
     try {
       const { user, tokens } = await authService.login(parsed.data.identifier, parsed.data.password);
       setRefreshCookie(res, tokens.refreshToken);
-      res.status(200).json({ user, accessToken: tokens.accessToken });
+      res.status(200).json({ user, accessToken: tokens.accessToken, expiresIn: tokens.accessTokenExpiresInSeconds });
     } catch (err) {
       handleError(err, res);
     }
@@ -172,7 +172,7 @@ function registerAuthRoutes(router: Router, deps: { authService: AuthService }):
     try {
       const tokens = await authService.refresh(refreshToken);
       setRefreshCookie(res, tokens.refreshToken);
-      res.status(200).json({ accessToken: tokens.accessToken });
+      res.status(200).json({ accessToken: tokens.accessToken, expiresIn: tokens.accessTokenExpiresInSeconds });
     } catch (err) {
       handleError(err, res);
     }

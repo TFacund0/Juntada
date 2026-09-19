@@ -61,15 +61,21 @@ export interface RegisterPayload {
   password: string;
 }
 
+export interface TokenResponse {
+  accessToken: string;
+  /** Segundos hasta que este access token expire — ver ACCESS_TOKEN_TTL_SECONDS en tokenService.ts (backend). AuthContext lo usa para programar el próximo refresh silencioso antes de que venza. */
+  expiresIn: number;
+}
+
 export function register(payload: RegisterPayload) {
-  return request<{ user: SelfUser; accessToken: string }>("/auth/register", {
+  return request<{ user: SelfUser } & TokenResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function login(identifier: string, password: string) {
-  return request<{ user: SelfUser; accessToken: string }>("/auth/login", {
+  return request<{ user: SelfUser } & TokenResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ identifier, password }),
   });
@@ -80,14 +86,37 @@ export function logout() {
 }
 
 export function refresh() {
-  return request<{ accessToken: string }>("/auth/refresh", { method: "POST" });
+  return request<TokenResponse>("/auth/refresh", { method: "POST" });
+}
+
+// AuthContext registra acá su propio refresh (el único que sabe cómo pedir
+// un access token nuevo y reprogramar el próximo timer) — así una llamada
+// autenticada que pega contra un access token vencido (la pestaña estuvo en
+// segundo plano más de ACCESS_TOKEN_TTL_SECONDS y el refresh proactivo no
+// llegó a correr) se recupera sola en vez de tirarle un error al jugador.
+let onUnauthorized: (() => Promise<string>) | null = null;
+
+export function registerUnauthorizedHandler(handler: (() => Promise<string>) | null): void {
+  onUnauthorized = handler;
+}
+
+// Reintenta UNA sola vez con un token fresco — nunca en loop, y solo para
+// llamadas ya autenticadas (getMe/updateMe), nunca para register/login/
+// refresh en sí (esos 401 son de credenciales reales, no de token vencido).
+async function authedRequest<T>(path: string, init: RequestInit, accessToken: string): Promise<T> {
+  try {
+    return await request<T>(path, { ...init, headers: { Authorization: `Bearer ${accessToken}`, ...(init.headers ?? {}) } });
+  } catch (err) {
+    if (err instanceof AuthApiError && err.status === 401 && onUnauthorized) {
+      const freshToken = await onUnauthorized();
+      return request<T>(path, { ...init, headers: { Authorization: `Bearer ${freshToken}`, ...(init.headers ?? {}) } });
+    }
+    throw err;
+  }
 }
 
 export function getMe(accessToken: string) {
-  return request<{ user: SelfUser }>("/me", {
-    method: "GET",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  return authedRequest<{ user: SelfUser }>("/me", { method: "GET" }, accessToken);
 }
 
 export interface UpdateProfilePayload {
@@ -97,11 +126,7 @@ export interface UpdateProfilePayload {
 }
 
 export function updateMe(accessToken: string, payload: UpdateProfilePayload) {
-  return request<{ user: SelfUser }>("/me", {
-    method: "PATCH",
-    headers: { Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify(payload),
-  });
+  return authedRequest<{ user: SelfUser }>("/me", { method: "PATCH", body: JSON.stringify(payload) }, accessToken);
 }
 
 export function requestPasswordReset(email: string) {
