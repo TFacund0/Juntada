@@ -30,6 +30,7 @@ function makeSession(): AppSession {
     groupAttached: false,
     setGroupAttached: vi.fn(),
     setRoomPhase: vi.fn(),
+    setRoomRoster: vi.fn(),
     handleRoomGameType: vi.fn(),
     GAME_LIST: [],
   } as unknown as AppSession;
@@ -38,6 +39,8 @@ function makeSession(): AppSession {
 function makeBridgeRefs(): BridgeRefs {
   return {
     exposeReturnToGroup: vi.fn(),
+    exposeLeaveRoom: vi.fn(),
+    exposeRoomAction: vi.fn(),
     exposeLocalGameBack: vi.fn(),
     exposeLocalGameReset: vi.fn(),
   } as unknown as BridgeRefs;
@@ -76,6 +79,7 @@ describe("useAppContextValues shape", () => {
     expect(result.current.gameSession).toMatchObject({ gameId: null, mode: null, game: null, groupFlow: false, GAME_LIST: [] });
     expect(result.current.gameBridge).toMatchObject({});
     expect(typeof result.current.gameBridge.exposeReturnToGroup).toBe("function");
+    expect(typeof result.current.gameBridge.exposeLeaveRoom).toBe("function");
     expect(result.current.curtain).toMatchObject({ curtain: "none" });
     expect(typeof result.current.curtain.withCurtain).toBe("function");
     expect(result.current.playerSession).toMatchObject({ playerName: "Ada", validJoinLink: null });

@@ -64,10 +64,11 @@ export function useAppContextValues(
     groupAttached,
     setGroupAttached,
     setRoomPhase,
+    setRoomRoster,
     handleRoomGameType,
     GAME_LIST,
   } = session;
-  const { exposeReturnToGroup, exposeLocalGameBack, exposeLocalGameReset } = bridgeRefs;
+  const { exposeReturnToGroup, exposeLeaveRoom, exposeRoomAction, exposeLocalGameBack, exposeLocalGameReset } = bridgeRefs;
   const { curtain: curtainState, withCurtain, withAsyncCurtain, settleAsyncCurtain } = stepTransition;
   const { pickGame, goHome } = shell;
 
@@ -87,6 +88,7 @@ export function useAppContextValues(
       groupAttached,
       setGroupAttached,
       setRoomPhase,
+      setRoomRoster,
       handleRoomGameType,
       GAME_LIST: GAME_LIST as GameDef[],
     }),
@@ -105,14 +107,15 @@ export function useAppContextValues(
       groupAttached,
       setGroupAttached,
       setRoomPhase,
+      setRoomRoster,
       handleRoomGameType,
       GAME_LIST,
     ],
   );
 
   const gameBridge = useMemo<GameBridgeContextValue>(
-    () => ({ exposeReturnToGroup, exposeLocalGameBack, exposeLocalGameReset }),
-    [exposeReturnToGroup, exposeLocalGameBack, exposeLocalGameReset],
+    () => ({ exposeReturnToGroup, exposeLeaveRoom, exposeRoomAction, exposeLocalGameBack, exposeLocalGameReset }),
+    [exposeReturnToGroup, exposeLeaveRoom, exposeRoomAction, exposeLocalGameBack, exposeLocalGameReset],
   );
 
   const curtain = useMemo<CurtainContextValue>(

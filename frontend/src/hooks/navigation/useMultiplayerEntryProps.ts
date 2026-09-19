@@ -31,8 +31,9 @@ export function useMultiplayerEntryProps(): MultiplayerEntry {
     setGroupCode,
     switchToGroupJoin,
     setGroupAttached,
+    setRoomRoster,
   } = useGameSessionContext();
-  const { exposeReturnToGroup } = useGameBridgeContext();
+  const { exposeReturnToGroup, exposeLeaveRoom, exposeRoomAction } = useGameBridgeContext();
   const { withAsyncCurtain, settleAsyncCurtain, curtain } = useCurtainContext();
   const { playerName, savePlayerName, validJoinLink } = usePlayerSessionContext();
   const { goHome, goBack } = useAppShellContext();
@@ -57,6 +58,9 @@ export function useMultiplayerEntryProps(): MultiplayerEntry {
       onSwitchToGroup: switchToGroupJoin,
       onGroupAttachedChange: setGroupAttached,
       onExposeReturnToGroup: exposeReturnToGroup,
+      onExposeLeaveRoom: exposeLeaveRoom,
+      onExposeRoomAction: exposeRoomAction,
+      onRoomRosterChange: setRoomRoster,
       runTransition: (action, themedOverride) => withAsyncCurtain(action, themedOverride ?? Boolean(game?.gameTheme)),
       onTransitionSettled: settleAsyncCurtain,
       curtain,

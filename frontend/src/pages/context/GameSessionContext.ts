@@ -1,5 +1,17 @@
+import type { RoomPublicState } from "@juntada/shared-types";
 import type { GameDef } from "../../games/gameTypes";
 import { createRequiredContext } from "./createRequiredContext";
+
+// The active room's full public state plus which seat is "me" — forwarded
+// by MultiplayerGame (see useMultiplayerGameShell) so the global GameNavbar
+// (rendered outside this context's Provider tree, see AppHeader/App.tsx) can
+// show a "Jugadores" panel with live online status during any phase
+// (lobby or round), not just while LobbyScreen itself is mounted. null
+// whenever there's no active room (menu, group screen, local mode).
+export interface RoomRoster {
+  room: RoomPublicState;
+  myPlayerId: string | null;
+}
 
 // Everything the page components under pages/ need from useAppSession — the
 // game/mode/group identity of whatever's currently selected. Split out of
@@ -20,6 +32,7 @@ export interface GameSessionContextValue {
   groupAttached: boolean;
   setGroupAttached: (attached: boolean) => void;
   setRoomPhase: (phase: string | null) => void;
+  setRoomRoster: (roster: RoomRoster | null) => void;
   handleRoomGameType: (roomGameType: string | null) => void;
   GAME_LIST: GameDef[];
 }

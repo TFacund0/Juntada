@@ -56,6 +56,8 @@ export default function App() {
     dismissDevNotice,
     localGameResetRef,
     returnToGroupRef,
+    roomRoster,
+    roomActionRef,
     contextValues,
   } = useAppOrchestration();
 
@@ -74,6 +76,7 @@ export default function App() {
         showDevNotice={showDevNotice}
         dismissDevNotice={dismissDevNotice}
         showBackConfirm={showBackConfirm}
+        isOnlineRoom={mode === "multi"}
         confirmGoBack={confirmGoBack}
         setShowBackConfirm={setShowBackConfirm}
         showLocalResetConfirm={showLocalResetConfirm}
@@ -110,6 +113,8 @@ export default function App() {
         curtain={curtain}
         contextValues={contextValues}
         inGameView={inGameView}
+        roomRoster={roomRoster}
+        roomActionRef={roomActionRef}
       />
     </div>
   );

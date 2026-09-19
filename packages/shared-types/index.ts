@@ -183,6 +183,14 @@ export const SCHEMAS = {
   back_to_lobby: z.object({
     type: z.literal("back_to_lobby"),
   }),
+  // A player choosing to leave a standalone (groupless) room mid-match on
+  // their own — same idea as leave_instance for a group's instance, but with
+  // no group to fall back to: removes them from the room right away instead
+  // of waiting out the 1-minute offline-kick grace period, so the rest of
+  // the room isn't stuck waiting on someone who already walked away.
+  leave_room: z.object({
+    type: z.literal("leave_room"),
+  }),
   reveal: z.object({
     type: z.literal("reveal"),
   }),
@@ -478,6 +486,7 @@ export type ServerMessage =
   | { type: "group_state"; group: GroupPublicState }
   | { type: "group_joined"; playerId: string; groupCode: string; group: GroupPublicState }
   | { type: "left_instance" }
+  | { type: "left_room" }
   | { type: "left_group" }
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }

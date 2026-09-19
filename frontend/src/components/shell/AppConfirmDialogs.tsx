@@ -10,6 +10,7 @@ import { RETURN_TO_GROUP_CONFIRM } from "../../features/multiplayer/utils/return
  */
 export function AppConfirmDialogs({
   showBackConfirm,
+  isOnlineRoom,
   onConfirmGoBack,
   onCancelBackConfirm,
   showLocalResetConfirm,
@@ -24,6 +25,7 @@ export function AppConfirmDialogs({
   onCancelReturnToGroupConfirm,
 }: {
   showBackConfirm: boolean;
+  isOnlineRoom: boolean;
   onConfirmGoBack: () => void;
   onCancelBackConfirm: () => void;
   showLocalResetConfirm: boolean;
@@ -42,7 +44,11 @@ export function AppConfirmDialogs({
       {showBackConfirm && (
         <ConfirmDialog
           title="¿Volver atrás?"
-          message="Vas a salir del juego actual y perder el progreso de esta partida."
+          message={
+            isOnlineRoom
+              ? "Vas a salir de esta partida en curso. El resto puede seguir jugando sin vos."
+              : "Vas a salir del juego actual y perder el progreso de esta partida."
+          }
           confirmLabel="Sí, volver"
           cancelLabel="Seguir jugando"
           onConfirm={onConfirmGoBack}

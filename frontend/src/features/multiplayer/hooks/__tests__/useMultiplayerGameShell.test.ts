@@ -105,11 +105,11 @@ function setup(overrides: Partial<MultiplayerGameProps> = {}) {
     ...overrides,
   } as MultiplayerGameProps;
 
-  const { result, rerender } = renderHook((p: MultiplayerGameProps) => useMultiplayerGameShell(p), {
+  const { result, rerender, unmount } = renderHook((p: MultiplayerGameProps) => useMultiplayerGameShell(p), {
     initialProps: props,
   });
 
-  return { result, rerender, ws, socket: h.socket, props };
+  return { result, rerender, unmount, ws, socket: h.socket, props };
 }
 
 describe("useMultiplayerGameShell", () => {
@@ -342,6 +342,51 @@ describe("useMultiplayerGameShell", () => {
       act(() => exposedFn());
 
       expect(h.socket.send).toHaveBeenCalledWith({ type: "leave_instance" });
+    });
+  });
+
+  describe("leaveRoom exposure effect", () => {
+    test("exposes a callable leaveRoom function that sends leave_room", () => {
+      const onExposeLeaveRoom = vi.fn();
+      setup({ onExposeLeaveRoom });
+
+      expect(onExposeLeaveRoom).toHaveBeenCalledTimes(1);
+      const exposedFn = onExposeLeaveRoom.mock.calls[0][0];
+      expect(typeof exposedFn).toBe("function");
+
+      act(() => exposedFn());
+
+      expect(h.socket.send).toHaveBeenCalledWith({ type: "leave_room" });
+    });
+  });
+
+  describe("room action/roster exposure effects", () => {
+    test("exposes the raw send function for the global Jugadores panel", () => {
+      const onExposeRoomAction = vi.fn();
+      setup({ onExposeRoomAction });
+
+      expect(onExposeRoomAction).toHaveBeenCalledWith(h.socket.send);
+    });
+
+    test("forwards room + myPlayerId as a roster once joined, and clears it on unmount", () => {
+      const onRoomRosterChange = vi.fn();
+      const room = makeRoom();
+      h.socket.room = room;
+      h.socket.me = makeMe({ playerId: "p1" });
+      const { unmount } = setup({ onRoomRosterChange });
+
+      expect(onRoomRosterChange).toHaveBeenCalledWith({ room, myPlayerId: "p1" });
+
+      unmount();
+      expect(onRoomRosterChange).toHaveBeenLastCalledWith(null);
+    });
+
+    test("forwards null when there is no active room", () => {
+      const onRoomRosterChange = vi.fn();
+      h.socket.room = null;
+      setup({ onRoomRosterChange });
+
+      expect(onRoomRosterChange).toHaveBeenCalledWith(null);
     });
   });
 
