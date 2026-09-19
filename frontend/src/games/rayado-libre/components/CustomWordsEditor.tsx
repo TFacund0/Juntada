@@ -38,9 +38,12 @@ export function CustomWordsEditor({ words, onChange }: CustomWordsEditorProps) {
         Tus palabras ({words.length}/{MAX_WORDS})
       </span>
       <p className={clsx(T.muted, "mt-1 mb-3")}>Sumá las tuyas además de (o en vez de) las categorías predefinidas.</p>
-      <div className={clsx("flex gap-2", words.length > 0 ? "mb-3" : "mb-0")}>
+      {/* flex-wrap + min-w: mismo motivo que el resto de los inputs+botón de
+          esta app — sin esto, el botón "Agregar" le come el ancho al input
+          en un contenedor angosto. */}
+      <div className={clsx("flex flex-wrap gap-2", words.length > 0 ? "mb-3" : "mb-0")}>
         <input
-          className={clsx(T.input, "flex-1")}
+          className={clsx(T.input, "min-w-[140px] flex-1")}
           placeholder="Escribí una palabra o frase corta"
           maxLength={MAX_WORD_LENGTH}
           value={draft}

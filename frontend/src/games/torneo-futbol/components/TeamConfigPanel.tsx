@@ -186,9 +186,12 @@ export function TeamConfigPanel<Id extends string | number>({
               </span>
             ))}
           </div>
-          <div className="flex gap-2">
+          {/* flex-wrap + min-w: sin esto, en un contenedor angosto el botón
+              "Agregar" (no se achica más allá de su texto+padding) le comía
+              casi todo el ancho al input flex-1, dejándolo inservible. */}
+          <div className="flex flex-wrap gap-2">
             <input
-              className={clsx(T.input, "flex-1")}
+              className={clsx(T.input, "min-w-[140px] flex-1")}
               placeholder="Agregar equipo..."
               value={newTeam}
               onChange={e => setNewTeam(e.target.value)}

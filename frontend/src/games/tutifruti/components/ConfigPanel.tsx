@@ -223,9 +223,14 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
               ? "Sumá una categoría propia — entra al pool del que se sortea cada ronda, junto con todas las de por defecto."
               : "Sumá una categoría propia, además de las de abajo."}
           </p>
-          <div className="flex gap-2">
+          {/* flex-wrap + min-w en el input: sin esto, en un contenedor angosto
+              el botón "Agregar" (que no se achica más allá de su texto+padding)
+              le comía casi todo el ancho al input (flex-1, sin piso), dejándolo
+              inservible — unas pocas decenas de px, no se podía ni tipear. Con
+              flex-wrap el botón pasa a su propia línea en vez de aplastarlo. */}
+          <div className="flex flex-wrap gap-2">
             <input
-              className={clsx(T.input, "flex-1")}
+              className={clsx(T.input, "min-w-[140px] flex-1")}
               placeholder="Nueva categoría..."
               value={newCat}
               onChange={e => setNewCat(e.target.value)}
