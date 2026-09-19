@@ -131,6 +131,8 @@ function createInstance(ws: WS, msg: Extract<ClientMessage, { type: "create_inst
 // A member joining an already-open instance. They can only ever be attached
 // to one instance at a time — if they're already in a different one, that's
 // left behind first (freeing them to move between games on their own terms).
+// Joining one whose round is already in progress lands them in
+// waitingPlayers instead of being rejected (see roomService.joinInstanceRoom).
 function joinInstance(ws: WS, msg: Extract<ClientMessage, { type: "join_instance" }>, info: ClientInfo): void {
   const group = groups.get(info.groupCode ?? "");
   if (!group || !info.playerId) return;

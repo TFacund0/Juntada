@@ -92,8 +92,10 @@ async function joinRoom(ws: WS, msg: Extract<ClientMessage, { type: "join_room" 
     return;
   }
   releaseStaleIdentity(prevInfo);
-  // Joining is only ever allowed during "lobby" (roomService rejects it
-  // otherwise), so there's never a round in progress to send private info for.
+  // A join mid-round lands the player in room.waitingPlayers (see
+  // roomService.joinRoom) instead of getting rejected — there's still never
+  // private round info to send them, since they're invisible to the engine
+  // until the room flushes them back to "lobby".
   sendTo(ws, { type: "joined", playerId, roomCode: room.code, room: getRoomPublicState(room) });
   broadcast(room.code, { type: "state", room: getRoomPublicState(room) }, ws);
 }
@@ -278,7 +280,7 @@ function schedulePlayerKick(roomCode: string, playerId: string): void {
   setTimeout(() => {
     const room = rooms.get(roomCode);
     if (!room) return;
-    const player = room.players.find((p: Room["players"][number]) => p.id === playerId);
+    const player = roomService.findPlayer(room, playerId);
     if (!player || player.online) return;
     if (roomService.isRoomFullyOffline(room)) return;
 
