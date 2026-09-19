@@ -157,7 +157,7 @@ describe("inbound messages", () => {
     expect(result.current.room).not.toBeNull();
   });
 
-  test("'kicked' resets everything back to the menu with an explanatory error", () => {
+  test("'kicked' resets everything back to the menu with an explanatory kicked notice", () => {
     const { result } = renderHook(() => useMultiplayerSocket());
     act(() => result.current.connect());
     const ws = lastSocket();
@@ -176,7 +176,7 @@ describe("inbound messages", () => {
     expect(result.current.connectionPhase).toBe("menu");
     expect(result.current.me).toBeNull();
     expect(result.current.room).toBeNull();
-    expect(result.current.error).toBe("Fuiste expulsado de la sala");
+    expect(result.current.kickedNotice).toBe("Fuiste expulsado de la sala");
   });
 });
 
