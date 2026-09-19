@@ -88,11 +88,10 @@ function broadcastStateAndPrivateInfo(room: Room): void {
 // optional onPlayerOffline, e.g. skipping whoever's turn it is) would punish
 // a normal, brief disconnect the same as someone who's actually gone. This
 // gives them real time to come back before it costs them anything, while
-// still being far shorter than the 10-minute grace period before an offline
-// player is auto-kicked outright (schedulePlayerKick, ./roomHandlers.ts) —
-// that one only ever removes them from the room; this one only ever reacts
-// to them still being mid-turn.
-const OFFLINE_REACTION_DELAY_MS = 60 * 1000;
+// still being shorter than PLAYER_OFFLINE_TIMEOUT_MS below (the real
+// auto-kick) — that one only ever removes them from the room; this one only
+// ever reacts to them still being mid-turn.
+const OFFLINE_REACTION_DELAY_MS = 20 * 1000;
 
 // How long a single disconnected player is allowed to sit offline (while
 // others in the room/group stay connected) before being auto-removed, so
@@ -103,7 +102,7 @@ const OFFLINE_REACTION_DELAY_MS = 60 * 1000;
 // around to keep playing without the disconnected player in the way. Shared
 // by roomHandlers.ts's schedulePlayerKick and groupHandlers.ts's
 // scheduleGroupMemberKick.
-const PLAYER_OFFLINE_TIMEOUT_MS = 10 * 60 * 1000;
+const PLAYER_OFFLINE_TIMEOUT_MS = 60 * 1000;
 
 // Keyed by "roomCode:playerId" — a flaky connection can disconnect and
 // reconnect several times within OFFLINE_REACTION_DELAY_MS while a round is
