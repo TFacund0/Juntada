@@ -118,7 +118,15 @@ function createInstance(ws: WS, msg: Extract<ClientMessage, { type: "create_inst
   const member = group.members.find(m => m.id === info.playerId);
   if (!member) return;
 
-  const { room, error } = roomService.createInstanceRoom(group.code, msg.gameType, member.id, member.accountId, member.name, group.name);
+  const { room, error } = roomService.createInstanceRoom(
+    ws,
+    group.code,
+    msg.gameType,
+    member.id,
+    member.accountId,
+    member.name,
+    group.name,
+  );
   if (error) {
     sendError(ws, "CREATE_INSTANCE_FAILED", error);
     return;
@@ -141,7 +149,7 @@ function joinInstance(ws: WS, msg: Extract<ClientMessage, { type: "join_instance
 
   if (info.roomCode && info.roomCode !== msg.roomCode) leavePlayerFromInstance(info.roomCode, member.id, group);
 
-  const { room, error } = roomService.joinInstanceRoom(msg.roomCode, member.id, member.accountId, member.name);
+  const { room, error } = roomService.joinInstanceRoom(ws, msg.roomCode, member.id, member.accountId, member.name);
   if (error) {
     sendError(ws, "JOIN_INSTANCE_FAILED", error);
     return;

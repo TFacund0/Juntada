@@ -76,6 +76,7 @@ function createRoom(
 // fresh websocket client entry (the caller's already attached to the group;
 // see groupService.createInstance for the client bookkeeping).
 function createInstanceRoom(
+  ws: WebSocket,
   groupCode: string,
   gameType: string,
   hostId: string,
@@ -104,6 +105,8 @@ function createInstanceRoom(
     chat: [],
   };
   rooms.set(code, room);
+  activeSockets.set(hostId, ws);
+  evictPreviousAccountSocket(code, hostAccountId, ws);
   return { room };
 }
 
@@ -133,19 +136,29 @@ function joinRoom(ws: WebSocket, { code, accountId, username }: { code?: string;
 // accountId, username) from the group — reused as-is instead of minting a
 // new one, so they're recognizable as the same person across every instance
 // they join.
-function joinInstanceRoom(roomCode: string, playerId: string, accountId: string, username: string): RoomResult {
+function joinInstanceRoom(ws: WebSocket, roomCode: string, playerId: string, accountId: string, username: string): RoomResult {
   const room = rooms.get(roomCode);
   if (!room) return { error: "Esa partida ya no existe" };
   const engine = getEngine(room.gameType);
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
-  if (room.players.some(p => p.id === playerId)) return { room };
-  if (room.waitingPlayers.some(p => p.id === playerId)) return { room, waiting: true };
+  if (room.players.some(p => p.id === playerId)) {
+    activeSockets.set(playerId, ws);
+    evictPreviousAccountSocket(room.code, accountId, ws);
+    return { room };
+  }
+  if (room.waitingPlayers.some(p => p.id === playerId)) {
+    activeSockets.set(playerId, ws);
+    evictPreviousAccountSocket(room.code, accountId, ws);
+    return { room, waiting: true };
+  }
   if (room.players.length + room.waitingPlayers.length >= maxPlayers) return { error: "Esa partida está llena" };
 
   const player = { id: playerId, accountId, name: username, ready: false, online: true };
   const waiting = room.phase !== "lobby";
   if (waiting) room.waitingPlayers.push(player);
   else room.players.push(player);
+  activeSockets.set(playerId, ws);
+  evictPreviousAccountSocket(room.code, accountId, ws);
   return { room, waiting };
 }
 
