@@ -1,21 +1,33 @@
-/* Overlays shared by PlayerItemsSheet and ItemUseModal. */
+/* Overlays shared by PlayerItemsSheet, ItemUseModal, OutcomeBanner, etc.
+   Centrado por defecto (el caso común: casi todo consumidor pone un
+   `.rec-modal` adentro y lo quiere centrado) — antes era al revés
+   (`align-items: flex-end` por defecto + `.rec-overlay:has(.rec-modal)`
+   forzando el centrado), lo que dependía de que el navegador soportara
+   `:has()`. Un navegador sin soporte (o con soporte parcial) hacía que el
+   centrado se cayera en silencio y el modal quedara pegado abajo — el
+   "error visual" que seguía apareciendo pese a que el código ya tenía un
+   parche. `.rec-overlay-sheet` es ahora el opt-in explícito para el único
+   caso que sí quiere el look de bottom-sheet (PlayerItemsSheet). */
 .recamara .rec-overlay {
   position: fixed;
   inset: 0;
   z-index: var(--jt-z-fullscreen-flash, 200);
   background: rgba(0, 0, 0, 0.55);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   animation: rec-fade-in 0.2s ease-out;
 }
 
-/* FlashOverlay's own variant — fully opaque and centered, so whatever
-   screen it's covering (e.g. RoundView's "esperando a los demás" list)
-   never bleeds through behind the flashed text. */
+.recamara .rec-overlay-sheet {
+  align-items: flex-end;
+}
+
+/* FlashOverlay's own variant — fully opaque, mismo centrado que el resto,
+   así lo que sea que esté tapando (ej. la lista de "esperando a los demás"
+   de RoundView) nunca se traslucja detrás del texto flasheado. */
 .recamara .rec-overlay-solid {
   background: var(--rec-bg);
-  align-items: center;
 }
 
 .recamara .rec-sheet {
@@ -96,10 +108,6 @@
   padding: 24px 20px;
   text-align: center;
   animation: rec-fade-in 0.2s ease-out;
-}
-
-.recamara .rec-overlay:has(.rec-modal) {
-  align-items: center;
 }
 
 .recamara .rec-modal-icon {
