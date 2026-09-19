@@ -59,6 +59,8 @@ export function useMultiplayerGameShell({
     error,
     errorKey,
     setError,
+    kickedNotice,
+    dismissKickedNotice,
     reconnecting,
     reconnectAttempt,
     reconnectFailed,
@@ -207,6 +209,7 @@ export function useMultiplayerGameShell({
 
   const { isHost, isGroupHost, myPlayer, selectedGame, activeGame } = useShellPermissions({
     me,
+    groupMe,
     room,
     group,
     gameId,
@@ -328,6 +331,8 @@ export function useMultiplayerGameShell({
     error,
     errorKey,
     setError,
+    kickedNotice,
+    dismissKickedNotice,
     reconnecting,
     reconnectAttempt,
     reconnectFailed,

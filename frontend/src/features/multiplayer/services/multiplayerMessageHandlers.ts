@@ -75,6 +75,11 @@ export interface InboundMessageContext {
   // from useFlashError
   flashError(message: string): void;
   clearError(): void;
+  // from useMultiplayerSocket — a centered dialog for "the server just
+  // ejected you", separate from the flash banner: kicked/kicked_from_group
+  // also redirect away from the current screen, and a banner on the screen
+  // you're leaving is easy to miss entirely by the time the next one mounts.
+  setKickedNotice(message: string | null): void;
 }
 
 export function parseInboundMessage(raw: string): InboundMessage | null {
@@ -235,7 +240,7 @@ export function handleKicked(ctx: InboundMessageContext): void {
   ctx.setMe(null);
   ctx.setRoom(null);
   ctx.setMyRole(null);
-  ctx.flashError("Fuiste expulsado de la sala");
+  ctx.setKickedNotice("Fuiste expulsado de la sala");
   ctx.stopReconnecting();
   ctx.endColdStart();
 }
@@ -248,7 +253,7 @@ export function handleKickedFromGroup(ctx: InboundMessageContext): void {
   ctx.setMyRole(null);
   ctx.setWordReveal(null);
   ctx.setConnectionPhase("menu");
-  ctx.flashError("Fuiste expulsado del grupo");
+  ctx.setKickedNotice("Fuiste expulsado del grupo");
   ctx.stopReconnecting();
   ctx.notifyLeftGroup();
   ctx.endColdStart();

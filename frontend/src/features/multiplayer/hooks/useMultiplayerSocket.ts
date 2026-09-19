@@ -69,6 +69,14 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   const flashError = setErrorExternal;
   const clearError = useCallback(() => setErrorExternal(""), [setErrorExternal]);
 
+  // A centered dialog for "you were just kicked" (see ctx.setKickedNotice in
+  // multiplayerMessageHandlers.ts) — kicked/kicked_from_group also redirect
+  // away from the current screen, so a self-timing flash banner risks being
+  // gone (or on a screen that's already unmounting) by the time the player
+  // actually sees it. Dismissed explicitly by the dialog's own button.
+  const [kickedNotice, setKickedNotice] = useState<string | null>(null);
+  const dismissKickedNotice = useCallback(() => setKickedNotice(null), []);
+
   // 3. Declared here, constructed at step 6 — so useReconnectOverlay (step 5)
   // can close over `() => serviceRef.current?.resetReconnect()` without a
   // construction-order cycle (see design's Composition Root Call Order).
@@ -124,6 +132,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       abandonReconnect: overlay.abandonReconnect,
       flashError,
       clearError,
+      setKickedNotice,
     };
   }
 
@@ -259,6 +268,8 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
     error,
     errorKey,
     setError: setErrorExternal,
+    kickedNotice,
+    dismissKickedNotice,
     reconnecting: overlay.reconnecting,
     reconnectAttempt: overlay.reconnectAttempt,
     reconnectFailed: overlay.reconnectFailed,

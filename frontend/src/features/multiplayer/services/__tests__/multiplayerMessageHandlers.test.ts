@@ -48,6 +48,7 @@ function makeCtx(overrides: Partial<InboundMessageContext> = {}): InboundMessage
     abandonReconnect: vi.fn(),
     flashError: vi.fn(),
     clearError: vi.fn(),
+    setKickedNotice: vi.fn(),
     ...overrides,
   };
 }
@@ -269,7 +270,7 @@ describe("handleKicked", () => {
     expect(ctx.setMe).toHaveBeenCalledWith(null);
     expect(ctx.setRoom).toHaveBeenCalledWith(null);
     expect(ctx.setMyRole).toHaveBeenCalledWith(null);
-    expect(ctx.flashError).toHaveBeenCalledWith("Fuiste expulsado de la sala");
+    expect(ctx.setKickedNotice).toHaveBeenCalledWith("Fuiste expulsado de la sala");
     expect(ctx.stopReconnecting).toHaveBeenCalledTimes(1);
     expect(ctx.endColdStart).toHaveBeenCalledTimes(1);
   });
@@ -292,7 +293,7 @@ describe("handleKickedFromGroup", () => {
     expect(ctx.setMyRole).toHaveBeenCalledWith(null);
     expect(ctx.setWordReveal).toHaveBeenCalledWith(null);
     expect(ctx.setConnectionPhase).toHaveBeenCalledWith("menu");
-    expect(ctx.flashError).toHaveBeenCalledWith("Fuiste expulsado del grupo");
+    expect(ctx.setKickedNotice).toHaveBeenCalledWith("Fuiste expulsado del grupo");
     expect(ctx.stopReconnecting).toHaveBeenCalledTimes(1);
     expect(ctx.notifyLeftGroup).toHaveBeenCalledTimes(1);
     expect(ctx.endColdStart).toHaveBeenCalledTimes(1);
