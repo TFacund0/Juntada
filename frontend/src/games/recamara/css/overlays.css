@@ -42,23 +42,29 @@
   font-size: 0.85rem;
 }
 
+/* Grilla de cajas, misma familia visual que .item-btn/.chest-collected-item
+   (antes: filas full-width en columna, la única de las 4 vistas de ítems que
+   no usaba el sistema de cajas — ver base.css's --rec-box-*). */
 .recamara .rec-sheet-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--rec-box-lg), 1fr));
   gap: 8px;
 }
 
 .recamara .rec-sheet-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 4px;
+  aspect-ratio: 1;
   background: var(--rec-bg);
   border: 1px solid var(--rec-hair);
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 6px;
   font-family: inherit;
   color: var(--rec-ink);
-  text-align: left;
+  text-align: center;
   cursor: default;
 }
 
@@ -71,11 +77,12 @@
 }
 
 .recamara .rec-sheet-item .icon {
-  font-size: 18px;
+  font-size: calc(var(--rec-box-lg) * 0.22);
 }
 
 .recamara .rec-sheet-item .label {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
+  line-height: 1.15;
   color: var(--rec-ink-dim);
 }
 

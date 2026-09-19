@@ -44,7 +44,7 @@ export function RoundAnnounce({
 
   return (
     <div className="recamara">
-      <div className="table round-intro">
+      <div className="rec-table round-intro">
         <div className={`round-intro-fade${visible ? " visible" : ""}`}>
           {stage === "ended" ? (
             <>

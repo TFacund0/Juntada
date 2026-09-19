@@ -87,15 +87,15 @@
 
 .recamara .item-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: var(--rec-box-md);
+  aspect-ratio: 1;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--rec-bg-raised);
   border: 1px solid var(--rec-hair);
-  font-size: 19px;
+  font-size: calc(var(--rec-box-md) * 0.43);
   cursor: pointer;
   transition:
     transform 0.15s,

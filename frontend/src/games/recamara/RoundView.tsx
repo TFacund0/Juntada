@@ -319,7 +319,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     if (readySent) {
       return (
         <div className="recamara">
-          <div className="table" style={{ textAlign: "center" }}>
+          <div className="rec-table" style={{ textAlign: "center" }}>
             <p className="mono eyebrow">{amAlive ? "Esperando a los demás" : "Estás eliminado — mirando la partida"}</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
               {round.seatOrder
@@ -358,7 +358,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
       const chestDone = revealedCount >= myNewItems.length;
       return (
         <div className="recamara">
-          <div className="table">
+          <div className="rec-table">
             <ChestReveal
               player={myPlayer ?? { id: myEngineId, name: "Vos", lives: 0, items: [], lastGrantedItems: [] }}
               newItems={myNewItems}
@@ -446,7 +446,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
 
   return (
     <div className="recamara">
-      <div className="table">
+      <div className="rec-table">
         <div className="turn-banner">
           <span className="dot" />
           <span className="txt">
@@ -610,7 +610,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
 
       {showWinner && round.winnerRoomId && (
         <div className="rec-overlay winner-overlay">
-          <div className="table final-card winner-in" style={{ maxWidth: 420 }}>
+          <div className="rec-table final-card winner-in" style={{ maxWidth: 420 }}>
             <p className="mono eyebrow">Fin del duelo</p>
             <p className="display winner">
               Gana <span>{round.winnerRoomId === myPlayerId ? "vos" : nameFor(round.winnerRoomId)}</span>

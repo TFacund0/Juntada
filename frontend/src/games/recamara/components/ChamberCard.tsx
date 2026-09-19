@@ -27,7 +27,7 @@ export function ChamberCard({
 }) {
   return (
     <div className="recamara">
-      <div className="table round-chamber">
+      <div className="rec-table round-chamber">
         <div className="chamber-focus">
           <div className="shotgun" style={{ margin: "0 auto 10px" }}>
             <div className="stock" />
