@@ -371,7 +371,7 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
         <ScreenFade transitionKey="group" skipAnimation={skipFade}>
           <GroupScreen
             group={group}
-            myPlayerId={me?.playerId}
+            myPlayerId={groupMe?.playerId}
             isGroupHost={isGroupHost}
             showQR={showQR}
             onShowQR={setShowQR}
