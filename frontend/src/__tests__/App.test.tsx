@@ -28,6 +28,8 @@ const authValue = (overrides: Partial<ReturnType<typeof authContext.useAuth>>) =
   user: null,
   accessToken: null,
   loading: false,
+  justRegistered: false,
+  clearJustRegistered: vi.fn(),
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),

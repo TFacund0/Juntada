@@ -179,7 +179,7 @@ describe("inbound messages", () => {
     expect(result.current.kickedNotice).toBe("Fuiste expulsado de la sala");
   });
 
-  test("'kicked_from_group' shows the dialog without leaving the group flow yet, then calls onLeftGroup only once it's dismissed", () => {
+  test("'kicked_from_group' calls onLeftGroup immediately with the kicked reason — the App-level dialog it drives lives above this shell, not in kickedNotice", () => {
     const onLeftGroup = vi.fn();
     const { result } = renderHook(() => useMultiplayerSocket({ onLeftGroup }));
     act(() => result.current.connect());
@@ -196,13 +196,8 @@ describe("inbound messages", () => {
 
     act(() => ws.simulateMessage({ type: "kicked_from_group" }));
 
-    expect(result.current.kickedNotice).toBe("Fuiste expulsado del grupo");
-    expect(onLeftGroup).not.toHaveBeenCalled();
-
-    act(() => result.current.dismissKickedNotice());
-
+    expect(onLeftGroup).toHaveBeenCalledWith("Fuiste expulsado del grupo");
     expect(result.current.kickedNotice).toBeNull();
-    expect(onLeftGroup).toHaveBeenCalledTimes(1);
   });
 });
 

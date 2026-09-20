@@ -49,6 +49,7 @@ function baseContextValues(): AppContextValues {
       pickGame: vi.fn(),
       goHome: vi.fn(),
       goBack: vi.fn(),
+      notifyKicked: vi.fn(),
     },
   };
 }

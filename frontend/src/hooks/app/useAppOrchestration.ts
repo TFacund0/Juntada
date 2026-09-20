@@ -12,7 +12,6 @@ import { useBackNavigation } from "../navigation/useBackNavigation";
 import { useStepTransition } from "../navigation/useStepTransition";
 import { useAppShell } from "../navigation/useAppShell";
 import { useAppContextValues } from "../navigation/useAppContextValues";
-import { useDevNotice } from "../ui/useDevNotice";
 import { useAuth } from "../../features/auth/context/AuthContext";
 import { setAppInGame } from "../../utils/appActivity";
 
@@ -81,10 +80,11 @@ export function useAppOrchestration() {
     setShowLocalResetConfirm,
     showReturnToGroupConfirm,
     setShowReturnToGroupConfirm,
+    kickedNotice,
+    setKickedNotice,
   } = dialogs;
   const { showProfileMenu, setShowProfileMenu, profileMenuRef, showRules, setShowRules } = headerUI;
 
-  const { showDevNotice, dismissDevNotice } = useDevNotice();
   // Identity now comes from the account (see features/auth/), not a
   // localStorage-only free-form name — playerName IS the account's
   // username, and savePlayerName renames it via PATCH /api/me. Kept as the
@@ -93,7 +93,7 @@ export function useAppOrchestration() {
   // need to change — the error surfacing needed for a taken-username rename
   // (see design's user-profile spec) lives in ProfilePanel instead, which
   // calls useAuth().updateProfile directly.
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, justRegistered, clearJustRegistered } = useAuth();
   const playerName = user?.username ?? "";
   const savePlayerName = (name: string) => {
     void updateProfile({ username: name });
@@ -121,6 +121,7 @@ export function useAppOrchestration() {
     savePlayerName,
     validJoinLink,
     goBack,
+    notifyKicked: setKickedNotice,
   });
 
   return {
@@ -155,8 +156,10 @@ export function useAppOrchestration() {
     setShowLocalResetConfirm,
     showReturnToGroupConfirm,
     setShowReturnToGroupConfirm,
-    showDevNotice,
-    dismissDevNotice,
+    showWelcome: justRegistered,
+    dismissWelcome: clearJustRegistered,
+    kickedNotice,
+    dismissKickedNotice: () => setKickedNotice(null),
     localGameResetRef,
     returnToGroupRef,
     roomRoster,

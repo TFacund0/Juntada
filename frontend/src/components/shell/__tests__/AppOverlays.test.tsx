@@ -9,8 +9,11 @@ function renderAppOverlays(overrides: Partial<React.ComponentProps<typeof AppOve
     curtain: "none",
     activeTheme: null,
     accentColor: "#7F77DD",
-    showDevNotice: false,
-    dismissDevNotice: vi.fn(),
+    showWelcome: false,
+    playerName: "Tobi",
+    dismissWelcome: vi.fn(),
+    kickedNotice: null,
+    dismissKickedNotice: vi.fn(),
     showBackConfirm: false,
     isOnlineRoom: false,
     confirmGoBack: vi.fn(),
@@ -43,14 +46,32 @@ describe("AppOverlays", () => {
     expect(screen.getByText("🎲")).toBeTruthy();
   });
 
-  test("showDevNotice=false hides the dev notice dialog", () => {
-    renderAppOverlays({ showDevNotice: false });
-    expect(screen.queryByText("Juntada está en desarrollo")).toBeNull();
+  test("showWelcome=false hides the welcome dialog", () => {
+    renderAppOverlays({ showWelcome: false });
+    expect(screen.queryByText(/¡Bienvenido\/a,/)).toBeNull();
   });
 
-  test("showDevNotice=true shows the dev notice dialog", () => {
-    renderAppOverlays({ showDevNotice: true });
-    expect(screen.getByText("Juntada está en desarrollo")).toBeTruthy();
+  test("showWelcome=true shows the welcome dialog with the player's name", () => {
+    renderAppOverlays({ showWelcome: true, playerName: "Tobi" });
+    expect(screen.getByText("¡Bienvenido/a, Tobi!")).toBeTruthy();
+  });
+
+  test("kickedNotice=null hides the kicked dialog", () => {
+    renderAppOverlays({ kickedNotice: null });
+    expect(screen.queryByText("Expulsado")).toBeNull();
+  });
+
+  test("kickedNotice set shows the kicked dialog with its message", () => {
+    renderAppOverlays({ kickedNotice: "Fuiste expulsado del grupo" });
+    expect(screen.getByText("Expulsado")).toBeTruthy();
+    expect(screen.getByText("Fuiste expulsado del grupo")).toBeTruthy();
+  });
+
+  test("dismissing the kicked dialog calls dismissKickedNotice", () => {
+    const dismissKickedNotice = vi.fn();
+    renderAppOverlays({ kickedNotice: "Fuiste expulsado del grupo", dismissKickedNotice });
+    fireEvent.click(screen.getByText("Entendido"));
+    expect(dismissKickedNotice).toHaveBeenCalledTimes(1);
   });
 
   test("showBackConfirm=true shows the back confirm dialog", () => {

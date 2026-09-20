@@ -21,6 +21,7 @@ interface AppLevelExtras {
   savePlayerName: (name: string) => void;
   validJoinLink: JoinLink | null;
   goBack: () => void;
+  notifyKicked: (message: string) => void;
 }
 
 export interface AppContextValues {
@@ -47,7 +48,7 @@ export function useAppContextValues(
   bridgeRefs: BridgeRefs,
   stepTransition: StepTransition,
   shell: Shell,
-  { playerName, savePlayerName, validJoinLink, goBack }: AppLevelExtras,
+  { playerName, savePlayerName, validJoinLink, goBack, notifyKicked }: AppLevelExtras,
 ): AppContextValues {
   const {
     gameId,
@@ -135,7 +136,10 @@ export function useAppContextValues(
     [playerName, savePlayerName, validJoinLink],
   );
 
-  const appShell = useMemo<AppShellContextValue>(() => ({ pickGame, goHome, goBack }), [pickGame, goHome, goBack]);
+  const appShell = useMemo<AppShellContextValue>(
+    () => ({ pickGame, goHome, goBack, notifyKicked }),
+    [pickGame, goHome, goBack, notifyKicked],
+  );
 
   return { gameSession, gameBridge, curtain, playerSession, appShell };
 }

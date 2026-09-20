@@ -69,11 +69,6 @@ hooks de React de verdad, organizados en subcarpetas por dominio.
   reglas), extraído de `useAppNavigation.ts`. Separado de
   `navigation/useAppDialogs` porque no son confirmaciones, son simples
   toggles de visibilidad. Usa `useClickOutside.ts` para cerrar el dropdown.
-- **`useDevNotice.ts`** — el aviso único de "app en desarrollo"
-  (`DevNoticeDialog`), extraído de `App.tsx`. Dueño de la bandera
-  `impostorgame:devNoticeSeen` (vía `../../utils/localFlag.ts`):
-  `dismissDevNotice` la persiste para que no vuelva a aparecer en ese
-  dispositivo.
 - **`useCurtainTransition.ts`** — el fundido a negro que se reproduce al
   entrar/salir de un juego con tema propio, para que el cambio de paleta de
   toda la app pase tapado en vez de como un corte brusco. Reservado a juegos

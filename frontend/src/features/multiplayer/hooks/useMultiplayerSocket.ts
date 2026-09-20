@@ -45,7 +45,10 @@ export { clearMultiplayerSession };
 // Remaining view state (connectionPhase, room, group, myRole, wordReveal,
 // roomPreview) stays here — it's plain setter-only state with no logic, and
 // splitting it out would add a fourth unit outside this refactor's scope.
-export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?: () => void; entryKind?: "room" | "group" } = {}) {
+export function useMultiplayerSocket({
+  onLeftGroup,
+  entryKind,
+}: { onLeftGroup?: (reason?: string) => void; entryKind?: "room" | "group" } = {}) {
   // 1. View state + refs that mirror it for stable-closure readers.
   const [connectionPhase, setConnectionPhase] = useState("menu");
   const [room, setRoom] = useState<RoomPublicState | null>(null);
@@ -69,22 +72,14 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   const flashError = setErrorExternal;
   const clearError = useCallback(() => setErrorExternal(""), [setErrorExternal]);
 
-  // A centered dialog for "you were just kicked" (see ctx.setKickedNotice in
-  // multiplayerMessageHandlers.ts) — kicked/kicked_from_group also redirect
-  // away from the current screen, so a self-timing flash banner risks being
-  // gone (or on a screen that's already unmounting) by the time the player
-  // actually sees it. Dismissed explicitly by the dialog's own button.
+  // A centered dialog for "you were just kicked from the room" (see
+  // ctx.setKickedNotice in multiplayerMessageHandlers.ts). Only used for the
+  // standalone-room case (handleKicked): that one doesn't unmount this shell
+  // (connectionPhase just moves to "group"/"menu" within the same page), so
+  // showing it locally is enough. kicked_from_group is different — see
+  // notifyLeftGroup below and useAppDialogs' App-level kickedNotice.
   const [kickedNotice, setKickedNotice] = useState<string | null>(null);
-  // Set by markGroupKicked (kicked_from_group) so dismissing the dialog is
-  // what actually leaves the group flow — see notifyLeftGroup below.
-  const groupKickedRef = useRef(false);
-  const dismissKickedNotice = useCallback(() => {
-    setKickedNotice(null);
-    if (groupKickedRef.current) {
-      groupKickedRef.current = false;
-      onLeftGroupRef.current?.();
-    }
-  }, []);
+  const dismissKickedNotice = useCallback(() => setKickedNotice(null), []);
 
   // 3. Declared here, constructed at step 6 — so useReconnectOverlay (step 5)
   // can close over `() => serviceRef.current?.resetReconnect()` without a
@@ -128,10 +123,7 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       setWordReveal,
       setRoomPreview,
       readRoom,
-      notifyLeftGroup: () => onLeftGroupRef.current?.(),
-      markGroupKicked: () => {
-        groupKickedRef.current = true;
-      },
+      notifyLeftGroup: reason => onLeftGroupRef.current?.(reason),
       isColdStart: overlay.isColdStart,
       onReconnected: overlay.onReconnected,
       resolveColdStart: overlay.resolveColdStart,

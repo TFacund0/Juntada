@@ -52,8 +52,10 @@ export default function App() {
     setShowLocalResetConfirm,
     showReturnToGroupConfirm,
     setShowReturnToGroupConfirm,
-    showDevNotice,
-    dismissDevNotice,
+    showWelcome,
+    dismissWelcome,
+    kickedNotice,
+    dismissKickedNotice,
     localGameResetRef,
     returnToGroupRef,
     roomRoster,
@@ -73,8 +75,11 @@ export default function App() {
         curtain={curtain}
         activeTheme={activeTheme}
         accentColor={accentColor}
-        showDevNotice={showDevNotice}
-        dismissDevNotice={dismissDevNotice}
+        showWelcome={showWelcome}
+        playerName={playerName}
+        dismissWelcome={dismissWelcome}
+        kickedNotice={kickedNotice}
+        dismissKickedNotice={dismissKickedNotice}
         showBackConfirm={showBackConfirm}
         isOnlineRoom={mode === "multi"}
         confirmGoBack={confirmGoBack}

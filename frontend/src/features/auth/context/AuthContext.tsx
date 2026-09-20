@@ -26,6 +26,12 @@ interface AuthContextValue {
   user: SelfUser | null;
   accessToken: string | null;
   loading: boolean;
+  // True right after `register()` succeeds, until `clearJustRegistered` is
+  // called — the signal a brand-new account (as opposed to an existing one
+  // logging in) uses to show a one-time welcome instead of the old blanket
+  // "app en desarrollo" notice (see useAppOrchestration/AppOverlays).
+  justRegistered: boolean;
+  clearJustRegistered: () => void;
   login: (identifier: string, password: string) => Promise<void>;
   register: (payload: authApi.RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
@@ -38,6 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SelfUser | null>(null);
   const [accessToken, setAccessTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [justRegistered, setJustRegistered] = useState(false);
+  const clearJustRegistered = useCallback(() => setJustRegistered(false), []);
   const setAccessToken = useCallback((token: string | null) => {
     accessTokenRef.current = token;
     setAccessTokenState(token);
@@ -146,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(token);
       setUser(self);
       scheduleRefresh(expiresIn);
+      setJustRegistered(true);
     },
     [setAccessToken, scheduleRefresh],
   );
@@ -173,7 +182,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, loading, login, register, logout, updateProfile }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider
+      value={{ user, accessToken, loading, justRegistered, clearJustRegistered, login, register, logout, updateProfile }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 }
 

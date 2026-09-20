@@ -38,7 +38,7 @@ interface DialogFrameProps {
    */
   cardStyle?: CSSProperties;
   /**
-   * `false` para un aviso único (`DevNoticeDialog`) que debe cerrarse
+   * `false` para un aviso único (`WelcomeDialog`) que debe cerrarse
    * explícitamente con su propio botón — tocar el fondo no debería
    * saltearlo en silencio.
    */

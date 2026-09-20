@@ -158,7 +158,7 @@ export function useMultiplayerGameShell({
   // themed game, useAppNavigation's `inGameView` briefly read stale-true and
   // useGameTheme flashed that game's theme colors for a commit before the
   // fresh shell's own effect corrected it.
-  useForwardProp(room?.gameType ?? null, onGameTypeChange, { clearOnUnmount: true });
+  useForwardProp(room?.gameType ?? null, onGameTypeChange, { clearOnUnmount: true, sync: true });
 
   // While waiting for the current round to end (connectionPhase "waiting",
   // see multiplayerMessageHandlers' effectivePhase), room.phase itself still

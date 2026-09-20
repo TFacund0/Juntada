@@ -8,7 +8,7 @@
    de texto) que el resto del rediseño. */
 
 /* position/overflow + el glow en sí (::before) viven en .jt-card-glow
-   (theme/sharedChrome.css, compartido con ConfirmDialog/DevNoticeDialog) —
+   (theme/sharedChrome.css, compartido con ConfirmDialog/WelcomeDialog) —
    acá solo la altura propia (esta card suele tener más contenido) y el uso
    del acento dinámico del juego en vez de un color fijo. */
 .jt-rules-card {

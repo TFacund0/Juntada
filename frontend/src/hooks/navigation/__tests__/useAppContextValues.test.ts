@@ -67,7 +67,7 @@ function makeShell(): Shell {
 }
 
 function makeExtras() {
-  return { playerName: "Ada", savePlayerName: vi.fn(), validJoinLink: null, goBack: vi.fn() };
+  return { playerName: "Ada", savePlayerName: vi.fn(), validJoinLink: null, goBack: vi.fn(), notifyKicked: vi.fn() };
 }
 
 describe("useAppContextValues shape", () => {
@@ -86,6 +86,7 @@ describe("useAppContextValues shape", () => {
     expect(typeof result.current.appShell.pickGame).toBe("function");
     expect(typeof result.current.appShell.goHome).toBe("function");
     expect(typeof result.current.appShell.goBack).toBe("function");
+    expect(typeof result.current.appShell.notifyKicked).toBe("function");
   });
 });
 

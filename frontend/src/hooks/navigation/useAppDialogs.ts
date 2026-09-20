@@ -18,6 +18,13 @@ export function useAppDialogs() {
   // local game back to its players screen instead of exiting local mode.
   const [showLocalResetConfirm, setShowLocalResetConfirm] = useState(false);
   const [showReturnToGroupConfirm, setShowReturnToGroupConfirm] = useState(false);
+  // Centered "fuiste expulsado del grupo" dialog — lives here (App-level,
+  // outside the <Outlet> page tree GroupPage/MultiplayerGame unmount from)
+  // instead of inside useMultiplayerSocket, so it can still be shown after
+  // goHome has already swapped the background behind it back to the actual
+  // home screen. See useAppShell's notifyKicked, which sets this the instant
+  // the kicked_from_group message arrives, right before calling goHome.
+  const [kickedNotice, setKickedNotice] = useState<string | null>(null);
 
   return {
     showExitConfirm,
@@ -28,5 +35,7 @@ export function useAppDialogs() {
     setShowLocalResetConfirm,
     showReturnToGroupConfirm,
     setShowReturnToGroupConfirm,
+    kickedNotice,
+    setKickedNotice,
   };
 }

@@ -108,4 +108,50 @@ describe("AuthProvider — boot-time silent refresh", () => {
     expect(Object.keys(localStorage)).not.toContain("accessToken");
     vi.unstubAllGlobals();
   });
+
+  test("register() marks justRegistered, and login() never does — that's the one-time welcome's whole signal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.includes("/auth/refresh")) return { ok: false, status: 401, json: async () => ({ error: "no_session" }) } as Response;
+        if (url.includes("/auth/register")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              user: { id: "u1", username: "Nueva", email: "n@n.com", firstName: "Nueva", lastName: "L" },
+              accessToken: "tok-register",
+              expiresIn: 900,
+            }),
+          } as Response;
+        }
+        throw new Error(`unexpected fetch ${url}`);
+      }),
+    );
+
+    function RegisterProbe() {
+      const { user, justRegistered, register } = useAuth();
+      return (
+        <div>
+          <button onClick={() => register({ username: "Nueva", email: "n@n.com", password: "pw", firstName: "Nueva", lastName: "L" })}>
+            go
+          </button>
+          {user && <span>justRegistered:{String(justRegistered)}</span>}
+        </div>
+      );
+    }
+
+    render(
+      <AuthProvider>
+        <RegisterProbe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByText("go")).toBeInTheDocument());
+    await act(async () => {
+      screen.getByText("go").click();
+    });
+    await waitFor(() => expect(screen.getByText("justRegistered:true")).toBeInTheDocument());
+    vi.unstubAllGlobals();
+  });
 });

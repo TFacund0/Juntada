@@ -61,4 +61,21 @@ describe("useForwardProp", () => {
   test("tolerates an undefined cb", () => {
     expect(() => renderHook(() => useForwardProp(1, undefined))).not.toThrow();
   });
+
+  test("sync: true still forwards value/clearOnUnmount the same way, just via useLayoutEffect", () => {
+    const cb = vi.fn();
+    const { rerender, unmount } = renderHook(
+      ({ value }) => useForwardProp<string | null>(value, cb, { sync: true, clearOnUnmount: true }),
+      {
+        initialProps: { value: "a" as string | null },
+      },
+    );
+    expect(cb).toHaveBeenCalledWith("a");
+
+    rerender({ value: "b" });
+    expect(cb).toHaveBeenLastCalledWith("b");
+
+    unmount();
+    expect(cb).toHaveBeenLastCalledWith(null);
+  });
 });

@@ -54,7 +54,7 @@ function setupContexts(overrides: {
   });
   curtainCtx.mockReturnValue({ withAsyncCurtain: vi.fn(), settleAsyncCurtain: vi.fn(), curtain: "none", ...overrides.curtain });
   playerSession.mockReturnValue({ playerName: "Ana", savePlayerName: vi.fn(), validJoinLink: null, ...overrides.playerSession });
-  appShell.mockReturnValue({ goHome: vi.fn(), goBack: vi.fn(), ...overrides.appShell });
+  appShell.mockReturnValue({ goHome: vi.fn(), goBack: vi.fn(), notifyKicked: vi.fn(), ...overrides.appShell });
 }
 
 describe("useMultiplayerEntryProps", () => {
@@ -83,7 +83,6 @@ describe("useMultiplayerEntryProps", () => {
     expect(props.onRoomPhaseChange).toBe(gs.setRoomPhase);
     expect(props.onRoomCodeChange).toBe(gs.setRoomCode);
     expect(props.onGroupCodeChange).toBe(gs.setGroupCode);
-    expect(props.onLeaveGroup).toBe(as.goHome);
     expect(props.onExitRoomEntry).toBe(as.goBack);
     expect(props.onGoHome).toBe(as.goHome);
     expect(props.onSwitchToGroup).toBe(gs.switchToGroupJoin);
@@ -94,6 +93,30 @@ describe("useMultiplayerEntryProps", () => {
     expect(props.onRoomRosterChange).toBe(gs.setRoomRoster);
     expect(props.onTransitionSettled).toBe(ct.settleAsyncCurtain);
     expect(props.curtain).toBe("none");
+  });
+
+  test("onLeaveGroup just goes home when called with no reason (voluntary leave)", () => {
+    const goHome = vi.fn();
+    const notifyKicked = vi.fn();
+    setupContexts({ appShell: { goHome, notifyKicked } });
+
+    const { result } = renderHook(() => useMultiplayerEntryProps());
+    result.current.props.onLeaveGroup?.();
+
+    expect(notifyKicked).not.toHaveBeenCalled();
+    expect(goHome).toHaveBeenCalledTimes(1);
+  });
+
+  test("onLeaveGroup surfaces the kicked reason before going home", () => {
+    const goHome = vi.fn();
+    const notifyKicked = vi.fn();
+    setupContexts({ appShell: { goHome, notifyKicked } });
+
+    const { result } = renderHook(() => useMultiplayerEntryProps());
+    result.current.props.onLeaveGroup?.("Fuiste expulsado del grupo");
+
+    expect(notifyKicked).toHaveBeenCalledWith("Fuiste expulsado del grupo");
+    expect(goHome).toHaveBeenCalledTimes(1);
   });
 
   test("initialJoinCode falls back to validJoinLink.code when pendingGroupJoinCode is null", () => {

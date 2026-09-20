@@ -6,7 +6,7 @@
    ("vas a perder progreso"), no solo un formulario más. */
 
 /* position/overflow + el glow en sí (::before) viven en .jt-card-glow
-   (theme/sharedChrome.css, compartido con GameRules/DevNoticeDialog) — acá
+   (theme/sharedChrome.css, compartido con GameRules/WelcomeDialog) — acá
    solo el color propio de este diálogo (rojo/alerta). */
 .jt-confirm-card {
   --jt-glow-color: rgba(226, 75, 74, 0.22);

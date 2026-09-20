@@ -1,15 +1,24 @@
 import type { RefObject } from "react";
 import type { GameTheme } from "../../theme/gameThemes";
 import { AppBackdrop } from "./AppBackdrop";
-import { DevNoticeDialog } from "./DevNoticeDialog";
+import { WelcomeDialog } from "./WelcomeDialog";
+import { AlertDialog } from "../dialogs/AlertDialog";
 import { AppConfirmDialogs } from "./AppConfirmDialogs";
 
 interface AppOverlaysProps {
   curtain: "none" | "in" | "out";
   activeTheme: GameTheme | null | undefined;
   accentColor: string | undefined;
-  showDevNotice: boolean;
-  dismissDevNotice: () => void;
+  showWelcome: boolean;
+  playerName: string;
+  dismissWelcome: () => void;
+  // "Fuiste expulsado del grupo" — App-level (no room/group-specific data
+  // needed) porque para cuando esto se muestra ya se navegó de vuelta al
+  // home real: ver useMultiplayerEntryProps' onLeaveGroup, que llama a esto
+  // ANTES de goHome, así el mensaje ya está en estado cuando GroupPage se
+  // desmonta. Null cuando no hay nada que mostrar.
+  kickedNotice: string | null;
+  dismissKickedNotice: () => void;
   showBackConfirm: boolean;
   isOnlineRoom: boolean;
   confirmGoBack: () => void;
@@ -27,7 +36,7 @@ interface AppOverlaysProps {
 }
 
 /**
- * Agrupa el backdrop, el aviso de desarrollo y los diálogos de confirmación
+ * Agrupa el backdrop, la bienvenida de primer registro y los diálogos de confirmación
  * de nivel-app. Recibe los setters/refs crudos de useAppOrchestration y
  * construye acá los closures de confirmar/cancelar — ver App.tsx y
  * AppMainContent.tsx para el mismo patrón de extracción.
@@ -36,8 +45,11 @@ export function AppOverlays({
   curtain,
   activeTheme,
   accentColor,
-  showDevNotice,
-  dismissDevNotice,
+  showWelcome,
+  playerName,
+  dismissWelcome,
+  kickedNotice,
+  dismissKickedNotice,
   showBackConfirm,
   isOnlineRoom,
   confirmGoBack,
@@ -57,7 +69,9 @@ export function AppOverlays({
     <>
       <AppBackdrop curtain={curtain} activeTheme={activeTheme} accentColor={accentColor} />
 
-      {showDevNotice && <DevNoticeDialog onClose={dismissDevNotice} />}
+      {showWelcome && <WelcomeDialog playerName={playerName} onClose={dismissWelcome} />}
+
+      {kickedNotice && <AlertDialog title="Expulsado" message={kickedNotice} onClose={dismissKickedNotice} />}
 
       <AppConfirmDialogs
         showBackConfirm={showBackConfirm}

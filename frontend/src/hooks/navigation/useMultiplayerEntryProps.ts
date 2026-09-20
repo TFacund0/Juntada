@@ -36,7 +36,7 @@ export function useMultiplayerEntryProps(): MultiplayerEntry {
   const { exposeReturnToGroup, exposeLeaveRoom, exposeRoomAction } = useGameBridgeContext();
   const { withAsyncCurtain, settleAsyncCurtain, curtain } = useCurtainContext();
   const { playerName, savePlayerName, validJoinLink } = usePlayerSessionContext();
-  const { goHome, goBack } = useAppShellContext();
+  const { goHome, goBack, notifyKicked } = useAppShellContext();
 
   return {
     mode,
@@ -52,7 +52,15 @@ export function useMultiplayerEntryProps(): MultiplayerEntry {
       onRoomPhaseChange: setRoomPhase,
       onRoomCodeChange: setRoomCode,
       onGroupCodeChange: setGroupCode,
-      onLeaveGroup: goHome,
+      // `reason` set means the group screen sent this because the player
+      // was just kicked (see useMultiplayerSocket's notifyLeftGroup) —
+      // surface that as the App-level "fuiste expulsado" notice (rendered
+      // by AppOverlays over the real home screen, see notifyKicked) BEFORE
+      // goHome unmounts this whole page.
+      onLeaveGroup: (reason?: string) => {
+        if (reason) notifyKicked(reason);
+        goHome();
+      },
       onExitRoomEntry: goBack,
       onGoHome: goHome,
       onSwitchToGroup: switchToGroupJoin,

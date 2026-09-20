@@ -20,7 +20,7 @@ Organizados en subcarpetas por para qué sirven, no alfabéticamente:
 - `ModePicker` — "elegí cómo jugar": Multijugador online vs. Modo local.
 - `NamePillEditor` — la pill chica que muestra/edita el nombre guardado.
 - `GameRules` — renderiza el `GameDef.rules` de un juego.
-- `DevNoticeDialog` — el aviso único de "app en desarrollo".
+- `WelcomeDialog` — la bienvenida única, mostrada solo la primera vez que una cuenta se registra.
 - `AppBackdrop` — la cortina de transición + imagen/emoji de fondo del tema
   activo, detrás de toda la app.
 - `AppConfirmDialogs` — los `ConfirmDialog` de nivel-app (volver, resetear

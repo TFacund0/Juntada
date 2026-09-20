@@ -60,7 +60,11 @@ export interface InboundMessageContext {
   setWordReveal(w: Record<string, unknown> | null): void;
   setRoomPreview(p: RoomPreview): void;
   readRoom(): RoomPublicState | null;
-  notifyLeftGroup(): void;
+  // `reason` set (kicked_from_group) surfaces an App-level "fuiste
+  // expulsado" notice over the home screen this navigates to — see
+  // useMultiplayerEntryProps' onLeaveGroup and useAppDialogs' kickedNotice.
+  // Omitted (handleLeftGroup, a voluntary leave) just navigates home.
+  notifyLeftGroup(reason?: string): void;
   // from useReconnectOverlay
   isColdStart(): boolean;
   onReconnected(): void;
@@ -76,15 +80,10 @@ export interface InboundMessageContext {
   flashError(message: string): void;
   clearError(): void;
   // from useMultiplayerSocket — a centered dialog for "the server just
-  // ejected you", separate from the flash banner: kicked/kicked_from_group
-  // also redirect away from the current screen, and a banner on the screen
-  // you're leaving is easy to miss entirely by the time the next one mounts.
+  // ejected you from the room" (handleKicked only — see notifyLeftGroup
+  // above for the kicked_from_group equivalent, which is App-level instead
+  // since it navigates this whole shell away).
   setKickedNotice(message: string | null): void;
-  // Marks that leaving the group flow (notifyLeftGroup) must wait until the
-  // player closes the kicked-from-group dialog above, instead of firing
-  // immediately and unmounting the very component holding that dialog's
-  // state before it ever gets to render.
-  markGroupKicked(): void;
 }
 
 export function parseInboundMessage(raw: string): InboundMessage | null {
@@ -258,9 +257,8 @@ export function handleKickedFromGroup(ctx: InboundMessageContext): void {
   ctx.setMyRole(null);
   ctx.setWordReveal(null);
   ctx.setConnectionPhase("menu");
-  ctx.setKickedNotice("Fuiste expulsado del grupo");
   ctx.stopReconnecting();
-  ctx.markGroupKicked();
+  ctx.notifyLeftGroup("Fuiste expulsado del grupo");
   ctx.endColdStart();
 }
 

@@ -84,7 +84,11 @@ export interface MultiplayerGameProps {
   // very first screen before ever connecting, so App.tsx needs this signal
   // to know it should leave the whole group flow and go back to its home
   // screen (pick a game / start a new group), not just re-render this shell.
-  onLeaveGroup?: () => void;
+  // `reason` is set only when this fires because the server just kicked the
+  // player (see useMultiplayerSocket's notifyLeftGroup) — App.tsx surfaces
+  // it as a centered "fuiste expulsado" notice over the home screen this
+  // sends it back to.
+  onLeaveGroup?: (reason?: string) => void;
   // Only meaningful for entryKind "room" — closes the create/join modal's
   // own "✕" (RoomEntryModal) back to "elegí cómo jugar". Not the same as
   // `leave()` from useMultiplayerSocket: that only resets local connection
