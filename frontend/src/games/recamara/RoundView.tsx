@@ -610,7 +610,11 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
 
       {showWinner && round.winnerRoomId && (
         <div className="rec-overlay winner-overlay">
-          <div className="rec-table final-card winner-in" style={{ maxWidth: 420 }}>
+          <div className="rec-table final-card winner-in max-w-[420px]">
+            <div className="rec-victory-callout">
+              <span className="rec-victory-trophy">🏆</span>
+              <p className="rec-victory-title display">¡VICTORIA!</p>
+            </div>
             <p className="mono eyebrow">Fin del duelo</p>
             <p className="display winner">
               Gana <span>{round.winnerRoomId === myPlayerId ? "vos" : nameFor(round.winnerRoomId)}</span>
