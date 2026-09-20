@@ -95,6 +95,16 @@ describe("Tutifrutti ConfigPanel", () => {
     expect(screen.queryByText(/^Nombre$/)).not.toBeInTheDocument();
   });
 
+  test("toggling author visibility sends showAuthor", async () => {
+    const user = userEvent.setup();
+    const updateConfig = vi.fn();
+    render(<ConfigPanel room={makeRoom()} updateConfig={updateConfig} />);
+
+    expect(screen.getByText(/no se ve quién escribió/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Visible" }));
+    expect(updateConfig).toHaveBeenCalledWith({ showAuthor: true });
+  });
+
   test("active categories summary can be expanded to show which ones are on", async () => {
     const user = userEvent.setup();
     render(<ConfigPanel room={makeRoom({ activeCategories: { nombre: true } })} updateConfig={vi.fn()} />);

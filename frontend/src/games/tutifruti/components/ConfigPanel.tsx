@@ -36,6 +36,7 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
     rounds: number;
     endMode: "timer" | "basta";
     roundTime: number;
+    showAuthor?: boolean;
   };
   const customCategories: Category[] = config.customCategories || [];
   const customIds = new Set(customCategories.map(c => c.id));
@@ -168,6 +169,29 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
             onChange={e => updateConfig({ roundTime: +e.target.value })}
             className={T.rangeInput(config.endMode === "basta")}
           />
+
+          <div className={T.divider} />
+
+          <span className={T.label}>Autor de cada palabra</span>
+          <div className="mt-1 flex gap-2">
+            <button
+              onClick={() => updateConfig({ showAuthor: false })}
+              className={clsx(T.btn(!config.showAuthor ? "primary" : "ghost"), T.segmentedBtnOverride)}
+            >
+              Oculto
+            </button>
+            <button
+              onClick={() => updateConfig({ showAuthor: true })}
+              className={clsx(T.btn(config.showAuthor ? "primary" : "ghost"), T.segmentedBtnOverride)}
+            >
+              Visible
+            </button>
+          </div>
+          <p className={clsx(T.muted, "mt-2.5 leading-[1.4]")}>
+            {config.showAuthor
+              ? "Durante la revisión se ve quién escribió cada palabra."
+              : "Durante la revisión no se ve quién escribió cada palabra — solo la palabra y los votos."}
+          </p>
         </>
       )}
 

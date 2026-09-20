@@ -12,14 +12,18 @@ import { useCountdown } from "../hooks/useCountdown";
 import { LetterReveal } from "./LetterReveal";
 import { TimerBadge } from "./TimerBadge";
 
-// ── REVIEW: mark everyone's answers valid/invalid, grouped by category and
-// without showing who wrote each word — just the word and the votes on it.
+// ── REVIEW: mark everyone's answers valid/invalid, grouped by category —
+// anonymous by default (just the word and the votes on it), or with the
+// author's name shown next to each word when the host turns on
+// config.showAuthor (see ConfigPanel's "Autor de cada palabra" toggle).
 // Everyone (including the word's own author) can vote on any word, and every
 // player has to confirm before the round's scores get tallied.
 export function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "me" | "send">) {
   const round = room.round as TutifrutiRoundState;
   const answers = round.answers!;
   const marks = round.marks!;
+  const showAuthor = !!(room.config as { showAuthor?: boolean }).showAuthor;
+  const nameById = new Map(room.players.map(p => [p.id, p.name]));
   const online = room.players.filter(p => p.online);
   const confirmedCount = online.filter(p => round.reviewConfirmed?.[p.id]).length;
   const iConfirmed = !!me && !!round.reviewConfirmed?.[me.playerId];
@@ -92,6 +96,7 @@ export function ReviewPhase({ room, me, send }: Pick<RoundViewProps, "room" | "m
                       >
                         {word}
                       </p>
+                      {showAuthor && <p className="m-0 mt-0.5 text-xs text-[#9089c0]">{nameById.get(playerId) ?? "?"}</p>}
                     </div>
                     <div className="flex flex-[1_1_auto] items-center justify-end gap-2.5">
                       <div className="flex flex-wrap justify-end gap-0.5">

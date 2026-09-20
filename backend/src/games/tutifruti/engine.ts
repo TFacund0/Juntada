@@ -61,6 +61,10 @@ interface TutifrutiConfig {
   // volver a "elegir a mano" sin perder lo que ya había tildado.
   randomCategoryMode: boolean;
   randomCategoryCount: number;
+  // Revela el autor de cada palabra durante la revisión — apagado por
+  // defecto porque la anonimidad (ver comentario en ReviewPhase.tsx del
+  // frontend) es el comportamiento original; esto es un opt-in del host.
+  showAuthor: boolean;
   [key: string]: unknown;
 }
 
@@ -117,6 +121,7 @@ function createConfig(): TutifrutiConfig {
     enabledLetters: LETTERS.reduce((a, l) => ({ ...a, [l]: COMMON_LETTERS.includes(l) }), {} as Record<string, boolean>),
     randomCategoryMode: false,
     randomCategoryCount: 6,
+    showAuthor: false,
   };
 }
 

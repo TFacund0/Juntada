@@ -20,7 +20,12 @@ const CATS = [
   { id: "color", label: "Color", icon: "🎨" },
 ];
 
-function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, players = makePlayers(2)): RoomPublicState {
+function makeRoom(
+  phase: string,
+  roundOverrides: Record<string, unknown> = {},
+  players = makePlayers(2),
+  configOverrides: Record<string, unknown> = {},
+): RoomPublicState {
   return {
     code: "TEST1",
     name: "Sala de prueba",
@@ -30,7 +35,7 @@ function makeRoom(phase: string, roundOverrides: Record<string, unknown> = {}, p
     players,
     maxPlayers: 16,
     groupCode: null,
-    config: { score: {} },
+    config: { score: {}, ...configOverrides },
     round: {
       letter: "A",
       rerollsUsed: 0,
@@ -238,6 +243,40 @@ describe("Tutifrutti RoundView — review phase", () => {
 
     await user.click(screen.getByRole("button", { name: /Confirmar puntajes/ }));
     expect(send).toHaveBeenCalledWith({ type: "confirm_review" });
+  });
+
+  test("author name is hidden by default", () => {
+    render(
+      <RoundView
+        room={makeRoom("review", { answers: { p1: { nombre: "Ana" } } })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Ana")).toBeInTheDocument();
+    expect(screen.queryByText("Jugador 1")).not.toBeInTheDocument();
+  });
+
+  test("author name shows up when the host turns on showAuthor", () => {
+    render(
+      <RoundView
+        room={makeRoom("review", { answers: { p1: { nombre: "Ana" } } }, makePlayers(2), { showAuthor: true })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Ana")).toBeInTheDocument();
+    expect(screen.getByText("Jugador 1")).toBeInTheDocument();
   });
 });
 
