@@ -50,28 +50,28 @@ export function Toolbar({ tool, onChange, onClear, onUndo, bare = false }: Toolb
       <div className="flex gap-2">
         <button
           onClick={() => onChange({ ...tool, mode: "draw" })}
-          className={clsx(T.btn(tool.mode === "draw" ? "primary" : "ghost"), "flex-1 p-2.5 text-[13px]")}
+          className={clsx(T.btn(tool.mode === "draw" ? "primary" : "ghost"), "min-w-0 flex-1 truncate p-2.5 text-[13px]")}
         >
           ✏️ Lápiz
         </button>
         <button
           onClick={() => onChange({ ...tool, mode: "erase" })}
-          className={clsx(T.btn(tool.mode === "erase" ? "primary" : "ghost"), "flex-1 p-2.5 text-[13px]")}
+          className={clsx(T.btn(tool.mode === "erase" ? "primary" : "ghost"), "min-w-0 flex-1 truncate p-2.5 text-[13px]")}
         >
           🧼 Goma
         </button>
         <button
           onClick={() => onChange({ ...tool, mode: "fill" })}
-          className={clsx(T.btn(tool.mode === "fill" ? "primary" : "ghost"), "flex-1 p-2.5 text-[13px]")}
+          className={clsx(T.btn(tool.mode === "fill" ? "primary" : "ghost"), "min-w-0 flex-1 truncate p-2.5 text-[13px]")}
         >
           🪣 Balde
         </button>
       </div>
       <div className="flex gap-2 mt-2">
-        <button onClick={onUndo} className={clsx(T.btn("ghost"), "flex-1 p-2.5 text-[13px]")}>
+        <button onClick={onUndo} className={clsx(T.btn("ghost"), "min-w-0 flex-1 truncate p-2.5 text-[13px]")}>
           ↩️ Deshacer
         </button>
-        <button onClick={onClear} className={clsx(T.btn("danger"), "flex-1 p-2.5 text-[13px]")}>
+        <button onClick={onClear} className={clsx(T.btn("danger"), "min-w-0 flex-1 truncate p-2.5 text-[13px]")}>
           🗑️ Limpiar
         </button>
       </div>

@@ -52,6 +52,26 @@ describe("maxHintsFor / computeWordHint", () => {
     const word = "De niño";
     expect(computeWordHint(word, buildHintOrder(word), 0)).toContain(" ");
   });
+
+  it("interleaves hints across every word of a phrase instead of exhausting the longest one first", () => {
+    // "Osos Panda": group 0 = indices 0-3 ("Osos"), group 1 = indices 5-9
+    // ("Panda"). Round-robin means the very first hint of the turn already
+    // comes from group 0, and the second from group 1 — neither word is
+    // left fully blank while the other gets revealed letter by letter.
+    const word = "Osos Panda";
+    const order = buildHintOrder(word);
+    expect(order[0]).toBeGreaterThanOrEqual(0);
+    expect(order[0]).toBeLessThanOrEqual(3);
+    expect(order[1]).toBeGreaterThanOrEqual(5);
+    expect(order[1]).toBeLessThanOrEqual(9);
+
+    // maxHintsFor("Osos Panda") = floor((9-1)/2) = 4 — by then, at least one
+    // letter from each word must already be visible.
+    const hint = computeWordHint(word, order, 100000);
+    const [osos, panda] = hint.split(" ");
+    expect(osos).not.toBe("____");
+    expect(panda).not.toBe("_____");
+  });
 });
 
 describe("popLastDrawUnit", () => {
