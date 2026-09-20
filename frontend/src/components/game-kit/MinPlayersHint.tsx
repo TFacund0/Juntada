@@ -1,4 +1,5 @@
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 
 /**
  * El aviso de "Necesitás mínimo N jugadores" que se muestra debajo de un
@@ -9,5 +10,5 @@ import { S } from "../../theme/styles";
  */
 export function MinPlayersHint({ count, min }: { count: number; min: number }) {
   if (count >= min) return null;
-  return <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>Necesitás mínimo {min} jugadores</p>;
+  return <p className={clsx(T.muted, "text-center mt-2")}>Necesitás mínimo {min} jugadores</p>;
 }

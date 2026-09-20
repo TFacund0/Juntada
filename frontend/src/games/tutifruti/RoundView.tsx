@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import "./tutifruti.css";
+import "./css/index.css";
 import type { RoundViewProps } from "../gameTypes";
-import type { TutifrutiRoundState } from "./types";
+import type { TutifrutiRoundState } from "./types/roundView";
 import { SetupPhase } from "./components/SetupPhase";
 import { WritingPhase } from "./components/WritingPhase";
 import { ReviewPhase } from "./components/ReviewPhase";

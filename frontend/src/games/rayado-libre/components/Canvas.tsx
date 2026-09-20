@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import clsx from "clsx";
 import type { StrokeAction, FillAction, ClearAction, DrawAction } from "@juntada/rayado-libre-scoring";
 
 /**
@@ -271,6 +272,14 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
     return ctxRef.current;
   };
   const drawingRef = useRef(false);
+  // Posición del puntero/dedo, en píxeles de PANTALLA relativos al canvas
+  // (no en el espacio de coordenadas interno 800x600) — solo para dibujar el
+  // indicador visual de "lápiz" (ver el overlay en el return), nunca se usa
+  // para trazar. Da trazabilidad de dónde va a caer el trazo mientras se
+  // dibuja, algo que el cursor nativo del sistema no muestra en touch (los
+  // dedos no tienen cursor) y que en mouse tampoco reflejaba el color/grosor
+  // real de la herramienta activa.
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number; scale: number } | null>(null);
   const pendingPointsRef = useRef<[number, number][]>([]);
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** Id del gesto de trazo actual. Se incrementa en cada `pointerdown`; todos los chunks de ese mismo gesto lo comparten (ver {@link CanvasProps.onStrokeChunk}). */
@@ -398,6 +407,10 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
   // vez confirmado — redibuja el mismo segmento encima, inofensivo con los
   // colores opacos que usa esta paleta.
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (interactive && tool) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top, scale: rect.width / CANVAS_WIDTH });
+    }
     if (!drawingRef.current || !tool) return;
     const canvas = canvasRef.current;
     const ctx = getCtx();
@@ -423,29 +436,68 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
     pendingPointsRef.current = [];
   };
 
+  // Separado de `endStroke` (que solo hace lo suyo si había un trazo en
+  // curso) porque salir del canvas siempre debe ocultar el indicador, haya o
+  // no un trazo activo en ese momento.
+  const handlePointerLeave = () => {
+    setCursorPos(null);
+    endStroke();
+  };
+
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endStroke}
-      onPointerLeave={endStroke}
-      style={{
-        width: "100%",
-        aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-        borderRadius: 12,
-        border: "1px solid rgba(127,119,221,0.25)",
-        touchAction: "none",
-        cursor: interactive ? (tool?.mode === "fill" ? "crosshair" : "crosshair") : "default",
-        display: "block",
-        // El canvas arranca con píxeles transparentes hasta que llega la
-        // primera acción "clear" del historial (ver paintAction) — sin este
-        // fondo, el tablero deja ver el fondo oscuro del tema por detrás y
-        // el trazo por defecto (casi negro) queda invisible encima.
-        background: "#ffffff",
-      }}
-    />
+    <div className="relative">
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endStroke}
+        onPointerLeave={handlePointerLeave}
+        className={clsx(
+          "block w-full touch-none rounded-xl border border-[rgba(127,119,221,0.25)] bg-white",
+          // El indicador de abajo reemplaza al cursor nativo — mostrar los
+          // dos a la vez se leía como dos punteros superpuestos. El canvas
+          // arranca con píxeles transparentes hasta que llega la primera
+          // acción "clear" del historial (ver paintAction) — sin `bg-white`
+          // de base, el tablero deja ver el fondo oscuro del tema por detrás
+          // y el trazo por defecto (casi negro) queda invisible encima.
+          interactive && tool ? "cursor-none" : "cursor-default",
+        )}
+        style={{
+          // No expresable como clase estática de Tailwind: depende de las
+          // constantes CANVAS_WIDTH/CANVAS_HEIGHT de arriba, no de un valor
+          // fijo — una clase arbitraria interpolada (`aspect-[${...}]`) no
+          // la detectaría el compilador JIT de Tailwind al escanear el
+          // código fuente (necesita ver el string literal completo).
+          aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+        }}
+      />
+      {/* Indicador de "lápiz": un círculo del color/grosor real de la
+          herramienta activa, centrado en la posición exacta del puntero o
+          dedo — da trazabilidad de dónde va a caer el trazo mientras se
+          dibuja, algo que ni el cursor nativo del sistema (inexistente en
+          touch) ni un `cursor: crosshair` genérico mostraban. `pointer-
+          events: none` para que nunca intercepte el propio evento que lo
+          mueve. */}
+      {cursorPos && tool && (
+        <div
+          style={{
+            position: "absolute",
+            left: cursorPos.x,
+            top: cursorPos.y,
+            width: Math.max(tool.size * cursorPos.scale, 6),
+            height: Math.max(tool.size * cursorPos.scale, 6),
+            marginLeft: -Math.max(tool.size * cursorPos.scale, 6) / 2,
+            marginTop: -Math.max(tool.size * cursorPos.scale, 6) / 2,
+            borderRadius: "50%",
+            background: tool.mode === "erase" ? "transparent" : tool.color,
+            border: "1.5px solid rgba(0,0,0,0.55)",
+            boxShadow: "0 0 0 1px rgba(255,255,255,0.85)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+    </div>
   );
 }

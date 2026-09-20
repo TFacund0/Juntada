@@ -12,6 +12,8 @@
  * el problema sin recurrir a un portal a document.body, que rompería el
  * z-index:-1 de acá abajo (ver por qué en el comentario de más adelante).
  */
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
+
 export function HeroBackdrop() {
   return (
     <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" }}>
@@ -28,7 +30,7 @@ export function HeroBackdrop() {
           minWidth: 220,
           minHeight: 220,
           borderRadius: "50%",
-          background: "color-mix(in srgb, var(--jt-accent, #7f77dd) 28%, transparent)",
+          background: `color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 28%, transparent)`,
           filter: "blur(90px)",
         }}
       />
@@ -59,7 +61,7 @@ export function HeroBackdrop() {
           position: "absolute",
           inset: 0,
           opacity: 0.35,
-          backgroundImage: "radial-gradient(color-mix(in srgb, var(--jt-accent, #7f77dd) 35%, transparent) 1px, transparent 1px)",
+          backgroundImage: `radial-gradient(color-mix(in srgb, var(--jt-accent, ${DEFAULT_COLORS.accent}) 35%, transparent) 1px, transparent 1px)`,
           backgroundSize: "26px 26px",
           maskImage: "radial-gradient(70% 60% at 50% 0%, black, transparent)",
           WebkitMaskImage: "radial-gradient(70% 60% at 50% 0%, black, transparent)",
@@ -89,7 +91,7 @@ export function Hero({ gameCount }: { gameCount: number }) {
             padding: "6px 14px",
             fontSize: 12,
             fontWeight: 700,
-            color: "var(--jt-accent-strong, #afa9ec)",
+            color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
           }}
         >
           <span style={{ position: "relative", display: "inline-flex", width: 8, height: 8 }}>
@@ -124,7 +126,9 @@ export function Hero({ gameCount }: { gameCount: number }) {
           >
             Explorar juegos
           </a>
-          <span style={{ fontSize: 12, color: "var(--jt-muted-text, #6b6490)" }}>2 a 20 jugadores · partidas de 3 a 20 min</span>
+          <span style={{ fontSize: 12, color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})` }}>
+            2 a 20 jugadores · partidas de 3 a 20 min
+          </span>
         </div>
       </div>
     </section>

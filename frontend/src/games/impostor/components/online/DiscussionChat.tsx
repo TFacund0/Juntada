@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { Btn } from "../../../../components/ui/Btn";
 import { STICKY_ACTION_BAR_CLEARANCE } from "../../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../../gameTypes";
@@ -32,7 +33,7 @@ export function DiscussionChat({ chat, myPlayerId, send }: DiscussionChatProps) 
   };
 
   return (
-    <div style={{ ...S.card, marginBottom: STICKY_ACTION_BAR_CLEARANCE }}>
+    <div className={T.card} style={{ marginBottom: STICKY_ACTION_BAR_CLEARANCE }}>
       <style>{`
         .impostor-discussion-chat-scroll {
           scrollbar-width: none;
@@ -42,25 +43,28 @@ export function DiscussionChat({ chat, myPlayerId, send }: DiscussionChatProps) 
           display: none;
         }
       `}</style>
-      <span style={S.label}>Chat</span>
-      <div ref={logRef} className="impostor-discussion-chat-scroll" style={{ maxHeight: 220, overflowY: "auto", marginBottom: 10 }}>
+      <span className={T.label}>Chat</span>
+      <div ref={logRef} className="impostor-discussion-chat-scroll max-h-[220px] overflow-y-auto mb-2.5">
         {chat.length === 0 ? (
-          <p style={{ ...S.muted, margin: "4px 0" }}>Nadie escribió nada todavía.</p>
+          <p className={clsx(T.muted, "my-1")}>Nadie escribió nada todavía.</p>
         ) : (
           chat.map((m, i) => {
             const isMe = m.playerId === myPlayerId;
             return (
-              <p key={i} style={{ fontSize: 14, margin: "4px 0", color: "var(--jt-muted-text)" }}>
-                <strong style={{ color: isMe ? "#5DCAA5" : "#FF8A8A" }}>{isMe ? "Vos" : m.name}: </strong>
-                <span style={{ color: "#e8e4f0" }}>{m.text}</span>
+              <p key={i} className="text-sm my-1 text-[var(--jt-muted-text)]">
+                <strong className={isMe ? "text-[#5DCAA5]" : "text-[#FF8A8A]"}>{isMe ? "Vos" : m.name}: </strong>
+                <span className="text-[#e8e4f0]">{m.text}</span>
               </p>
             );
           })
         )}
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      {/* flex-wrap + min-w: mismo motivo que el resto de los inputs+botón de
+          esta app — sin esto, el botón le come el ancho al input en un
+          contenedor angosto. */}
+      <div className="flex flex-wrap gap-2">
         <input
-          style={{ ...S.input, flex: 1 }}
+          className={clsx(T.input, "min-w-[140px] flex-1")}
           placeholder="Escribí un mensaje..."
           value={text}
           onChange={e => setText(e.target.value)}

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import "./tutifruti.css";
-import { S } from "../../theme/styles";
+import "./css/index.css";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../components/setup/StickyActionBar";
 import { DEFAULT_CATEGORIES, LETTERS, COMMON_LETTERS } from "@juntada/tutifruti-data";
@@ -73,9 +74,9 @@ export function LocalGame() {
         size="hero"
         footer={
           activeCats.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 28 }}>
+            <div className="mt-7 flex flex-wrap justify-center gap-2">
               {activeCats.map(cat => (
-                <span key={cat.id} style={S.pill(true)}>
+                <span key={cat.id} className={T.pill(true)}>
                   {cat.icon} {cat.label}
                 </span>
               ))}
@@ -83,13 +84,11 @@ export function LocalGame() {
           )
         }
       />
-      <Btn onClick={drawLetter} disabled={activeLetters.length === 0} style={{ marginTop: 10 }}>
+      <Btn onClick={drawLetter} disabled={activeLetters.length === 0} className="mt-2.5">
         {letter ? "🔀 Nueva letra" : "🎲 Sortear letra"}
       </Btn>
       {activeLetters.length === 0 && (
-        <p style={{ fontSize: 12, color: "var(--jt-warn-text, #E2C44A)", textAlign: "center", marginTop: 8 }}>
-          Activá al menos una letra abajo para poder sortear.
-        </p>
+        <p className="mt-2 text-center text-xs text-[var(--jt-warn-text,#E2C44A)]">Activá al menos una letra abajo para poder sortear.</p>
       )}
     </>
   );
@@ -112,18 +111,18 @@ export function LocalGame() {
   return (
     <div>
       {letterBlock}
-      <Btn variant="ghost" onClick={() => setFocusMode(true)} style={{ marginTop: 10 }}>
+      <Btn variant="ghost" onClick={() => setFocusMode(true)} className="mt-2.5">
         👁️ Solo letra y categorías
       </Btn>
 
-      <div style={{ ...S.card, marginTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={S.label}>Letras</span>
-          <span style={{ fontSize: 12, color: "var(--jt-muted-text, #9089c0)", fontWeight: 700 }}>
+      <div className={clsx(T.card, "mt-4")}>
+        <div className="flex items-center justify-between">
+          <span className={T.label}>Letras</span>
+          <span className="text-xs font-bold text-[var(--jt-muted-text,#9089c0)]">
             {activeLetters.length} activa{activeLetters.length === 1 ? "" : "s"}
           </span>
         </div>
-        <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>
+        <p className={clsx(T.muted, "mb-3.5 mt-1 leading-[1.4]")}>
           Tocá una letra para activarla o desactivarla — ya vienen preseleccionadas las más comunes.
         </p>
         <div className="tf-letter-grid">
@@ -133,22 +132,12 @@ export function LocalGame() {
               <button
                 key={l}
                 onClick={() => setEnabledLetters(prev => ({ ...prev, [l]: !prev[l] }))}
-                className="jt-btn-anim"
-                style={{
-                  height: 40,
-                  borderRadius: 10,
-                  border: active ? "1px solid var(--jt-accent-border-soft, rgba(127,119,221,0.6))" : "1px solid rgba(255,255,255,0.12)",
-                  background: active
-                    ? "linear-gradient(135deg, var(--jt-accent, #7F77DD), var(--jt-accent-strong, #534AB7))"
-                    : "rgba(255,255,255,0.04)",
-                  color: active ? "#fff" : "var(--jt-muted-text, #9089c0)",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  boxShadow: active ? "0 3px 14px var(--jt-accent-border-soft, rgba(127,119,221,0.35))" : "none",
-                  transition: "all 0.15s",
-                }}
+                className={clsx(
+                  "jt-btn-anim h-10 cursor-pointer rounded-[10px] font-[inherit] text-[15px] font-bold transition-all duration-150",
+                  active
+                    ? "border border-[var(--jt-accent-border-soft,rgba(127,119,221,0.6))] bg-[linear-gradient(135deg,var(--jt-accent,#7F77DD),var(--jt-accent-strong,#534AB7))] text-white shadow-[0_3px_14px_var(--jt-accent-border-soft,rgba(127,119,221,0.35))]"
+                    : "border border-white/[0.12] bg-white/[0.04] text-[var(--jt-muted-text,#9089c0)] shadow-none",
+                )}
               >
                 {l}
               </button>
@@ -157,21 +146,21 @@ export function LocalGame() {
         </div>
       </div>
 
-      <div style={{ ...S.card, marginTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={S.label}>Categorías sugeridas</span>
-          <span style={{ fontSize: 12, color: "var(--jt-muted-text, #9089c0)", fontWeight: 700 }}>
+      <div className={clsx(T.card, "mt-4")}>
+        <div className="flex items-center justify-between">
+          <span className={T.label}>Categorías sugeridas</span>
+          <span className="text-xs font-bold text-[var(--jt-muted-text,#9089c0)]">
             {activeCats.length} activa{activeCats.length === 1 ? "" : "s"}
           </span>
         </div>
-        <p style={{ ...S.muted, margin: "4px 0 14px", lineHeight: 1.4 }}>Tocá una categoría para activarla o desactivarla.</p>
+        <p className={clsx(T.muted, "mb-3.5 mt-1 leading-[1.4]")}>Tocá una categoría para activarla o desactivarla.</p>
         {activeCats.length === 0 && (
-          <p style={{ fontSize: 12, color: "var(--jt-warn-text, #E2C44A)", margin: "0 0 14px" }}>
+          <p className="mb-3.5 text-xs text-[var(--jt-warn-text,#E2C44A)]">
             No hay ninguna categoría activa — no van a tener nada sugerido para completar con la letra.
           </p>
         )}
         {pageCount > 1 && <PageNumbers pageCount={pageCount} currentPage={currentPage} onChange={setPage} />}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+        <div className="flex flex-wrap gap-2.5">
           {pagedCategories.map(cat => (
             <CategoryChip
               key={cat.id}

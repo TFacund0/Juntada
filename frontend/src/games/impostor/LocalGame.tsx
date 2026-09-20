@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { CATEGORIES } from "@juntada/impostor-data";
 import { maxImpostors, matchWinner } from "@juntada/impostor-match-rules";
 import { shuffle } from "@juntada/core-utils";
-import { useFlashError } from "../../hooks/useFlashError";
+import { useFlashError } from "../../hooks/ui/useFlashError";
 import { SetupScreen } from "./components/local/SetupScreen";
 import { IntroScreen } from "./components/local/IntroScreen";
 import { RevealScreen } from "./components/local/RevealScreen";

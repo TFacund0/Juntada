@@ -107,7 +107,7 @@ function handleDisconnect(ws: WS): void {
   clients.delete(ws);
 }
 
-type Handler = (ws: WS, msg: ClientMessage, info: ClientInfo) => void;
+type Handler = (ws: WS, msg: ClientMessage, info: ClientInfo) => void | Promise<void>;
 
 // Message type -> handler(ws, msg, info). Keyed by ClientMessageType (the
 // same SCHEMAS-derived union validateMessage checks every incoming message
@@ -115,13 +115,18 @@ type Handler = (ws: WS, msg: ClientMessage, info: ClientInfo) => void;
 // key or a message type missing its handler is a build error here instead
 // of a silent no-op the first time a real client sends it.
 const HANDLERS: Record<ClientMessageType, Handler> = {
-  create_room: (ws, msg) => roomHandlers.createRoom(ws, msg),
-  join_room: (ws, msg) => roomHandlers.joinRoom(ws, msg),
+  // create_room/join_room/create_group/join_group resolve the account's
+  // current username via authService.getSelf (see roomHandlers.ts/
+  // groupHandlers.ts) — async, unlike almost every other handler here. The
+  // dispatch call site in server.ts awaits/handles the returned promise
+  // generically for every handler, sync or async.
+  create_room: (ws, msg, info) => roomHandlers.createRoom(ws, msg, info),
+  join_room: (ws, msg, info) => roomHandlers.joinRoom(ws, msg, info),
   check_room_code: (ws, msg) => roomHandlers.checkRoomCode(ws, msg),
-  rejoin: (ws, msg) => roomHandlers.rejoin(ws, msg),
-  create_group: (ws, msg) => groupHandlers.createGroup(ws, msg),
-  join_group: (ws, msg) => groupHandlers.joinGroup(ws, msg),
-  rejoin_group: (ws, msg) => groupHandlers.rejoinGroup(ws, msg),
+  rejoin: (ws, msg, info) => roomHandlers.rejoin(ws, msg, info),
+  create_group: (ws, msg, info) => groupHandlers.createGroup(ws, msg, info),
+  join_group: (ws, msg, info) => groupHandlers.joinGroup(ws, msg, info),
+  rejoin_group: (ws, msg, info) => groupHandlers.rejoinGroup(ws, msg, info),
   create_instance: groupHandlers.createInstance,
   join_instance: groupHandlers.joinInstance,
   leave_instance: groupHandlers.leaveInstance,
@@ -174,6 +179,7 @@ const HANDLERS: Record<ClientMessageType, Handler> = {
   use_item: roomHandlers.gameAction("use_item"),
   ready_for_duel: roomHandlers.gameAction("ready_for_duel"),
   back_to_lobby: roomHandlers.backToLobby,
+  leave_room: roomHandlers.leaveRoom,
   kick_player: roomHandlers.kickPlayer,
   kick_member: groupHandlers.kickMember,
   // validateMessage (see server.ts) already narrowed `msg` to this exact

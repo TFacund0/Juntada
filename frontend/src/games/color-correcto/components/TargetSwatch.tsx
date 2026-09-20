@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Timer } from "../../../components/game-kit/Timer";
 import { SHOW_SECONDS } from "@juntada/color-correcto-scoring";
 
@@ -7,12 +8,13 @@ import { SHOW_SECONDS } from "@juntada/color-correcto-scoring";
 // and (locally) the target color source differ.
 export function TargetSwatch({ target, timerEnd }: { target: string; timerEnd: number | null }) {
   return (
-    <div>
+    <div className={T.card}>
       {timerEnd != null && <Timer timerEnd={timerEnd} total={SHOW_SECONDS} label="Se oculta en" />}
-      <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Memorizá este color…</p>
+      <p className={clsx(T.muted, "text-center mb-2.5")}>Memorizá este color…</p>
       <div
         data-testid="target-swatch"
-        style={{ width: "100%", aspectRatio: "1 / 1", borderRadius: 20, background: target, border: "1px solid rgba(255,255,255,0.1)" }}
+        className="w-full aspect-square rounded-[20px] border border-white/10"
+        style={{ background: target }}
       />
     </div>
   );

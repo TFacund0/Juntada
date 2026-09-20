@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { Btn } from "../../../../components/ui/Btn";
 import { Timer } from "../../../../components/game-kit/Timer";
 import { RevealCountdown } from "../../../../components/game-kit/RevealCountdown";
@@ -20,6 +21,7 @@ interface RoundPhaseScreenProps {
   config: ImpostorConfigState;
   wordVisible: boolean;
   setWordVisible: (updater: (prev: boolean) => boolean) => void;
+  hasRevealedCard: boolean;
   readyForClues: boolean;
   setReadyForClues: (value: boolean) => void;
   clueText: string;
@@ -50,6 +52,7 @@ export function RoundPhaseScreen({
   config,
   wordVisible,
   setWordVisible,
+  hasRevealedCard,
   readyForClues,
   setReadyForClues,
   clueText,
@@ -80,39 +83,19 @@ export function RoundPhaseScreen({
   if (!readyForClues) {
     return (
       <PhaseTransition phaseKey="round-reveal">
-        <div style={{ minHeight: "calc(100dvh - 140px)", display: "flex", flexDirection: "column" }}>
+        <div className="flex min-h-[calc(100dvh-140px)] flex-col">
           <style>{actionBtnStyle}</style>
           {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 
-          <div style={{ textAlign: "center", marginBottom: 14 }}>
-            <p
-              style={{
-                margin: "0 0 4px",
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--jt-accent, #7F77DD)",
-              }}
-            >
-              Tu turno
-            </p>
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 24 }}>Revisá tu carta</p>
+          <div className="mb-3.5 text-center">
+            <p className="m-0 mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#7F77DD)]">Tu turno</p>
+            <p className="m-0 text-2xl font-extrabold">Revisá tu carta</p>
           </div>
 
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <div className="mx-auto flex w-full max-w-[340px] min-h-0 flex-1 flex-col">
             {!myRole ? (
-              <div
-                style={{
-                  ...S.card,
-                  textAlign: "center",
-                  minHeight: 200,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <p style={{ color: "var(--jt-muted-text)" }}>Cargando tu rol...</p>
+              <div className={clsx(T.card, "flex min-h-[280px] items-center justify-center text-center")}>
+                <p className="text-[var(--jt-muted-text)]">Cargando tu rol...</p>
               </div>
             ) : (
               <FlipRevealCard
@@ -123,13 +106,13 @@ export function RoundPhaseScreen({
                 hint={myRole.hint ? String(myRole.hint) : null}
                 categoryLabel={round?.categoryLabel ?? ""}
                 showCategory={config.showCategory}
-                minHeight={220}
+                minHeight={320}
               />
             )}
           </div>
 
-          <Btn onClick={() => setReadyForClues(true)} disabled={!myRole} className="impostor-action-btn">
-            Empezar pistas
+          <Btn onClick={() => setReadyForClues(true)} disabled={!myRole || !hasRevealedCard} className="impostor-action-btn">
+            {hasRevealedCard ? "Empezar pistas" : "Dá vuelta tu carta primero"}
           </Btn>
         </div>
       </PhaseTransition>
@@ -138,42 +121,34 @@ export function RoundPhaseScreen({
 
   return (
     <PhaseTransition phaseKey={`round-${currentTurnId}`}>
-      <div style={{ minHeight: "calc(100dvh - 140px)", display: "flex", flexDirection: "column" }}>
+      <div className="flex min-h-[calc(100dvh-140px)] flex-col">
         <style>{actionBtnStyle}</style>
         {round?.timerEnd && <Timer timerEnd={round.timerEnd} total={config.clueTime} label="Tiempo para dar su palabra" />}
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* Arriba de todo: lo que ya dijeron los demás es lo más relevante
+              para quien está esperando su turno — abajo del TurnCircle podía
+              quedar fuera de vista sin hacer scroll. */}
+          <CluesReview clues={round?.clues} players={room.players} label="Palabras de los jugadores" maxHeight={140} />
+
           {turnOrder.length > 0 && (
-            <p style={{ ...S.muted, textAlign: "center", marginBottom: 10, fontSize: 12 }}>
+            <p className={clsx(T.muted, "mb-2.5 mt-3.5 text-center text-xs")}>
               Turno {turnIndex + 1} de {turnOrder.length}
             </p>
           )}
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <p
-              style={{
-                margin: "0 0 4px",
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--jt-accent, #7F77DD)",
-              }}
-            >
-              Turno de
-            </p>
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 24 }}>{currentTurnPlayer?.name ?? "—"}</p>
+          <div className="mb-7 text-center">
+            <p className="m-0 mb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--jt-accent,#7F77DD)]">Turno de</p>
+            <p className="m-0 text-2xl font-extrabold">{currentTurnPlayer?.name ?? "—"}</p>
           </div>
 
           <TurnCircle turnOrder={turnOrder} turnIndex={turnIndex} players={room.players} meId={me?.playerId} />
-
-          <CluesReview clues={round?.clues} players={room.players} label="Palabras de los jugadores" maxHeight={140} />
         </div>
 
         {isMyTurn && !clueSubmitted && requiresWrittenClue && (
-          <div style={S.card}>
-            <span style={S.label}>Tu palabra</span>
+          <div className={T.card}>
+            <span className={T.label}>Tu palabra</span>
             <input
-              style={S.input}
+              className={T.input}
               placeholder="Escribí tu palabra..."
               value={clueText}
               onChange={e => setClueText(e.target.value)}
@@ -193,11 +168,9 @@ export function RoundPhaseScreen({
             {requiresWrittenClue ? "Enviar palabra" : "Ya dije mi palabra"}
           </Btn>
         ) : isMyTurn && clueSubmitted ? (
-          <p style={{ color: "#5DCAA5", fontSize: 14, textAlign: "center" }}>Palabra enviada — pasando el turno...</p>
+          <p className="text-center text-sm text-[#5DCAA5]">Palabra enviada — pasando el turno...</p>
         ) : (
-          <p style={{ ...S.muted, textAlign: "center" }}>
-            {currentTurnPlayer ? `Esperando a ${currentTurnPlayer.name}...` : "Esperando..."}
-          </p>
+          <p className={clsx(T.muted, "text-center")}>{currentTurnPlayer ? `Esperando a ${currentTurnPlayer.name}...` : "Esperando..."}</p>
         )}
       </div>
     </PhaseTransition>

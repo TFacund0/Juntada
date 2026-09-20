@@ -28,7 +28,7 @@ export interface GameEngine {
   // (see ws/shared.ts's scheduleOfflineReaction — not the instant they
   // drop, so a brief blip or answering a text doesn't cost them anything)
   // and they're still offline by then. Unlike maybeAdvance (only re-run
-  // once they're actually removed, after the full 10-minute grace period, or
+  // once they're actually removed, after the full 1-minute grace period, or
   // on some other explicit action), this is for low-stakes/reversible
   // reactions only, like handing off a strict turn rotation to the next
   // online player. Anything that would exclude a player from a vote/ready/
@@ -50,7 +50,7 @@ export interface GameEngine {
   // wherever it might get touched first. Optional since most engines'
   // round shape has stayed simple enough to never have needed this.
   migrateRound?(room: Room): void;
-  // Overrides ws/roomHandlers.ts's default 10-minute auto-kick grace period
+  // Overrides ws/roomHandlers.ts's default 1-minute auto-kick grace period
   // for a disconnected player, per-room/per-player — e.g. Impostor shortens
   // this while a vote is stuck waiting on them, since everyone else is
   // blocked in the meantime. Return undefined to fall back to the default.

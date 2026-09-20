@@ -9,7 +9,6 @@
 
 import { z } from "zod";
 
-const name = z.string().trim().min(1).max(40).optional();
 const roomCode = z.string().trim().min(1).max(8);
 const uuid = z.string().uuid();
 
@@ -38,14 +37,12 @@ const drawCoord = z.number().min(-200).max(1000);
 export const SCHEMAS = {
   create_room: z.object({
     type: z.literal("create_room"),
-    playerName: name,
     roomName: z.string().trim().max(60).optional(),
     gameType: z.string().max(30),
   }),
   join_room: z.object({
     type: z.literal("join_room"),
     code: roomCode,
-    playerName: name,
   }),
   // Read-only lookup so the join form can preview which room a code points
   // to (name + game) before the player commits to joining it — no side
@@ -54,26 +51,25 @@ export const SCHEMAS = {
     type: z.literal("check_room_code"),
     code: roomCode,
   }),
+  // Identity is resolved entirely from the authenticated WS handshake (the
+  // JWT's accountId) — no client-supplied playerId anymore (see
+  // design.md's account-reconnection delta).
   rejoin: z.object({
     type: z.literal("rejoin"),
     roomCode,
-    playerId: uuid,
   }),
   create_group: z.object({
     type: z.literal("create_group"),
-    playerName: name,
     groupName: z.string().trim().max(60).optional(),
   }),
   join_group: z.object({
     type: z.literal("join_group"),
     code: roomCode,
-    playerName: name,
     groupName: z.string().trim().max(60).optional(),
   }),
   rejoin_group: z.object({
     type: z.literal("rejoin_group"),
     groupCode: roomCode,
-    playerId: uuid,
   }),
   create_instance: z.object({
     type: z.literal("create_instance"),
@@ -186,6 +182,14 @@ export const SCHEMAS = {
   }),
   back_to_lobby: z.object({
     type: z.literal("back_to_lobby"),
+  }),
+  // A player choosing to leave a standalone (groupless) room mid-match on
+  // their own — same idea as leave_instance for a group's instance, but with
+  // no group to fall back to: removes them from the room right away instead
+  // of waiting out the 1-minute offline-kick grace period, so the rest of
+  // the room isn't stuck waiting on someone who already walked away.
+  leave_room: z.object({
+    type: z.literal("leave_room"),
   }),
   reveal: z.object({
     type: z.literal("reveal"),
@@ -343,6 +347,12 @@ export interface ChatMessage {
 
 export interface Player {
   id: string;
+  // The authenticated account this seat belongs to — resolved from the WS
+  // handshake JWT, never client-supplied. `id` stays the per-room seat id
+  // every game engine already keys on (see design.md "no engine changes
+  // needed"); `accountId` is what account-reconnection (rejoin) resolves
+  // the seat by instead.
+  accountId: string;
   name: string;
   ready: boolean;
   online: boolean;
@@ -368,6 +378,13 @@ export interface Room {
   groupCode: string | null;
   phase: string;
   players: Player[];
+  // Joined while a round was already in progress — held here (not in
+  // `players`) so no game engine has to know they exist: engines only ever
+  // read `players`, so a waiting joiner can't accidentally get a role, count
+  // toward a "ready" gate, or take a turn. Moved into `players` automatically
+  // once the room's phase returns to "lobby" (see ws/shared.ts's
+  // flushWaitingPlayers). Still counts against maxPlayers while waiting.
+  waitingPlayers: Player[];
   config: Record<string, unknown>;
   round: unknown;
   usedWords: Record<string, unknown>;
@@ -383,6 +400,10 @@ export interface RoomPublicState {
   groupCode: string | null;
   phase: string;
   players: PublicPlayer[];
+  // Optional only so existing test fixtures built before this field existed
+  // keep compiling — every real server response always sets it (see
+  // ws/messaging.ts's getRoomPublicState). Treat a missing value as empty.
+  waitingPlayers?: PublicPlayer[];
   maxPlayers: number;
   config: Record<string, unknown>;
   round: unknown;
@@ -398,6 +419,7 @@ export interface RoomPublicState {
 // their own whether to join it, independent of what anyone else is doing.
 export interface GroupMember {
   id: string;
+  accountId: string;
   name: string;
   online: boolean;
 }
@@ -464,6 +486,7 @@ export type ServerMessage =
   | { type: "group_state"; group: GroupPublicState }
   | { type: "group_joined"; playerId: string; groupCode: string; group: GroupPublicState }
   | { type: "left_instance" }
+  | { type: "left_room" }
   | { type: "left_group" }
   | { type: "error"; code: ErrorCode; message: string }
   | { type: "kicked" }

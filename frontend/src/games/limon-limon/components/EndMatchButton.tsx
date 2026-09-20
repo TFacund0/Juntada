@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { ConfirmDialog } from "../../../components/dialogs/ConfirmDialog";
 
 // Small, red, and easy to ignore on purpose — ending the match early is the
@@ -10,7 +11,7 @@ export function EndMatchButton({ onConfirm }: { onConfirm: () => void }) {
   const [confirming, setConfirming] = useState(false);
   return (
     <>
-      <button onClick={() => setConfirming(true)} style={{ ...S.btn("danger"), width: "auto", padding: "6px 14px", fontSize: 12 }}>
+      <button onClick={() => setConfirming(true)} className={clsx(T.btn("danger"), "w-auto! px-3.5 py-1.5 text-xs")}>
         Terminar partida
       </button>
       {confirming && (

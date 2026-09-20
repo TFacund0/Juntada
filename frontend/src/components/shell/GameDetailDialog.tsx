@@ -25,6 +25,8 @@ const CATEGORY_LABEL: Record<string, string> = {
   otros: "Más juegos",
 };
 
+const TITLE_ID = "jt-detail-title-label";
+
 function HelpIcon() {
   return (
     <svg
@@ -64,6 +66,7 @@ export function GameDetailDialog({ game, onStart, onClose }: GameDetailDialogPro
     <>
       <DialogFrame
         onClose={onClose}
+        titleId={TITLE_ID}
         maxWidth={400}
         padding={0}
         cardStyle={{ overflow: "hidden", position: "relative", borderRadius: 24 }}
@@ -99,7 +102,9 @@ export function GameDetailDialog({ game, onStart, onClose }: GameDetailDialogPro
 
         <div className="jt-detail-body">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-            <h2 className="jt-detail-title">{game.label}</h2>
+            <h2 id={TITLE_ID} className="jt-detail-title">
+              {game.label}
+            </h2>
             {game.category && <span className="jt-detail-category-pill">{CATEGORY_LABEL[game.category] ?? game.category}</span>}
           </div>
 

@@ -1,10 +1,11 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { StartButton } from "../../../components/setup/StartButton";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import { PodiumBoard } from "../../../components/game-kit/PodiumBoard";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RoomPublicState } from "@juntada/shared-types";
-import type { TutifrutiRoundState } from "../types";
+import type { TutifrutiRoundState } from "../types/roundView";
 
 // Colores fijos de confetti (no leen el tema — el contraste con el fondo
 // importa más acá que combinar con el acento del juego).
@@ -25,8 +26,8 @@ export function FinalStandings({
 
   return (
     <div style={{ paddingBottom: isHost ? STICKY_ACTION_BAR_CLEARANCE : undefined }}>
-      <div style={{ textAlign: "center", padding: "12px 0" }} className="tf-confetti-wrap">
-        <p style={{ ...S.title, fontSize: 26, display: "block" }}>
+      <div className="tf-confetti-wrap text-center py-3">
+        <p className={clsx(T.title, "text-[26px] block")}>
           <span aria-hidden="true">🏆 </span>Fin del juego
         </p>
         {Array.from({ length: 16 }).map((_, i) => (
@@ -43,7 +44,7 @@ export function FinalStandings({
         ))}
       </div>
       <PodiumBoard entries={standings} />
-      {!isHost && <p style={{ ...S.muted, textAlign: "center" }}>Esperando a que el anfitrión arranque una partida nueva.</p>}
+      {!isHost && <p className={clsx(T.muted, "text-center")}>Esperando a que el anfitrión arranque una partida nueva.</p>}
       {isHost && (
         <StickyActionBar>
           <StartButton className="jt-btn-anim tf-startbtn-pulse" onClick={() => send({ type: "new_game" })}>

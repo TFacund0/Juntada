@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
+import clsx from "clsx";
 import { Btn } from "../../../../components/ui/Btn";
-import { S } from "../../../../theme/styles";
+import { T } from "../../../../theme/styles/classes";
 import { StickyActionBar } from "../../../../components/setup/StickyActionBar";
 import { RingTimer } from "../shared/RingTimer";
 import { ClueHistoryCard } from "./ClueHistoryCard";
@@ -24,7 +25,7 @@ interface DiscussionScreenProps {
 // votación" stays pinned at the bottom like every other phase's action.
 export function DiscussionScreen({ config, clueHistory, players, timeLeft, onGoToVote }: DiscussionScreenProps) {
   return (
-    <div style={{ minHeight: "calc(100dvh - 140px)", display: "flex", flexDirection: "column", paddingBottom: 88 }}>
+    <div className="min-h-[calc(100dvh-140px)] flex flex-col pb-[88px]">
       <style>{actionBtnStyle}</style>
       <style>{`
         .impostor-discussion-vote-btn {
@@ -42,17 +43,17 @@ export function DiscussionScreen({ config, clueHistory, players, timeLeft, onGoT
         }
       `}</style>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 0 }}>
+      <div className="flex flex-1 flex-col justify-center min-h-0">
         {!config.discussionUnlimited ? (
           <RingTimer timeLeft={timeLeft} total={config.discussionTime} label="Tiempo de discusión" />
         ) : (
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Sin límite de tiempo — discutan a su ritmo.</p>
+          <p className={clsx(T.muted, "text-center mb-4")}>Sin límite de tiempo — discutan a su ritmo.</p>
         )}
 
         {config.writtenClues ? (
           <ClueHistoryCard clueHistory={clueHistory} players={players} />
         ) : (
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Repasen entre todos lo que dijo cada uno antes de votar.</p>
+          <p className={clsx(T.muted, "text-center mb-4")}>Repasen entre todos lo que dijo cada uno antes de votar.</p>
         )}
       </div>
 

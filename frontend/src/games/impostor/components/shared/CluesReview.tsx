@@ -1,4 +1,4 @@
-import { S } from "../../../../theme/styles";
+import { T } from "../../../../theme/styles/classes";
 
 interface CluesReviewProps {
   clues: Record<string, string> | undefined;
@@ -24,16 +24,16 @@ export function CluesReview({ clues, players, label = "Palabras", maxHeight }: C
     const p = players.find(x => String(x.id) === playerId);
     if (!p) return null;
     return (
-      <p key={playerId} style={{ fontSize: 14, margin: "4px 0", color: "var(--jt-muted-text)" }}>
-        <strong style={{ color: "#FF8A8A" }}>{p.name}:</strong> {clue}
+      <p key={playerId} className="text-sm my-1 text-[var(--jt-muted-text)]">
+        <strong className="text-[#FF8A8A]">{p.name}:</strong> {clue}
       </p>
     );
   });
   return (
-    <div style={S.card}>
-      <span style={S.label}>{label}</span>
+    <div className={T.card}>
+      <span className={T.label}>{label}</span>
       {maxHeight ? (
-        <div className="impostor-clues-review-scroll" style={{ maxHeight, overflowY: "auto" }}>
+        <div className="impostor-clues-review-scroll overflow-y-auto" style={{ maxHeight }}>
           {list}
         </div>
       ) : (

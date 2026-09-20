@@ -12,7 +12,7 @@ interface PlayerItemsSheetProps {
 
 export function PlayerItemsSheet({ player, interactive, onUseItem, onClose }: PlayerItemsSheetProps) {
   return (
-    <div className="rec-overlay" onClick={onClose}>
+    <div className="rec-overlay rec-overlay-sheet" onClick={onClose}>
       <div className="rec-sheet" onClick={e => e.stopPropagation()}>
         <div className="rec-sheet-head">
           <b>{player.name}</b>

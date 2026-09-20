@@ -1,0 +1,56 @@
+import { useState } from "react";
+import { T } from "../../../theme/styles/classes";
+import { TabRow } from "../../../components/setup/TabRow";
+import { EntriesEditor } from "./EntriesEditor";
+import { ModeSelector } from "./ModeSelector";
+import type { ConfigPanelProps } from "../../gameTypes";
+import { getRuletaConfig } from "../utils/roomConfig";
+
+// Host-only, se muestra en el lobby: carga las entradas de la ruleta (nombre
+// + descripción opcional) y elige el modo. Todo se guarda en room.config y
+// se sincroniza para que LobbyInfo lo espeje a los demás jugadores. Mismo
+// esquema de sub-pestañas que el impostor (ConfigPanel.tsx), para que la
+// forma de configurar cada juego se sienta consistente en toda la app. La
+// edición de entradas y el selector de modo viven en EntriesEditor.tsx /
+// ModeSelector.tsx, compartidos con LocalGame.tsx.
+export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
+  const [tab, setTab] = useState<"entries" | "mode">("entries");
+  const config = getRuletaConfig(room);
+  const entries = config.entries || [];
+  const mode = config.mode || "eliminate";
+
+  return (
+    <div>
+      <div className={T.card}>
+        <span className={T.label}>Configuración</span>
+        <TabRow
+          tabs={[
+            { key: "entries", label: "Entradas" },
+            { key: "mode", label: "Modo" },
+          ]}
+          active={tab}
+          onChange={setTab}
+          compact
+        />
+      </div>
+
+      {tab === "entries" && (
+        <EntriesEditor
+          entries={entries}
+          onAdd={(name, description) =>
+            updateConfig({ entries: [...entries, { id: `${Date.now()}-${Math.random()}`, name, description }] })
+          }
+          onRemove={id => updateConfig({ entries: entries.filter(e => e.id !== id) })}
+        />
+      )}
+
+      {tab === "mode" && (
+        <ModeSelector
+          mode={mode}
+          onChange={m => updateConfig({ mode: m })}
+          keepLabel="Repetir — se mantienen todas las entradas, se puede girar las veces que quieran"
+        />
+      )}
+    </div>
+  );
+}

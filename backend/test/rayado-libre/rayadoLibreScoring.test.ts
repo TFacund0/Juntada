@@ -7,18 +7,19 @@ test("buildHintOrder only includes non-space characters, in some shuffled order"
   assert.deepEqual([...order].sort(), [0, 2]); // index 1 is the space
 });
 
-test("buildHintOrder prioritizes the longest word in a phrase, so a short filler word reveals last", () => {
+test("buildHintOrder interleaves every word of a phrase round-robin, instead of exhausting the longest one first", () => {
   const word = "Cepillo de dientes"; // "Cepillo"=7, "de"=2, "dientes"=7
   const order = buildHintOrder(word);
   const deIndices = [8, 9]; // positions of "d" and "e" in "de"
   const positionsOfDe = deIndices.map(i => order.indexOf(i));
-  const totalRevealable = order.length; // 16 letters (space-separated words excluded)
 
-  // Both letters of "de" should land in the back half of the reveal order —
-  // never among the very first hints handed out.
+  // With 3 words in the phrase, round-robin guarantees both letters of the
+  // short one land within the first two rounds (positions 0-5) — neither
+  // "Cepillo" nor "dientes" can hog every early hint and push "de" to the
+  // very end just because it's shorter.
   assert.ok(
-    positionsOfDe.every(pos => pos >= totalRevealable - 2),
-    `expected "de"'s letters last in the order, got positions ${positionsOfDe} of ${totalRevealable}`,
+    positionsOfDe.every(pos => pos < 6),
+    `expected "de"'s letters early in the order (round-robin), got positions ${positionsOfDe}`,
   );
 });
 

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 /**
  * Padding/margen inferior que necesita el contenido de una pantalla que usa
@@ -34,7 +35,7 @@ export function StickyActionBar({ children }: { children: ReactNode }) {
         // Lee --jt-bg (theme/sharedChrome.css) en vez de hardcodear
         // #0f0c1d, así esto se funde con el fondo real de un juego con
         // tema propio en vez de fundirse siempre con el que no tiene tema.
-        background: "linear-gradient(transparent, var(--jt-bg, #0f0c1d) 24%)",
+        background: `linear-gradient(transparent, var(--jt-bg, ${DEFAULT_COLORS.bg}) 24%)`,
         zIndex: "var(--jt-z-sticky-bar, 10)",
       }}
     >

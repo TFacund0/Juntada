@@ -7,6 +7,7 @@
 // el contrato GameEngine — turnos autoritativos en el server, vista pública/
 // privada, etc). Ningún lado duplica las reglas del juego.
 // ═══════════════════════════════════════════════════════════════════════════
+import { escapeHtml } from "@juntada/core-utils";
 
 export const STARTING_LIVES = 5;
 export const MAX_LIVES = 5;
@@ -429,8 +430,8 @@ export interface FireDescribeInput<TId> {
 }
 
 export function describeFireOutcome<TId>(result: FireDescribeInput<TId>, nameOf: (id: TId) => string): FireOutcome {
-  const shooterName = nameOf(result.shooterId);
-  const targetName = nameOf(result.targetId);
+  const shooterName = escapeHtml(nameOf(result.shooterId));
+  const targetName = escapeHtml(nameOf(result.targetId));
   const targetsSelf = result.targetId === result.shooterId;
   const actionLine = targetsSelf
     ? `<b>${shooterName}</b> se dispara a sí mismo.`
@@ -452,7 +453,7 @@ export function describeFireResult<TId>(result: FireDescribeInput<TId>, nameOf: 
 // short log line, separate from the shot that triggered it, so it reads as
 // its own beat instead of being folded into the shot's line.
 export function describeSkippedTurn<TId>(playerId: TId, nameOf: (id: TId) => string): LogLine {
-  return { text: `<b>${nameOf(playerId)}</b> está esposado y pierde su turno.` };
+  return { text: `<b>${escapeHtml(nameOf(playerId))}</b> está esposado y pierde su turno.` };
 }
 
 export interface ItemDescribeInput<TId> {
@@ -486,7 +487,7 @@ export function describeItemResult<TId>(
   nameOf: (id: TId) => string,
   options?: DescribeItemOptions,
 ): LogLine {
-  const name = nameOf(result.playerId);
+  const name = escapeHtml(nameOf(result.playerId));
   switch (result.item) {
     case "🔍":
       if (options?.revealLupaHint === false) return { text: `<b>${name}</b> usa la lupa.` };
@@ -500,7 +501,7 @@ export function describeItemResult<TId>(
     case "🧤":
       if (result.victimId == null) return { text: `<b>${name}</b> intenta robar un ítem, pero nadie tiene ninguno.` };
       return {
-        text: `<b>${name}</b> le roba ${result.stolenItem ?? "un ítem"} a <b>${nameOf(result.victimId)}</b>.`,
+        text: `<b>${name}</b> le roba ${result.stolenItem ?? "un ítem"} a <b>${escapeHtml(nameOf(result.victimId))}</b>.`,
       };
     case "📞":
       if (options?.revealPhoneHint === false) return { text: `<b>${name}</b> llama por teléfono.` };
@@ -510,7 +511,7 @@ export function describeItemResult<TId>(
       };
     case "🔒":
       if (result.cuffedId == null) return { text: `<b>${name}</b> intenta esposar a alguien, pero no hay a quién.` };
-      return { text: `<b>${name}</b> le pone las esposas a <b>${nameOf(result.cuffedId)}</b>: pierde su próximo turno.` };
+      return { text: `<b>${name}</b> le pone las esposas a <b>${escapeHtml(nameOf(result.cuffedId))}</b>: pierde su próximo turno.` };
   }
 }
 

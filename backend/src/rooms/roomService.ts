@@ -13,18 +13,18 @@ import type { GameEngine } from "../games/engineTypes";
 import { logger } from "../logger";
 
 const { v4: uuidv4 } = require("uuid");
-const { rooms, clients, activeSockets } = require("../state/roomStore") as {
+const { rooms, clients, activeSockets, evictPreviousAccountSocket } = require("../state/roomStore") as {
   rooms: Map<string, Room>;
   clients: Map<WebSocket, ClientInfo>;
   activeSockets: Map<string, WebSocket>;
+  evictPreviousAccountSocket: (scopeCode: string, accountId: string, newWs: WebSocket) => void;
 };
 const { generateUniqueRoomCode } = require("./roomCode") as { generateUniqueRoomCode: () => string };
 const { getEngine } = require("../games/registry") as {
   getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
 };
 const { ONLINE_CLEANUP_DELAY_MS } = require("./constants") as { ONLINE_CLEANUP_DELAY_MS: number };
-const { isNameTaken, pickHostReplacement } = require("./rosterUtils") as {
-  isNameTaken: (roster: { id: string; name: string; online: boolean }[], name: string) => boolean;
+const { pickHostReplacement } = require("./rosterUtils") as {
   pickHostReplacement: (roster: { id: string; name: string; online: boolean }[], leavingId: string) => { id: string } | undefined;
 };
 
@@ -35,11 +35,12 @@ interface RoomResult {
   room?: Room;
   playerId?: string;
   error?: string;
+  waiting?: boolean;
 }
 
 function createRoom(
   ws: WebSocket,
-  { playerName, roomName, gameType }: { playerName?: string; roomName?: string; gameType: string },
+  { accountId, username, roomName, gameType }: { accountId: string; username: string; roomName?: string; gameType: string },
 ): RoomResult {
   const engine = getEngine(gameType);
   if (!engine) return { error: `Juego desconocido: ${gameType}` };
@@ -54,7 +55,8 @@ function createRoom(
     gameType,
     groupCode: null,
     phase: "lobby",
-    players: [{ id: playerId, name: playerName || "Anfitrión", ready: false, online: true }],
+    players: [{ id: playerId, accountId, name: username, ready: false, online: true }],
+    waitingPlayers: [],
     config: engine.createConfig(),
     round: null,
     usedWords: {},
@@ -62,8 +64,9 @@ function createRoom(
     chat: [],
   };
   rooms.set(code, room);
-  clients.set(ws, { groupCode: null, roomCode: code, playerId });
+  clients.set(ws, { groupCode: null, roomCode: code, playerId, accountId });
   activeSockets.set(playerId, ws);
+  evictPreviousAccountSocket(code, accountId, ws);
   logger.info({ roomCode: code, gameType, playerCount: rooms.size }, "room created");
   return { room, playerId };
 }
@@ -72,7 +75,15 @@ function createRoom(
 // createRoom, just linked back to the group and without registering a
 // fresh websocket client entry (the caller's already attached to the group;
 // see groupService.createInstance for the client bookkeeping).
-function createInstanceRoom(groupCode: string, gameType: string, hostId: string, hostName: string, groupName: string): RoomResult {
+function createInstanceRoom(
+  ws: WebSocket,
+  groupCode: string,
+  gameType: string,
+  hostId: string,
+  hostAccountId: string,
+  hostUsername: string,
+  groupName: string,
+): RoomResult {
   const engine = getEngine(gameType);
   if (!engine) return { error: `Juego desconocido: ${gameType}` };
   if (rooms.size >= MAX_TOTAL_ROOMS) return { error: "El servidor está lleno, probá de nuevo en un rato" };
@@ -85,7 +96,8 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
     gameType,
     groupCode,
     phase: "lobby",
-    players: [{ id: hostId, name: hostName, ready: false, online: true }],
+    players: [{ id: hostId, accountId: hostAccountId, name: hostUsername, ready: false, online: true }],
+    waitingPlayers: [],
     config: engine.createConfig(),
     round: null,
     usedWords: {},
@@ -93,54 +105,80 @@ function createInstanceRoom(groupCode: string, gameType: string, hostId: string,
     chat: [],
   };
   rooms.set(code, room);
+  activeSockets.set(hostId, ws);
+  evictPreviousAccountSocket(code, hostAccountId, ws);
   return { room };
 }
 
-function joinRoom(ws: WebSocket, { code, playerName }: { code?: string; playerName?: string }): RoomResult {
+function joinRoom(ws: WebSocket, { code, accountId, username }: { code?: string; accountId: string; username: string }): RoomResult {
   const room = rooms.get(code?.toUpperCase() ?? "");
   if (!room) return { error: "No existe ninguna sala con ese código" };
-  if (room.phase !== "lobby") return { error: "La partida ya empezó, esperá a que termine la ronda para unirte" };
   const engine = getEngine(room.gameType);
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
-  if (room.players.length >= maxPlayers) return { error: "La sala está llena" };
-
-  const name = playerName || "Jugador";
-  if (isNameTaken(room.players, name)) return { error: "Ese nombre ya está en uso en esta sala" };
+  if (room.players.length + room.waitingPlayers.length >= maxPlayers) return { error: "La sala está llena" };
 
   const playerId: string = uuidv4();
-  room.players.push({ id: playerId, name, ready: false, online: true });
-  clients.set(ws, { groupCode: null, roomCode: room.code, playerId });
+  const player = { id: playerId, accountId, name: username, ready: false, online: true };
+  // A round already in progress doesn't reject the join outright — the
+  // player is held in waitingPlayers (invisible to the engine, see its type
+  // comment) and joins the active roster automatically once the round ends
+  // and the room returns to "lobby" (ws/shared.ts's flushWaitingPlayers).
+  const waiting = room.phase !== "lobby";
+  if (waiting) room.waitingPlayers.push(player);
+  else room.players.push(player);
+  clients.set(ws, { groupCode: null, roomCode: room.code, playerId, accountId });
   activeSockets.set(playerId, ws);
-  return { room, playerId };
+  evictPreviousAccountSocket(room.code, accountId, ws);
+  return { room, playerId, waiting };
 }
 
 // A group member joining an instance already has an identity (playerId,
-// name) from the group — reused as-is instead of minting a new one, so
-// they're recognizable as the same person across every instance they join.
-function joinInstanceRoom(roomCode: string, playerId: string, playerName: string): RoomResult {
+// accountId, username) from the group — reused as-is instead of minting a
+// new one, so they're recognizable as the same person across every instance
+// they join.
+function joinInstanceRoom(ws: WebSocket, roomCode: string, playerId: string, accountId: string, username: string): RoomResult {
   const room = rooms.get(roomCode);
   if (!room) return { error: "Esa partida ya no existe" };
-  if (room.phase !== "lobby") return { error: "La partida ya empezó, esperá a que termine para unirte" };
   const engine = getEngine(room.gameType);
   const maxPlayers = engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM;
-  if (room.players.length >= maxPlayers) return { error: "Esa partida está llena" };
-  if (room.players.some(p => p.id === playerId)) return { room };
-  if (isNameTaken(room.players, playerName)) return { error: "Ese nombre ya está en uso en esa partida" };
+  if (room.players.some(p => p.id === playerId)) {
+    activeSockets.set(playerId, ws);
+    evictPreviousAccountSocket(room.code, accountId, ws);
+    return { room };
+  }
+  if (room.waitingPlayers.some(p => p.id === playerId)) {
+    activeSockets.set(playerId, ws);
+    evictPreviousAccountSocket(room.code, accountId, ws);
+    return { room, waiting: true };
+  }
+  if (room.players.length + room.waitingPlayers.length >= maxPlayers) return { error: "Esa partida está llena" };
 
-  room.players.push({ id: playerId, name: playerName, ready: false, online: true });
-  return { room };
+  const player = { id: playerId, accountId, name: username, ready: false, online: true };
+  const waiting = room.phase !== "lobby";
+  if (waiting) room.waitingPlayers.push(player);
+  else room.players.push(player);
+  activeSockets.set(playerId, ws);
+  evictPreviousAccountSocket(room.code, accountId, ws);
+  return { room, waiting };
 }
 
-function rejoinRoom(ws: WebSocket, { roomCode, playerId }: { roomCode: string; playerId: string }): RoomResult {
+// The seat is resolved purely from the authenticated `accountId` (see
+// design.md's account-reconnection delta) — no client-supplied playerId
+// enters this anymore. A device with no seat in this room (never joined, or
+// already removed) is rejected with the same error message as before.
+function rejoinRoom(ws: WebSocket, { roomCode, accountId }: { roomCode: string; accountId: string }): RoomResult {
   const room = rooms.get(roomCode);
   if (!room) return { error: "La sala ya no existe" };
-  const player = room.players.find(p => p.id === playerId);
-  if (!player) return { error: "Ya no formás parte de esta sala" };
-  player.online = true;
-  player.offlineSince = undefined;
-  clients.set(ws, { groupCode: room.groupCode, roomCode: room.code, playerId });
-  activeSockets.set(playerId, ws);
-  return { room, playerId };
+  const player = room.players.find(p => p.accountId === accountId);
+  const waitingPlayer = !player && room.waitingPlayers.find(p => p.accountId === accountId);
+  const seat = player ?? waitingPlayer;
+  if (!seat) return { error: "Ya no formás parte de esta sala" };
+  seat.online = true;
+  seat.offlineSince = undefined;
+  clients.set(ws, { groupCode: room.groupCode, roomCode: room.code, playerId: seat.id, accountId });
+  activeSockets.set(seat.id, ws);
+  evictPreviousAccountSocket(room.code, accountId, ws);
+  return { room, playerId: seat.id, waiting: !player };
 }
 
 // Each game defines its own config shape (see engine.createConfig()), so
@@ -172,6 +210,7 @@ function reassignHostIfNeeded(room: Room, leavingId: string): void {
 
 function kickPlayer(room: Room, targetId: string): void {
   room.players = room.players.filter(p => p.id !== targetId);
+  room.waitingPlayers = room.waitingPlayers.filter(p => p.id !== targetId);
   reassignHostIfNeeded(room, targetId);
 }
 
@@ -181,7 +220,26 @@ function kickPlayer(room: Room, targetId: string): void {
 // which just sits there fully-offline until scheduleRoomCleanup reaps it.
 function removePlayer(room: Room, playerId: string): void {
   room.players = room.players.filter(p => p.id !== playerId);
+  room.waitingPlayers = room.waitingPlayers.filter(p => p.id !== playerId);
   reassignHostIfNeeded(room, playerId);
+}
+
+// Looks a seat up regardless of whether it's an active player or still
+// waiting for the current round to end — the connection lifecycle (offline
+// marking, auto-kick) treats both the same way; only the game engine (which
+// never sees waitingPlayers) draws that distinction.
+function findPlayer(room: Room, playerId: string): Room["players"][number] | undefined {
+  return room.players.find(p => p.id === playerId) ?? room.waitingPlayers.find(p => p.id === playerId);
+}
+
+// Moves every waiting joiner into the active roster once the room is back in
+// "lobby" — called after every state-changing broadcast (see ws/shared.ts
+// and ws/messaging.ts) so nobody has to remember to do it from whichever
+// action happened to end the round.
+function flushWaitingPlayers(room: Room): void {
+  if (room.phase !== "lobby" || room.waitingPlayers.length === 0) return;
+  room.players.push(...room.waitingPlayers);
+  room.waitingPlayers = [];
 }
 
 // Deliberately does NOT call engine.maybeAdvance here: doing so used to let
@@ -190,7 +248,7 @@ function removePlayer(room: Room, playerId: string): void {
 // ...) — a brief network blip or a backgrounded tab (which reconnects
 // within seconds via the client's own retry loop) would silently skip them,
 // and if they were the deciding vote the round could advance without them
-// ever getting a say. The existing 10-minute auto-kick grace period
+// ever getting a say. The existing 1-minute auto-kick grace period
 // (schedulePlayerKick, ws/roomHandlers.ts) already re-runs maybeAdvance once
 // a still-offline player is actually removed — that's the only path that
 // should let the rest of the room move on without them.
@@ -203,7 +261,7 @@ function removePlayer(room: Room, playerId: string): void {
 // player reconnects on their own (answering a text, a few seconds of bad
 // signal) before treating it as something worth reacting to.
 function markOffline(room: Room, playerId: string): void {
-  const p = room.players.find(p => p.id === playerId);
+  const p = findPlayer(room, playerId);
   if (p) {
     p.online = false;
     p.offlineSince = Date.now();
@@ -214,11 +272,11 @@ function markOffline(room: Room, playerId: string): void {
   // anything as permanent as losing host, only that reconnect grace period
   // reconnectDelayMs on the client is built around. reassignHostIfNeeded
   // still runs on the paths that mean they're actually, finally gone:
-  // kickPlayer/removePlayer, including the 10-minute auto-kick timeout.
+  // kickPlayer/removePlayer, including the 1-minute auto-kick timeout.
 }
 
 function isRoomFullyOffline(room: Room): boolean {
-  return room.players.every(p => !p.online);
+  return [...room.players, ...room.waitingPlayers].every(p => !p.online);
 }
 
 function scheduleRoomCleanup(roomCode: string): void {
@@ -244,6 +302,8 @@ module.exports = {
   kickPlayer,
   removePlayer,
   markOffline,
+  findPlayer,
+  flushWaitingPlayers,
   isRoomFullyOffline,
   scheduleRoomCleanup,
   MAX_PLAYERS_PER_ROOM,

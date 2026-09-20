@@ -1,9 +1,25 @@
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import "./DialogFrame.css";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
+
+// `<video>`/`<canvas>` quedan deliberadamente afuera: ninguno es focusable
+// sin `controls`/`tabindex`, y el video de QRScannerDialog no tiene ninguno
+// de los dos — así el foco inicial cae solo en controles reales (ej. el
+// botón "Cancelar"), sin necesidad de un caso especial por consumidor.
+const FOCUSABLE =
+  "a[href],button:not([disabled]),input:not([disabled]),select:not([disabled])," +
+  'textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 interface DialogFrameProps {
   onClose: () => void;
+  /** `alertdialog` solo para diálogos que exigen una decisión (ConfirmDialog). */
+  role?: "dialog" | "alertdialog";
+  /** id del nodo de título dentro de `children`; conecta `aria-labelledby`. */
+  titleId?: string;
+  /** Escape cierra el diálogo. Independiente de `closeOnOverlayClick`. */
+  closeOnEscape?: boolean;
   maxWidth?: number;
   padding?: CSSProperties["padding"];
   overlayOpacity?: number;
@@ -22,7 +38,7 @@ interface DialogFrameProps {
    */
   cardStyle?: CSSProperties;
   /**
-   * `false` para un aviso único (`DevNoticeDialog`) que debe cerrarse
+   * `false` para un aviso único (`WelcomeDialog`) que debe cerrarse
    * explícitamente con su propio botón — tocar el fondo no debería
    * saltearlo en silencio.
    */
@@ -54,6 +70,9 @@ interface DialogFrameProps {
  */
 export function DialogFrame({
   onClose,
+  role = "dialog",
+  titleId,
+  closeOnEscape = true,
   maxWidth = 360,
   padding = "24px 20px",
   overlayOpacity = 0.75,
@@ -64,6 +83,67 @@ export function DialogFrame({
   closeOnOverlayClick = true,
   children,
 }: DialogFrameProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Captura de foco + foco inicial: deps `[]` a propósito — separado del
+  // efecto de teclado de abajo para que un `onClose` inline (arrow function
+  // nueva en cada render del padre) no vuelva a robar el foco en cada
+  // re-render.
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const prev = document.activeElement as HTMLElement | null;
+    const focusables = Array.from(card.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(el => el.offsetParent !== null);
+    (focusables[0] ?? card).focus();
+    return () => {
+      if (prev && document.contains(prev)) prev.focus();
+    };
+  }, []);
+
+  // Listener de teclado en `document`: deps `[]`, lee `onClose`/`closeOnEscape`
+  // vía refs para no reinstalarse (y por lo tanto no re-ejecutar la captura de
+  // foco de arriba) en cada render del padre.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const closeOnEscapeRef = useRef(closeOnEscape);
+  closeOnEscapeRef.current = closeOnEscape;
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const card = cardRef.current;
+      if (!card) return;
+      if (e.key === "Escape") {
+        if (closeOnEscapeRef.current) {
+          e.stopPropagation();
+          onCloseRef.current();
+        }
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const list = Array.from(card.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(el => el.offsetParent !== null);
+      if (list.length === 0) {
+        e.preventDefault();
+        card.focus();
+        return;
+      }
+      const first = list[0];
+      const last = list[list.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === card)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (!card.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return createPortal(
     <div
       className="jt-dialog-overlay"
@@ -82,10 +162,15 @@ export function DialogFrame({
       }}
     >
       <div
+        ref={cardRef}
+        role={role}
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className={cardClassName ? `jt-dialog-card ${cardClassName}` : "jt-dialog-card"}
         onClick={e => e.stopPropagation()}
         style={{
-          background: "var(--jt-surface, #171329)",
+          background: `var(--jt-surface, ${DEFAULT_COLORS.surface})`,
           border: "1px solid var(--jt-accent-border, rgba(127,119,221,0.3))",
           borderRadius: 16,
           padding,

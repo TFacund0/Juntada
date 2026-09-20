@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { useCountdownSeconds, timerUrgencyColor } from "../../../../components/game-kit/useCountdownSeconds";
+import { useCountdownSeconds, timerUrgencyColor } from "../../../../components/game-kit/hooks/useCountdownSeconds";
 
 const RADIUS = 88;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;

@@ -1,0 +1,57 @@
+/* Bienvenida de primer registro — mismo lenguaje visual que el resto del
+   rediseño (glow detrás de la card, badge en placa, ver DialogFrame/
+   sharedChrome.css), en tono violeta/marca en vez de ámbar (ese tono queda
+   reservado a avisos, no a un saludo). */
+
+/* position/overflow + el glow en sí (::before) viven en .jt-card-glow
+   (theme/sharedChrome.css, compartido con ConfirmDialog/GameRules) — acá
+   solo el color propio de esta bienvenida. */
+.jt-welcome-card {
+  --jt-glow-color: var(--jt-accent-glow, rgba(127, 119, 221, 0.28));
+}
+
+.jt-welcome-badge {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  background: linear-gradient(135deg, #8f7ef0, #5f4bd6);
+  box-shadow: 0 10px 24px -10px rgba(95, 75, 214, 0.6);
+}
+
+.jt-welcome-title {
+  position: relative;
+  font-weight: 800;
+  font-size: 17px;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.jt-welcome-message {
+  position: relative;
+  color: var(--jt-muted-text, #a49dc9);
+  font-size: 14px;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+/* Mismo tono ámbar/aviso que antes usaba el cartel de "app en desarrollo"
+   (ver DevNoticeDialog en el historial) — acá va como una nota aparte
+   dentro de la bienvenida, no como pantalla propia. */
+.jt-welcome-notice {
+  position: relative;
+  color: #e2c44a;
+  background: rgba(226, 196, 74, 0.1);
+  border: 1px solid rgba(226, 196, 74, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+  text-align: left;
+}

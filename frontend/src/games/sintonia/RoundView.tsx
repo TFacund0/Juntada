@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { Avatar } from "../../components/ui/Avatar";
@@ -75,11 +76,11 @@ function pickRandomSpectrum(usedKeys: string[], exclude?: { left: string; right:
 // avatar with the name only appearing far below it.
 function PsychicStatus({ name, status }: { name: string; status: string }) {
   return (
-    <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 12 }}>
+    <div className={T.avatarStatusRow}>
       <Avatar name={name} size={40} />
       <div>
-        <p style={{ fontWeight: 700, margin: 0 }}>{name} es el psíquico</p>
-        <p style={{ ...S.muted, margin: 0 }}>{status}</p>
+        <p className="font-bold m-0">{name} es el psíquico</p>
+        <p className={clsx(T.muted, "m-0")}>{status}</p>
       </div>
     </div>
   );
@@ -104,28 +105,15 @@ function Scoreboard({
       {ranked.map((p, i) => {
         const delta = roundPoints?.[p.id] ?? 0;
         return (
-          <div
-            key={p.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "6px 0",
-              borderBottom: i < ranked.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
-            }}
-          >
-            <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+          <div key={p.id} className={T.rankRow(i === ranked.length - 1)}>
+            <span className={T.rankIndex}>{i + 1}</span>
             <Avatar name={p.name} size={28} />
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
+            <span className={T.rankName}>
               {p.name}
               {!p.online ? " (desconectado)" : ""}
             </span>
-            {roundPoints && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: delta > 0 ? "#5DCAA5" : "#6b6490", minWidth: 24, textAlign: "right" }}>
-                +{delta}
-              </span>
-            )}
-            <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 28, textAlign: "right" }}>{p.points}</span>
+            {roundPoints && <span className={T.deltaBadge(delta > 0)}>+{delta}</span>}
+            <span className={T.rankPointsTotal}>{p.points}</span>
           </div>
         );
       })}
@@ -138,7 +126,7 @@ function Scoreboard({
 function RoundBadge({ round }: { round: SintoniaRoundState | null }) {
   if (!round || round.playMode !== "rounds") return null;
   return (
-    <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>
+    <p className={clsx(T.muted, "text-center mb-2.5")}>
       Ronda {(round.roundsPlayed ?? 0) + 1}/{round.roundLimit}
     </p>
   );
@@ -199,8 +187,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         <PhaseTransition phaseKey="setup">
           <div>
             <RoundBadge round={round} />
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión configure la ronda...</p>
+            <div className={clsx(T.card, "text-center")}>
+              <p className="text-[#9089c0] text-sm">Esperando que el anfitrión configure la ronda...</p>
             </div>
           </div>
         </PhaseTransition>
@@ -220,30 +208,21 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
       <PhaseTransition phaseKey="setup">
         <div>
           <RoundBadge round={round} />
-          <div style={S.card}>
-            <span style={S.label}>¿Quién es el psíquico esta ronda?</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className={T.card}>
+            <span className={T.label}>¿Quién es el psíquico esta ronda?</span>
+            <div className="flex flex-col gap-2">
               {room.players.map(p => (
                 <button
                   key={p.id}
                   onClick={() => setSetupPsychicId(p.id)}
-                  style={{
-                    ...S.btn(chosenPsychicId === p.id && setupPsychicId !== "random" ? "primary" : "ghost"),
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    justifyContent: "flex-start",
-                    padding: "10px 14px",
-                  }}
+                  className={T.psychicChoiceBtn(chosenPsychicId === p.id && setupPsychicId !== "random")}
                 >
                   <Avatar name={p.name} size={28} />
                   <span>{p.name}</span>
-                  {p.id === round?.suggestedPsychicId && (
-                    <span style={{ ...S.muted, marginLeft: "auto", fontSize: 11 }}>sugerido por turno</span>
-                  )}
+                  {p.id === round?.suggestedPsychicId && <span className={clsx(T.muted, "ml-auto text-[11px]")}>sugerido por turno</span>}
                 </button>
               ))}
-              <button onClick={() => setSetupPsychicId("random")} style={{ ...S.btn(setupPsychicId === "random" ? "primary" : "ghost") }}>
+              <button onClick={() => setSetupPsychicId("random")} className={T.btn(setupPsychicId === "random" ? "primary" : "ghost")}>
                 🎲 Elegir al azar
               </button>
             </div>
@@ -295,21 +274,21 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         <PhaseTransition phaseKey="spectrum">
           <div>
             <RoundBadge round={round} />
-            <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-              <p style={{ fontSize: 22, fontWeight: 800, color: "#AFA9EC", margin: 0 }}>Sos el psíquico</p>
+            <div className={clsx(T.cardHighlight, "text-center")}>
+              <p className="text-[22px] font-extrabold text-[#AFA9EC] m-0">Sos el psíquico</p>
             </div>
             {previewPair && (
-              <div style={S.card}>
+              <div className={T.card}>
                 <Dial value={50} showNeedle={false} leftLabel={previewPair.left} rightLabel={previewPair.right} />
               </div>
             )}
-            <div style={S.card}>
-              <span style={S.label}>¿Qué par de conceptos usamos?</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className={T.card}>
+              <span className={T.label}>¿Qué par de conceptos usamos?</span>
+              <div className="flex flex-col gap-2">
                 {round.lastSpectrum && (
                   <button
                     onClick={() => setSpectrumMode("same")}
-                    style={{ ...S.btn(spectrumMode === "same" ? "primary" : "ghost"), textAlign: "left" }}
+                    className={clsx(T.btn(spectrumMode === "same" ? "primary" : "ghost"), "text-left")}
                   >
                     Repetir: {round.lastSpectrum.left} / {round.lastSpectrum.right}
                   </button>
@@ -319,13 +298,13 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                     setSpectrumMode("random");
                     if (!randomPreview) setRandomPreview(pickRandomSpectrum(round.usedSpectrums || []));
                   }}
-                  style={{ ...S.btn(spectrumMode === "random" ? "primary" : "ghost"), textAlign: "left" }}
+                  className={clsx(T.btn(spectrumMode === "random" ? "primary" : "ghost"), "text-left")}
                 >
                   Uno al azar de la base
                 </button>
                 <button
                   onClick={() => setSpectrumMode("manual")}
-                  style={{ ...S.btn(spectrumMode === "manual" ? "primary" : "ghost"), textAlign: "left" }}
+                  className={clsx(T.btn(spectrumMode === "manual" ? "primary" : "ghost"), "text-left")}
                 >
                   Elegirlo yo mismo
                 </button>
@@ -340,15 +319,15 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                 </Btn>
               )}
               {spectrumMode === "manual" && (
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <div className="flex gap-2 mt-2.5">
                   <input
-                    style={{ ...S.input, flex: 1 }}
+                    className={clsx(T.input, "flex-1")}
                     placeholder="Extremo izquierdo"
                     value={spectrumLeft}
                     onChange={e => setSpectrumLeft(e.target.value)}
                   />
                   <input
-                    style={{ ...S.input, flex: 1 }}
+                    className={clsx(T.input, "flex-1")}
                     placeholder="Extremo derecho"
                     value={spectrumRight}
                     onChange={e => setSpectrumRight(e.target.value)}
@@ -356,7 +335,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                 </div>
               )}
               {spectrumMode === "manual" && (!spectrumLeft.trim() || !spectrumRight.trim()) && (
-                <p style={{ fontSize: 12, color: "#E2C44A", marginTop: 8 }}>Completá los dos extremos para poder continuar</p>
+                <p className="text-xs text-[#E2C44A] mt-2">Completá los dos extremos para poder continuar</p>
               )}
             </div>
             <Btn variant="success" onClick={confirmSpectrum} disabled={!resolvedPair}>
@@ -383,9 +362,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         <PhaseTransition phaseKey="clue">
           <div>
             <RoundBadge round={round} />
-            <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-              <p style={{ fontSize: 12, color: "#9089c0" }}>Espectro de esta ronda</p>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>
+            <div className={clsx(T.cardHighlight, "text-center mb-4")}>
+              <p className="text-xs text-[#9089c0]">Espectro de esta ronda</p>
+              <p className="text-xl font-extrabold text-[#AFA9EC]">
                 {round.left} ↔ {round.right}
               </p>
             </div>
@@ -405,19 +384,19 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
       <PhaseTransition phaseKey="clue">
         <div>
           <RoundBadge round={round} />
-          <div style={{ ...S.card, textAlign: "center" }}>
+          <div className={clsx(T.card, "text-center")}>
             <Dial value={role!.target!} target={role!.target!} leftLabel={round.left!} rightLabel={round.right!} />
           </div>
-          <p style={{ ...S.muted, textAlign: "center", margin: "12px 0" }}>
+          <p className={clsx(T.muted, "text-center my-3")}>
             Sos el psíquico. Escribí una pista (una palabra, una frase, lo que sea) que ubique ese punto entre "{round.left}" y "
             {round.right}
             ", sin decir el objetivo directamente.
           </p>
           {!clueSubmitted ? (
-            <div style={S.card}>
-              <span style={S.label}>Tu pista</span>
+            <div className={T.card}>
+              <span className={T.label}>Tu pista</span>
               <input
-                style={S.input}
+                className={T.input}
                 placeholder="Escribí tu pista..."
                 value={clueText}
                 onChange={e => setClueText(e.target.value)}
@@ -430,8 +409,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
               </Btn>
             </div>
           ) : (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#5DCAA5" }}>Pista enviada — esperando que adivinen</p>
+            <div className={clsx(T.card, "text-center")}>
+              <p className="text-[#5DCAA5]">Pista enviada — esperando que adivinen</p>
             </div>
           )}
         </div>
@@ -447,8 +426,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     // override, and only once someone's actually missing.
     const offlineGuessers = room.players.filter(p => !p.online && p.id !== round.psychicId);
     const forceFinishBanner = offlineGuessers.length > 0 && (
-      <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
-        <p style={{ fontSize: 13, color: "#E2C44A", fontWeight: 700, margin: 0 }}>
+      <div className={T.warnCard}>
+        <p className="text-[13px] text-[#E2C44A] font-bold m-0">
           Esperando a que se reconecte{offlineGuessers.length === 1 ? "" : "n"}: {offlineGuessers.map(p => p.name).join(", ")}
         </p>
         {isHost && (
@@ -464,12 +443,12 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         <PhaseTransition phaseKey="guess">
           <div>
             <RoundBadge round={round} />
-            <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-              <p style={{ fontSize: 12, color: "#9089c0" }}>Tu pista</p>
-              <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>"{round.clue}"</p>
+            <div className={clsx(T.cardHighlight, "text-center mb-4")}>
+              <p className="text-xs text-[#9089c0]">Tu pista</p>
+              <p className="text-xl font-extrabold text-[#AFA9EC]">"{round.clue}"</p>
             </div>
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#9089c0", fontSize: 14 }}>
+            <div className={clsx(T.card, "text-center")}>
+              <p className="text-[#9089c0] text-sm">
                 Esperando que adivinen: {round.submittedCount}/{round.guessersOnline}
               </p>
             </div>
@@ -488,13 +467,13 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
       <PhaseTransition phaseKey="guess">
         <div>
           <RoundBadge round={round} />
-          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "#9089c0" }}>Pista de {psychic?.name}</p>
-            <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC" }}>"{round.clue}"</p>
+          <div className={clsx(T.cardHighlight, "text-center mb-4")}>
+            <p className="text-xs text-[#9089c0]">Pista de {psychic?.name}</p>
+            <p className="text-xl font-extrabold text-[#AFA9EC]">"{round.clue}"</p>
           </div>
           {!guessSubmitted ? (
             <>
-              <div style={S.card}>
+              <div className={T.card}>
                 <Dial value={guessValue} leftLabel={round.left!} rightLabel={round.right!} />
                 <input
                   type="range"
@@ -502,7 +481,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                   max="100"
                   value={guessValue}
                   onChange={e => setGuessValue(+e.target.value)}
-                  style={{ width: "100%", marginTop: 16 }}
+                  className="w-full mt-4"
                 />
               </div>
               <Btn variant="success" onClick={submitGuess}>
@@ -510,9 +489,9 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
               </Btn>
             </>
           ) : (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#5DCAA5" }}>Adivinanza enviada</p>
-              <p style={{ ...S.muted, marginTop: 6 }}>
+            <div className={clsx(T.card, "text-center")}>
+              <p className="text-[#5DCAA5]">Adivinanza enviada</p>
+              <p className={clsx(T.muted, "mt-1.5")}>
                 {round.submittedCount}/{round.guessersOnline} confirmaron
               </p>
             </div>
@@ -544,28 +523,25 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
     return (
       <PhaseTransition phaseKey="result">
         <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-            <span style={S.label}>Pista de {psychic?.name}</span>
-            <p style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>"{round.clue}"</p>
+          <div className={clsx(T.cardHighlight, "text-center")}>
+            <span className={T.label}>Pista de {psychic?.name}</span>
+            <p className="text-lg font-bold m-0">"{round.clue}"</p>
           </div>
-          <div style={{ ...S.cardHighlight, textAlign: "center" }}>
+          <div className={clsx(T.cardHighlight, "text-center")}>
             <Dial value={target} target={target} leftLabel={left} rightLabel={right} markers={markers} showNeedle={false} />
             {guessers.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 10px", marginTop: 10 }}>
+              <div className="flex flex-wrap justify-center gap-x-2.5 gap-y-1 mt-2.5">
                 {guessers.map((p, i) => (
-                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div key={p.id} className="flex items-center gap-1">
                     <span
+                      className={T.markerDotBase}
                       style={{
-                        width: 13,
-                        height: 13,
-                        borderRadius: "50%",
                         background: MARKER_COLORS[i % MARKER_COLORS.length],
-                        border: p.id === myId ? "2px solid #fff" : "1.5px solid rgba(255,255,255,0.4)",
-                        display: "inline-block",
-                        flexShrink: 0,
+                        borderColor: p.id === myId ? "#fff" : undefined,
+                        borderWidth: p.id === myId ? 2 : undefined,
                       }}
                     />
-                    <span style={{ fontSize: 11, fontWeight: p.id === myId ? 800 : 600, color: p.id === myId ? "#fff" : "#b8b0d4" }}>
+                    <span className={T.markerLabel(p.id === myId)}>
                       {labels[i]} — {p.name}
                       {p.id === myId ? " (vos)" : ""}
                     </span>
@@ -610,7 +586,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
             const allReady = onlinePlayers.length > 0 && onlinePlayers.every(p => p.ready);
             if (!allReady)
               return (
-                <div style={{ ...S.card, textAlign: "center" }}>
+                <div className={clsx(T.card, "text-center")}>
                   {myPlayer?.ready ? (
                     <p style={{ color: "#5DCAA5" }}>Listo — esperando a los demás para ver los resultados finales</p>
                   ) : (
@@ -626,12 +602,12 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
             const isTie = winners.length > 1;
             return (
               <>
-                <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-                  <span style={S.label}>Partida terminada</span>
-                  <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
+                <div className={clsx(T.cardHighlight, "text-center")}>
+                  <span className={T.label}>Partida terminada</span>
+                  <p className="my-1 text-xl font-extrabold text-[#AFA9EC]">
                     🏆 {isTie ? `Empate entre ${winners.map(w => w.name).join(" y ")}` : `Ganó ${winners[0]?.name}`}
                   </p>
-                  <p style={S.muted}>
+                  <p className={T.muted}>
                     {round.roundsPlayed} rondas jugadas · {topScore} puntos
                   </p>
                 </div>
@@ -655,8 +631,8 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
                   <StartButton onClick={() => send({ type: "start_round" })}>Nueva ronda</StartButton>
                 )
               ) : (
-                <div style={{ ...S.card, textAlign: "center" }}>
-                  <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra ronda</p>
+                <div className={clsx(T.card, "text-center")}>
+                  <p className="text-sm text-[#9089c0]">Esperando que el anfitrión inicie otra ronda</p>
                 </div>
               ))
             );

@@ -51,10 +51,9 @@
   --jt-muted-text: #6b6490;
 
   /* Ámbar de "aviso" (no destructivo, no de acento) — comparte el mismo
-     valor exacto ConfirmDialog (tone="back") y DevNoticeDialog, dos
-     dialogs.css hermanos con el mismo propósito (glow de "esto es una
-     advertencia leve/informativa"), así que vive tokenizado acá en vez de
-     repetido en los dos. */
+     valor exacto que usa ConfirmDialog (tone="back") para su glow de "esto
+     es una advertencia leve/informativa", así que vive tokenizado acá en vez
+     de repetido ahí. */
   --jt-warn-glow: rgba(226, 196, 74, 0.22);
 
   /* Rojo/ámbar de estado compartidos por cualquier cartel de error o aviso
@@ -169,7 +168,7 @@
 }
 
 /* Glow radial de fondo compartido por toda card de diálogo "informativa"
-   (ConfirmDialog, GameRules, DevNoticeDialog) — antes cada una repetía la
+   (ConfirmDialog, GameRules, WelcomeDialog) — antes cada una repetía la
    misma estructura (::before absoluto, franja de altura fija arriba,
    radial-gradient 60% 100% con el mismo segundo stop en 75%), cambiando
    solo el color y, a veces, la altura. Ambos se sacan a variables acá en

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { Spinner } from "../../../components/ui/Spinner";
 import type { RoundViewProps } from "../../gameTypes";
-import type { TutifrutiRoundState } from "../types";
+import type { TutifrutiRoundState } from "../types/roundView";
 import { RoundResult } from "./RoundResult";
 import { FinalStandings } from "./FinalStandings";
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { Collapsible } from "../../components/game-kit/Collapsible";
@@ -64,20 +65,8 @@ function GuessFlash({ correct }: { correct: boolean }) {
         }
       `}</style>
       <div
-        style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          zIndex: "var(--jt-z-round-overlay, 500)",
-          pointerEvents: "none",
-          background: `color-mix(in srgb, ${color} 15%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${color} 50%, transparent)`,
-          borderRadius: 16,
-          padding: "22px 32px",
-          textAlign: "center",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-          animation: "guess-flash-pop 1.4s ease-out forwards",
-        }}
+        className={T.guessFlash(correct)}
+        style={{ transform: "translate(-50%, -50%)", animation: "guess-flash-pop 1.4s ease-out forwards" }}
       >
         <p style={{ fontSize: 32, margin: 0 }}>{correct ? "🎉" : "❌"}</p>
         <p style={{ fontSize: 18, fontWeight: 800, color, margin: "6px 0 0" }}>{correct ? "¡Acertaste!" : "Intento fallido"}</p>
@@ -188,24 +177,24 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
       <PhaseTransition phaseKey="suggest">
         <div>
           {role?.mySuggestionSubmitted ? (
-            <div style={{ ...S.card, textAlign: "center" }}>
+            <div className={clsx(T.card, "text-center")}>
               <p style={{ color: "#5DCAA5" }}>Enviaste tus sugerencias</p>
-              <p style={S.muted}>
+              <p className={T.muted}>
                 Esperando a los demás: {round.submittedCount}/{room.players.length}
               </p>
             </div>
           ) : (
-            <div style={S.card}>
-              <span style={S.label}>Escribile una palabra a quien quieras</span>
-              <p style={{ ...S.muted, margin: "0 0 10px" }}>
+            <div className={T.card}>
+              <span className={T.label}>Escribile una palabra a quien quieras</span>
+              <p className={clsx(T.muted, "mb-2.5")}>
                 No hace falta pensar una para cada uno — van a ser las opciones que el grupo vote para decidir la palabra secreta de cada
                 uno.
               </p>
               {others.map(p => (
                 <div key={p.id} style={{ marginBottom: 10 }}>
-                  <span style={{ ...S.label, marginBottom: 4 }}>{p.name}</span>
+                  <span className={clsx(T.label, "mb-1")}>{p.name}</span>
                   <input
-                    style={S.input}
+                    className={T.input}
                     placeholder="Ej: Messi, Bombero, Batman... (opcional)"
                     value={suggestionDrafts[p.id] ?? ""}
                     onChange={e => setSuggestionDrafts(prev => ({ ...prev, [p.id]: e.target.value }))}
@@ -227,18 +216,18 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     return (
       <PhaseTransition phaseKey="vote">
         <div>
-          <div style={{ ...S.cardHighlight, textAlign: "center", marginBottom: 10 }}>
-            <p style={{ ...S.muted, margin: 0 }}>Votando la palabra de</p>
+          <div className={clsx(T.cardHighlight, "text-center mb-2.5")}>
+            <p className={clsx(T.muted, "m-0")}>Votando la palabra de</p>
             <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0 0" }}>{nameOf(room, round.currentVoteTarget)}</p>
           </div>
           {isMyWord ? (
-            <div style={{ ...S.card, textAlign: "center" }}>
+            <div className={clsx(T.card, "text-center")}>
               <p style={{ color: "#9089c0" }}>Es tu palabra — no podés ver las opciones ni votar.</p>
             </div>
           ) : role?.myVote != null ? (
-            <div style={{ ...S.card, textAlign: "center" }}>
+            <div className={clsx(T.card, "text-center")}>
               <p style={{ color: "#5DCAA5" }}>Voto enviado</p>
-              <p style={S.muted}>
+              <p className={T.muted}>
                 {round.voteSubmittedCount}/{round.voteEligibleCount} votaron
               </p>
             </div>
@@ -248,7 +237,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                 <button
                   key={i}
                   onClick={() => send({ type: "vote_suggestion", suggestionIndex: i })}
-                  style={{ ...S.btn("ghost"), textAlign: "left" }}
+                  className={clsx(T.btn("ghost"), "text-left")}
                 >
                   {text}
                 </button>
@@ -264,7 +253,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
     return (
       <PhaseTransition phaseKey="assign">
         <div>
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>¡Ya se decidieron todas las palabras!</p>
+          <p className={clsx(T.muted, "text-center mb-2.5")}>¡Ya se decidieron todas las palabras!</p>
           <Collapsible title="Palabras de los demás" defaultOpen>
             <OthersWordsList
               entries={room.players.filter(p => p.id !== myId).map(p => ({ id: p.id, name: p.name, word: role?.wordsVisibleToMe[p.id] }))}
@@ -273,7 +262,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           {isHost ? (
             <StartButton onClick={() => send({ type: "confirm_words_ready" })}>Empezar a preguntar</StartButton>
           ) : (
-            <div style={{ ...S.card, textAlign: "center" }}>
+            <div className={clsx(T.card, "text-center")}>
               <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión arranque la ronda</p>
             </div>
           )}
@@ -323,16 +312,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
       <PhaseTransition phaseKey="playing">
         <div>
           {guessFlash != null && <GuessFlash correct={guessFlash} />}
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>Ronda {round.lapNumber}</p>
+          <p className={clsx(T.muted, "text-center mb-2.5")}>Ronda {round.lapNumber}</p>
 
           {lastGuessAttempt && (
-            <div
-              style={{
-                ...S.cardHighlight,
-                textAlign: "center",
-                background: lastGuessAttempt.correct ? "rgba(93,202,165,0.12)" : "rgba(240,149,149,0.1)",
-              }}
-            >
+            <div className={clsx(T.cardHighlight, "text-center", T.resultCardBg(lastGuessAttempt.correct))}>
               <p style={{ margin: 0, fontSize: 14 }}>
                 <strong style={{ color: "#AFA9EC" }}>{nameOf(room, lastGuessAttempt.playerId)}</strong> intentó: "{lastGuessAttempt.text}"
               </p>
@@ -343,26 +326,15 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           )}
 
           {resolvedQACards.map(({ id, qa }) => (
-            <div key={id} style={{ ...S.cardHighlight, background: "rgba(127,119,221,0.1)", position: "relative" }}>
+            <div key={id} className={clsx(T.cardHighlight, "bg-[rgba(127,119,221,0.1)] relative")}>
               <button
                 onClick={() => setResolvedQACards(prev => prev.filter(c => c.id !== id))}
                 aria-label="Cerrar"
-                style={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  background: "none",
-                  border: "none",
-                  color: "#9089c0",
-                  fontSize: 16,
-                  lineHeight: 1,
-                  cursor: "pointer",
-                  padding: 4,
-                }}
+                className={T.cardCloseBtn}
               >
                 ✕
               </button>
-              <span style={{ ...S.label, paddingRight: 20, display: "block" }}>
+              <span className={clsx(T.label, "pr-5 block")}>
                 Pregunta de {nameOf(room, qa.turnPlayerId)}: "{qa.question}"
               </span>
               <div style={{ marginTop: 6 }}>
@@ -372,14 +344,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           ))}
 
           {myOutcome && (
-            <div
-              style={{
-                ...S.cardHighlight,
-                textAlign: "center",
-                border: `1px solid ${myOutcome === "solved" ? "rgba(93,202,165,0.5)" : "rgba(240,149,149,0.5)"}`,
-                boxShadow: `0 0 16px ${myOutcome === "solved" ? "rgba(93,202,165,0.2)" : "rgba(240,149,149,0.2)"}`,
-              }}
-            >
+            <div className={clsx(T.cardHighlight, "text-center", T.outcomeCard(myOutcome))}>
               <p style={{ fontSize: 18, fontWeight: 800, color: myOutcome === "solved" ? "#5DCAA5" : "#F09595", margin: 0 }}>
                 {myOutcome === "solved"
                   ? "¡Ya adivinaste tu palabra!"
@@ -392,7 +357,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                   Tu palabra era: <strong style={{ color: "#AFA9EC" }}>{role.myWord}</strong>
                 </p>
               )}
-              <p style={{ ...S.muted, margin: "8px 0 0" }}>Esperando a que termine el resto...</p>
+              <p className={clsx(T.muted, "mt-2")}>Esperando a que termine el resto...</p>
             </div>
           )}
 
@@ -403,7 +368,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           </Collapsible>
 
           {(round.turnOrder?.length ?? 0) > 0 && (
-            <div style={S.card}>
+            <div className={T.card}>
               <TurnCircle
                 turnOrder={round.turnOrder!}
                 turnIndex={Math.max(0, round.turnOrder!.indexOf(round.currentTurnPlayerId ?? ""))}
@@ -415,7 +380,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           )}
 
           {!myOutcome && myId && wrongGuesses[myId] > 0 && (
-            <p style={{ ...S.muted, textAlign: "center", marginBottom: 14 }}>
+            <p className={clsx(T.muted, "text-center mb-3.5")}>
               Tus intentos fallidos: {wrongGuesses[myId]}/{MAX_WRONG_GUESSES}
             </p>
           )}
@@ -427,13 +392,13 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
               in instead of just snapping, which read as jarring. */}
           <PhaseTransition phaseKey={pending ? "pending" : isMyTurn && !myOutcome ? actionMode : "none"}>
             {pending && (
-              <div style={S.card}>
-                <span style={S.label}>Pregunta de {nameOf(room, pending.by)}</span>
+              <div className={T.card}>
+                <span className={T.label}>Pregunta de {nameOf(room, pending.by)}</span>
                 <p style={{ fontSize: 16, fontWeight: 700, margin: "4px 0 10px" }}>"{pending.text}"</p>
                 {canAnswer ? (
                   <>
                     <input
-                      style={{ ...S.input, marginBottom: 8 }}
+                      className={clsx(T.input, "mb-2")}
                       placeholder="Comentario opcional..."
                       value={answerComment}
                       onChange={e => setAnswerComment(e.target.value)}
@@ -451,7 +416,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                     </div>
                   </>
                 ) : pending.by === myId ? (
-                  <p style={S.muted}>
+                  <p className={T.muted}>
                     Esperando respuestas... {pendingRespondedCount}/{pendingOwedCount}
                   </p>
                 ) : (
@@ -477,10 +442,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             )}
 
             {isMyTurn && actionMode === "asking" && (
-              <div style={S.card}>
-                <span style={S.label}>Tu pregunta</span>
+              <div className={T.card}>
+                <span className={T.label}>Tu pregunta</span>
                 <input
-                  style={S.input}
+                  className={T.input}
                   placeholder="¿Soy famoso? ¿Existo hoy en día?..."
                   value={questionText}
                   onChange={e => setQuestionText(e.target.value)}
@@ -500,10 +465,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             )}
 
             {isMyTurn && actionMode === "guessing" && (
-              <div style={S.card}>
-                <span style={S.label}>¿Quién sos?</span>
+              <div className={T.card}>
+                <span className={T.label}>¿Quién sos?</span>
                 <input
-                  style={S.input}
+                  className={T.input}
                   placeholder="Escribí tu respuesta..."
                   value={guessText}
                   onChange={e => setGuessText(e.target.value)}
@@ -524,7 +489,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           </PhaseTransition>
 
           <Collapsible title="Mis preguntas">
-            {myQuestions.length === 0 && <p style={S.muted}>Todavía no preguntaste nada</p>}
+            {myQuestions.length === 0 && <p className={T.muted}>Todavía no preguntaste nada</p>}
             {myQuestions.map(({ qa, index }) => {
               const isOpen = openQuestions.has(index);
               return (
@@ -538,20 +503,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
                         return next;
                       })
                     }
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "100%",
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      margin: 0,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      color: "inherit",
-                      textAlign: "left",
-                    }}
+                    className={T.unstyledToggleBtn}
                   >
                     <span>"{qa.question}"</span>
                     <span
@@ -576,10 +528,10 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             })}
           </Collapsible>
 
-          <div style={S.card}>
-            <span style={S.label}>Mis anotaciones</span>
+          <div className={T.card}>
+            <span className={T.label}>Mis anotaciones</span>
             <textarea
-              style={{ ...S.input, minHeight: 70, resize: "vertical", fontFamily: "inherit" }}
+              className={clsx(T.input, "min-h-[70px] resize-y font-[inherit]")}
               placeholder="Notas privadas solo para vos, para pensar mejor..."
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -615,7 +567,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
           {isHost ? (
             <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
           ) : (
-            <div style={{ ...S.card, textAlign: "center" }}>
+            <div className={clsx(T.card, "text-center")}>
               <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
             </div>
           )}

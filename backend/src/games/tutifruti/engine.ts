@@ -35,6 +35,18 @@ const MIN_PLAYERS = 2;
 // while with a full table, so this leans generous rather than rushing it.
 const REVIEW_TIME_MS = 180 * 1000;
 
+// The round can end while a player is mid-keystroke: writing debounces each
+// category 400ms before actually sending it (see WritingPhase.tsx), and the
+// round can end at any moment neither of them controls — someone else calls
+// "¡Basta!", or the timer just runs out. The frontend already flushes
+// whatever's still pending the instant it notices the round ended (its
+// WritingPhase unmount effect), but without this grace window the backend
+// rejected that flush outright because `room.phase` had already moved to
+// "review" — silently dropping the very last word someone typed. Short
+// enough that nobody's meaningfully still typing once it closes, long
+// enough to cover the debounce delay plus a normal round-trip.
+const WRITING_GRACE_MS = 1500;
+
 interface TutifrutiConfig {
   score: Record<string, number>;
   rounds: number;
@@ -49,6 +61,10 @@ interface TutifrutiConfig {
   // volver a "elegir a mano" sin perder lo que ya había tildado.
   randomCategoryMode: boolean;
   randomCategoryCount: number;
+  // Revela el autor de cada palabra durante la revisión — apagado por
+  // defecto porque la anonimidad (ver comentario en ReviewPhase.tsx del
+  // frontend) es el comportamiento original; esto es un opt-in del host.
+  showAuthor: boolean;
   [key: string]: unknown;
 }
 
@@ -69,6 +85,10 @@ interface TutifrutiRound {
   endMode: "timer" | "basta";
   timerEnd: number | null;
   reviewEnd: number | null;
+  // Set the instant the round leaves "writing" (see enterReview) — submit_
+  // answers stays accepted until this passes, even though room.phase is
+  // already "review". See WRITING_GRACE_MS.
+  writingGraceEnd: number | null;
   bastaBy: string | null;
   answers: Record<string, Record<string, string>>;
   marks: Record<string, Record<string, Record<string, boolean>>>;
@@ -94,13 +114,14 @@ function createConfig(): TutifrutiConfig {
   return {
     score: {},
     rounds: 5,
-    endMode: "timer", // "timer" | "basta"
+    endMode: "basta", // "timer" | "basta"
     roundTime: 90, // seconds, used when endMode === "timer"
     activeCategories: DEFAULT_CATEGORIES.reduce((a, c) => ({ ...a, [c.id]: false }), {} as Record<string, boolean>),
     customCategories: [], // [{ id, label }]
     enabledLetters: LETTERS.reduce((a, l) => ({ ...a, [l]: COMMON_LETTERS.includes(l) }), {} as Record<string, boolean>),
     randomCategoryMode: false,
     randomCategoryCount: 6,
+    showAuthor: false,
   };
 }
 
@@ -117,13 +138,22 @@ function activeCategories(room: Room): Category[] {
 // (randomCategoryMode) ignora los toggles manuales y sortea
 // randomCategoryCount categorías de entre TODAS las disponibles (default +
 // custom), en vez de la selección a mano de activeCategories.
+//
+// Las custom van garantizadas primero (hasta llenar el cupo) y el resto se
+// completa con default — un sorteo parejo sobre TODO el pool (100+ default
+// vs. unas pocas custom) casi nunca tocaba una custom con el count chico por
+// defecto (6), así que agregarlas se sentía como si no hicieran nada. El
+// usuario las agrega a propósito para que entren a jugar, no para que
+// compitan en igualdad de probabilidad contra un pool cien veces más grande.
 function pickRoundCategories(room: Room): Category[] {
   if (!cfg(room).randomCategoryMode) return activeCategories(room);
-  const custom = Array.isArray(cfg(room).customCategories) ? cfg(room).customCategories : [];
-  const pool = [...DEFAULT_CATEGORIES, ...custom.filter(c => c && c.id && c.label)];
+  const custom = Array.isArray(cfg(room).customCategories) ? cfg(room).customCategories.filter(c => c && c.id && c.label) : [];
+  const pool = [...DEFAULT_CATEGORIES, ...custom];
   if (pool.length === 0) return [];
   const count = Math.max(1, Math.min(Number(cfg(room).randomCategoryCount) || pool.length, pool.length));
-  return shuffle(pool).slice(0, count);
+  const guaranteedCustom = shuffle(custom).slice(0, count);
+  const filler = shuffle(DEFAULT_CATEGORIES).slice(0, count - guaranteedCustom.length);
+  return shuffle([...guaranteedCustom, ...filler]);
 }
 
 // Same "malformed config can't crash the server" guard as activeCategories.
@@ -166,6 +196,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     endMode: cfg(room).endMode === "basta" ? "basta" : "timer",
     timerEnd: null,
     reviewEnd: null,
+    writingGraceEnd: null,
     bastaBy: null,
     answers: {},
     marks: {},
@@ -183,6 +214,7 @@ function startRound(room: Room): { success?: true; error?: string } {
 function enterReview(room: Room): void {
   room.phase = "review";
   const r = round(room);
+  r.writingGraceEnd = Date.now() + WRITING_GRACE_MS;
   r.marks = {};
   r.reviewConfirmed = {};
   r.reviewEnd = Date.now() + REVIEW_TIME_MS;
@@ -354,7 +386,13 @@ function handleAction(room: Room, playerId: string, action: string, payload: Rec
     }
 
     case "submit_answers": {
-      if (room.phase !== "writing") return { handled: false };
+      // Still accepted a moment into "review" — see WRITING_GRACE_MS — so
+      // the flush a client fires the instant it notices the round ended
+      // (someone else called "¡Basta!", or the timer ran out) isn't
+      // rejected just because room.phase already flipped by the time it
+      // arrives. Closed for good once the grace window passes.
+      const inWritingGrace = room.phase === "review" && !!r.writingGraceEnd && Date.now() < r.writingGraceEnd;
+      if (room.phase !== "writing" && !inWritingGrace) return { handled: false };
       // Marking "Ya terminé" (player_ready) locks in whatever's already
       // there — accepting further edits after that would let a client keep
       // typing behind the "esperando a los demás" message everyone else

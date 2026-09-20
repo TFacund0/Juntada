@@ -1,4 +1,4 @@
-import { S } from "../../../theme/styles";
+import { T } from "../../../theme/styles/classes";
 
 interface ModeSelectorProps {
   mode: "keep" | "eliminate";
@@ -12,18 +12,15 @@ interface ModeSelectorProps {
 
 export function ModeSelector({ mode, onChange, keepLabel }: ModeSelectorProps) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>Modo</span>
-      <label
-        style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 10, marginBottom: 10 }}
-        onClick={() => onChange("keep")}
-      >
+    <div className={T.card}>
+      <span className={T.label}>Modo</span>
+      <label className="flex items-center gap-2.5 cursor-pointer my-2.5" onClick={() => onChange("keep")}>
         <input type="radio" readOnly checked={mode === "keep"} />
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{keepLabel}</span>
+        <span className="text-sm font-bold">{keepLabel}</span>
       </label>
-      <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onChange("eliminate")}>
+      <label className="flex items-center gap-2.5 cursor-pointer" onClick={() => onChange("eliminate")}>
         <input type="radio" readOnly checked={mode === "eliminate"} />
-        <span style={{ fontSize: 14, fontWeight: 700 }}>Eliminación — la que sale se saca de la ruleta</span>
+        <span className="text-sm font-bold">Eliminación — la que sale se saca de la ruleta</span>
       </label>
     </div>
   );

@@ -18,7 +18,10 @@ const { rooms, groups, clients } = require("../state/roomStore") as {
 const { getEngine } = require("../games/registry") as {
   getEngine: (gameType: string | null | undefined) => GameEngine | undefined;
 };
-const { MAX_PLAYERS_PER_ROOM } = require("../rooms/roomService") as { MAX_PLAYERS_PER_ROOM: number };
+const { MAX_PLAYERS_PER_ROOM, flushWaitingPlayers } = require("../rooms/roomService") as {
+  MAX_PLAYERS_PER_ROOM: number;
+  flushWaitingPlayers: (room: Room) => void;
+};
 const { MAX_MEMBERS_PER_GROUP } = require("../rooms/groupService") as { MAX_MEMBERS_PER_GROUP: number };
 
 function sendTo(ws: WS, message: ServerMessage): void {
@@ -58,7 +61,24 @@ function broadcastGroup(groupCode: string, message: ServerMessage, excludeWs: WS
 }
 
 function getRoomPublicState(room: Room): RoomPublicState {
+  // A round ending (phase back to "lobby") is exactly when any joiners held
+  // in waitingPlayers should become real players — checked here rather than
+  // at every call site since this is the one function every state broadcast
+  // already goes through.
+  flushWaitingPlayers(room);
   const engine = getEngine(room.gameType);
+  const toPublicPlayer = (p: Room["players"][number]) => ({
+    id: p.id,
+    accountId: p.accountId,
+    name: p.name,
+    ready: p.ready,
+    online: p.online,
+    offlineSince: p.offlineSince,
+    // room.round is `unknown` (each engine owns its own shape) — narrowed
+    // just enough to read the one field some engines (e.g. impostor) keep
+    // a live vote tally in, instead of an unbounded `as any`.
+    hasVoted: !!(room.round as { votes?: Record<string, unknown> } | null)?.votes?.[p.id],
+  });
   return {
     code: room.code,
     name: room.name,
@@ -66,17 +86,8 @@ function getRoomPublicState(room: Room): RoomPublicState {
     gameType: room.gameType,
     groupCode: room.groupCode,
     phase: room.phase,
-    players: room.players.map(p => ({
-      id: p.id,
-      name: p.name,
-      ready: p.ready,
-      online: p.online,
-      offlineSince: p.offlineSince,
-      // room.round is `unknown` (each engine owns its own shape) — narrowed
-      // just enough to read the one field some engines (e.g. impostor) keep
-      // a live vote tally in, instead of an unbounded `as any`.
-      hasVoted: !!(room.round as { votes?: Record<string, unknown> } | null)?.votes?.[p.id],
-    })),
+    players: room.players.map(toPublicPlayer),
+    waitingPlayers: room.waitingPlayers.map(toPublicPlayer),
     maxPlayers: engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM,
     config: room.config,
     round: engine?.getPublicRoundView(room) ?? null,
@@ -109,7 +120,7 @@ function getGroupPublicState(group: Group): GroupPublicState {
         roomCode: r.code,
         gameType: r.gameType,
         phase: r.phase,
-        playerCount: r.players.length,
+        playerCount: r.players.length + r.waitingPlayers.length,
         maxPlayers: engine?.maxPlayers ?? MAX_PLAYERS_PER_ROOM,
         hostName: host?.name ?? "",
       };

@@ -10,6 +10,10 @@
 const { test, before, after, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const WebSocket = require("ws");
+const { installFakeAuthService, registerTestAccount, jwtProtocol } = require("../wsAuthTestUtils");
+
+installFakeAuthService();
+
 const { createApp } = require("../../src/app");
 const { CATEGORIES } = require("@juntada/rayado-libre-data");
 
@@ -42,9 +46,9 @@ beforeEach(() => {
   clients.clear();
 });
 
-function openSocketWithQueue(): Promise<{ ws: WSClient; queue: any[] }> {
+function openSocketWithQueue(protocols?: string[]): Promise<{ ws: WSClient; queue: any[] }> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl);
+    const ws = protocols ? new WebSocket(wsUrl, protocols) : new WebSocket(wsUrl);
     const queue: any[] = [];
     ws.on("message", (data: Buffer) => queue.push(JSON.parse(data.toString())));
     ws.once("open", () => resolve({ ws, queue }));
@@ -68,16 +72,18 @@ function waitFor(queue: any[], pred: (m: any) => boolean, timeoutMs = 2000): Pro
   });
 }
 
-async function createRoom(playerName: string): Promise<Connected & { roomCode: string }> {
-  const { ws, queue } = await openSocketWithQueue();
-  ws.send(JSON.stringify({ type: "create_room", playerName, gameType: "rayado-libre" }));
+async function createRoom(username: string): Promise<Connected & { roomCode: string }> {
+  const { token } = registerTestAccount(username);
+  const { ws, queue } = await openSocketWithQueue(jwtProtocol(token));
+  ws.send(JSON.stringify({ type: "create_room", gameType: "rayado-libre" }));
   const joined = await waitFor(queue, m => m.type === "joined");
   return { ws, queue, playerId: joined.playerId, roomCode: joined.roomCode };
 }
 
-async function joinRoom(playerName: string, code: string): Promise<Connected> {
-  const { ws, queue } = await openSocketWithQueue();
-  ws.send(JSON.stringify({ type: "join_room", playerName, code }));
+async function joinRoom(username: string, code: string): Promise<Connected> {
+  const { token } = registerTestAccount(username);
+  const { ws, queue } = await openSocketWithQueue(jwtProtocol(token));
+  ws.send(JSON.stringify({ type: "join_room", code }));
   const joined = await waitFor(queue, m => m.type === "joined");
   return { ws, queue, playerId: joined.playerId };
 }

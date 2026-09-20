@@ -91,6 +91,7 @@ export function useShotAnimation(): ShotAnimation {
   const resetRecoilFlash = () => {
     setRecoil(false);
     setFlash(false);
+    setLastShell(null);
   };
 
   const resetForNewRound = () => {

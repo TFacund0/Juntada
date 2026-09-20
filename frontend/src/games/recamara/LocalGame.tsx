@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import "./recamara.css";
+import { escapeHtml } from "@juntada/core-utils";
+import "./css/index.css";
 import {
   createInitialState,
   describeFireOutcome,
@@ -67,7 +68,7 @@ interface DisplayLogLine extends LogLine {
 // resolver rather than searching a Player[] themselves — this is that
 // resolver for local, where ids are already the engine's own numeric ones.
 function nameOf(players: Player[]): (id: number) => string {
-  return id => players.find(p => p.id === id)?.name ?? "?";
+  return id => escapeHtml(players.find(p => p.id === id)?.name ?? "?");
 }
 
 export function LocalGame() {
@@ -198,7 +199,7 @@ export function LocalGame() {
     // the same reset below in continueAfterFire's reload branch, which does
     // matter (see that comment).
     shotAnim.resetForNewRound();
-    addLog({ text: `Se cargó la recámara. Empieza <b>${state.players[0].name}</b>.` });
+    addLog({ text: `Se cargó la recámara. Empieza <b>${escapeHtml(state.players[0].name)}</b>.` });
   };
 
   const revealNextItem = () => setRevealedCount(c => c + 1);
@@ -408,7 +409,7 @@ export function LocalGame() {
 
       return (
         <div className="recamara">
-          <div className="table">
+          <div className="rec-table">
             {aliveOrder.length > 1 && (
               <p className="reveal-progress mono">
                 Jugador {revealIdx + 1} de {aliveOrder.length}
@@ -461,7 +462,7 @@ export function LocalGame() {
 
   return (
     <div className="recamara">
-      <div className="table">
+      <div className="rec-table">
         <div className="turn-banner">
           <span className="dot" />
           <span className="txt">
@@ -553,10 +554,17 @@ export function LocalGame() {
         pendingFire &&
         (() => {
           const outcome = describeFireOutcome(pendingFire.result, nameOf(pendingFire.playersBefore));
+          const targetBefore = pendingFire.playersBefore.find(p => p.id === pendingFire.result.targetId);
+          const targetAfter = pendingFire.result.state.players.find(p => p.id === pendingFire.result.targetId);
+          const isElimination = (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0;
+          const eliminatedName = isElimination ? targetBefore?.name : undefined;
+
           return (
             <OutcomeBanner
               line={{ text: outcome.actionLine }}
               subLine={{ text: outcome.shellLine, cls: outcome.cls }}
+              isElimination={isElimination}
+              eliminatedName={eliminatedName}
               onContinue={continueAfterFire}
             />
           );
@@ -592,7 +600,11 @@ export function LocalGame() {
 
       {showWinner && winner && (
         <div className="rec-overlay winner-overlay">
-          <div className="table final-card winner-in" style={{ maxWidth: 420 }}>
+          <div className="rec-table final-card winner-in max-w-[420px]">
+            <div className="rec-victory-callout">
+              <span className="rec-victory-trophy">🏆</span>
+              <p className="rec-victory-title display">¡VICTORIA!</p>
+            </div>
             <p className="mono eyebrow">Fin del duelo</p>
             <p className="display winner">
               Gana <span>{winner.name}</span>

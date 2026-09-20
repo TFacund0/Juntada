@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
@@ -16,7 +17,7 @@ import type { RoundViewProps } from "../gameTypes";
 function RoundBadge({ round }: { round: ColorCorrectoRoundView | null }) {
   if (!round || round.playMode !== "rounds") return null;
   return (
-    <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>
+    <p className={clsx(T.muted, "text-center mb-2.5")}>
       Ronda {(round.roundsPlayed ?? 0) + 1}/{round.roundLimit}
     </p>
   );
@@ -61,12 +62,12 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
   if (room.phase === "guess") {
     const offlinePlayers = room.players.filter(p => !p.online);
     const forceFinishBanner = offlinePlayers.length > 0 && (
-      <div style={{ ...S.card, textAlign: "center", border: "1px solid rgba(226,196,74,0.35)", background: "rgba(226,196,74,0.08)" }}>
-        <p style={{ fontSize: 13, color: "#E2C44A", fontWeight: 700, margin: 0 }}>
+      <div className={T.warnCard}>
+        <p className="m-0 text-[13px] font-bold text-[#E2C44A]">
           Esperando a que se reconecte{offlinePlayers.length === 1 ? "" : "n"}: {offlinePlayers.map(p => p.name).join(", ")}
         </p>
         {isHost && (
-          <Btn variant="ghost" onClick={() => send({ type: "force_finish_round" })} style={{ marginTop: 10 }}>
+          <Btn variant="ghost" onClick={() => send({ type: "force_finish_round" })} className="mt-2.5">
             Terminar la ronda con los intentos ya enviados
           </Btn>
         )}
@@ -83,27 +84,19 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
         <div>
           <RoundBadge round={round} />
           {!guessSubmitted && round.guessEndsAt != null && <Timer timerEnd={round.guessEndsAt} label="Tiempo para adivinar" />}
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 10 }}>¿Cuál era el color? Elegí el más parecido.</p>
+          <p className={clsx(T.muted, "text-center mb-2.5")}>¿Cuál era el color? Elegí el más parecido.</p>
           {!guessSubmitted ? (
             <>
               <ColorPicker value={guessValue} onChange={setGuessValue} />
-              <Btn variant="success" onClick={submitGuess} style={{ marginTop: 14 }}>
+              <Btn variant="success" onClick={submitGuess} className="mt-3.5">
                 Confirmar
               </Btn>
             </>
           ) : (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <div
-                style={{
-                  width: "100%",
-                  aspectRatio: "3 / 1",
-                  borderRadius: 14,
-                  background: role?.myGuess ?? hexFromHsl(guessValue),
-                  marginBottom: 10,
-                }}
-              />
-              <p style={{ color: "#5DCAA5" }}>Elección enviada</p>
-              <p style={{ ...S.muted, marginTop: 6 }}>
+            <div className={clsx(T.card, "text-center")}>
+              <div className="mb-2.5 w-full aspect-[3/1] rounded-[14px]" style={{ background: role?.myGuess ?? hexFromHsl(guessValue) }} />
+              <p className="text-[#5DCAA5]">Elección enviada</p>
+              <p className={clsx(T.muted, "mt-1.5")}>
                 {round.submittedCount}/{round.guessersOnline} confirmaron
               </p>
             </div>
@@ -134,7 +127,7 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
       <PhaseTransition phaseKey="result">
         <div>
           <Leaderboard standings={standings} finished={gameOver} />
-          <p style={{ ...S.muted, textAlign: "center", margin: "14px 0 10px" }}>Así quedó cada uno</p>
+          <p className={clsx(T.muted, "mx-0 mt-3.5 mb-2.5 text-center")}>Así quedó cada uno</p>
           {room.players.map(p => (
             <ColorCompareRow
               key={p.id}
@@ -154,8 +147,8 @@ export function RoundView({ room, me, myRole, wordReveal, isHost, send }: RoundV
             ))}
           <LeaveToLobbyButton groupCode={room.groupCode} send={send} />
           {!isHost && (
-            <div style={{ ...S.card, marginTop: 14, textAlign: "center" }}>
-              <p style={{ color: "#9089c0", fontSize: 14, margin: 0 }}>Esperando que el anfitrión inicie otra ronda</p>
+            <div className={clsx(T.card, "mt-3.5 text-center")}>
+              <p className="m-0 text-sm text-[#9089c0]">Esperando que el anfitrión inicie otra ronda</p>
             </div>
           )}
         </div>

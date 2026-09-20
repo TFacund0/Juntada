@@ -1,4 +1,4 @@
-import { S } from "../../../theme/styles";
+import { T } from "../../../theme/styles/classes";
 import { DEFAULT_CATEGORIES } from "@juntada/tutifruti-data";
 import type { LobbyInfoProps } from "../../gameTypes";
 
@@ -8,10 +8,20 @@ interface Category {
   icon?: string;
 }
 
+interface TutifrutiConfig {
+  customCategories?: Category[];
+  randomCategoryMode?: boolean;
+  activeCategories?: Record<string, boolean>;
+  randomCategoryCount?: number;
+  rounds?: number;
+  endMode?: "timer" | "basta";
+  roundTime?: number;
+}
+
 // Read-only mirror of ConfigPanel, shown to non-host players in the lobby so
 // they can see what the host is configuring live.
 export function LobbyInfo({ room }: LobbyInfoProps) {
-  const config = room.config as any;
+  const config = room.config as TutifrutiConfig;
   const customCategories: Category[] = config.customCategories || [];
   const randomMode = !!config.randomCategoryMode;
   // Custom categories go through the same activeCategories toggle as the
@@ -24,31 +34,31 @@ export function LobbyInfo({ room }: LobbyInfoProps) {
   const randomCount = Math.max(1, Math.min(config.randomCategoryCount || 6, DEFAULT_CATEGORIES.length + customCategories.length));
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>Configuración del anfitrión</span>
-      <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 13 }}>
-        <span style={{ color: "#9089c0" }}>
-          Rondas: <strong style={{ color: "#AFA9EC" }}>{config.rounds}</strong>
+    <div className={T.card}>
+      <span className={T.label}>Configuración del anfitrión</span>
+      <div className="flex gap-4 mb-3 text-[13px]">
+        <span className="text-[#9089c0]">
+          Rondas: <strong className="text-[#AFA9EC]">{config.rounds}</strong>
         </span>
-        <span style={{ color: "#9089c0" }}>
-          Fin de ronda: <strong style={{ color: "#AFA9EC" }}>{config.endMode === "basta" ? "¡Basta!" : `${config.roundTime}s`}</strong>
+        <span className="text-[#9089c0]">
+          Fin de ronda: <strong className="text-[#AFA9EC]">{config.endMode === "basta" ? "¡Basta!" : `${config.roundTime}s`}</strong>
         </span>
       </div>
       {randomMode ? (
-        <p style={S.muted}>
-          Categorías aleatorias: <strong style={{ color: "#AFA9EC" }}>{randomCount}</strong> por ronda
+        <p className={T.muted}>
+          Categorías aleatorias: <strong className="text-[#AFA9EC]">{randomCount}</strong> por ronda
         </p>
       ) : allActive.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           {allActive.map(cat => (
-            <span key={cat.id} style={S.pill(true)}>
+            <span key={cat.id} className={T.pill(true)}>
               {cat.icon ? `${cat.icon} ` : ""}
               {cat.label}
             </span>
           ))}
         </div>
       ) : (
-        <p style={{ ...S.muted }}>El anfitrión todavía no activó categorías</p>
+        <p className={T.muted}>El anfitrión todavía no activó categorías</p>
       )}
     </div>
   );

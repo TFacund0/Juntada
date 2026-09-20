@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
@@ -10,7 +11,7 @@ import { TeamConfigPanel } from "./components/TeamConfigPanel";
 import { buildBracket, propagateByes } from "@juntada/torneo-futbol-bracket";
 import type { Entrant, Match } from "@juntada/torneo-futbol-bracket";
 import { ErrorBanner } from "../../components/ui/ErrorBanner";
-import { useFlashError } from "../../hooks/useFlashError";
+import { useFlashError } from "../../hooks/ui/useFlashError";
 import { nextPlayerName } from "../../utils/nextPlayerName";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -194,27 +195,24 @@ export function LocalGame() {
             : null;
 
     return (
-      <div style={{ paddingBottom: 88 }}>
+      <div className="pb-[88px]">
         <SetupTabs tab={tab} onChange={setTab} />
 
         {tab === "players" && (
-          <div style={S.card}>
-            <span style={S.label}>Jugadores ({players.length})</span>
+          <div className={T.card}>
+            <span className={T.label}>Jugadores ({players.length})</span>
             {players.map(p => (
-              <div key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <div key={p.id} className="mb-2 flex items-center gap-2">
                 <Avatar name={p.name} size={32} />
-                <input style={{ ...S.input, flex: 1 }} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-                <button
-                  onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))}
-                  style={{ ...S.btn("danger"), width: 36, height: 36, padding: 0, borderRadius: 8, flexShrink: 0 }}
-                >
+                <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+                <button onClick={() => setPlayers(prev => prev.filter(x => x.id !== p.id))} className={T.squareIconBtn("danger")}>
                   ×
                 </button>
               </div>
             ))}
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <div className="mt-2.5 flex gap-2">
               <input
-                style={{ ...S.input, flex: 1 }}
+                className={clsx(T.input, "flex-1")}
                 placeholder="Nombre"
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
@@ -222,7 +220,7 @@ export function LocalGame() {
                   if (e.key === "Enter") addPlayer();
                 }}
               />
-              <Btn variant="ghost" onClick={addPlayer} style={{ width: "auto", padding: "11px 18px" }}>
+              <Btn variant="ghost" onClick={addPlayer} className="w-auto px-[18px] py-[11px]">
                 Agregar
               </Btn>
             </div>
@@ -249,7 +247,7 @@ export function LocalGame() {
           <StartButton onClick={startTournament} disabled={!canStart}>
             Empezar torneo
           </StartButton>
-          {startDisabledReason && <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>{startDisabledReason}</p>}
+          {startDisabledReason && <p className={clsx(T.muted, "text-center mt-2")}>{startDisabledReason}</p>}
         </StickyActionBar>
       </div>
     );
@@ -266,56 +264,37 @@ export function LocalGame() {
       const leakiest = trackGoals && s.length ? [...s].sort((a, b) => b.goalsAgainst - a.goalsAgainst)[0] : null;
       return (
         <div>
-          <div style={{ textAlign: "center", padding: "10px 0 20px" }}>
-            <div style={{ fontSize: 56 }}>🏆</div>
-            <p style={S.title}>{champion.name}</p>
-            <p style={{ color: "#7F77DD", fontSize: 15, fontWeight: 700, marginTop: 4 }}>Campeón del torneo con {champion.team}</p>
+          <div className="text-center p-[10px_0_20px]">
+            <div className="text-[56px]">🏆</div>
+            <p className={T.title}>{champion.name}</p>
+            <p className="mt-1 text-[15px] font-bold text-[#7F77DD]">Campeón del torneo con {champion.team}</p>
           </div>
 
           {trackGoals && (
-            <div style={S.card}>
-              <span style={S.label}>Tabla de jugadores</span>
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 11,
-                  color: "#6b6490",
-                  padding: "0 0 8px",
-                  borderBottom: "1px solid rgba(127,119,221,0.15)",
-                }}
-              >
-                <span style={{ flex: 1 }}>Jugador</span>
-                <span style={{ width: 36, textAlign: "center" }}>PJ</span>
-                <span style={{ width: 36, textAlign: "center" }}>GF</span>
-                <span style={{ width: 36, textAlign: "center" }}>GC</span>
-                <span style={{ width: 40, textAlign: "center" }}>DG</span>
+            <div className={T.card}>
+              <span className={T.label}>Tabla de jugadores</span>
+              <div className={T.statTableHeader}>
+                <span className="flex-1">Jugador</span>
+                <span className={T.statTableHeaderCol}>PJ</span>
+                <span className={T.statTableHeaderCol}>GF</span>
+                <span className={T.statTableHeaderCol}>GC</span>
+                <span className={T.statTableHeaderCol}>DG</span>
               </div>
               {s.map(row => (
-                <div
-                  key={row.player.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "8px 0",
-                    borderBottom: "1px solid rgba(127,119,221,0.08)",
-                    fontSize: 13,
-                  }}
-                >
-                  <span style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <div key={row.player.id} className={T.statTableRow}>
+                  <span className="flex flex-1 min-w-0 items-center gap-2">
                     <Avatar name={row.player.name} size={24} />
-                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {row.player.name}
-                    </span>
+                    <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{row.player.name}</span>
                     {row.player.id === champion.id && (
-                      <span title="Campeón" style={{ flexShrink: 0 }}>
+                      <span title="Campeón" className="shrink-0">
                         🏆
                       </span>
                     )}
                   </span>
-                  <span style={{ width: 32, flexShrink: 0, textAlign: "center", color: "#9089c0" }}>{row.played}</span>
-                  <span style={{ width: 32, flexShrink: 0, textAlign: "center", color: "#5DCAA5" }}>{row.goalsFor}</span>
-                  <span style={{ width: 32, flexShrink: 0, textAlign: "center", color: "#F09595" }}>{row.goalsAgainst}</span>
-                  <span style={{ width: 40, flexShrink: 0, textAlign: "center", fontWeight: 700 }}>
+                  <span className={clsx(T.statTableCol, "text-[#9089c0]")}>{row.played}</span>
+                  <span className={clsx(T.statTableCol, "text-[#5DCAA5]")}>{row.goalsFor}</span>
+                  <span className={clsx(T.statTableCol, "text-[#F09595]")}>{row.goalsAgainst}</span>
+                  <span className={T.statTableColWide(true)}>
                     {row.goalsFor - row.goalsAgainst >= 0 ? "+" : ""}
                     {row.goalsFor - row.goalsAgainst}
                   </span>
@@ -325,21 +304,21 @@ export function LocalGame() {
           )}
 
           {trackGoals && (
-            <div style={S.card}>
-              <span style={S.label}>Estadísticas del torneo</span>
+            <div className={T.card}>
+              <span className={T.label}>Estadísticas del torneo</span>
               {topScorer && topScorer.goalsFor > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                  <span style={{ fontSize: 20 }}>⚽</span>
-                  <span style={{ fontSize: 13 }}>
-                    Máximo goleador: <strong style={{ color: "#5DCAA5" }}>{topScorer.player.name}</strong> ({topScorer.goalsFor} goles)
+                <div className="mb-2.5 flex items-center gap-2.5">
+                  <span className="text-xl">⚽</span>
+                  <span className="text-[13px]">
+                    Máximo goleador: <strong className="text-[#5DCAA5]">{topScorer.player.name}</strong> ({topScorer.goalsFor} goles)
                   </span>
                 </div>
               )}
               {leakiest && leakiest.goalsAgainst > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 20 }}>🥅</span>
-                  <span style={{ fontSize: 13 }}>
-                    Valla más goleada: <strong style={{ color: "#F09595" }}>{leakiest.player.name}</strong> ({leakiest.goalsAgainst}{" "}
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">🥅</span>
+                  <span className="text-[13px]">
+                    Valla más goleada: <strong className="text-[#F09595]">{leakiest.player.name}</strong> ({leakiest.goalsAgainst}{" "}
                     recibidos)
                   </span>
                 </div>
@@ -347,52 +326,16 @@ export function LocalGame() {
             </div>
           )}
 
-          <div style={S.card}>
-            <span style={S.label}>Camino del torneo</span>
+          <div className={T.card}>
+            <span className={T.label}>Camino del torneo</span>
             {rounds!.map((round, ri) => (
-              <div key={ri} style={{ marginBottom: 10 }}>
-                <p
-                  style={{
-                    fontSize: 11,
-                    color: "#7F77DD",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    margin: "0 0 6px",
-                  }}
-                >
-                  {roundNames[ri]}
-                </p>
+              <div key={ri} className="mb-2.5">
+                <p className={T.pathRoundLabel}>{roundNames[ri]}</p>
                 {round.map((m, mi) => (
-                  <div key={mi} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 13 }}>
-                    <span
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        textAlign: "right",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        color: m.winner?.id === m.a?.id ? "#5DCAA5" : "#9089c0",
-                      }}
-                    >
-                      {m.a ? m.a.name : "—"}
-                    </span>
-                    <span style={{ flexShrink: 0, color: "#6b6490", fontSize: 12 }}>
-                      {m.goalsA != null ? `${m.goalsA} - ${m.goalsB}` : "vs"}
-                    </span>
-                    <span
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        color: m.winner?.id === m.b?.id ? "#5DCAA5" : "#9089c0",
-                      }}
-                    >
-                      {m.b ? m.b.name : "—"}
-                    </span>
+                  <div key={mi} className={T.pathMatchRow}>
+                    <span className={clsx(T.pathEntrantName(m.winner?.id === m.a?.id), "text-right")}>{m.a ? m.a.name : "—"}</span>
+                    <span className="shrink-0 text-xs text-[#6b6490]">{m.goalsA != null ? `${m.goalsA} - ${m.goalsB}` : "vs"}</span>
+                    <span className={T.pathEntrantName(m.winner?.id === m.b?.id)}>{m.b ? m.b.name : "—"}</span>
                   </div>
                 ))}
               </div>
@@ -417,127 +360,83 @@ export function LocalGame() {
       );
     }
 
-    const sideStyle = (side: Entrant<number> | null, m: Match<number>) => ({
-      display: "flex" as const,
-      alignItems: "center" as const,
-      gap: 8,
-      minWidth: 0,
-      flex: 1,
-      opacity: m.winner && m.winner.id !== side?.id ? 0.45 : 1,
-    });
-    const nameStyle = (side: Entrant<number> | null, m: Match<number>) => ({
-      margin: 0,
-      fontWeight: 700 as const,
-      fontSize: 13,
-      minWidth: 0,
-      overflow: "hidden" as const,
-      textOverflow: "ellipsis" as const,
-      whiteSpace: "nowrap" as const,
-      color: m.winner?.id === side?.id ? "#5DCAA5" : "#e8e4f0",
-    });
-    const teamStyle = {
-      margin: 0,
-      fontSize: 11,
-      color: "#7F77DD",
-      overflow: "hidden" as const,
-      textOverflow: "ellipsis" as const,
-      whiteSpace: "nowrap" as const,
-    };
+    const sideClass = (side: Entrant<number> | null, m: Match<number>) => T.matchSide(!!m.winner && m.winner.id !== side?.id);
+    const nameClass = (side: Entrant<number> | null, m: Match<number>) => T.matchSideName(m.winner?.id === side?.id);
 
     return (
       <div>
         {rounds!.map((round, ri) => (
-          <div key={ri} style={{ marginBottom: 18 }}>
-            <span style={{ ...S.label, marginBottom: 12 }}>{roundNames[ri]}</span>
+          <div key={ri} className="mb-[18px]">
+            <span className={clsx(T.label, "mb-3")}>{roundNames[ri]}</span>
             {round.map((m, mi) => {
               const editing = editingMatch && editingMatch.roundIdx === ri && editingMatch.matchIdx === mi;
               const playable = m.a && m.b && !m.winner;
               const decided = m.winner != null;
               return (
-                <div key={mi} style={{ ...S.cardHighlight, marginBottom: 10, padding: "14px 16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={sideStyle(m.a, m)}>
-                      {m.a ? (
-                        <Avatar name={m.a.name} size={30} />
-                      ) : (
-                        <div
-                          style={{ width: 30, height: 30, borderRadius: "50%", border: "1px dashed rgba(127,119,221,0.3)", flexShrink: 0 }}
-                        />
-                      )}
-                      <div style={{ minWidth: 0 }}>
-                        <p style={nameStyle(m.a, m)}>{m.a ? m.a.name : "Por definir"}</p>
-                        {m.a && <p style={teamStyle}>{m.a.team}</p>}
+                <div key={mi} className={T.matchCard(false)}>
+                  <div className="flex items-center gap-2.5">
+                    <div className={sideClass(m.a, m)}>
+                      {m.a ? <Avatar name={m.a.name} size={30} /> : <div className={T.avatarPlaceholder} />}
+                      <div className="min-w-0">
+                        <p className={nameClass(m.a, m)}>{m.a ? m.a.name : "Por definir"}</p>
+                        {m.a && <p className={T.matchSideTeam}>{m.a.team}</p>}
                       </div>
                     </div>
 
-                    <div style={{ flexShrink: 0, textAlign: "center", minWidth: 46 }}>
+                    <div className="min-w-[46px] shrink-0 text-center">
                       {m.goalsA != null ? (
-                        <span style={{ fontSize: 16, fontWeight: 800, color: "#AFA9EC" }}>
+                        <span className="text-base font-extrabold text-[#AFA9EC]">
                           {m.goalsA} - {m.goalsB}
                         </span>
                       ) : (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#6b6490" }}>vs</span>
+                        <span className="text-[11px] font-bold text-[#6b6490]">vs</span>
                       )}
                     </div>
 
-                    <div style={{ ...sideStyle(m.b, m), flexDirection: "row-reverse" as const, textAlign: "right" as const }}>
-                      {m.b ? (
-                        <Avatar name={m.b.name} size={30} />
-                      ) : (
-                        <div
-                          style={{ width: 30, height: 30, borderRadius: "50%", border: "1px dashed rgba(127,119,221,0.3)", flexShrink: 0 }}
-                        />
-                      )}
-                      <div style={{ minWidth: 0 }}>
-                        <p style={nameStyle(m.b, m)}>{m.b ? m.b.name : "Por definir"}</p>
-                        {m.b && <p style={teamStyle}>{m.b.team}</p>}
+                    <div className={clsx(sideClass(m.b, m), "flex-row-reverse text-right")}>
+                      {m.b ? <Avatar name={m.b.name} size={30} /> : <div className={T.avatarPlaceholder} />}
+                      <div className="min-w-0">
+                        <p className={nameClass(m.b, m)}>{m.b ? m.b.name : "Por definir"}</p>
+                        {m.b && <p className={T.matchSideTeam}>{m.b.team}</p>}
                       </div>
                     </div>
                   </div>
 
                   {playable && !editing && (
-                    <Btn variant="ghost" onClick={() => openMatch(ri, mi)} style={{ marginTop: 12 }}>
+                    <Btn variant="ghost" onClick={() => openMatch(ri, mi)} className="mt-3">
                       Cargar resultado
                     </Btn>
                   )}
 
                   {playable && editing && !trackGoals && (
-                    <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                      <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, m.a)} style={{ fontSize: 13 }}>
+                    <div className="mt-3 flex gap-2">
+                      <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, m.a)} className="text-[13px]">
                         Ganó {m.a!.name}
                       </Btn>
-                      <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, m.b)} style={{ fontSize: 13 }}>
+                      <Btn variant="success" onClick={() => confirmWinnerSimple(ri, mi, m.b)} className="text-[13px]">
                         Ganó {m.b!.name}
                       </Btn>
                     </div>
                   )}
 
                   {playable && editing && trackGoals && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-                        <span
-                          style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                        >
-                          {m.a!.name}
-                        </span>
+                    <div className="mt-3">
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px]">{m.a!.name}</span>
                         <input
                           type="number"
                           min="0"
-                          style={{ ...S.input, width: 60, flexShrink: 0, textAlign: "center" }}
+                          className={clsx(T.input, "w-[60px] shrink-0 text-center")}
                           value={scoreInput.goalsA}
                           onChange={e => setScoreInput(s => ({ ...s, goalsA: e.target.value }))}
                         />
                       </div>
-                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
-                        <span
-                          style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                        >
-                          {m.b!.name}
-                        </span>
+                      <div className="mb-2.5 flex items-center gap-2">
+                        <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[13px]">{m.b!.name}</span>
                         <input
                           type="number"
                           min="0"
-                          style={{ ...S.input, width: 60, flexShrink: 0, textAlign: "center" }}
+                          className={clsx(T.input, "w-[60px] shrink-0 text-center")}
                           value={scoreInput.goalsB}
                           onChange={e => setScoreInput(s => ({ ...s, goalsB: e.target.value }))}
                         />
@@ -549,7 +448,7 @@ export function LocalGame() {
                   )}
 
                   {decided && !playable && m.a && m.b && (
-                    <p style={{ ...S.muted, marginTop: 8, textAlign: "center" }}>
+                    <p className={clsx(T.muted, "mt-2 text-center")}>
                       Ganó {m.winner!.name} · {m.winner!.team}
                     </p>
                   )}

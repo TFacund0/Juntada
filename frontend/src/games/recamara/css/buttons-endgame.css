@@ -38,11 +38,19 @@
 }
 
 .recamara .rec-overlay.winner-overlay {
-  /* .rec-overlay defaults to align-items: flex-end (the bottom-sheet look
-     shared with PlayerItemsSheet/ItemUseModal) — the winner card needs to
-     sit centered on screen instead, same as .rec-modal above. */
-  align-items: center;
-  animation: rec-fade-in 0.6s ease-out;
+  /* .rec-overlay ya centra por defecto (ver overlays.css) — acá suma su
+     propia animación de entrada, un flash dorado que se asienta igual que
+     rec-elimination-flash pero en tono celebratorio en vez de alarmante. */
+  animation: rec-victory-flash 0.6s ease-out;
+}
+
+@keyframes rec-victory-flash {
+  0% {
+    background: rgba(255, 215, 90, 0.5);
+  }
+  100% {
+    background: rgba(0, 0, 0, 0.72);
+  }
 }
 
 .recamara .final-card {
@@ -51,6 +59,10 @@
 }
 
 .recamara .final-card.winner-in {
+  border-color: #ffd75a;
+  box-shadow:
+    0 0 45px -5px rgba(255, 215, 90, 0.8),
+    0 0 15px 2px rgba(255, 231, 150, 0.4) inset;
   animation: rec-winner-in 0.6s ease-out both;
 }
 
@@ -63,6 +75,30 @@
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+.recamara .rec-victory-callout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.recamara .rec-victory-trophy {
+  font-size: 2.8rem;
+  line-height: 1;
+  animation: rec-skull-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.recamara .rec-victory-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #ffd75a;
+  text-shadow: 0 0 16px rgba(255, 215, 90, 0.8);
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .recamara .final-card .winner {

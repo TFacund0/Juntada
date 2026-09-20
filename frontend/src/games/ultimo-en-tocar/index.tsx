@@ -6,7 +6,7 @@ import type { GameDef } from "../gameTypes";
 // only for now — see ComingSoon.
 export const ultimoEnTocarGame: GameDef = {
   id: "ultimo-en-tocar",
-  label: "Último en Tocar Pierde",
+  label: "Último en Tocar",
   icon: "🫸",
   description:
     "Todos mantienen el dedo apoyado en la pantalla. En un momento aleatorio el juego termina, y quien no estaba tocando en ese instante pierde.",
@@ -19,7 +19,7 @@ export const ultimoEnTocarGame: GameDef = {
     "Quien no estaba tocando la pantalla en ese instante (por haber soltado antes) pierde.",
     "Se puede jugar a eliminación o por puntos.",
   ],
-  LocalGame: () => <ComingSoon label="Último en Tocar Pierde" />,
-  ConfigPanel: () => <ComingSoon label="Último en Tocar Pierde" />,
-  RoundView: () => <ComingSoon label="Último en Tocar Pierde" />,
+  LocalGame: () => <ComingSoon label="Último en Tocar" />,
+  ConfigPanel: () => <ComingSoon label="Último en Tocar" />,
+  RoundView: () => <ComingSoon label="Último en Tocar" />,
 };

@@ -1,4 +1,5 @@
 import { Avatar } from "../ui/Avatar";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 
 interface TurnCirclePlayer {
   id: string;
@@ -202,7 +203,7 @@ export function TurnCircle({
           style={{
             fontSize: n > 10 ? 13 : 15,
             fontWeight: 800,
-            color: "var(--jt-accent-strong, #AFA9EC)",
+            color: `var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`,
             margin: 0,
             maxWidth: Math.max(60, 2 * (radius - avatar)),
             overflow: "hidden",

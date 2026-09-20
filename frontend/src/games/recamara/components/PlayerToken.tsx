@@ -15,7 +15,14 @@ export function PlayerToken({ player, isActive, style, onClick }: PlayerTokenPro
   const isDead = player.lives <= 0;
   return (
     <button type="button" className={`token${isActive ? " active" : ""}${isDead ? " dead" : ""}`} style={style} onClick={onClick}>
-      <span className="token-name">{player.name}</span>
+      <span className="token-name">
+        {isDead && (
+          <span className="token-dead-skull" aria-hidden="true">
+            💀{" "}
+          </span>
+        )}
+        {player.name}
+      </span>
       <span className="token-lives">
         {Array.from({ length: STARTING_LIVES }).map((_, i) => (
           <i key={i} className={`life-dot${i >= player.lives ? " spent" : ""}`} />

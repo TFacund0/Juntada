@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+
 interface BigTextFlashProps {
   eyebrow?: string;
   text: string;
@@ -9,19 +11,20 @@ interface BigTextFlashProps {
 // the next one. Shared across games for their own "big letters" transition
 // moments — same shell, each caller just supplies its own copy and owns its
 // own mount duration.
+//
+// Rendered via a portal straight into <body>: every caller sits inside
+// MultiplayerGame's <ScreenFade>, which applies a `transform` to its wrapper
+// div while its own enter animation runs (see screenTransitions.css). Per
+// the CSS spec, that transform makes the wrapper the containing block for
+// any `position: fixed` descendant — so without the portal, this flash's
+// `inset: 0` briefly resolved against that (contentless, near-zero-height)
+// wrapper instead of the viewport, squishing it into a sliver at the top for
+// that ~0.3s before snapping to fullscreen once the animation ended. Read as
+// the flash "starting at the top and suddenly dropping/expanding" instead of
+// the intended instant fullscreen cover.
 export function BigTextFlash({ eyebrow, text }: BigTextFlashProps) {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: "var(--jt-z-fullscreen-flash, 200)",
-        background: "#0a0a0a",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+  return createPortal(
+    <div className="fixed inset-0 z-[var(--jt-z-fullscreen-flash,200)] flex items-center justify-center bg-[#0a0a0a]">
       <style>{`
         .jt-big-text-flash {
           text-align: center;
@@ -36,31 +39,11 @@ export function BigTextFlash({ eyebrow, text }: BigTextFlashProps) {
       `}</style>
       <div className="jt-big-text-flash">
         {eyebrow && (
-          <p
-            style={{
-              margin: "0 0 10px",
-              fontSize: 13,
-              fontWeight: 800,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--jt-accent, #e0202b)",
-            }}
-          >
-            {eyebrow}
-          </p>
+          <p className="m-0 mb-2.5 text-[13px] font-extrabold uppercase tracking-[0.14em] text-[var(--jt-accent,#e0202b)]">{eyebrow}</p>
         )}
-        <p
-          style={{
-            margin: 0,
-            fontSize: "clamp(1.6rem, 8vw, 2.6rem)",
-            fontWeight: 800,
-            letterSpacing: "-0.02em",
-            color: "#fff",
-          }}
-        >
-          {text}
-        </p>
+        <p className="m-0 text-[clamp(1.6rem,8vw,2.6rem)] font-extrabold tracking-[-0.02em] text-white">{text}</p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

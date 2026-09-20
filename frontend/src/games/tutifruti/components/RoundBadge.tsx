@@ -1,4 +1,4 @@
-import type { TutifrutiRoundState } from "../types";
+import type { TutifrutiRoundState } from "../types/roundView";
 
 // Ronda X/Y indicator, shown at the top of every phase — texto grande con
 // el degradé del tema en vez de una card/pill (a propósito no lleva fondo

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import { Btn } from "../../../../components/ui/Btn";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../../components/setup/StickyActionBar";
 import { PhaseTransition } from "../../../../components/game-kit/PhaseTransition";
@@ -14,10 +15,10 @@ import type { ImpostorRoundState, ImpostorConfigState } from "../../types/roundV
 
 function PlayerReadyPills({ players }: { players: PublicPlayer[] }) {
   return (
-    <div style={{ ...S.card, marginTop: 16 }}>
+    <div className={clsx(T.card, "mt-4")}>
       <style>{staggerPopStyle}</style>
-      <span style={S.label}>Estado de jugadores</span>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <span className={T.label}>Estado de jugadores</span>
+      <div className="flex flex-wrap gap-2">
         {players.map(p => (
           // Keyed by ready+online too — a status flip remounts the pill so
           // it replays the pop instead of just silently swapping colors,
@@ -25,8 +26,7 @@ function PlayerReadyPills({ players }: { players: PublicPlayer[] }) {
           // impostor-stagger-pop.
           <div
             key={`${p.id}-${p.ready}-${p.online}`}
-            className="impostor-stagger-pop"
-            style={{ ...S.pill(p.ready), opacity: p.online ? 1 : 0.55 }}
+            className={clsx("impostor-stagger-pop", T.pill(p.ready), p.online ? "opacity-100" : "opacity-[0.55]")}
           >
             {p.name}
             {!p.online ? " · desconectado" : p.ready ? " · listo" : ""}
@@ -58,7 +58,7 @@ export function DiscussionPhaseScreen({ room, myPlayer, send, round, config }: D
         {!config.discussionUnlimited ? (
           round?.discussionEnd && <RingTimerLive timerEnd={round.discussionEnd} total={config.discussionTime} label="Tiempo de discusión" />
         ) : (
-          <p style={{ ...S.muted, textAlign: "center", marginBottom: 16 }}>Sin límite de tiempo — discutan a su ritmo.</p>
+          <p className={clsx(T.muted, "text-center mb-4")}>Sin límite de tiempo — discutan a su ritmo.</p>
         )}
 
         <CluesReview clues={round?.clues} players={room.players} />
@@ -78,8 +78,8 @@ export function DiscussionPhaseScreen({ room, myPlayer, send, round, config }: D
               Listo para votar
             </Btn>
           ) : (
-            <div style={{ ...S.card, textAlign: "center", marginBottom: 0 }}>
-              <p style={{ color: "#5DCAA5" }}>Listo — esperando a los demás para pasar a la votación</p>
+            <div className={clsx(T.card, "text-center mb-0")}>
+              <p className="text-[#5DCAA5]">Listo — esperando a los demás para pasar a la votación</p>
             </div>
           )}
         </StickyActionBar>

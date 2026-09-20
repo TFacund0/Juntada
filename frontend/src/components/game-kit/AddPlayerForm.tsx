@@ -1,4 +1,5 @@
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../ui/Btn";
 import { ErrorBanner } from "../ui/ErrorBanner";
 
@@ -24,11 +25,15 @@ export function AddPlayerForm({
   errorKey: number;
 }) {
   return (
-    <div style={S.card}>
-      <span style={S.label}>Sumar jugador</span>
-      <div style={{ display: "flex", gap: 8 }}>
+    <div className={T.card}>
+      <span className={T.label}>Sumar jugador</span>
+      {/* flex-wrap + min-w: el min-w-0 anterior le sacaba al input hasta el
+          piso de ancho por default del navegador, así que en un contenedor
+          angosto el botón "Sumar" (no se achica más allá de su texto+
+          padding) lo dejaba casi sin espacio. */}
+      <div className="flex flex-wrap gap-2">
         <input
-          style={{ ...S.input, flex: 1 }}
+          className={clsx(T.input, "min-w-[100px] flex-1")}
           placeholder="Nombre"
           value={name}
           onChange={e => onNameChange(e.target.value)}

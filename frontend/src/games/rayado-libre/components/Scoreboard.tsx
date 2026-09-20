@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Avatar } from "../../../components/ui/Avatar";
 // Misma forma que ya necesitaba PodiumBoard (el podio de fin de partida,
 // ahora compartido en components/game-kit) — una sola definición del tipo
@@ -13,18 +14,18 @@ export type { ScoreboardEntry } from "../../../components/game-kit/PodiumBoard";
 export function Scoreboard({ entries, title = "Tabla de puntos" }: { entries: ScoreboardEntry[]; title?: string }) {
   const ranked = [...entries].sort((a, b) => b.score - a.score);
   return (
-    <div style={S.card}>
-      <span style={S.label}>{title}</span>
+    <div className={T.card}>
+      <span className={T.label}>{title}</span>
       {ranked.map((e, i) => (
-        <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0" }}>
-          <span style={{ width: 16, fontSize: 12, fontWeight: 800, color: i === 0 ? "#E2C44A" : "#6b6490" }}>{i + 1}</span>
+        <div key={e.id} className="flex items-center gap-2 py-[5px]">
+          <span className={clsx("w-4 text-xs font-extrabold", i === 0 ? "text-[#E2C44A]" : "text-[#6b6490]")}>{i + 1}</span>
           <Avatar name={e.name} size={22} />
-          <span style={{ flex: 1, fontWeight: 700, fontSize: 12 }}>
+          <span className="flex-1 font-bold text-xs">
             {e.name}
             {e.isMe && " (vos)"}
           </span>
-          {!!e.roundPoints && <span style={{ fontSize: 11, fontWeight: 700, color: "#5DCAA5" }}>+{e.roundPoints}</span>}
-          <span style={{ fontSize: 12, fontWeight: 800, color: "#5DCAA5" }}>{e.score} pts</span>
+          {!!e.roundPoints && <span className="text-[11px] font-bold text-[#5DCAA5]">+{e.roundPoints}</span>}
+          <span className="text-xs font-extrabold text-[#5DCAA5]">{e.score} pts</span>
         </div>
       ))}
     </div>

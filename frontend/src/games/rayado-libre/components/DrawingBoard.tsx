@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Canvas, type DrawAction, type Tool } from "./Canvas";
 import { Toolbar } from "./Toolbar";
 import { CircularTimer } from "./CircularTimer";
@@ -127,7 +128,7 @@ export function DrawingBoard({ canvas, interactive, timerEnd, total, wordSlot, s
         }
       `}</style>
       <div className="rl-drawing-grid">
-        <div className="rl-board" style={S.card}>
+        <div className={clsx("rl-board", T.card)}>
           {(hasHeader || interactive) && (
             <div className="rl-board-header">
               <div className="rl-board-header-side rl-board-header-side--start">
@@ -154,7 +155,7 @@ export function DrawingBoard({ canvas, interactive, timerEnd, total, wordSlot, s
             </div>
           )}
           {interactive && onReroll && (
-            <button onClick={onReroll} style={{ ...S.btn("ghost"), marginBottom: 8, padding: "8px", fontSize: 12 }}>
+            <button onClick={onReroll} className={clsx(T.btn("ghost"), "mb-2 p-2 text-xs")}>
               🔄 Pedir otra palabra
             </button>
           )}
@@ -187,7 +188,7 @@ export function DrawingBoard({ canvas, interactive, timerEnd, total, wordSlot, s
         </div>
         <div className="rl-right-col">
           {interactive && (
-            <div className="rl-toolbar-desktop" style={S.card}>
+            <div className={clsx("rl-toolbar-desktop", T.card)}>
               <Toolbar tool={tool} onChange={onToolChange} onClear={onClear} onUndo={onUndo} />
             </div>
           )}

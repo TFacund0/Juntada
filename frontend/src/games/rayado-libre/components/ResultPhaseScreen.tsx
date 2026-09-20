@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { StartButton } from "../../../components/setup/StartButton";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
@@ -27,16 +28,10 @@ interface ResultPhaseScreenProps {
 export function ResultPhaseScreen({ room, me, isHost, send }: ResultPhaseScreenProps) {
   return (
     <PhaseTransition phaseKey="result">
-      <style>{`
-        .rl-result-center { display: flex; flex-direction: column; align-items: center; flex: 1 1 auto; }
-        @media (min-width: 1024px) {
-          .rl-result-center { justify-content: center; }
-        }
-      `}</style>
       <GameScreenLayout
-        top={<p style={{ textAlign: "center", fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "8px 0 16px" }}>Fin del juego</p>}
+        top={<p className="text-center text-xl font-extrabold text-[#AFA9EC] my-2 mb-4">Fin del juego</p>}
         center={
-          <div className="rl-result-center">
+          <div className="flex flex-col items-center flex-1 lg:justify-center">
             <PodiumBoard
               entries={room.players.map(p => ({
                 id: p.id,
@@ -53,8 +48,8 @@ export function ResultPhaseScreen({ room, me, isHost, send }: ResultPhaseScreenP
           isHost ? (
             <StartButton onClick={() => send({ type: "new_game" })}>Nueva partida</StartButton>
           ) : (
-            <div style={{ ...S.card, textAlign: "center", marginBottom: 0 }}>
-              <p style={{ color: "#9089c0", fontSize: 14 }}>Esperando que el anfitrión inicie otra partida</p>
+            <div className={clsx(T.card, "text-center mb-0")}>
+              <p className="text-[#9089c0] text-sm">Esperando que el anfitrión inicie otra partida</p>
             </div>
           )
         }

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { AddPlayerForm } from "../../../components/game-kit/AddPlayerForm";
-import { useFlashError } from "../../../hooks/useFlashError";
+import { useFlashError } from "../../../hooks/ui/useFlashError";
 import { nextPlayerName } from "../../../utils/nextPlayerName";
 
 // Local pass-and-play's "who's playing" editor — add/remove names before
@@ -29,11 +30,11 @@ export function PlayersConfig({ names, onChange }: { names: string[]; onChange: 
 
   return (
     <div>
-      <div style={S.card}>
-        <span style={S.label}>Jugadores</span>
+      <div className={T.card}>
+        <span className={T.label}>Jugadores</span>
         {names.map((name, i) => (
-          <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <div style={{ ...S.input, flex: 1 }}>{name}</div>
+          <div key={name} className="flex items-center gap-2 mb-2">
+            <div className={clsx(T.input, "flex-1 min-w-0 truncate")}>{name}</div>
             {names.length > 1 && (
               <Btn variant="ghost" onClick={() => removeName(i)} style={{ width: "auto", padding: "11px 14px" }}>
                 ✕

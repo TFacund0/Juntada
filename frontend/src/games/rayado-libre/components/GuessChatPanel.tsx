@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import type { RoundViewProps } from "../../gameTypes";
 import type { ChatEntry } from "../types/roundView";
@@ -34,31 +35,31 @@ export function GuessChatPanel({ chatLog, players, correctGuessers, roundPoints,
   const visible = variant === "live" ? messages.slice(-5) : messages;
 
   return (
-    <div style={S.card}>
+    <div className={T.card}>
       {variant === "live" && correctGuessers.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {correctGuessers.map(id => {
             const p = players.find(x => x.id === id);
             if (!p) return null;
             return (
-              <div key={id} style={{ ...S.pill(true), opacity: p.online ? 1 : 0.55 }}>
+              <div key={id} className={clsx(T.pill(true), p.online ? "opacity-100" : "opacity-[0.55]")}>
                 ✓ {p.name} · +{roundPoints[id] ?? 0}
               </div>
             );
           })}
         </div>
       )}
-      <span style={S.label}>{input ? "Chat — escribí tu respuesta" : "Chat — lo que van escribiendo"}</span>
+      <span className={T.label}>{input ? "Chat — escribí tu respuesta" : "Chat — lo que van escribiendo"}</span>
       {visible.length === 0 ? (
-        <p style={{ ...S.muted, margin: "0 0 12px" }}>Todavía no escribió nadie.</p>
+        <p className={clsx(T.muted, "mb-3")}>Todavía no escribió nadie.</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10, minHeight: 20 }}>
+        <div className="flex flex-col gap-1.5 mb-2.5 min-h-5">
           {visible.map((entry, i) => {
             const p = players.find(x => x.id === entry.playerId);
             if (!p) return null;
             return (
-              <p key={i} style={{ fontSize: 13, color: "#b8b0d4", margin: 0 }}>
-                <strong style={{ color: "#AFA9EC" }}>{p.name}:</strong> {entry.text}
+              <p key={i} className="text-[13px] text-[#b8b0d4]">
+                <strong className="text-[#AFA9EC]">{p.name}:</strong> {entry.text}
               </p>
             );
           })}
@@ -66,11 +67,14 @@ export function GuessChatPanel({ chatLog, players, correctGuessers, roundPoints,
       )}
       {input &&
         (input.disabledReason ? (
-          <p style={{ ...S.muted, textAlign: "center" }}>{input.disabledReason}</p>
+          <p className={clsx(T.muted, "text-center")}>{input.disabledReason}</p>
         ) : (
-          <div style={{ display: "flex", gap: 8 }}>
+          // flex-wrap + min-w: mismo motivo que el resto de los inputs+botón
+          // de esta app — sin esto, el botón "Enviar" le come el ancho al
+          // input en un contenedor angosto.
+          <div className="flex flex-wrap gap-2">
             <input
-              style={{ ...S.input, flex: 1 }}
+              className={clsx(T.input, "min-w-[140px] flex-1")}
               placeholder="Tu respuesta..."
               value={input.value}
               onChange={e => input.onChange(e.target.value)}

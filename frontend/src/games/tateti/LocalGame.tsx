@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
 import { Btn } from "../../components/ui/Btn";
 import { StartButton } from "../../components/setup/StartButton";
 import { ConfirmBackButton } from "../../components/game-kit/ConfirmBackButton";
@@ -80,11 +81,11 @@ export function LocalGame() {
   if (phase === "setup")
     return (
       <div>
-        <div style={S.card}>
-          <span style={S.label}>Jugador 1 (X, empieza)</span>
-          <input style={{ ...S.input, marginBottom: 14 }} value={names[0]} onChange={e => setNames(n => [e.target.value, n[1]])} />
-          <span style={S.label}>Jugador 2 (O)</span>
-          <input style={S.input} value={names[1]} onChange={e => setNames(n => [n[0], e.target.value])} />
+        <div className={T.card}>
+          <span className={T.label}>Jugador 1 (X, empieza)</span>
+          <input className={clsx(T.input, "mb-3.5")} value={names[0]} onChange={e => setNames(n => [e.target.value, n[1]])} />
+          <span className={T.label}>Jugador 2 (O)</span>
+          <input className={T.input} value={names[1]} onChange={e => setNames(n => [n[0], e.target.value])} />
         </div>
         <StartButton onClick={startGame}>Empezar a jugar</StartButton>
       </div>
@@ -92,23 +93,23 @@ export function LocalGame() {
 
   return (
     <div>
-      <div style={{ ...S.card, display: "flex", justifyContent: "space-around", textAlign: "center" }}>
+      <div className={clsx(T.card, "flex justify-around text-center")}>
         <div>
-          <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>{names[0]}</p>
-          <p style={{ margin: "2px 0 0", fontSize: 22, fontWeight: 800, color: "#AFA9EC" }}>{score[0]}</p>
+          <p className="m-0 text-sm font-bold">{names[0]}</p>
+          <p className="mt-0.5 text-[22px] font-extrabold text-[#AFA9EC]">{score[0]}</p>
         </div>
         <div>
-          <p style={{ margin: 0, fontSize: 12, color: "#6b6490" }}>Empates</p>
-          <p style={{ margin: "2px 0 0", fontSize: 22, fontWeight: 800, color: "#9089c0" }}>{draws}</p>
+          <p className="m-0 text-xs text-[#6b6490]">Empates</p>
+          <p className="mt-0.5 text-[22px] font-extrabold text-[#9089c0]">{draws}</p>
         </div>
         <div>
-          <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>{names[1]}</p>
-          <p style={{ margin: "2px 0 0", fontSize: 22, fontWeight: 800, color: "#5DCAA5" }}>{score[1]}</p>
+          <p className="m-0 text-sm font-bold">{names[1]}</p>
+          <p className="mt-0.5 text-[22px] font-extrabold text-[#5DCAA5]">{score[1]}</p>
         </div>
       </div>
 
       {winner === null && (
-        <p style={{ textAlign: "center", fontSize: 14, color: "#9089c0", marginBottom: 14 }}>
+        <p className="mb-3.5 text-center text-sm text-[#9089c0]">
           Turno de <strong style={{ color: turnIndex === 0 ? "#AFA9EC" : "#5DCAA5" }}>{names[turnIndex]}</strong> ({marks[turnIndex]})
         </p>
       )}
@@ -116,20 +117,22 @@ export function LocalGame() {
       <Board board={board} winningLine={winningLine} onCellClick={handleCell} disabled={winner !== null} />
 
       {winner !== null && (
-        <div style={{ ...S.cardHighlight, textAlign: "center", marginTop: 16 }}>
+        <div className={clsx(T.cardHighlight, "mt-4 text-center")}>
           {/* "Empate" is short and fixed — keep the usual big size. "Ganó
               <name>" can run long (no length limit on a player's name), so
               it shrinks a step instead of looming as large as "Empate" does. */}
-          <p style={{ ...S.bigReveal, fontSize: winner === "draw" ? 28 : 20 }}>{winner === "draw" ? "Empate" : `Ganó ${names[winner]}`}</p>
-          <div style={{ marginTop: 8 }}>
+          <p className={clsx(T.bigReveal, winner === "draw" ? "text-[28px]" : "text-xl")}>
+            {winner === "draw" ? "Empate" : `Ganó ${names[winner]}`}
+          </p>
+          <div className="mt-2">
             <StartButton onClick={newRound}>Jugar de nuevo</StartButton>
           </div>
         </div>
       )}
 
       {(score[0] > 0 || score[1] > 0 || draws > 0) && (
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <Btn variant="ghost" onClick={() => setConfirmingReset(true)} style={{ fontSize: 13 }}>
+        <div className="mt-4 flex gap-2">
+          <Btn variant="ghost" onClick={() => setConfirmingReset(true)} className="text-[13px]">
             Reiniciar marcador
           </Btn>
         </div>

@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Avatar } from "../../../components/ui/Avatar";
 
 export interface LeaderboardEntry {
@@ -22,35 +23,27 @@ export function Leaderboard({ standings, finished = false }: { standings: Leader
   return (
     <div>
       {finished && (
-        <div style={{ ...S.cardHighlight, textAlign: "center" }}>
-          <span style={S.label}>{"Ganador" + (isTie ? "es" : "")}</span>
-          <p style={{ fontSize: 20, fontWeight: 800, color: "#AFA9EC", margin: "4px 0" }}>
-            🏆 {isTie ? winners.map(w => w.name).join(" y ") : winners[0].name}
-          </p>
-          <p style={S.muted}>{topScore.toFixed(2)} puntos</p>
+        <div className={clsx(T.cardHighlight, "text-center")}>
+          <span className={T.label}>{"Ganador" + (isTie ? "es" : "")}</span>
+          <p className="text-xl font-extrabold text-[#AFA9EC] my-1">🏆 {isTie ? winners.map(w => w.name).join(" y ") : winners[0].name}</p>
+          <p className={T.muted}>{topScore.toFixed(2)} puntos</p>
         </div>
       )}
 
-      <div style={S.card}>
-        <span style={S.label}>Tabla de puntuación</span>
+      <div className={T.card}>
+        <span className={T.label}>Tabla de puntuación</span>
         {standings.map((entry, i) => (
           <div
             key={entry.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "6px 0",
-              borderBottom: i < standings.length - 1 ? "1px solid rgba(127,119,221,0.08)" : "none",
-            }}
+            className={clsx("flex items-center gap-2.5 py-1.5", i < standings.length - 1 ? "border-b border-[rgba(127,119,221,0.08)]" : "")}
           >
-            <span style={{ width: 20, fontSize: 12, fontWeight: 800, color: "#6b6490" }}>{i + 1}</span>
+            <span className="w-5 text-xs font-extrabold text-[#6b6490]">{i + 1}</span>
             <Avatar name={entry.name} size={28} />
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
+            <span className="flex-1 text-sm font-bold">
               {entry.name}
               {entry.online === false ? " (desconectado)" : ""}
             </span>
-            <span style={{ fontWeight: 800, color: "#AFA9EC", minWidth: 44, textAlign: "right" }}>{entry.score.toFixed(2)}</span>
+            <span className="font-extrabold text-[#AFA9EC] min-w-[44px] text-right">{entry.score.toFixed(2)}</span>
           </div>
         ))}
       </div>

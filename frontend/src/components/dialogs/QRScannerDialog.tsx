@@ -19,6 +19,8 @@ interface QRScannerDialogProps {
  * decodificado; quien lo usa (la pantalla de unirse) es quien sabe cómo
  * convertir eso en un código de sala/grupo.
  */
+const TITLE_ID = "jt-qr-scan-title-label";
+
 export function QRScannerDialog({ title, onScan, onClose }: QRScannerDialogProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -86,13 +88,16 @@ export function QRScannerDialog({ title, onScan, onClose }: QRScannerDialogProps
   return (
     <DialogFrame
       onClose={onClose}
+      titleId={TITLE_ID}
       maxWidth={340}
       overlayOpacity={0.85}
       textAlign="center"
       cardClassName="jt-qr-scan-card"
       cardStyle={{ position: "relative", overflow: "hidden" }}
     >
-      <p className="jt-text-gradient jt-qr-scan-title">{title}</p>
+      <p id={TITLE_ID} className="jt-text-gradient jt-qr-scan-title">
+        {title}
+      </p>
       {error ? (
         <ErrorBanner message={error} flashKey={0} variant="inline" />
       ) : (

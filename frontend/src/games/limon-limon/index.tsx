@@ -5,7 +5,7 @@ import type { GameDef } from "../gameTypes";
 // imported eagerly by the registry — this keeps every game's actual code out
 // of the initial bundle until the player picks that game (see registry.js).
 const LocalGame = lazy(() => import("./LocalGame").then(m => ({ default: m.LocalGame })));
-const ConfigPanel = lazy(() => import("./ConfigPanel").then(m => ({ default: m.ConfigPanel })));
+const ConfigPanel = lazy(() => import("./components/ConfigPanel").then(m => ({ default: m.ConfigPanel })));
 const RoundView = lazy(() => import("./RoundView").then(m => ({ default: m.RoundView })));
 
 // Card-based game with a Spanish ("truco") deck: in a circle with the deck in

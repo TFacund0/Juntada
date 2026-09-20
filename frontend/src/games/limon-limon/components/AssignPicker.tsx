@@ -1,4 +1,5 @@
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T as UI } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { Avatar } from "../../../components/ui/Avatar";
 
@@ -19,20 +20,13 @@ export function AssignPicker<T extends string | number>({
 }) {
   return (
     <>
-      <span style={{ ...S.label, textAlign: "center", display: "block" }}>¿Quién se la queda?</span>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+      <span className={clsx(UI.label, "text-center block")}>¿Quién se la queda?</span>
+      <div className="flex flex-col gap-2 mt-1.5">
         {players.map(p => (
           <button
             key={p.id}
             onClick={() => onSelect(p.id)}
-            style={{
-              ...S.btn(selected === p.id ? "primary" : "ghost"),
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              justifyContent: "flex-start",
-              padding: "10px 14px",
-            }}
+            className={clsx(UI.btn(selected === p.id ? "primary" : "ghost"), "flex items-center gap-2.5 justify-start px-3.5 py-2.5")}
           >
             <Avatar name={p.name} size={26} />
             <span>{p.name}</span>
@@ -42,7 +36,7 @@ export function AssignPicker<T extends string | number>({
       <Btn variant="success" disabled={selected == null} onClick={onConfirm} style={{ marginTop: 10 }}>
         Confirmar
       </Btn>
-      {selected == null && <p style={{ ...S.muted, textAlign: "center", marginTop: 6, fontSize: 12 }}>Elegí a alguien primero</p>}
+      {selected == null && <p className={clsx(UI.muted, "text-center mt-1.5 text-xs")}>Elegí a alguien primero</p>}
     </>
   );
 }

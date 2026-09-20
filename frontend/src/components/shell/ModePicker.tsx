@@ -1,4 +1,6 @@
-import { S } from "../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../theme/styles/classes";
+import { DEFAULT_COLORS } from "../../theme/styles/colors";
 import "../../theme/modeRow.css";
 
 interface ModePickerProps {
@@ -75,41 +77,16 @@ function ChevronRightIcon({ color }: { color: string }) {
  */
 export function ModePickerBackdrop() {
   return (
-    <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" }}>
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
       <div
-        className="jt-animate-drift"
-        style={{
-          position: "absolute",
-          left: "8%",
-          bottom: "-10%",
-          width: "30vw",
-          height: "30vw",
-          maxWidth: 360,
-          maxHeight: 360,
-          minWidth: 180,
-          minHeight: 180,
-          borderRadius: "50%",
-          background: "color-mix(in srgb, var(--jt-accent, #7f77dd) 22%, transparent)",
-          filter: "blur(90px)",
-        }}
+        className={clsx(
+          "jt-animate-drift absolute bottom-[-10%] left-[8%] h-[30vw] max-h-[360px] min-h-[180px] w-[30vw] max-w-[360px] min-w-[180px] rounded-full blur-[90px]",
+          `bg-[color-mix(in_srgb,var(--jt-accent,${DEFAULT_COLORS.accent})_22%,transparent)]`,
+        )}
       />
       <div
-        className="jt-animate-drift"
-        style={{
-          position: "absolute",
-          right: "10%",
-          bottom: "5%",
-          width: "26vw",
-          height: "26vw",
-          maxWidth: 320,
-          maxHeight: 320,
-          minWidth: 160,
-          minHeight: 160,
-          borderRadius: "50%",
-          background: "color-mix(in srgb, #1d9e75 18%, transparent)",
-          filter: "blur(100px)",
-          animationDelay: "-6s",
-        }}
+        className="jt-animate-drift absolute bottom-[5%] right-[10%] h-[26vw] max-h-[320px] min-h-[160px] w-[26vw] max-w-[320px] min-w-[160px] rounded-full bg-[color-mix(in_srgb,#1d9e75_18%,transparent)] blur-[100px]"
+        style={{ animationDelay: "-6s" }}
       />
     </div>
   );
@@ -130,77 +107,58 @@ export function ModePickerBackdrop() {
  */
 export function ModePicker({ onSelectMulti, onSelectLocal }: ModePickerProps) {
   return (
-    <div style={{ padding: "24px 0 12px", position: "relative" }}>
-      <div style={{ textAlign: "center", marginBottom: 36 }}>
-        <h2
-          style={{
-            ...S.title,
-            fontSize: 22,
-            textTransform: "uppercase",
-            letterSpacing: "-0.01em",
-            transform: "scaleY(1.12)",
-            transformOrigin: "center",
-          }}
-        >
-          ¿Cómo querés jugar?
-        </h2>
-        <p style={{ color: "var(--jt-muted-text, #6b6490)", fontSize: 13, lineHeight: 1.5, margin: "12px 0 0" }}>
+    <div className="relative pb-3 pt-6">
+      <div className="mb-9 text-center">
+        <h2 className={clsx(T.title, "origin-center scale-y-[1.12] text-[22px] uppercase tracking-[-0.01em]")}>¿Cómo querés jugar?</h2>
+        <p className="mt-3 text-[13px] leading-[1.5]" style={{ color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})` }}>
           Online para jugar cada uno desde su celular, o local con un solo dispositivo entre todos.
         </p>
       </div>
 
       <div className="jt-mode-grid">
         <div className="jt-mode-card" onClick={onSelectMulti}>
-          <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
+          <div className={clsx(T.modeIconBadge, `bg-[var(--jt-accent,${DEFAULT_COLORS.accent})]`)}>
             <PlusIcon />
           </div>
           <div>
-            <p style={{ ...S.modeRowTitle, fontSize: 15 }}>Jugar online con amigos</p>
-            <p style={S.modeRowSubtitle}>Creá una sala o unite con un código, cada uno desde su celular</p>
+            <p className={clsx(T.modeRowTitle, "text-[15px]")}>Jugar online con amigos</p>
+            <p className={T.modeRowSubtitle}>Creá una sala o unite con un código, cada uno desde su celular</p>
           </div>
           <span className="jt-mode-card-cta">
             Elegir
-            <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
+            <ChevronRightIcon color={`var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`} />
           </span>
         </div>
 
         <div className="jt-mode-card jt-mode-row-disabled" aria-disabled="true" title="Todavía en desarrollo">
-          <div style={{ ...S.modeIconBadge, background: "var(--jt-muted, #5a5280)", boxShadow: "none" }}>
+          <div className={clsx(T.modeIconBadge, "shadow-none", `bg-[var(--jt-muted,${DEFAULT_COLORS.muted})]`)}>
             <SearchIcon />
           </div>
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-              <p style={{ ...S.modeRowTitle, fontSize: 15, margin: 0 }}>Unirme a una partida online</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <p className={clsx(T.modeRowTitle, "m-0 text-[15px]")}>Unirme a una partida online</p>
               <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: "var(--jt-muted-text, #6b6490)",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid var(--jt-card-border, rgba(127,119,221,0.18))",
-                  borderRadius: 999,
-                  padding: "2px 8px",
-                  flexShrink: 0,
-                }}
+                className="shrink-0 rounded-full border border-[var(--jt-card-border,rgba(127,119,221,0.18))] bg-white/[0.06] px-2 py-0.5 text-[10px] font-bold"
+                style={{ color: `var(--jt-muted-text, ${DEFAULT_COLORS.mutedText})` }}
               >
                 En desarrollo
               </span>
             </div>
-            <p style={{ ...S.modeRowSubtitle, marginTop: 6 }}>Entrá a una sala pública con otros jugadores</p>
+            <p className={clsx(T.modeRowSubtitle, "mt-1.5")}>Entrá a una sala pública con otros jugadores</p>
           </div>
         </div>
 
         <div className="jt-mode-card" onClick={onSelectLocal}>
-          <div style={{ ...S.modeIconBadge, background: "var(--jt-accent, #7F77DD)" }}>
+          <div className={clsx(T.modeIconBadge, `bg-[var(--jt-accent,${DEFAULT_COLORS.accent})]`)}>
             <PhoneIcon />
           </div>
           <div>
-            <p style={{ ...S.modeRowTitle, fontSize: 15 }}>Jugar en persona</p>
-            <p style={S.modeRowSubtitle}>Un solo dispositivo para todo el grupo, se pasa por turnos</p>
+            <p className={clsx(T.modeRowTitle, "text-[15px]")}>Jugar en persona</p>
+            <p className={T.modeRowSubtitle}>Un solo dispositivo para todo el grupo, se pasa por turnos</p>
           </div>
           <span className="jt-mode-card-cta">
             Elegir
-            <ChevronRightIcon color="var(--jt-accent-strong, #AFA9EC)" />
+            <ChevronRightIcon color={`var(--jt-accent-strong, ${DEFAULT_COLORS.accentStrong})`} />
           </span>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../../theme/styles/classes";
 import type { LocalPlayer } from "../../types/localGame";
 
 interface ClueHistoryCardProps {
@@ -27,7 +28,7 @@ export function ClueHistoryCard({ clueHistory, players }: ClueHistoryCardProps) 
   const entries = Object.entries(clueHistory[activeRound] || {}).filter(([, clue]) => clue);
 
   return (
-    <div style={S.card}>
+    <div className={T.card}>
       <style>{`
         .impostor-clue-history-scroll {
           scrollbar-width: none;
@@ -37,36 +38,30 @@ export function ClueHistoryCard({ clueHistory, players }: ClueHistoryCardProps) 
           display: none;
         }
       `}</style>
-      <span style={S.label}>Palabras de los jugadores</span>
+      <span className={T.label}>Palabras de los jugadores</span>
       {rounds.length > 1 && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        <div className="flex gap-1.5 mb-2.5">
           {rounds.map(r => (
             <button
               key={r}
               onClick={() => setSelected(r)}
-              style={{
-                ...S.btn(r === activeRound ? "primary" : "ghost"),
-                width: "auto",
-                padding: "6px 12px",
-                fontSize: 12,
-                borderRadius: 8,
-              }}
+              className={clsx(T.btn(r === activeRound ? "primary" : "ghost"), "w-auto! px-3 py-1.5 text-xs rounded-lg")}
             >
               Ronda {r}
             </button>
           ))}
         </div>
       )}
-      <div className="impostor-clue-history-scroll" style={{ maxHeight: 140, overflowY: "auto" }}>
+      <div className="impostor-clue-history-scroll max-h-[140px] overflow-y-auto">
         {entries.length === 0 ? (
-          <p style={{ ...S.muted, margin: "4px 0" }}>Nadie escribió su palabra esta ronda.</p>
+          <p className={clsx(T.muted, "my-1")}>Nadie escribió su palabra esta ronda.</p>
         ) : (
           entries.map(([playerId, clue]) => {
             const p = players.find(x => String(x.id) === playerId);
             if (!p) return null;
             return (
-              <p key={playerId} style={{ fontSize: 14, margin: "4px 0", color: "var(--jt-muted-text)" }}>
-                <strong style={{ color: "#FF8A8A" }}>{p.name}:</strong> {clue}
+              <p key={playerId} className="text-sm my-1 text-[var(--jt-muted-text)]">
+                <strong className="text-[#FF8A8A]">{p.name}:</strong> {clue}
               </p>
             );
           })

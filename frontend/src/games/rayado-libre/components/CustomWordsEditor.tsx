@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 
 const MAX_WORD_LENGTH = 30;
@@ -32,14 +33,17 @@ export function CustomWordsEditor({ words, onChange }: CustomWordsEditorProps) {
   };
 
   return (
-    <div style={S.card}>
-      <span style={S.label}>
+    <div className={T.card}>
+      <span className={T.label}>
         Tus palabras ({words.length}/{MAX_WORDS})
       </span>
-      <p style={{ ...S.muted, margin: "4px 0 12px" }}>Sumá las tuyas además de (o en vez de) las categorías predefinidas.</p>
-      <div style={{ display: "flex", gap: 8, marginBottom: words.length > 0 ? 12 : 0 }}>
+      <p className={clsx(T.muted, "mt-1 mb-3")}>Sumá las tuyas además de (o en vez de) las categorías predefinidas.</p>
+      {/* flex-wrap + min-w: mismo motivo que el resto de los inputs+botón de
+          esta app — sin esto, el botón "Agregar" le come el ancho al input
+          en un contenedor angosto. */}
+      <div className={clsx("flex flex-wrap gap-2", words.length > 0 ? "mb-3" : "mb-0")}>
         <input
-          style={{ ...S.input, flex: 1 }}
+          className={clsx(T.input, "min-w-[140px] flex-1")}
           placeholder="Escribí una palabra o frase corta"
           maxLength={MAX_WORD_LENGTH}
           value={draft}
@@ -53,40 +57,17 @@ export function CustomWordsEditor({ words, onChange }: CustomWordsEditorProps) {
         </Btn>
       </div>
       {words.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           {words.map(w => (
             <span
               key={w}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "6px 6px 6px 12px",
-                borderRadius: 999,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
+              className="flex items-center gap-1.5 rounded-full bg-white/[0.06] border border-white/[0.12] py-1.5 pr-1.5 pl-3 text-[13px] font-semibold"
             >
               {w}
               <button
                 onClick={() => onChange(words.filter(x => x !== w))}
                 aria-label={`Quitar "${w}"`}
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: "50%",
-                  border: "none",
-                  background: "rgba(255,255,255,0.12)",
-                  color: "#fff",
-                  cursor: "pointer",
-                  fontSize: 11,
-                  lineHeight: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="w-[18px] h-[18px] rounded-full border-none bg-white/[0.12] text-white cursor-pointer text-[11px] leading-none flex items-center justify-center"
               >
                 ×
               </button>

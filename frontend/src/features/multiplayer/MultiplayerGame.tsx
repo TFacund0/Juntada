@@ -1,3 +1,5 @@
+import { useCallback } from "react";
+import type { RoomRoster } from "../../pages/context/GameSessionContext";
 import { getGame } from "../../games/registry";
 import { extractScannedCode } from "./utils/joinLink";
 import { RoomEntryModal } from "./screens/RoomEntryModal";
@@ -6,60 +8,15 @@ import { GroupEntryModal } from "./screens/GroupEntryModal";
 import { GroupEntryCard } from "./screens/GroupEntryCard";
 import { GroupScreen } from "./screens/GroupScreen";
 import { LobbyScreen } from "./screens/LobbyScreen";
+import { WaitingScreen } from "./screens/WaitingScreen";
 import { RoundScreen } from "./screens/RoundScreen";
 import { SessionRecoveryOverlay } from "./screens/SessionRecoveryOverlay";
 import { FloatingChat } from "./components/FloatingChat";
-import type { ChatChannel } from "./components/FloatingChat";
 import { ScreenFade } from "../../components/ui/ScreenFade";
+import { AlertDialog } from "../../components/dialogs/AlertDialog";
 import { useMultiplayerGameShell, playableGames } from "./hooks/useMultiplayerGameShell";
-import type { GroupPublicState, RoomPublicState } from "@juntada/shared-types";
-
-// Shared by the group/lobby/round FloatingChat subtitles below — kept as one
-// spot instead of repeating the singular/plural ternary at each call site.
-function countLabel(n: number, singular: string, plural: string): string {
-  return `${n} ${n === 1 ? singular : plural}`;
-}
-
-// The two chat channels FloatingChat can show — built here (not inside the
-// component) since neither needs anything from render scope beyond its own
-// arguments, and keeping them free functions makes the "what goes into a
-// channel" logic testable/reusable independent of where each is mounted
-// below (group screen has only one; lobby/round can have both at once).
-function buildGroupChannel(
-  group: GroupPublicState,
-  groupMe: { playerId: string } | null,
-  send: (msg: Record<string, unknown>) => void,
-): ChatChannel {
-  return {
-    id: "group",
-    tabLabel: "Grupo",
-    title: "Chat del grupo",
-    subtitle: `${group.name} · ${countLabel(group.members.length, "persona", "personas")}`,
-    accent: "group",
-    messages: group.chat,
-    myPlayerId: groupMe?.playerId,
-    onSend: text => send({ type: "send_group_chat", text }),
-  };
-}
-
-function buildRoomChannel(
-  room: RoomPublicState,
-  roomTitle: string,
-  me: { playerId: string } | null,
-  send: (msg: Record<string, unknown>) => void,
-): ChatChannel {
-  return {
-    id: "room",
-    tabLabel: "Sala",
-    title: roomTitle,
-    subtitle: `${room.name} · ${countLabel(room.players.length, "jugador", "jugadores")}`,
-    accent: "room",
-    messages: room.chat,
-    myPlayerId: me?.playerId,
-    onSend: text => send({ type: "send_room_chat", text }),
-    quickReactions: true,
-  };
-}
+import { useMemberActions } from "./hooks/useMemberActions";
+import { buildGroupChannel, buildRoomScreenChannels } from "./services/chatChannels";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MULTIPLAYER SHELL (WebSocket) — two independent entry points:
@@ -127,7 +84,11 @@ export interface MultiplayerGameProps {
   // very first screen before ever connecting, so App.tsx needs this signal
   // to know it should leave the whole group flow and go back to its home
   // screen (pick a game / start a new group), not just re-render this shell.
-  onLeaveGroup?: () => void;
+  // `reason` is set only when this fires because the server just kicked the
+  // player (see useMultiplayerSocket's notifyLeftGroup) — App.tsx surfaces
+  // it as a centered "fuiste expulsado" notice over the home screen this
+  // sends it back to.
+  onLeaveGroup?: (reason?: string) => void;
   // Only meaningful for entryKind "room" — closes the create/join modal's
   // own "✕" (RoomEntryModal) back to "elegí cómo jugar". Not the same as
   // `leave()` from useMultiplayerSocket: that only resets local connection
@@ -170,6 +131,25 @@ export interface MultiplayerGameProps {
   // the group screen (the server's leave_instance is a no-op with nothing
   // attached), so mashing "Volver" repeatedly just leaves the player there.
   onExposeReturnToGroup?: (fn: () => void) => void;
+  // Only meaningful for entryKind "room" — same idea as onExposeReturnToGroup,
+  // but for a standalone (groupless) room: lets the global header's "Volver"
+  // button send an explicit leave_room right before this shell unmounts and
+  // drops the socket, instead of the server only finding out via the plain
+  // socket close a moment later (see useAppShell's confirmGoBack).
+  onExposeLeaveRoom?: (fn: () => void) => void;
+  // Only meaningful for entryKind "room" — lets the global GameNavbar's host-
+  // only "Jugadores" panel (see RoomPlayersDialog) send transfer_host/
+  // kick_player for whichever room is active, without that navbar (rendered
+  // outside this shell, see AppHeader.tsx) needing its own socket. Paired
+  // with onRoomRosterChange below, which is the read side of that same panel.
+  onExposeRoomAction?: (fn: (msg: Record<string, unknown>) => void) => void;
+  // Only meaningful for entryKind "room" — forwards the room's full public
+  // state + which seat is "me" up to session state (see GameSessionContext's
+  // RoomRoster) whenever it changes, null once there's no active room. The
+  // global GameNavbar reads this (as an explicit prop, not through context —
+  // it sits outside this shell's Provider tree) to render its "Jugadores"
+  // panel in any phase, not just while LobbyScreen itself is mounted.
+  onRoomRosterChange?: (roster: RoomRoster | null) => void;
   // Wraps "Crear partida"/"Unirse" so a themed game (see gameTheme on
   // GameDef) gets the same fade-to-black transition on the way into the
   // room as it already gets entering online mode itself — App.tsx passes
@@ -227,6 +207,8 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     error,
     errorKey,
     setError,
+    kickedNotice,
+    dismissKickedNotice,
     reconnecting,
     reconnectAttempt,
     reconnectFailed,
@@ -242,8 +224,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     setJoinCode,
     submitting,
     setSubmitting,
-    editingName,
-    setEditingName,
     showQR,
     setShowQR,
     showScanner,
@@ -259,7 +239,6 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     statusToast,
     setStatusToast,
     inGroup,
-    saveName,
     isHost,
     isGroupHost,
     myPlayer,
@@ -273,6 +252,13 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
     rejoinHostName,
   } = useMultiplayerGameShell(props);
 
+  // Wrapped in its own useCallback (not an inline arrow at the call site
+  // below) — otherwise this would be a fresh function every render, and the
+  // memoization inside useMemberActions would be defeated even though it
+  // depends on this reference staying stable.
+  const closePlayerMenu = useCallback(() => setOpenPlayerMenu(null), [setOpenPlayerMenu]);
+  const { transferHost, kickMember, kickPlayer } = useMemberActions({ send, closePlayerMenu });
+
   // Block the whole screen — instead of a small banner floating over an
   // otherwise-tappable menu/lobby/round — for both a cold start (app just
   // opened/remounted with a session saved in localStorage) and any live
@@ -282,64 +268,94 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
   // miss or act on top of, and forces an explicit choice once retries run
   // out instead of failing silently. See useMultiplayerSocket's overlayMode
   // for the state machine behind this.
-  if (overlayMode !== "none")
-    return (
-      <SessionRecoveryOverlay
-        mode={overlayMode}
-        contextLabel={reconnectContext}
-        hostName={rejoinHostName}
-        attempt={reconnecting ? reconnectAttempt : undefined}
-        maxAttempts={maxReconnectAttempts}
-        onReconnect={reconnectFailed ? retryConnection : confirmRejoin}
-        onGoToMenu={onGoHome ?? leave}
-        // Only offer "crear nueva sala" for a standalone room gone missing —
-        // a gone group has no equivalent one-tap replacement here, so it
-        // just falls back to "volver al inicio". Actually creates the room
-        // right away (same one-tap flow as "Crear partida" on the menu)
-        // instead of just opening the create form — the button reads as an
-        // action, not a navigation shortcut, so it should do the thing it says.
-        onCreateNew={
-          overlayMode === "gone" && !groupMe
-            ? () => {
-                leave();
-                runTransition(createRoom, Boolean(selectedGame?.gameTheme));
-              }
-            : undefined
-        }
-      />
-    );
-
-  // ── AUTO-CREATING A STANDALONE ROOM ── (see the auto-create effect above —
-  // no form for this case, just a brief loading state while the room spins up)
-  // ── MENU ──
-  if (connectionPhase === "menu" || connectionPhase === "create" || connectionPhase === "join") {
-    const onScan = (raw: string) => {
-      const code = extractScannedCode(raw);
-      setShowScanner(false);
-      if (code) setJoinCode(code);
-      else setError("Ese código QR no es válido");
-    };
-
-    // Entrar a un grupo (vs. hostear/unirse a una sala puntual de un juego ya
-    // elegido) usa su propio modal con su propio motivo visual — ver
-    // GroupEntryCard/GroupEntryModal vs. RoomEntryCard/RoomEntryModal más
-    // abajo. Ambos comparten la misma idea de organización (modal centrado,
-    // tabs crear/unirse) a propósito, pero cada uno con su propio look para
-    // que no parezcan la misma pantalla.
-    if (inGroup)
+  //
+  // Wrapped in its own function (instead of the previous top-level
+  // if/return chain) purely so the kicked-notice dialog below can render on
+  // top of whichever phase screen this resolves to — a `return` here used
+  // to end the whole component, leaving no single place to also mount an
+  // overlay that has to survive the phase change a kick causes.
+  function renderContent() {
+    if (overlayMode !== "none")
       return (
-        <GroupEntryModal onClose={() => onLeaveGroup?.()}>
-          <GroupEntryCard
+        <SessionRecoveryOverlay
+          mode={overlayMode}
+          contextLabel={reconnectContext}
+          hostName={rejoinHostName}
+          attempt={reconnecting ? reconnectAttempt : undefined}
+          maxAttempts={maxReconnectAttempts}
+          onReconnect={reconnectFailed ? retryConnection : confirmRejoin}
+          onGoToMenu={onGoHome ?? leave}
+          // Only offer "crear nueva sala" for a standalone room gone missing —
+          // a gone group has no equivalent one-tap replacement here, so it
+          // just falls back to "volver al inicio". Actually creates the room
+          // right away (same one-tap flow as "Crear partida" on the menu)
+          // instead of just opening the create form — the button reads as an
+          // action, not a navigation shortcut, so it should do the thing it says.
+          onCreateNew={
+            overlayMode === "gone" && !groupMe
+              ? () => {
+                  leave();
+                  runTransition(createRoom, Boolean(selectedGame?.gameTheme));
+                }
+              : undefined
+          }
+        />
+      );
+
+    // ── AUTO-CREATING A STANDALONE ROOM ── (see the auto-create effect above —
+    // no form for this case, just a brief loading state while the room spins up)
+    // ── MENU ──
+    if (connectionPhase === "menu" || connectionPhase === "create" || connectionPhase === "join") {
+      const onScan = (raw: string) => {
+        const code = extractScannedCode(raw);
+        setShowScanner(false);
+        if (code) setJoinCode(code);
+        else setError("Ese código QR no es válido");
+      };
+
+      // Entrar a un grupo (vs. hostear/unirse a una sala puntual de un juego ya
+      // elegido) usa su propio modal con su propio motivo visual — ver
+      // GroupEntryCard/GroupEntryModal vs. RoomEntryCard/RoomEntryModal más
+      // abajo. Ambos comparten la misma idea de organización (modal centrado,
+      // tabs crear/unirse) a propósito, pero cada uno con su propio look para
+      // que no parezcan la misma pantalla.
+      if (inGroup)
+        return (
+          <GroupEntryModal onClose={() => onLeaveGroup?.()}>
+            <GroupEntryCard
+              connectionPhase={connectionPhase}
+              error={error}
+              errorKey={errorKey}
+              playerName={playerName}
+              onSetPhase={setConnectionPhase}
+              roomName={roomName}
+              onRoomNameChange={setRoomName}
+              onCreateRoom={() => {
+                setSubmitting(true);
+                runTransition(createRoom);
+              }}
+              joinCode={joinCode}
+              onJoinCodeChange={setJoinCode}
+              onJoinRoom={() => {
+                setSubmitting(true);
+                runTransition(joinRoom);
+              }}
+              submitting={submitting}
+              showScanner={showScanner}
+              onShowScanner={setShowScanner}
+              onScan={onScan}
+            />
+          </GroupEntryModal>
+        );
+
+      return (
+        <RoomEntryModal onClose={onExitRoomEntry ?? leave}>
+          <RoomEntryCard
             connectionPhase={connectionPhase}
             error={error}
             errorKey={errorKey}
             playerName={playerName}
-            editingName={editingName}
-            onEditingChange={setEditingName}
-            onSaveName={saveName}
             onSetPhase={setConnectionPhase}
-            roomName={roomName}
-            onRoomNameChange={setRoomName}
             onCreateRoom={() => {
               setSubmitting(true);
               runTransition(createRoom);
@@ -353,160 +369,145 @@ export function MultiplayerGame(props: MultiplayerGameProps) {
             submitting={submitting}
             showScanner={showScanner}
             onShowScanner={setShowScanner}
+            roomPreview={roomPreview}
+            selectedGame={selectedGame}
+            onSwitchToGroup={onSwitchToGroup}
             onScan={onScan}
           />
-        </GroupEntryModal>
+        </RoomEntryModal>
+      );
+    }
+
+    // ── GROUP (attached to a group, no active instance) ──
+    if (connectionPhase === "group" && group)
+      return (
+        <>
+          <ScreenFade transitionKey="group" skipAnimation={skipFade}>
+            <GroupScreen
+              group={group}
+              myPlayerId={groupMe?.playerId}
+              isGroupHost={isGroupHost}
+              showQR={showQR}
+              onShowQR={setShowQR}
+              openPlayerMenu={openPlayerMenu}
+              onTogglePlayerMenu={setOpenPlayerMenu}
+              onTransferHost={transferHost}
+              onKickMember={kickMember}
+              playableGames={playableGames()}
+              onCreateInstance={gameIdToCreate => {
+                const targetGame = getGame(gameIdToCreate);
+                runTransition(() => {
+                  send({ type: "create_instance", gameType: gameIdToCreate });
+                }, Boolean(targetGame?.gameTheme));
+              }}
+              pendingJoinCode={pendingJoinCode}
+              onJoinInstance={joinInstance}
+              confirmLeaveGroup={confirmLeaveGroup}
+              onConfirmLeaveGroup={() => setConfirmLeaveGroup(true)}
+              onLeaveGroup={() => {
+                send({ type: "leave_group" });
+                setConfirmLeaveGroup(false);
+              }}
+              onCancelLeaveGroup={() => setConfirmLeaveGroup(false)}
+              error={error}
+              errorKey={errorKey}
+            />
+          </ScreenFade>
+          <FloatingChat channels={[buildGroupChannel(group, groupMe, send)]} />
+        </>
       );
 
-    return (
-      <RoomEntryModal onClose={onExitRoomEntry ?? leave}>
-        <RoomEntryCard
-          connectionPhase={connectionPhase}
-          error={error}
-          errorKey={errorKey}
-          playerName={playerName}
-          editingName={editingName}
-          onEditingChange={setEditingName}
-          onSaveName={saveName}
-          onSetPhase={setConnectionPhase}
-          onCreateRoom={() => {
-            setSubmitting(true);
-            runTransition(createRoom);
-          }}
-          joinCode={joinCode}
-          onJoinCodeChange={setJoinCode}
-          onJoinRoom={() => {
-            setSubmitting(true);
-            runTransition(joinRoom);
-          }}
-          submitting={submitting}
-          showScanner={showScanner}
-          onShowScanner={setShowScanner}
-          roomPreview={roomPreview}
-          selectedGame={selectedGame}
-          onSwitchToGroup={onSwitchToGroup}
-          onScan={onScan}
-        />
-      </RoomEntryModal>
-    );
+    // ── LOBBY ── (either a standalone room or a group instance's lobby)
+    if (connectionPhase === "lobby" && room) {
+      return (
+        <>
+          <ScreenFade transitionKey="lobby" skipAnimation={skipFade}>
+            <LobbyScreen
+              room={room}
+              myPlayerId={me?.playerId}
+              isHost={isHost}
+              activeGame={activeGame}
+              statusToast={statusToast}
+              onStatusToastExpire={() => setStatusToast(null)}
+              showQR={showQR}
+              onShowQR={setShowQR}
+              lobbyTab={lobbyTab}
+              onLobbyTabChange={setLobbyTab}
+              openPlayerMenu={openPlayerMenu}
+              onTogglePlayerMenu={setOpenPlayerMenu}
+              onTransferHost={transferHost}
+              onKickPlayer={kickPlayer}
+              updateConfig={updateConfig}
+              onStartRound={() => send({ type: "start_round" })}
+              error={error}
+              errorKey={errorKey}
+            />
+          </ScreenFade>
+          <FloatingChat
+            channels={buildRoomScreenChannels({ room, group, groupMe, me, send, roomTitle: "Chat de la sala" })}
+            defaultChannelId="room"
+          />
+        </>
+      );
+    }
+
+    // ── ESPERANDO: se unió con la ronda ya en curso (ver roomService.joinRoom),
+    // invisible para el engine del juego — nada que delegarle todavía.
+    if (connectionPhase === "waiting" && room) {
+      return (
+        <>
+          <ScreenFade transitionKey="waiting" skipAnimation={skipFade}>
+            <WaitingScreen room={room} />
+          </ScreenFade>
+          <FloatingChat
+            channels={buildRoomScreenChannels({ room, group, groupMe, me, send, roomTitle: "Chat de la sala" })}
+            defaultChannelId="room"
+          />
+        </>
+      );
+    }
+
+    // ── EN PARTIDA: cualquier fase que no sea menú/lobby/group/waiting es
+    // propia del juego, así que se delega entera — este shell no necesita
+    // conocer sus nombres. El banner de error se muestra acá (no dentro de
+    // cada RoundView) porque una acción rechazada por el servidor (turno
+    // equivocado, jugada inválida, etc.) es un caso genérico común a cualquier
+    // juego.
+    if (!["menu", "create", "join", "lobby", "group", "waiting"].includes(connectionPhase) && room && activeGame) {
+      return (
+        <>
+          <ScreenFade transitionKey="round" skipAnimation={skipFade}>
+            <RoundScreen
+              activeGame={activeGame}
+              roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
+              statusToast={statusToast}
+              onStatusToastExpire={() => setStatusToast(null)}
+              error={error}
+              errorKey={errorKey}
+            />
+          </ScreenFade>
+          <FloatingChat
+            channels={buildRoomScreenChannels({
+              room,
+              group,
+              groupMe,
+              me,
+              send,
+              roomTitle: activeGame.label ?? "Chat de la partida",
+            })}
+            defaultChannelId="room"
+          />
+        </>
+      );
+    }
+
+    return <div style={{ textAlign: "center", padding: 40, color: "var(--jt-muted-text)" }}>Conectando...</div>;
   }
 
-  // ── GROUP (attached to a group, no active instance) ──
-  if (connectionPhase === "group" && group)
-    return (
-      <>
-        <ScreenFade transitionKey="group" skipAnimation={skipFade}>
-          <GroupScreen
-            group={group}
-            myPlayerId={me?.playerId}
-            isGroupHost={isGroupHost}
-            showQR={showQR}
-            onShowQR={setShowQR}
-            openPlayerMenu={openPlayerMenu}
-            onTogglePlayerMenu={setOpenPlayerMenu}
-            onTransferHost={id => {
-              send({ type: "transfer_host", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
-            onKickMember={id => {
-              send({ type: "kick_member", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
-            playableGames={playableGames()}
-            onCreateInstance={gameIdToCreate => {
-              const targetGame = getGame(gameIdToCreate);
-              runTransition(() => {
-                send({ type: "create_instance", gameType: gameIdToCreate });
-              }, Boolean(targetGame?.gameTheme));
-            }}
-            pendingJoinCode={pendingJoinCode}
-            onJoinInstance={joinInstance}
-            confirmLeaveGroup={confirmLeaveGroup}
-            onConfirmLeaveGroup={() => setConfirmLeaveGroup(true)}
-            onLeaveGroup={() => {
-              send({ type: "leave_group" });
-              setConfirmLeaveGroup(false);
-            }}
-            onCancelLeaveGroup={() => setConfirmLeaveGroup(false)}
-            error={error}
-            errorKey={errorKey}
-          />
-        </ScreenFade>
-        <FloatingChat channels={[buildGroupChannel(group, groupMe, send)]} />
-      </>
-    );
-
-  // ── LOBBY ── (either a standalone room or a group instance's lobby)
-  if (connectionPhase === "lobby" && room) {
-    return (
-      <>
-        <ScreenFade transitionKey="lobby" skipAnimation={skipFade}>
-          <LobbyScreen
-            room={room}
-            myPlayerId={me?.playerId}
-            isHost={isHost}
-            activeGame={activeGame}
-            statusToast={statusToast}
-            onStatusToastExpire={() => setStatusToast(null)}
-            showQR={showQR}
-            onShowQR={setShowQR}
-            lobbyTab={lobbyTab}
-            onLobbyTabChange={setLobbyTab}
-            openPlayerMenu={openPlayerMenu}
-            onTogglePlayerMenu={setOpenPlayerMenu}
-            onTransferHost={id => {
-              send({ type: "transfer_host", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
-            onKickPlayer={id => {
-              send({ type: "kick_player", targetId: id });
-              setOpenPlayerMenu(null);
-            }}
-            updateConfig={updateConfig}
-            onStartRound={() => send({ type: "start_round" })}
-            error={error}
-            errorKey={errorKey}
-          />
-        </ScreenFade>
-        <FloatingChat
-          channels={[
-            ...(room.groupCode && group ? [buildGroupChannel(group, groupMe, send)] : []),
-            buildRoomChannel(room, "Chat de la sala", me, send),
-          ]}
-          defaultChannelId="room"
-        />
-      </>
-    );
-  }
-
-  // ── EN PARTIDA: cualquier fase que no sea menú/lobby/group es propia del
-  // juego, así que se delega entera — este shell no necesita conocer sus
-  // nombres. El banner de error se muestra acá (no dentro de cada RoundView)
-  // porque una acción rechazada por el servidor (turno equivocado, jugada
-  // inválida, etc.) es un caso genérico común a cualquier juego.
-  if (!["menu", "create", "join", "lobby", "group"].includes(connectionPhase) && room && activeGame) {
-    return (
-      <>
-        <ScreenFade transitionKey="round" skipAnimation={skipFade}>
-          <RoundScreen
-            activeGame={activeGame}
-            roundViewProps={{ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }}
-            statusToast={statusToast}
-            onStatusToastExpire={() => setStatusToast(null)}
-            error={error}
-            errorKey={errorKey}
-          />
-        </ScreenFade>
-        <FloatingChat
-          channels={[
-            ...(room.groupCode && group ? [buildGroupChannel(group, groupMe, send)] : []),
-            buildRoomChannel(room, activeGame.label ?? "Chat de la partida", me, send),
-          ]}
-          defaultChannelId="room"
-        />
-      </>
-    );
-  }
-
-  return <div style={{ textAlign: "center", padding: 40, color: "var(--jt-muted-text)" }}>Conectando...</div>;
+  return (
+    <>
+      {renderContent()}
+      {kickedNotice && <AlertDialog title="Expulsado" message={kickedNotice} onClose={dismissKickedNotice} />}
+    </>
+  );
 }

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { S } from "../../../theme/styles";
+import clsx from "clsx";
+import { T } from "../../../theme/styles/classes";
 import { Btn } from "../../../components/ui/Btn";
 import { StickyActionBar, STICKY_ACTION_BAR_CLEARANCE } from "../../../components/setup/StickyActionBar";
 import type { RoundViewProps } from "../../gameTypes";
-import type { TutifrutiRoundState, TutifrutiPrivateRole } from "../types";
+import type { TutifrutiRoundState, TutifrutiPrivateRole } from "../types/roundView";
 import { RoundBadge } from "./RoundBadge";
 import { useCountdown } from "../hooks/useCountdown";
 import { LetterReveal } from "./LetterReveal";
@@ -84,17 +85,17 @@ export function WritingPhase({
       <RoundBadge round={round} />
       <LetterReveal letter={round.letter} label="Letra" size="sm" />
       {round.endMode === "timer" && timeLeft != null && <TimerBadge label="Tiempo restante" timeLeft={timeLeft} />}
-      <div style={S.card}>
-        <span style={S.label}>Completá con la letra "{round.letter}"</span>
+      <div className={T.card}>
+        <span className={T.label}>Completá con la letra "{round.letter}"</span>
         <div className="tf-category-stack tf-stagger">
           {round.categories.map(cat => (
             <div key={cat.id}>
-              <span style={{ fontSize: 12, color: "var(--jt-muted-text, #9089c0)", marginBottom: 4, display: "block" }}>
+              <span className="mb-1 block text-xs text-[var(--jt-muted-text,#9089c0)]">
                 {cat.icon ? `${cat.icon} ` : ""}
                 {cat.label}
               </span>
               <input
-                style={{ ...S.input, opacity: locked ? 0.5 : 1 }}
+                className={clsx(T.input, locked ? "opacity-50" : "opacity-100")}
                 value={values[cat.id] || ""}
                 onChange={e => onChange(cat.id, e.target.value)}
                 placeholder={`${round.letter}...`}
@@ -121,8 +122,8 @@ export function WritingPhase({
       {round.endMode === "timer" && (
         <StickyActionBar>
           {myPlayer?.ready ? (
-            <div style={{ ...S.card, textAlign: "center" }}>
-              <p style={{ color: "#5DCAA5", margin: 0 }}>Marcaste que ya terminaste — esperando a los demás</p>
+            <div className={clsx(T.card, "text-center")}>
+              <p className="m-0 text-[#5DCAA5]">Marcaste que ya terminaste — esperando a los demás</p>
             </div>
           ) : (
             <Btn
@@ -142,11 +143,11 @@ export function WritingPhase({
           ("enviaron alguna respuesta" vs "ya terminaron"). Basta mode has no
           ready concept, so doneCount is its only progress indicator. */}
       {round.endMode === "timer" ? (
-        <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>
+        <p className={clsx(T.muted, "mt-2 text-center")}>
           {readyCount} de {onlinePlayers.length} jugadores ya terminaron
         </p>
       ) : (
-        <p style={{ ...S.muted, textAlign: "center", marginTop: 8 }}>
+        <p className={clsx(T.muted, "mt-2 text-center")}>
           {round.doneCount} de {room.players.length} jugadores enviaron alguna respuesta
         </p>
       )}

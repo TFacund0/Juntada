@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { TutifrutiRoundState } from "../types";
+import type { TutifrutiRoundState } from "../types/roundView";
 
 const COUNT_STEPS = [3, 2, 1] as const;
 const STEP_MS = 650;

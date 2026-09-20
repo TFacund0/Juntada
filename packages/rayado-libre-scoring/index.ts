@@ -84,16 +84,20 @@ const REVEALABLE = /\S/;
 // when the word is chosen — never sent to the client, only used server (or
 // LocalGame) side to compute the currently-visible hint string.
 //
-// For a multi-word phrase ("Cepillo de dientes"), revealing letters in pure
-// random order can burn early hints on a short filler word ("de") while the
-// actual noun stays fully blank — the least useful letters showing up first.
-// Instead, letters are grouped by the space-separated word they belong to,
-// and whole groups are ordered longest-word-first (ties keep their original
-// left-to-right order; letters within a group are still shuffled, so it's
-// not simply left-to-right within each word). Since maxHintsFor caps the
-// total reveals at under half the word's letters, a short filler word often
-// never gets touched at all — which is fine, it's the least informative
-// part of the phrase anyway.
+// For a multi-word phrase ("Torre Eiffel"), revealing letters in pure
+// left-to-right or fully-random order isn't the goal either — what matters
+// is that every word in the phrase gets a shot at a hint as time passes,
+// instead of one word hogging every reveal while another stays fully blank
+// the entire turn. Letters are grouped by the space-separated word they
+// belong to (still shuffled within each group, so it's not simply
+// left-to-right within a word), then interleaved round-robin across groups
+// in the phrase's original left-to-right order: first letter of word 1,
+// first of word 2, first of word 3, then second of word 1, and so on — a
+// group that runs out early (a short word) just gets skipped in later
+// rounds instead of blocking the rest. This used to sort groups
+// longest-first and exhaust one entirely before touching the next, which
+// let a two-noun phrase ("Osos Panda") burn its whole hint budget on one
+// word and never reveal a single letter of the other.
 export function buildHintOrder(word: string): number[] {
   const groups: number[][] = [];
   let current: number[] = [];
@@ -106,8 +110,15 @@ export function buildHintOrder(word: string): number[] {
     if (current.length > 0) groups.push(current);
     current = [];
   }
-  groups.sort((a, b) => b.length - a.length);
-  return groups.flatMap(g => shuffle(g));
+  const shuffledGroups = groups.map(shuffle);
+  const totalLetters = shuffledGroups.reduce((sum, g) => sum + g.length, 0);
+  const order: number[] = [];
+  for (let round = 0; order.length < totalLetters; round++) {
+    for (const g of shuffledGroups) {
+      if (round < g.length) order.push(g[round]);
+    }
+  }
+  return order;
 }
 
 // Never reveals every letter automatically — capped at just under half of
