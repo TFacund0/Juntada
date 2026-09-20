@@ -92,6 +92,20 @@ test("startRound in random category mode clamps randomCategoryCount to the avail
   assert.ok(room.round.categories.length <= poolSize);
 });
 
+test("startRound in random category mode always includes custom categories up to the configured count", () => {
+  const room = makeRoom();
+  room.config.customCategories = [{ id: "custom_1", label: "Superhéroes" }];
+  room.config.randomCategoryMode = true;
+  room.config.randomCategoryCount = 6;
+  const res = engine.startRound(room);
+  assert.equal(res.success, true);
+  assert.equal(room.round.categories.length, 6);
+  assert.ok(
+    room.round.categories.some((c: { id: string }) => c.id === "custom_1"),
+    "a single custom category should never be crowded out by the much larger default pool",
+  );
+});
+
 test("confirm_letter is host-only", () => {
   const room = makeRoom();
   engine.startRound(room);
@@ -114,6 +128,7 @@ test("confirm_letter with reroll swaps the letter without leaving setup", () => 
 
 test("confirm_letter without reroll moves to writing and starts the timer", () => {
   const room = makeRoom();
+  room.config.endMode = "timer";
   engine.startRound(room);
   const res = engine.handleAction(room, room.hostId, "confirm_letter", {});
   assert.equal(res.handled, true);
@@ -146,17 +161,47 @@ test("player_ready moves to review once every online player is ready", () => {
 
 test("call_basta only works in basta mode and jumps straight to review", () => {
   const room = makeRoom();
+  room.config.endMode = "timer";
   startAndConfirmLetter(room);
   const rejected = engine.handleAction(room, "p1", "call_basta", {});
-  assert.equal(rejected.handled, false, "endMode defaults to timer");
+  assert.equal(rejected.handled, false, "call_basta is a no-op in timer mode");
 
   const room2 = makeRoom();
-  room2.config.endMode = "basta";
   startAndConfirmLetter(room2);
   const res = engine.handleAction(room2, "p1", "call_basta", {});
-  assert.equal(res.handled, true);
+  assert.equal(res.handled, true, "endMode defaults to basta");
   assert.equal(room2.phase, "review");
   assert.equal(room2.round.bastaBy, "p1");
+});
+
+test("submit_answers still saves a word that arrives just after someone else called basta", () => {
+  const room = makeRoom();
+  startAndConfirmLetter(room);
+  const catId = room.round.categories[0].id;
+
+  const res = engine.handleAction(room, "p1", "call_basta", {});
+  assert.equal(res.handled, true);
+  assert.equal(room.phase, "review");
+
+  // p2 was mid-keystroke when p1 called basta — their debounced
+  // submit_answers for the word they were still typing lands a moment
+  // later, after the phase already flipped.
+  const late = engine.handleAction(room, "p2", "submit_answers", { answers: { [catId]: "Elefante" } });
+  assert.equal(late.handled, true, "a late flush within the writing grace window should still be accepted");
+  assert.equal(room.round.answers.p2[catId], "Elefante");
+});
+
+test("submit_answers rejects a word that arrives once the writing grace window has passed", () => {
+  const room = makeRoom();
+  startAndConfirmLetter(room);
+  const catId = room.round.categories[0].id;
+
+  engine.handleAction(room, "p1", "call_basta", {});
+  room.round.writingGraceEnd = Date.now() - 1;
+
+  const late = engine.handleAction(room, "p2", "submit_answers", { answers: { [catId]: "Elefante" } });
+  assert.equal(late.handled, false);
+  assert.equal(room.round.answers.p2, undefined);
 });
 
 test("mark_word rejects marking a category/player that never answered", () => {
