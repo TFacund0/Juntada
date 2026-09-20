@@ -28,8 +28,8 @@ export function useGamePickerFilters({
   showAvailabilityFilter,
 }: UseGamePickerFiltersArgs): UseGamePickerFiltersResult {
   const availableGames = useMemo(() => {
-    if (showAvailabilityFilter && availFilter === "soon") return games.filter(g => g.comingSoon && !isUnderMaintenance(g));
-    return games.filter(g => !g.comingSoon || isUnderMaintenance(g));
+    if (showAvailabilityFilter && availFilter === "soon") return games.filter(g => g.comingSoon || isUnderMaintenance(g));
+    return games.filter(g => !g.comingSoon && !isUnderMaintenance(g));
   }, [games, availFilter, showAvailabilityFilter]);
 
   const filtered = useMemo(() => {

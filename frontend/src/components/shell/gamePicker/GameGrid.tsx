@@ -37,7 +37,7 @@ export function GameGrid({ games, onSelect, featured = false }: GameGridProps) {
               )}
             >
               {g.logo ? <img src={g.logo} alt={g.label} className="jt-card-thumb-img h-full w-full object-cover" /> : g.icon}
-              {meta && !g.comingSoon && <span className="jt-card-time-badge">{meta.minutes}</span>}
+              {meta && !g.comingSoon && !isUnderMaintenance(g) && <span className="jt-card-time-badge">{meta.minutes}</span>}
               {isUnderMaintenance(g) ? (
                 <span className={clsx(T.soonBadge, "text-[#EF9F27]")}>En mantenimiento</span>
               ) : (
