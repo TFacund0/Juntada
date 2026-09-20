@@ -18,8 +18,18 @@ const enMantenimiento = {
   comingSoon: true,
   maintenance: true,
 } as unknown as GameDef;
+// Caso real: juego ya lanzado (comingSoon false) puesto en mantenimiento —
+// debe salir de "Disponibles" igual que enMantenimiento, sin depender de comingSoon.
+const juegoLanzadoEnMantenimiento = {
+  id: "f",
+  label: "Lanzado En Mantenimiento",
+  description: "juego ya lanzado, bloqueado temporalmente",
+  category: "otros",
+  comingSoon: false,
+  maintenance: true,
+} as unknown as GameDef;
 
-const allGames = [destacado, rapido, sinCategoria, comingSoon, enMantenimiento];
+const allGames = [destacado, rapido, sinCategoria, comingSoon, enMantenimiento, juegoLanzadoEnMantenimiento];
 
 function run(overrides: Partial<Parameters<typeof useGamePickerFilters>[0]> = {}) {
   const { result } = renderHook(() =>
@@ -36,17 +46,20 @@ function run(overrides: Partial<Parameters<typeof useGamePickerFilters>[0]> = {}
 }
 
 describe("useGamePickerFilters", () => {
-  test("availFilter 'available' excludes comingSoon games unless under maintenance", () => {
+  test("availFilter 'available' excludes comingSoon and maintenance games", () => {
     const { availableGames } = run();
     const ids = availableGames.map(g => g.id);
-    expect(ids).toContain(enMantenimiento.id); // maintenance games stay visible even while comingSoon
     expect(ids).not.toContain(comingSoon.id);
+    expect(ids).not.toContain(enMantenimiento.id);
+    expect(ids).not.toContain(juegoLanzadoEnMantenimiento.id);
     expect(ids).toEqual(expect.arrayContaining([destacado.id, rapido.id, sinCategoria.id]));
   });
 
-  test("availFilter 'soon' shows only comingSoon games, excluding maintenance ones, when showAvailabilityFilter is true", () => {
+  test("availFilter 'soon' shows comingSoon games and maintenance games (even if already launched), when showAvailabilityFilter is true", () => {
     const { availableGames } = run({ availFilter: "soon" });
-    expect(availableGames.map(g => g.id)).toEqual([comingSoon.id]);
+    expect(availableGames.map(g => g.id)).toEqual(
+      expect.arrayContaining([comingSoon.id, enMantenimiento.id, juegoLanzadoEnMantenimiento.id]),
+    );
   });
 
   test("availFilter 'soon' is ignored when showAvailabilityFilter is false", () => {
