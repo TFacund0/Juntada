@@ -8,7 +8,7 @@ import { SHOW_SECONDS } from "@juntada/color-correcto-scoring";
 // and (locally) the target color source differ.
 export function TargetSwatch({ target, timerEnd }: { target: string; timerEnd: number | null }) {
   return (
-    <div>
+    <div className={T.card}>
       {timerEnd != null && <Timer timerEnd={timerEnd} total={SHOW_SECONDS} label="Se oculta en" />}
       <p className={clsx(T.muted, "text-center mb-2.5")}>Memorizá este color…</p>
       <div
