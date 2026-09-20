@@ -21,7 +21,7 @@ export const limonLimonGame: GameDef = {
   description: "Con un mazo de truco, se revela una carta por turno y el grupo decide quién se la come. El que junta más cartas, pierde.",
   minPlayers: 2,
   category: "fiesta",
-  maintenance: false,
+  maintenance: true,
   tabbedLobby: true,
   rules: [
     "El mazo (baraja española, 40 cartas) queda en el centro de la ronda. Por turnos, alguien lo toca para revelar la carta de arriba.",

@@ -20,7 +20,7 @@ export const torneoFutbolGame: GameDef = {
   description: "Armá un torneo de fútbol entre amigos: sorteo de equipos, eliminación directa y estadísticas de goles.",
   minPlayers: 2,
   category: "equipos",
-  maintenance: false,
+  maintenance: true,
   tabbedLobby: true,
   // Mirrors startRound's own gates (engine.ts) so the lobby shows why
   // "Iniciar ronda" is disabled instead of the host only finding out after
