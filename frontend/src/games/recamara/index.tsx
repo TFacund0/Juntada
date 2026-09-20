@@ -1,6 +1,5 @@
 import type { GameDef } from "../gameTypes";
 import { LocalGame } from "./LocalGame";
-import { ConfigPanel } from "./components/ConfigPanel";
 import { RoundView } from "./RoundView";
 
 // Duelo por turnos estilo Buckshot Roulette (2 a 6 jugadores): escopeta con
@@ -26,6 +25,5 @@ export const recamaraGame: GameDef = {
     "Gana quien queda como último jugador con vidas.",
   ],
   LocalGame,
-  ConfigPanel,
   RoundView,
 };

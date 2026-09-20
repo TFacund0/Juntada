@@ -220,10 +220,7 @@ export function LobbyScreen({
           )}
 
           {
-            <div
-              className={clsx("jt-animate-rise mt-3.5", tabPanelClass(showLobbyTabs, lobbyTab === "players"))}
-              style={{ animationDelay: "60ms" }}
-            >
+            <div className={clsx("jt-animate-rise mt-3.5 [animation-delay:60ms]", tabPanelClass(showLobbyTabs, lobbyTab === "players"))}>
               <LobbySeatGrid
                 room={room}
                 myPlayerId={myPlayerId}
@@ -249,12 +246,11 @@ export function LobbyScreen({
             <div
               ref={configScrollRef}
               className={clsx(
-                "jt-animate-rise jt-thin-scrollbar",
+                "jt-animate-rise jt-thin-scrollbar [animation-delay:110ms]",
                 LOBBY_CONFIG_ANIM,
                 LOBBY_CONFIG_SCROLL,
                 tabPanelClass(showLobbyTabs, lobbyTab === "config"),
               )}
-              style={{ animationDelay: "110ms" }}
             >
               <GameLoadErrorBoundary key={activeGame.id}>
                 <Suspense fallback={null}>
@@ -264,12 +260,36 @@ export function LobbyScreen({
             </div>
           )}
 
-          {!isHost && (
+          {/* Juego sin ConfigPanel (p. ej. Recámara, sin reglas
+              configurables): la columna de config quedaría vacía moviendo el
+              layout igual que si hubiera contenido, así que mostramos la
+              descripción + reglas del juego a modo de recordatorio — mismo
+              rol informativo que el ConfigPanel de los demás, sin inventar
+              controles que no existen. */}
+          {isHost && !activeGame?.ConfigPanel && (activeGame?.description || activeGame?.rules?.length) && (
             <div
               ref={configScrollRef}
-              className={clsx("jt-animate-rise jt-thin-scrollbar", LOBBY_CONFIG_SCROLL)}
-              style={{ animationDelay: "110ms" }}
+              className={clsx(
+                "jt-animate-rise jt-thin-scrollbar [animation-delay:110ms]",
+                LOBBY_CONFIG_SCROLL,
+                tabPanelClass(showLobbyTabs, lobbyTab === "config"),
+              )}
             >
+              <div className={clsx(T.card, "text-left")}>
+                {activeGame?.description && <p className="m-0 text-[15px] text-[#9089c0]">{activeGame.description}</p>}
+                {!!activeGame?.rules?.length && (
+                  <ul className="m-0 mt-2.5 pl-4 text-sm text-[#9089c0] space-y-1">
+                    {activeGame.rules.map((rule, i) => (
+                      <li key={i}>{rule.startsWith("- ") ? rule.slice(2) : rule}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!isHost && (
+            <div ref={configScrollRef} className={clsx("jt-animate-rise jt-thin-scrollbar [animation-delay:110ms]", LOBBY_CONFIG_SCROLL)}>
               {activeGame?.LobbyInfo && (
                 <GameLoadErrorBoundary key={activeGame.id}>
                   <Suspense fallback={null}>
@@ -294,7 +314,7 @@ export function LobbyScreen({
         // motivo que StickyActionBar/RoomEntryModal.
         createPortal(
           <div ref={actionBarRef} className={clsx(LOBBY_ACTION_BAR, LOBBY_BREAKOUT)}>
-            <div className={clsx(LOBBY_ACTION_INNER, "jt-animate-rise")} style={{ animationDelay: "160ms" }}>
+            <div className={clsx(LOBBY_ACTION_INNER, "jt-animate-rise [animation-delay:160ms]")}>
               <ErrorBanner message={error} flashKey={errorKey} variant="inline" />
               {startAction}
             </div>
