@@ -94,8 +94,8 @@ export function VoteScreen({ round, players, selection, setSelection, votes, con
             <div className="mb-3">
               <SuspectGrid
                 suspects={alive
-                  .filter(p => p.id !== voter.id && (!revoteCandidates || revoteCandidates.includes(p.id)))
-                  .map(p => ({ id: String(p.id), name: p.name }))}
+                  .filter(p => !revoteCandidates || revoteCandidates.includes(p.id))
+                  .map(p => ({ id: String(p.id), name: p.id === voter.id ? `${p.name} (vos)` : p.name }))}
                 selectedId={pending != null ? String(pending) : null}
                 onSelect={id => setSelection(s => ({ ...s, [voter.id]: Number(id) }))}
                 voteCounts={voteCounts}

@@ -132,6 +132,31 @@ describe("Impostor RoundView — round phase", () => {
     expect(screen.getByText("Vive en el agua")).toBeInTheDocument();
   });
 
+  test("'Empezar pistas' stays disabled until the card is flipped at least once", async () => {
+    const user = userEvent.setup();
+    render(
+      <RoundView
+        room={makeRoom("round")}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={{ isImpostor: false, word: "Gato", hint: null }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Dá vuelta tu carta primero" })).toBeDisabled();
+
+    await user.click(screen.getByText("Tocá para ver tu carta"));
+    expect(screen.getByRole("button", { name: "Empezar pistas" })).toBeEnabled();
+
+    // Hiding the card back again shouldn't re-lock it — only the very first
+    // flip matters.
+    await user.click(screen.getByText("Tocá para ocultar"));
+    expect(screen.getByRole("button", { name: "Empezar pistas" })).toBeEnabled();
+  });
+
   test("never shows the category to the impostor or to innocents", () => {
     const room = makeRoom("round");
     room.config = { ...room.config, hintsEnabled: false };
@@ -179,6 +204,7 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
+    await user.click(screen.getByText("Tocá para ver tu carta"));
     await user.click(screen.getByRole("button", { name: "Empezar pistas" }));
     await user.click(screen.getByRole("button", { name: "Ya dije mi palabra" }));
     expect(send).toHaveBeenCalledWith({ type: "submit_clue", clue: "" });
@@ -198,6 +224,7 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
+    await user.click(screen.getByText("Tocá para ver tu carta"));
     await user.click(screen.getByRole("button", { name: "Empezar pistas" }));
     expect(screen.getByText("Esperando a Jugador 1...")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Ya dije mi palabra" })).not.toBeInTheDocument();
@@ -220,6 +247,7 @@ describe("Impostor RoundView — round phase", () => {
       />,
     );
 
+    await user.click(screen.getByText("Tocá para ver tu carta"));
     await user.click(screen.getByRole("button", { name: "Empezar pistas" }));
     expect(screen.getByRole("button", { name: "Enviar palabra" })).toBeDisabled();
 
@@ -268,14 +296,36 @@ describe("Impostor RoundView — voting phase", () => {
       />,
     );
 
-    // Can't suspect yourself — only Jugador 2/3 should be selectable.
-    expect(screen.queryByRole("button", { name: /Jugador 1/ })).not.toBeInTheDocument();
+    // You can suspect yourself too — shown tagged "(vos)" so you can also
+    // tell whether anyone actually voted for you.
+    expect(screen.getByRole("button", { name: "Jugador 1 (vos)" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Jugador 2/ }));
     await user.click(screen.getByRole("button", { name: "Confirmar voto" }));
 
     expect(send).toHaveBeenCalledWith({ type: "vote", suspectId: "p2" });
     expect(screen.getByText("Ya votaste — esperando a que confirmen los demás.")).toBeInTheDocument();
+  });
+
+  test("can vote for yourself", async () => {
+    const user = userEvent.setup();
+    const send = vi.fn();
+    render(
+      <RoundView
+        room={makeRoom("voting")}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={{ id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false }}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={send}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Jugador 1 (vos)" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar voto" }));
+
+    expect(send).toHaveBeenCalledWith({ type: "vote", suspectId: "p1" });
   });
 
   test("a tie limits the suspect list to just the revote candidates", () => {

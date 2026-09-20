@@ -60,10 +60,12 @@ export function VotingPhaseScreen({
   // engine.ts's `vote` handler checking `alive.includes(suspectId)`), so
   // offering them here would just silently eat the tap with no feedback,
   // and if everyone hits this the round can never reach the vote quorum.
+  // Includes yourself on purpose (the backend's `vote` handler never
+  // excludes self-votes either) — leaving yourself out of the grid also
+  // hid whether anyone had voted for you, since voteCounts only shows up
+  // next to a suspect tile that's actually rendered.
   const matchEliminated: string[] = round?.matchEliminated ?? [];
-  const suspects = room.players.filter(
-    p => p.id !== me?.playerId && !matchEliminated.includes(p.id) && (!revoteCandidates || revoteCandidates.includes(p.id)),
-  );
+  const suspects = room.players.filter(p => !matchEliminated.includes(p.id) && (!revoteCandidates || revoteCandidates.includes(p.id)));
   // Still-alive players who happen to be offline right now aren't counted in
   // the vote quorum (see the comment above), but that also means the vote is
   // effectively paused waiting for them to come back — worth saying so
@@ -139,7 +141,11 @@ export function VotingPhaseScreen({
           <span className={T.label}>Elegí a quién sospechás</span>
           {!voteConfirmed ? (
             <SuspectGrid
-              suspects={suspects.map(p => ({ id: p.id, name: p.name, online: p.online }))}
+              suspects={suspects.map(p => ({
+                id: p.id,
+                name: p.id === me?.playerId ? `${p.name} (vos)` : p.name,
+                online: p.online,
+              }))}
               selectedId={selectedSuspect}
               onSelect={setSelectedSuspect}
               voteCounts={voteCounts}

@@ -15,6 +15,14 @@ import type { ImpostorRoundState, ImpostorConfigState } from "./types/roundView"
 // screen it dispatches to, under components/).
 export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send, justEnteredRound }: RoundViewProps) {
   const [wordVisible, setWordVisible] = useState(false);
+  // Gates "Empezar pistas" (see RoundPhaseScreen) behind actually flipping
+  // the card at least once — without this, tapping straight past it without
+  // ever seeing your own word/role was possible, which meant giving a clue
+  // with nothing to base it on.
+  const [hasRevealedCard, setHasRevealedCard] = useState(false);
+  useEffect(() => {
+    if (wordVisible) setHasRevealedCard(true);
+  }, [wordVisible]);
   // Local-only, per-player pacing: everyone reveals their own card on their
   // own device (no pass-and-play handoff to gate on), so instead of the
   // whole room waiting on a server-driven step, each player taps "Empezar
@@ -56,6 +64,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
   // way it's a new word, so re-hide it and clear per-round local UI state.
   useEffect(() => {
     setWordVisible(false);
+    setHasRevealedCard(false);
     setReadyForClues(false);
     setClueText("");
     setClueSubmitted(false);
@@ -150,6 +159,7 @@ export function RoundView({ room, me, myPlayer, myRole, wordReveal, isHost, send
         config={config}
         wordVisible={wordVisible}
         setWordVisible={setWordVisible}
+        hasRevealedCard={hasRevealedCard}
         readyForClues={readyForClues}
         setReadyForClues={setReadyForClues}
         clueText={clueText}

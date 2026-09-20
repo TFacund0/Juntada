@@ -21,6 +21,7 @@ interface RoundPhaseScreenProps {
   config: ImpostorConfigState;
   wordVisible: boolean;
   setWordVisible: (updater: (prev: boolean) => boolean) => void;
+  hasRevealedCard: boolean;
   readyForClues: boolean;
   setReadyForClues: (value: boolean) => void;
   clueText: string;
@@ -51,6 +52,7 @@ export function RoundPhaseScreen({
   config,
   wordVisible,
   setWordVisible,
+  hasRevealedCard,
   readyForClues,
   setReadyForClues,
   clueText,
@@ -90,9 +92,9 @@ export function RoundPhaseScreen({
             <p className="m-0 text-2xl font-extrabold">Revisá tu carta</p>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="mx-auto flex w-full max-w-[340px] min-h-0 flex-1 flex-col">
             {!myRole ? (
-              <div className={clsx(T.card, "flex min-h-[200px] items-center justify-center text-center")}>
+              <div className={clsx(T.card, "flex min-h-[280px] items-center justify-center text-center")}>
                 <p className="text-[var(--jt-muted-text)]">Cargando tu rol...</p>
               </div>
             ) : (
@@ -104,13 +106,13 @@ export function RoundPhaseScreen({
                 hint={myRole.hint ? String(myRole.hint) : null}
                 categoryLabel={round?.categoryLabel ?? ""}
                 showCategory={config.showCategory}
-                minHeight={220}
+                minHeight={320}
               />
             )}
           </div>
 
-          <Btn onClick={() => setReadyForClues(true)} disabled={!myRole} className="impostor-action-btn">
-            Empezar pistas
+          <Btn onClick={() => setReadyForClues(true)} disabled={!myRole || !hasRevealedCard} className="impostor-action-btn">
+            {hasRevealedCard ? "Empezar pistas" : "Dá vuelta tu carta primero"}
           </Btn>
         </div>
       </PhaseTransition>
