@@ -29,6 +29,7 @@ export const quienSoyGame: GameDef = {
     "Gana quien adivine primero — si dos o más aciertan en la misma vuelta de turnos, empatan en el mismo puesto.",
     "La partida termina cuando todos adivinaron, fueron eliminados o se rindieron.",
   ],
+  maintenance: true,
   LocalGame,
   ConfigPanel,
   RoundView,
