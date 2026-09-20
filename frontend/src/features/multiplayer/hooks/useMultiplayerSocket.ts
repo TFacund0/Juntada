@@ -75,7 +75,16 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
   // gone (or on a screen that's already unmounting) by the time the player
   // actually sees it. Dismissed explicitly by the dialog's own button.
   const [kickedNotice, setKickedNotice] = useState<string | null>(null);
-  const dismissKickedNotice = useCallback(() => setKickedNotice(null), []);
+  // Set by markGroupKicked (kicked_from_group) so dismissing the dialog is
+  // what actually leaves the group flow — see notifyLeftGroup below.
+  const groupKickedRef = useRef(false);
+  const dismissKickedNotice = useCallback(() => {
+    setKickedNotice(null);
+    if (groupKickedRef.current) {
+      groupKickedRef.current = false;
+      onLeftGroupRef.current?.();
+    }
+  }, []);
 
   // 3. Declared here, constructed at step 6 — so useReconnectOverlay (step 5)
   // can close over `() => serviceRef.current?.resetReconnect()` without a
@@ -120,6 +129,9 @@ export function useMultiplayerSocket({ onLeftGroup, entryKind }: { onLeftGroup?:
       setRoomPreview,
       readRoom,
       notifyLeftGroup: () => onLeftGroupRef.current?.(),
+      markGroupKicked: () => {
+        groupKickedRef.current = true;
+      },
       isColdStart: overlay.isColdStart,
       onReconnected: overlay.onReconnected,
       resolveColdStart: overlay.resolveColdStart,

@@ -178,6 +178,32 @@ describe("inbound messages", () => {
     expect(result.current.room).toBeNull();
     expect(result.current.kickedNotice).toBe("Fuiste expulsado de la sala");
   });
+
+  test("'kicked_from_group' shows the dialog without leaving the group flow yet, then calls onLeftGroup only once it's dismissed", () => {
+    const onLeftGroup = vi.fn();
+    const { result } = renderHook(() => useMultiplayerSocket({ onLeftGroup }));
+    act(() => result.current.connect());
+    const ws = lastSocket();
+    act(() => ws.simulateOpen());
+    act(() =>
+      ws.simulateMessage({
+        type: "group_joined",
+        playerId: "p1",
+        groupCode: "GRUPO",
+        group: { code: "GRUPO", members: [] },
+      }),
+    );
+
+    act(() => ws.simulateMessage({ type: "kicked_from_group" }));
+
+    expect(result.current.kickedNotice).toBe("Fuiste expulsado del grupo");
+    expect(onLeftGroup).not.toHaveBeenCalled();
+
+    act(() => result.current.dismissKickedNotice());
+
+    expect(result.current.kickedNotice).toBeNull();
+    expect(onLeftGroup).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("group messages", () => {

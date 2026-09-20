@@ -80,6 +80,11 @@ export interface InboundMessageContext {
   // also redirect away from the current screen, and a banner on the screen
   // you're leaving is easy to miss entirely by the time the next one mounts.
   setKickedNotice(message: string | null): void;
+  // Marks that leaving the group flow (notifyLeftGroup) must wait until the
+  // player closes the kicked-from-group dialog above, instead of firing
+  // immediately and unmounting the very component holding that dialog's
+  // state before it ever gets to render.
+  markGroupKicked(): void;
 }
 
 export function parseInboundMessage(raw: string): InboundMessage | null {
@@ -255,7 +260,7 @@ export function handleKickedFromGroup(ctx: InboundMessageContext): void {
   ctx.setConnectionPhase("menu");
   ctx.setKickedNotice("Fuiste expulsado del grupo");
   ctx.stopReconnecting();
-  ctx.notifyLeftGroup();
+  ctx.markGroupKicked();
   ctx.endColdStart();
 }
 

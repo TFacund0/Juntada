@@ -49,6 +49,7 @@ function makeCtx(overrides: Partial<InboundMessageContext> = {}): InboundMessage
     flashError: vi.fn(),
     clearError: vi.fn(),
     setKickedNotice: vi.fn(),
+    markGroupKicked: vi.fn(),
     ...overrides,
   };
 }
@@ -283,7 +284,7 @@ describe("handleKicked", () => {
 });
 
 describe("handleKickedFromGroup", () => {
-  it("clears everything, returns to the menu, and notifies the caller", () => {
+  it("clears everything, returns to the menu, shows the dialog, and defers leaving the group flow to its dismissal", () => {
     const ctx = makeCtx();
     handleKickedFromGroup(ctx);
     expect(ctx.setMe).toHaveBeenCalledWith(null);
@@ -295,7 +296,8 @@ describe("handleKickedFromGroup", () => {
     expect(ctx.setConnectionPhase).toHaveBeenCalledWith("menu");
     expect(ctx.setKickedNotice).toHaveBeenCalledWith("Fuiste expulsado del grupo");
     expect(ctx.stopReconnecting).toHaveBeenCalledTimes(1);
-    expect(ctx.notifyLeftGroup).toHaveBeenCalledTimes(1);
+    expect(ctx.markGroupKicked).toHaveBeenCalledTimes(1);
+    expect(ctx.notifyLeftGroup).not.toHaveBeenCalled();
     expect(ctx.endColdStart).toHaveBeenCalledTimes(1);
   });
 });
