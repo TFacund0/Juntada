@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Timer } from "../../../components/game-kit/Timer";
+import { Shotgun } from "./Shotgun";
 
 // Beat 3 of "reveal" — the chamber card (gun + real/falso shell count as
 // shuffled 🔴/🟡 icons, see shuffledBulletIcons in arena.ts), held up for a
@@ -29,10 +30,8 @@ export function ChamberCard({
     <div className="recamara">
       <div className="rec-table round-chamber">
         <div className="chamber-focus">
-          <div className="shotgun" style={{ margin: "0 auto 10px" }}>
-            <div className="stock" />
-            <div className="barrel" />
-            <div className="muzzle" />
+          <div className="mx-auto mb-2.5 w-40">
+            <Shotgun />
           </div>
           <div className="bullet-row">
             {bulletIcons.map((icon, i) => (

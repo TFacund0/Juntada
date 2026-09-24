@@ -1,22 +1,57 @@
-/* Arena: shotgun fixed at the center, players seated around it in a circle
-   (see LocalGame's seatStyle) — replaces the old side-by-side row so the
-   layout scales cleanly from 2 to 4 players. */
+/* Duel table, ported from docs/referencias/recamara-referencia.html: a round
+   felt table leaning back in perspective, with each player's card standing
+   up at their seat. Everything lying on the table (gun, ring, spent shell)
+   lives in the tilted plane; the cards counter-rotate out of it (.seat). */
+.recamara .duel-stage {
+  perspective: 1100px;
+  perspective-origin: 50% 0%;
+  display: flex;
+  justify-content: center;
+  /* The tilted table only paints roughly the middle of its layout box, so
+     pull the content around it in instead of leaving that gap empty. The
+     top one is covered by the seat cards standing above the far rim. */
+  margin: 24px auto calc(-0.12 * min(88vw, 360px));
+}
+
 .recamara .arena {
   position: relative;
-  width: 100%;
-  max-width: 320px;
+  width: min(88vw, 360px);
   aspect-ratio: 1 / 1;
-  margin: 0 auto 18px;
+  border-radius: 50%;
+  transform: rotateX(var(--rec-tilt));
+  transform-style: preserve-3d;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 226, 170, 0.16), transparent 55%),
+    radial-gradient(circle, var(--rec-felt) 0 58%, var(--rec-felt-edge) 100%);
+  border: 12px solid var(--rec-wood);
+  box-shadow:
+    0 0 0 2px var(--rec-wood-line) inset,
+    0 0 40px rgba(0, 0, 0, 0.6) inset,
+    0 16px 0 var(--rec-wood-dark),
+    0 40px 60px rgba(0, 0, 0, 0.6);
 }
 
 .recamara .gun-aim {
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 62%;
+  transform-style: preserve-3d;
+  z-index: 1;
   /* Matches AIM_MS in timing.ts — slow and deliberate on purpose, for
      suspense, so the swing onto the target is something you actually watch
      happen instead of a snap-cut. */
   transition: transform 1.365s cubic-bezier(0.33, 1, 0.4, 1);
+}
+
+/* Anchored by the card's bottom edge at the seat point, then stood back up
+   against the table's tilt. */
+.recamara .seat {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -100%) rotateX(calc(-1 * var(--rec-tilt))) translateZ(2px);
+  transform-origin: 50% 100%;
+  transform-style: preserve-3d;
 }
 
 .recamara .arena.busy .token {
@@ -29,7 +64,7 @@
    through the table rather than floating separately from it. */
 .recamara .direction-ring {
   position: absolute;
-  inset: 6%;
+  inset: 14%;
   border-radius: 50%;
   border: 1.5px dashed var(--rec-hair);
   animation: rec-ring-spin 14s linear infinite;
@@ -70,6 +105,7 @@
   height: 22px;
   border-radius: 3px;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+  z-index: 1;
   transition:
     left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
     top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
@@ -88,19 +124,20 @@
 }
 
 .recamara .token {
-  position: absolute;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   width: 92px;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(10, 8, 6, 0.82);
   border: 1px solid var(--rec-felt-line);
   border-radius: 8px;
   padding: 8px 6px 7px;
   font-family: inherit;
   color: var(--rec-ink);
   cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
   transition:
     border-color 0.25s,
     box-shadow 0.25s,
@@ -108,14 +145,15 @@
 }
 
 .recamara .token:hover {
-  transform: translate(-50%, -50%) scale(1.04);
+  transform: scale(1.04);
 }
 
 .recamara .token.active {
   border-color: var(--rec-live);
   box-shadow:
     0 0 0 1px var(--rec-live) inset,
-    0 0 20px -6px var(--rec-live-glow);
+    0 0 22px -4px var(--rec-live-glow),
+    0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
 .recamara .token.dead {

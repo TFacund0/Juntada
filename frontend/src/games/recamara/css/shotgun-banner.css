@@ -1,51 +1,69 @@
+/* The SVG shotgun (see Shotgun.tsx). Width comes from its container
+   (.gun-aim on the table, a fixed-width wrapper on the chamber card); the
+   aspect ratio matches the SVG's 220x44 viewBox. */
 .recamara .shotgun {
-  width: 118px;
-  height: 34px;
   position: relative;
-  transform-origin: 20% 50%;
+  width: 100%;
+  aspect-ratio: 220 / 44;
+  transform-origin: 30% 50%;
 }
 
-.recamara .shotgun .barrel {
-  position: absolute;
-  left: 34px;
-  top: 13px;
-  width: 78px;
-  height: 8px;
-  background: linear-gradient(180deg, #5c5348, #2b271f);
-  border-radius: 2px 6px 6px 2px;
-  box-shadow:
-    inset 0 -2px 2px rgba(0, 0, 0, 0.4),
-    0 1px 0 rgba(255, 255, 255, 0.05);
+.recamara .shotgun-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The muzzle flash is drawn past the viewBox's right edge. */
+  overflow: visible;
+  filter: drop-shadow(0 5px 4px rgba(0, 0, 0, 0.65));
 }
 
-.recamara .shotgun.sawed .barrel {
-  width: 46px;
+/* 🪚: the barrel shrinks toward the receiver and the muzzle flash follows
+   its new tip (43 user units back = 40% of the 108-unit barrel). */
+.recamara .shotgun-barrel {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  transition: transform 0.9s cubic-bezier(0.6, 0, 0.3, 1);
 }
 
-.recamara .shotgun .stock {
-  position: absolute;
-  left: 0;
-  top: 6px;
-  width: 42px;
-  height: 22px;
-  background: linear-gradient(180deg, #6b4a30, #402c1c);
-  border-radius: 4px 2px 2px 6px;
+.recamara .shotgun.sawed .shotgun-barrel {
+  transform: scaleX(0.6);
 }
 
-.recamara .shotgun .stock::after {
-  content: "";
-  position: absolute;
-  right: -6px;
-  top: 6px;
-  width: 10px;
-  height: 10px;
-  background: #1b1712;
-  border-radius: 50%;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.15);
+.recamara .shotgun-muzzle {
+  transition: transform 0.9s cubic-bezier(0.6, 0, 0.3, 1);
+}
+
+.recamara .shotgun.sawed .shotgun-muzzle {
+  transform: translateX(-43px);
+}
+
+.recamara .shotgun-muzzle-fire {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+}
+
+.recamara .shotgun-muzzle-fire.flash {
+  animation: rec-muzzle-flash 0.22s ease-out;
+}
+
+@keyframes rec-muzzle-flash {
+  0% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }
 
 .recamara .shotgun.recoil {
-  /* Matches SHOT_MS in LocalGame.tsx. */
+  /* Matches SHOT_MS in timing.ts. */
   animation: rec-recoil 0.55s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
@@ -62,41 +80,6 @@
   }
   100% {
     transform: translateX(0) rotate(0);
-  }
-}
-
-.recamara .muzzle {
-  position: absolute;
-  left: 112px;
-  top: 8px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff8dd, var(--rec-live-glow) 45%, transparent 70%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.recamara .shotgun.sawed .muzzle {
-  left: 80px;
-}
-
-.recamara .muzzle.flash {
-  animation: rec-flash 0.22s ease-out;
-}
-
-@keyframes rec-flash {
-  0% {
-    opacity: 1;
-    transform: scale(0.4);
-  }
-  60% {
-    opacity: 0.9;
-    transform: scale(1.6);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2);
   }
 }
 

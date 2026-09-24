@@ -10,7 +10,6 @@ import {
   type RecamaraRoundView,
   type ShellKind,
 } from "@juntada/recamara-engine";
-import { PlayerToken } from "./components/PlayerToken";
 import { PlayerItemsSheet } from "./components/PlayerItemsSheet";
 import { ItemUseModal } from "./components/ItemUseModal";
 import { ChestReveal } from "./components/ChestReveal";
@@ -18,9 +17,9 @@ import { OutcomeBanner } from "./components/OutcomeBanner";
 import { RoundAnnounce } from "./components/RoundAnnounce";
 import { ChamberCard } from "./components/ChamberCard";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
-import { DirectionRing } from "./components/DirectionRing";
+import { DuelTable } from "./components/DuelTable";
 import { FlashOverlay } from "./components/FlashOverlay";
-import { frontAngle, seatStyle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
+import { frontAngle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
 import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
 import { useLogVisible } from "./hooks/logVisibility";
 import { useDuelEntryFlash } from "./hooks/duelTransition";
@@ -326,42 +325,17 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           </span>
         </div>
 
-        <div className={`arena${busy ? " busy" : ""}`}>
-          <DirectionRing direction={state.direction} />
-          <div className="gun-aim" style={{ transform: `translate(-50%, -50%) rotate(${shotAnim.gunAngle}deg)` }}>
-            <div className={`shotgun${shotAnim.recoil ? " recoil" : ""}${state.sawedOff ? " sawed" : ""}`}>
-              <div className="stock" />
-              <div className="barrel" />
-              <div className={`muzzle${shotAnim.flash ? " flash" : ""}`} />
-            </div>
-          </div>
-
-          {shotAnim.lastShell && (
-            <div
-              className={`last-shell ${shotAnim.lastShell}`}
-              title={shotAnim.lastShell === "live" ? "Última bala: real" : "Última bala: falsa"}
-              style={{
-                left: `${shotAnim.shellPhase === "eject" ? 50 : shotAnim.shellSpot.left}%`,
-                top: `${shotAnim.shellPhase === "eject" ? 50 : shotAnim.shellSpot.top}%`,
-                transform: `translate(-50%, -50%) rotate(${shotAnim.shellPhase === "eject" ? 0 : shotAnim.shellSpot.rot}deg)`,
-              }}
-            />
-          )}
-
-          {round.seatOrder.map((roomId, engineId) => {
-            const player = state.players.find(p => p.id === engineId);
-            if (!player) return null;
-            return (
-              <PlayerToken
-                key={engineId}
-                player={roomId === myPlayerId ? { ...player, name: "Vos" } : player}
-                isActive={engineId === currentEngineId}
-                style={seatStyle(state.order, engineId)}
-                onClick={() => !busy && setSheetPlayerId(engineId)}
-              />
-            );
-          })}
-        </div>
+        <DuelTable
+          order={state.order}
+          players={state.players}
+          currentId={currentEngineId}
+          direction={state.direction}
+          sawedOff={state.sawedOff}
+          busy={busy}
+          shotAnim={shotAnim}
+          onSelectPlayer={setSheetPlayerId}
+          nameFor={p => (p.id === myEngineId ? "Vos" : p.name)}
+        />
 
         <div className="log">
           <button type="button" className="log-toggle" onClick={toggleLogVisible}>

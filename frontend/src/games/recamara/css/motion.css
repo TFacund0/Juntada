@@ -1,6 +1,7 @@
 @media (prefers-reduced-motion: reduce) {
   .recamara .shotgun.recoil,
-  .recamara .muzzle.flash,
+  .recamara .shotgun-muzzle-fire.flash,
+  .recamara .direction-ring,
   .recamara .turn-banner .dot,
   .recamara .log .line,
   .recamara .rec-modal-icon.activating,
@@ -16,6 +17,8 @@
     animation: none !important;
   }
   .recamara .gun-aim,
+  .recamara .shotgun-barrel,
+  .recamara .shotgun-muzzle,
   .recamara .last-shell {
     transition: none !important;
   }

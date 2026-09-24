@@ -5,6 +5,13 @@
   --rec-bg-raised: #211b16;
   --rec-felt: #232b1f;
   --rec-felt-line: #3a4531;
+  --rec-felt-edge: #161c12;
+  --rec-wood: #4a3020;
+  --rec-wood-dark: #2a1a10;
+  --rec-wood-line: #5d3d28;
+  /* How far the duel table leans back (see .arena in arena.css). The seat
+     cards counter-rotate by the same amount to stand upright. */
+  --rec-tilt: 55deg;
   --rec-ink: #ece4d6;
   --rec-ink-dim: #9a9082;
   --rec-ink-faint: #6b6459;
@@ -51,6 +58,7 @@
     --rec-bg-raised: #e2dac8;
     --rec-felt: #dbe3d1;
     --rec-felt-line: #b7c4a9;
+    --rec-felt-edge: #b3bfa4;
     --rec-ink: #221d16;
     --rec-ink-dim: #5b5344;
     --rec-ink-faint: #8a8170;
