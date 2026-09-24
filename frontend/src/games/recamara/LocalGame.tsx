@@ -29,9 +29,9 @@ import { FlashOverlay } from "./components/FlashOverlay";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { DirectionRing } from "./components/DirectionRing";
 import { frontAngle, seatAngle, seatStyle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
-import { ITEM_ACTIVATE_MS, ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
+import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
 import { useLogVisible } from "./hooks/logVisibility";
-import { useShotAnimation } from "./hooks/shotAnimation";
+import { useEventDirector } from "./hooks/eventDirector";
 import { useChamberCountdown } from "./hooks/chamberCountdown";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -71,9 +71,13 @@ function nameOf(players: Player[]): (id: number) => string {
   return id => escapeHtml(players.find(p => p.id === id)?.name ?? "?");
 }
 
+interface LocalShot {
+  result: FireResult;
+  playersBefore: Player[];
+}
+
 export function LocalGame() {
   const [names, setNames] = useState(["Jugador 1", "Jugador 2"]);
-  const [gameState, setGameState] = useState<GameState | null>(null);
   const [subPhase, setSubPhase] = useState<"reveal" | "duel">("reveal");
   const [winner, setWinner] = useState<Player | null>(null);
   // The winner overlay must never fight the final shot's own aim/fire/
@@ -108,26 +112,31 @@ export function LocalGame() {
   // into the new one instead of jumping straight to the new number.
   const [endedRoundNumber, setEndedRoundNumber] = useState<number | null>(null);
 
-  // The fire sequence is staged so each beat is actually visible: swing the
-  // gun onto the target ("aiming"), fire it ("firing"), then hold on a
-  // full-screen result banner until the player taps through ("result") —
-  // only then does the engine result actually get committed to state. The
-  // gun/recoil/flash/shell-casing mechanics themselves live in
-  // useShotAnimation, shared with RoundView's online version of this same
-  // beat — this component only decides *when* to trigger a shot and what
-  // happens once its result banner is dismissed.
-  const shotAnim = useShotAnimation();
+  // Shots and items resolve through the engine the instant they're chosen,
+  // but go through the same event director RoundView uses: the result is
+  // queued with its post-event state, the aim/fire (or item pulse) and the
+  // result banner play out, and only once the banner is dismissed does
+  // `gameState` (the director's `shown`) move to that state. Same beats and
+  // timing as online, from the same code.
+  const director = useEventDirector<GameState | null, LocalShot, ItemResult>(null, (shot, before) => ({
+    angle: seatAngle(before?.order ?? [], shot.result.targetId),
+    shellKind: shot.result.shellKind,
+  }));
+  const gameState = director.shown;
+  const shotAnim = director.shotAnim;
+  const busy = director.busy;
+  const playingShot = director.current?.kind === "shot" ? director.current : null;
+  const playingItem = director.current?.kind === "item" ? director.current : null;
 
   useEffect(() => {
-    if (!winner || shotAnim.busy) {
+    if (!winner || busy) {
       setShowWinner(false);
       return;
     }
     const t = setTimeout(() => setShowWinner(true), 900);
     return () => clearTimeout(t);
-  }, [winner, shotAnim.busy]);
+  }, [winner, busy]);
 
-  const [pendingFire, setPendingFire] = useState<{ result: FireResult; playersBefore: Player[] } | null>(null);
   const [log, setLog] = useState<DisplayLogLine[]>([]);
   const logId = useRef(0);
   const [logVisible, toggleLogVisible] = useLogVisible();
@@ -138,8 +147,6 @@ export function LocalGame() {
   // the icon before showing a result banner, same as firing does.
   const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
   const [pendingItem, setPendingItem] = useState<ItemKind | null>(null);
-  const [activatingItem, setActivatingItem] = useState<ItemKind | null>(null);
-  const [pendingItemResult, setPendingItemResult] = useState<ItemResult | null>(null);
 
   const addLog = (line: LogLine & { privateToPlayerId?: number; redactedText?: string }) => {
     logId.current += 1;
@@ -169,7 +176,6 @@ export function LocalGame() {
   };
 
   const phase: Phase = !gameState ? "setup" : subPhase;
-  const busy = shotAnim.busy || activatingItem !== null || pendingItemResult !== null;
 
   // Computed unconditionally (hooks can't live inside the phase branches
   // below) — shuffled once per round via useMemo so it doesn't reshuffle
@@ -184,7 +190,7 @@ export function LocalGame() {
 
   const startGame = () => {
     const state = createInitialState(names);
-    setGameState(state);
+    director.reset(state);
     setSubPhase("reveal");
     setRevealStage("announce");
     setRoundNumber(1);
@@ -205,7 +211,7 @@ export function LocalGame() {
   const revealNextItem = () => setRevealedCount(c => c + 1);
 
   const playAgain = () => {
-    setGameState(null);
+    director.reset(null);
     setWinner(null);
   };
 
@@ -264,18 +270,15 @@ export function LocalGame() {
     if (busy || !gameState) return;
     const playersBefore = gameState.players;
     const result = fireShot(gameState, targetId);
-    setPendingFire({ result, playersBefore });
-    shotAnim.playShot(seatAngle(gameState.order, targetId), result.shellKind);
+    director.enqueue({ kind: "shot", payload: { result, playersBefore }, after: result.state });
   };
 
   const continueAfterFire = () => {
-    if (!pendingFire) return;
-    const { result, playersBefore } = pendingFire;
+    if (!playingShot) return;
+    const { result, playersBefore } = playingShot.payload;
     addLog(describeFireResult(result, nameOf(playersBefore)));
     result.skippedIds.forEach(id => addLog(describeSkippedTurn(id, nameOf(playersBefore))));
-    setGameState(result.state);
-    setPendingFire(null);
-    shotAnim.finishShot();
+    director.finish();
 
     if (result.gameOver) {
       setWinner(result.winner);
@@ -303,14 +306,9 @@ export function LocalGame() {
   };
 
   const showItemResult = (result: ItemResult) => {
-    const item = pendingItem;
-    setActivatingItem(item);
     setPendingItem(null);
     setSheetPlayerId(null);
-    setTimeout(() => {
-      setActivatingItem(null);
-      setPendingItemResult(result);
-    }, ITEM_ACTIVATE_MS);
+    director.enqueue({ kind: "item", payload: result, after: result.state });
   };
 
   const useItemSimple = () => {
@@ -339,10 +337,9 @@ export function LocalGame() {
   };
 
   const continueAfterItem = () => {
-    if (!gameState || !pendingItemResult) return;
-    addItemLog(pendingItemResult, gameState.players);
-    setGameState(pendingItemResult.state);
-    setPendingItemResult(null);
+    if (!gameState || !playingItem) return;
+    addItemLog(playingItem.payload, gameState.players);
+    director.finish();
   };
 
   // ─── setup ───
@@ -359,13 +356,7 @@ export function LocalGame() {
               </button>
             </div>
           ))}
-          <button
-            className="icon-btn"
-            style={{ width: "100%" }}
-            onClick={addPlayerName}
-            disabled={names.length >= 6}
-            title="Agregar jugador"
-          >
+          <button className="icon-btn w-full!" onClick={addPlayerName} disabled={names.length >= 6} title="Agregar jugador">
             + Agregar jugador
           </button>
         </div>
@@ -550,9 +541,10 @@ export function LocalGame() {
         )}
       </div>
 
-      {shotAnim.fireStage === "result" &&
-        pendingFire &&
+      {director.stage === "shot-result" &&
+        playingShot &&
         (() => {
+          const pendingFire = playingShot.payload;
           const outcome = describeFireOutcome(pendingFire.result, nameOf(pendingFire.playersBefore));
           const targetBefore = pendingFire.playersBefore.find(p => p.id === pendingFire.result.targetId);
           const targetAfter = pendingFire.result.state.players.find(p => p.id === pendingFire.result.targetId);
@@ -570,13 +562,13 @@ export function LocalGame() {
           );
         })()}
 
-      {pendingItemResult && gameState && (
-        <OutcomeBanner line={describeItemResult(pendingItemResult, nameOf(gameState.players))} onContinue={continueAfterItem} />
+      {director.stage === "item-result" && playingItem && (
+        <OutcomeBanner line={describeItemResult(playingItem.payload, nameOf(state.players))} onContinue={continueAfterItem} />
       )}
 
-      {activatingItem && <ItemActivatingOverlay icon={activatingItem} />}
+      {director.stage === "item-activating" && playingItem && <ItemActivatingOverlay icon={playingItem.payload.item} />}
 
-      {sheetPlayer && !pendingItem && !busy && !pendingItemResult && !activatingItem && (
+      {sheetPlayer && !pendingItem && !busy && (
         <PlayerItemsSheet
           player={sheetPlayer}
           interactive={sheetPlayer.id === currentId}

@@ -23,7 +23,7 @@ export function PlayerToken({ player, isActive, style, onClick }: PlayerTokenPro
         )}
         {player.name}
       </span>
-      <span className="token-lives">
+      <span className="token-lives" role="img" aria-label={`${player.lives} de ${STARTING_LIVES} vidas`}>
         {Array.from({ length: STARTING_LIVES }).map((_, i) => (
           <i key={i} className={`life-dot${i >= player.lives ? " spent" : ""}`} />
         ))}

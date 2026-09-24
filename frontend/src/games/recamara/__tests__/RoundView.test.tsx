@@ -273,4 +273,131 @@ describe("Recámara RoundView — duel", () => {
     expect(screen.getByText(/Esperando a que dispare/)).toBeInTheDocument();
     vi.useRealTimers();
   });
+
+  // p1 = me ("Vos"), p2 = "Jugador 2". Each shot's round carries the state
+  // right after that shot, exactly like the server's broadcasts do.
+  function shotRound(seq: number, shooterId: string, targetId: string, lives: [number, number], turnPos: number) {
+    return makeRound({
+      subPhase: "duel",
+      state: {
+        ...makeRound().state,
+        turnPos,
+        players: [
+          { id: 0, name: "Jugador 1", lives: lives[0], items: [], lastGrantedItems: [] },
+          { id: 1, name: "Jugador 2", lives: lives[1], items: [], lastGrantedItems: [] },
+        ],
+      },
+      pendingFire: {
+        seq,
+        shooterId,
+        targetId,
+        shellKind: "live",
+        damage: 1,
+        gameOver: false,
+        winnerId: null,
+        reloaded: false,
+        skippedIds: [],
+      },
+    });
+  }
+
+  const livesOf = (name: string) =>
+    screen
+      .getAllByRole("button")
+      .find(b => b.classList.contains("token") && b.textContent?.includes(name))
+      ?.querySelector(".token-lives")
+      ?.getAttribute("aria-label");
+
+  test("a second shot that lands while I'm still on the first one's banner waits its turn, with lives advancing one shot at a time", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const renderRound = (round: ReturnType<typeof makeRound>) => (
+      <RoundView
+        room={{ ...makeRoom(), round }}
+        me={meP1}
+        myPlayer={myPlayerP1}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />
+    );
+    const { rerender } = render(renderRound(makeRound({ subPhase: "duel" })));
+    await vi.advanceTimersByTimeAsync(0);
+
+    // Shot 1: I hit Jugador 2. I'm left looking at its banner...
+    rerender(renderRound(shotRound(1, "p1", "p2", [5, 4], 1)));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(document.querySelector(".rec-banner-text")?.textContent).toBe("Jugador 1 le dispara a Jugador 2.");
+
+    // ...while Jugador 2 already dismissed theirs and shoots back.
+    rerender(renderRound(shotRound(2, "p2", "p1", [4, 4], 0)));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(document.querySelector(".rec-banner-text")?.textContent).toBe("Jugador 1 le dispara a Jugador 2.");
+    expect(livesOf("Vos")).toBe("5 de 5 vidas");
+    expect(livesOf("Jugador 2")).toBe("5 de 5 vidas");
+
+    // Dismissing shot 1 commits exactly shot 1's damage, then shot 2 plays.
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(livesOf("Vos")).toBe("5 de 5 vidas");
+    expect(livesOf("Jugador 2")).toBe("4 de 5 vidas");
+    expect(document.querySelector(".rec-banner-text")).not.toBeInTheDocument();
+
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(document.querySelector(".rec-banner-text")?.textContent).toBe("Jugador 2 le dispara a Jugador 1.");
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(livesOf("Vos")).toBe("4 de 5 vidas");
+    expect(livesOf("Jugador 2")).toBe("4 de 5 vidas");
+    expect(screen.getByText(/Turno de/)).toHaveTextContent("vos");
+    vi.useRealTimers();
+  });
+
+  test("mounting mid-game (reload, late join) shows the current state as is, without replaying the last stored shot", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    render(
+      <RoundView
+        room={{ ...makeRoom(), round: shotRound(5, "p2", "p1", [3, 4], 0) }}
+        me={meP1}
+        myPlayer={myPlayerP1}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    await vi.advanceTimersByTimeAsync(3000);
+
+    expect(document.querySelector(".rec-banner-text")).not.toBeInTheDocument();
+    expect(livesOf("Vos")).toBe("3 de 5 vidas");
+    expect(screen.getByRole("button", { name: "Dispararte a vos mismo" })).toBeEnabled();
+    vi.useRealTimers();
+  });
+
+  test("missing an event in between (seq jumps) drops the queue and jumps straight to the latest state", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const renderRound = (round: ReturnType<typeof makeRound>) => (
+      <RoundView
+        room={{ ...makeRoom(), round }}
+        me={meP1}
+        myPlayer={myPlayerP1}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />
+    );
+    const { rerender } = render(renderRound(makeRound({ subPhase: "duel" })));
+    await vi.advanceTimersByTimeAsync(0);
+
+    rerender(renderRound(shotRound(1, "p1", "p2", [5, 4], 1)));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(document.querySelector(".rec-banner-text")).toBeInTheDocument();
+
+    rerender(renderRound(shotRound(3, "p2", "p1", [4, 3], 0)));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(document.querySelector(".rec-banner-text")).not.toBeInTheDocument();
+    expect(livesOf("Vos")).toBe("4 de 5 vidas");
+    expect(livesOf("Jugador 2")).toBe("3 de 5 vidas");
+    vi.useRealTimers();
+  });
 });

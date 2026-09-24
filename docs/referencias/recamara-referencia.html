@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recámara — referencia visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Spectral:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#171310; --raised:#211b16; --felt:#26301f; --felt-edge:#161c12; --wood:#4a3020; --wood-dark:#2a1a10;
+  --ink:#ece4d6; --dim:#9a9082; --faint:#6b6459; --live:#b3261e; --glow:#ff4d3d; --blank:#c99a4b; --brass:#c9a45a;
+  --tilt:55deg;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+/* El juego es de noche siempre, igual que en la app: mismas fichas en ambos temas. */
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#171310; } }
+:root[data-theme="dark"]{ --bg:#171310; }
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Spectral",Georgia,serif;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.display{font-family:"Anton",Impact,"Arial Narrow Bold",sans-serif;font-weight:400;letter-spacing:.02em}
+
+#app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;position:relative}
+.room{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 45% at 50% 38%, rgba(255,214,150,.13), transparent 70%),
+             radial-gradient(ellipse 120% 90% at 50% 40%, transparent 40%, rgba(0,0,0,.75) 100%)}
+
+header{display:flex;align-items:center;gap:10px;padding:12px 16px 4px;position:relative;z-index:2}
+header .logo{font-size:26px;color:var(--ink)}
+header .pill{font-size:12px;color:var(--dim);border:1px solid #3a322a;border-radius:999px;padding:2px 9px}
+header .sp{flex:1}
+.icon-btn{background:none;border:1px solid #3a322a;color:var(--ink);border-radius:8px;width:38px;height:34px;font-size:16px;cursor:pointer}
+.icon-btn:focus-visible,.act:focus-visible,.item:focus-visible,.card:focus-visible{outline:2px solid var(--blank);outline-offset:2px}
+
+#chamber{display:flex;align-items:center;justify-content:center;gap:5px;min-height:34px;padding:4px 16px;position:relative;z-index:2}
+#chamber .mini{width:9px;height:22px;border-radius:3px 3px 1px 1px;background:linear-gradient(to bottom,#3a322a 0 70%,#7a6436 70%);box-shadow:0 1px 0 rgba(255,255,255,.05) inset}
+#chamber .mini.gone{animation:mini-out .35s ease-in forwards}
+@keyframes mini-out{to{transform:translateY(-10px);opacity:0}}
+#chamber .round{font-size:13px;color:var(--dim);margin-right:8px}
+#known{font-size:12px;border-radius:999px;padding:2px 8px;margin-left:8px;display:none}
+#known.live{display:inline;background:var(--live);color:#fff}
+#known.blank{display:inline;background:var(--blank);color:#221a10}
+
+/* ---------- Mesa en perspectiva ---------- */
+#shake{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;min-height:0}
+.stage{perspective:1100px;perspective-origin:50% 0%;display:flex;justify-content:center;padding-top:10px;margin-top:-6%}
+#table{position:relative;width:min(88vw,410px);aspect-ratio:1;border-radius:50%;
+  transform:rotateX(var(--tilt));transform-style:preserve-3d;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,226,170,.16), transparent 55%),
+    radial-gradient(circle, var(--felt) 0 58%, var(--felt-edge) 100%);
+  border:12px solid var(--wood);
+  box-shadow:0 0 0 2px #5d3d28 inset, 0 0 40px rgba(0,0,0,.6) inset, 0 16px 0 var(--wood-dark), 0 40px 60px rgba(0,0,0,.6)}
+#table::after{content:"";position:absolute;inset:14%;border-radius:50%;border:1.5px dashed rgba(236,228,214,.09)}
+
+.seat{position:absolute;transform:translate(-50%,-100%) rotateX(calc(-1 * var(--tilt))) translateZ(2px);transform-origin:50% 100%;transform-style:preserve-3d;z-index:2}
+.card{width:92px;padding:8px 6px 7px;border-radius:8px;background:rgba(10,8,6,.82);border:1px solid #3a4531;color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;gap:5px;font:inherit;cursor:default;position:relative;
+  box-shadow:0 8px 16px rgba(0,0,0,.5);transition:border-color .25s, box-shadow .25s}
+.card .name{font-size:13px;font-weight:600;white-space:nowrap}
+.card .lives{display:flex;gap:4px}
+.card .lives i{width:9px;height:9px;border-radius:50%;border:1px solid var(--live);background:radial-gradient(circle at 35% 30%, var(--glow), var(--live) 70%)}
+.card .lives i.spent{background:none;border-color:#3a322a;opacity:.4}
+.card .items{font-size:12px;min-height:14px;letter-spacing:1px}
+.card.active{border-color:var(--glow);box-shadow:0 0 0 1px var(--glow) inset,0 0 22px -4px var(--glow),0 8px 16px rgba(0,0,0,.5)}
+.card.active .name{color:#ffb1a8}
+.card.dead{opacity:.45;filter:grayscale(.9)}
+.card.dead .name{text-decoration:line-through}
+.card.targetable{cursor:pointer;animation:target-pulse 1.2s ease-in-out infinite}
+@keyframes target-pulse{50%{box-shadow:0 0 0 2px var(--blank),0 0 24px -2px var(--blank),0 8px 16px rgba(0,0,0,.5)}}
+.card.you{border-color:#5a6b4a}
+
+#gun{position:absolute;left:50%;top:50%;width:62%;aspect-ratio:220/44;transform:translate(-50%,-50%) rotate(0deg) translateZ(4px);
+  transition:transform 1.2s cubic-bezier(.33,1,.4,1);transform-style:preserve-3d;z-index:1}
+#gunBody{width:100%;height:100%}
+#gun svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 5px 4px rgba(0,0,0,.65))}
+#barrel{transform-box:fill-box;transform-origin:0% 50%;transition:transform .9s cubic-bezier(.6,0,.3,1)}
+#gun.sawed #barrel{transform:scaleX(.6)}
+#muzzleFx{transition:transform .9s cubic-bezier(.6,0,.3,1);opacity:0}
+#gun.sawed #muzzleFx{transform:translateX(-43px)}
+
+.spent{position:absolute;left:50%;top:50%;width:9px;height:22px;border-radius:3px 3px 2px 2px;z-index:1;
+  box-shadow:0 3px 4px rgba(0,0,0,.55)}
+.spent.live{background:linear-gradient(to bottom,var(--live) 0 70%,var(--brass) 70%)}
+.spent.blank{background:linear-gradient(to bottom,var(--blank) 0 70%,#8f7433 70%)}
+.fx{position:absolute;left:50%;top:50%;pointer-events:none;z-index:3}
+.smoke{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,rgba(210,200,190,.55),transparent 70%)}
+.spark{width:4px;height:4px;border-radius:50%;background:#ffd36b;box-shadow:0 0 6px #ffb02e}
+.saw{font-size:34px;transform-style:preserve-3d}
+
+#banner{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);text-align:center;pointer-events:none;opacity:0;z-index:5;
+  background:rgba(12,9,7,.9);border:1px solid #3a322a;border-radius:10px;padding:10px 22px 12px;min-width:200px;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+#banner .big{font-size:46px;line-height:1}
+#banner .big.live{color:var(--glow);text-shadow:0 0 18px rgba(255,77,61,.5)}
+#banner .big.blank{color:var(--blank)}
+#banner .sub{font-size:15px;color:var(--ink);margin-top:4px}
+#banner .tap{font-size:11px;color:var(--faint);margin-top:6px}
+
+/* ---------- Controles ---------- */
+#controls{padding:6px 16px calc(16px + env(safe-area-inset-bottom,0px));position:relative;z-index:2;min-height:150px}
+#status{text-align:center;font-size:15px;color:var(--dim);min-height:44px;line-height:1.4;margin-bottom:8px}
+#status b{color:var(--ink)}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.act{font:inherit;font-weight:600;font-size:15px;border-radius:8px;padding:11px 16px;cursor:pointer;border:1px solid #3a322a;background:var(--raised);color:var(--ink)}
+.act.primary{background:var(--live);border-color:var(--live);color:#fff}
+.act:disabled{opacity:.35;cursor:default}
+#tray{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.item{width:52px;height:52px;border-radius:10px;border:1px solid #3a322a;background:var(--raised);font-size:24px;cursor:pointer;position:relative}
+.item:disabled{opacity:.35;cursor:default}
+.item small{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--faint);white-space:nowrap;font-family:"Spectral",serif}
+
+/* ---------- Overlays ---------- */
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:20;padding:24px;text-align:center}
+.overlay.dim{background:rgba(10,7,5,.88)}
+#flash{position:fixed;inset:0;pointer-events:none;z-index:15;opacity:0;background:radial-gradient(circle at 50% 45%, rgba(255,240,210,.95), rgba(255,77,61,.55) 40%, rgba(120,0,0,.2) 80%)}
+#hurt{position:fixed;inset:0;pointer-events:none;z-index:14;opacity:0;box-shadow:inset 0 0 120px 40px rgba(179,38,30,.85)}
+#hurt svg{width:100%;height:100%}
+#reload h2{font-size:54px;margin:0 0 6px}
+#reload .legend{font-size:15px;color:var(--dim);min-height:22px;margin-bottom:26px}
+#reload .legend b.l{color:var(--glow)} #reload .legend b.b{color:var(--blank)}
+.shell-row{display:flex;gap:10px;justify-content:center}
+.shell{width:30px;height:74px;transform-style:preserve-3d}
+.shell svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 6px 6px rgba(0,0,0,.6))}
+.shell{--hull:#2e2721}
+.shell.live{--hull:var(--live)} .shell.blank{--hull:var(--blank)}
+#reload .hint{font-size:13px;color:var(--faint);margin-top:26px;min-height:18px}
+
+#lens .lens-stage{position:relative;width:70px;height:170px}
+#lens .lens-stage .shell{position:absolute;inset:0;width:70px;height:170px}
+#lens .ring{position:absolute;width:86px;height:86px;border-radius:50%;border:6px solid #c9b48a;box-shadow:0 0 0 2px #3a2a18,0 10px 20px rgba(0,0,0,.6),inset 0 0 20px rgba(255,255,255,.25);left:-8px;top:40px}
+#lens .ring::after{content:"";position:absolute;width:12px;height:52px;background:linear-gradient(#6b4a30,#402c1c);border-radius:6px;left:74px;top:62px;transform:rotate(-40deg)}
+#lens p{margin:26px 0 0;font-size:16px;color:var(--ink)}
+#lens p small{display:block;color:var(--faint);font-size:13px;margin-top:4px}
+
+.card-panel{background:var(--raised);border:1px solid #3a322a;border-radius:12px;padding:28px 24px 24px;max-width:360px;box-shadow:0 20px 50px rgba(0,0,0,.55)}
+.card-panel h1{font-size:56px;margin:0;line-height:1;color:var(--ink)}
+.card-panel p{color:var(--dim);line-height:1.55;margin:12px 0 20px}
+
+@media (prefers-reduced-motion: reduce){
+  .card.targetable{animation:none;border-color:var(--blank)}
+  #gun,#barrel,#muzzleFx{transition-duration:.2s}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a8378"/><stop offset=".45" stop-color="#4d4840"/><stop offset="1" stop-color="#23201b"/></linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5c38"/><stop offset=".5" stop-color="#6b4228"/><stop offset="1" stop-color="#3d2616"/></linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".3" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8f7433"/><stop offset=".35" stop-color="#f0d38a"/><stop offset="1" stop-color="#8f7433"/></linearGradient>
+    <radialGradient id="fire"><stop offset="0" stop-color="#fff8dc"/><stop offset=".35" stop-color="#ffd36b"/><stop offset=".7" stop-color="#ff6a2e"/><stop offset="1" stop-color="#ff4d3d" stop-opacity="0"/></radialGradient>
+    <symbol id="shellSide" viewBox="0 0 30 74">
+      <rect x="3" y="3" width="24" height="50" rx="5" style="fill:var(--hull,#2e2721)"/>
+      <rect x="3" y="3" width="24" height="50" rx="5" fill="url(#shine)"/>
+      <line x1="3" y1="10" x2="27" y2="10" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/>
+      <rect x="1" y="51" width="28" height="6" rx="1.5" fill="url(#brass)"/>
+      <rect x="3" y="56" width="24" height="15" rx="2" fill="url(#brass)"/>
+      <circle cx="15" cy="71" r="3" fill="#6d5626"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="room"></div>
+<div id="app">
+  <header>
+    <span class="logo display">RECÁMARA</span>
+    <span class="pill">referencia visual</span>
+    <span class="sp"></span>
+    <button class="icon-btn" id="soundBtn" aria-label="Silenciar sonido">🔊</button>
+  </header>
+  <div id="chamber"><span class="round" id="roundTxt"></span><span id="minis" style="display:flex;gap:5px"></span><span id="known"></span></div>
+
+  <div id="shake">
+    <div class="stage">
+      <div id="table">
+        <div id="gun"><div id="gunBody">
+          <svg viewBox="0 0 220 44" aria-hidden="true">
+            <path d="M4 11 Q1 22 4 33 L58 29 L72 27 L72 17 L58 15 Z" fill="url(#wood)"/>
+            <path d="M8 13 L56 16" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
+            <g id="barrel">
+              <rect x="106" y="23.5" width="80" height="4.5" rx="2" fill="#2a2620"/>
+              <rect x="106" y="16.5" width="108" height="6.5" rx="2.5" fill="url(#metal)"/>
+              <rect x="210" y="16" width="4" height="7.5" rx="1" fill="#1a1713"/>
+            </g>
+            <rect x="70" y="14" width="40" height="16" rx="3" fill="url(#metal)"/>
+            <rect x="76" y="18" width="18" height="4" rx="1" fill="#1a1713"/>
+            <path d="M84 30 q6 6 12 0" stroke="#2a2620" stroke-width="2.5" fill="none"/>
+            <rect x="124" y="14.5" width="42" height="15" rx="4" fill="url(#wood)"/>
+            <path d="M131 15 v14 M137 15 v14 M143 15 v14 M149 15 v14 M155 15 v14" stroke="rgba(0,0,0,.28)" stroke-width="1.4"/>
+            <g id="muzzleFx"><g id="muzzleInner" style="transform-box:fill-box;transform-origin:0% 50%">
+              <path d="M214 20 L236 8 L230 18 L252 20 L230 23 L238 34 Z" fill="url(#fire)"/>
+              <circle cx="222" cy="20" r="11" fill="url(#fire)"/>
+            </g></g>
+          </svg>
+        </div></div>
+      </div>
+    </div>
+    <div id="banner"><div class="big display"></div><div class="sub"></div><div class="tap">tocá para seguir</div></div>
+  </div>
+
+  <div id="controls">
+    <div id="status"></div>
+    <div class="row" id="actions"></div>
+    <div id="tray"></div>
+  </div>
+</div>
+
+<div id="flash"></div>
+<div id="hurt"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 18 L14 24 L9 33 L22 41 M100 70 L84 66 L88 56 L74 50 M70 0 L66 12 L76 17" stroke="rgba(255,255,255,.35)" stroke-width=".5" fill="none"/></svg></div>
+
+<div class="overlay dim" id="reload" style="display:none">
+  <h2 class="display" id="reloadTitle">RONDA 1</h2>
+  <div class="legend" id="reloadLegend"></div>
+  <div class="shell-row" id="shellRow"></div>
+  <div class="hint" id="reloadHint"></div>
+</div>
+<div class="overlay dim" id="lens" style="display:none">
+  <div class="lens-stage">
+    <div class="shell" id="lensHidden"><svg><use href="#shellSide"/></svg></div>
+    <div class="shell" id="lensReal"><svg><use href="#shellSide"/></svg></div>
+    <div class="ring" id="lensRing"></div>
+  </div>
+  <p id="lensText"></p>
+</div>
+<div class="overlay dim" id="startScreen">
+  <div class="card-panel">
+    <h1 class="display">RECÁMARA</h1>
+    <p>Referencia de cómo se sentiría el juego con mesa en perspectiva, recarga animada, sonido y vibración. Lucía, Tomi y Nacho juegan solos; vos elegís a quién apuntar.</p>
+    <button class="act primary" id="startBtn">Sentarse a la mesa</button>
+  </div>
+</div>
+<div class="overlay dim" id="endScreen" style="display:none">
+  <div class="card-panel">
+    <h1 class="display" id="endTitle"></h1>
+    <p id="endSub"></p>
+    <button class="act primary" id="againBtn">Otra partida</button>
+  </div>
+</div>
+
+<script>
+(function(){
+const $ = s => document.querySelector(s);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const rand = n => Math.floor(Math.random()*n);
+const pick = a => a[rand(a.length)];
+
+// ---------- Sonido sintetizado (sin archivos) ----------
+let ac = null, soundOn = true;
+function initAudio(){ try { ac = ac || new (window.AudioContext||window.webkitAudioContext)(); if (ac.state==='suspended') ac.resume(); } catch(e){} }
+function noise(dur){ const b = ac.createBuffer(1, Math.floor(ac.sampleRate*dur), ac.sampleRate), d = b.getChannelData(0); for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1; const s = ac.createBufferSource(); s.buffer = b; return s; }
+function env(g, t, peak, dur){ g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+0.005); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); }
+function play(fn, delay=0){ if (!ac || !soundOn) return; try { fn(ac, ac.currentTime + delay); } catch(e){} }
+const sfx = {
+  click(delay=0){ play((c,t)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='square'; o.frequency.setValueAtTime(2200,t); o.frequency.exponentialRampToValueAtTime(300,t+.03); env(g,t,.22,.05); o.connect(g).connect(c.destination); o.start(t); o.stop(t+.07); }, delay); },
+  bang(){ play((c,t)=>{
+    const n=noise(1.1), f=c.createBiquadFilter(), g=c.createGain(); f.type='lowpass'; f.frequency.setValueAtTime(5000,t); f.frequency.exponentialRampToValueAtTime(180,t+.8);
+    env(g,t,1,1); n.connect(f).connect(g).connect(c.destination); n.start(t);
+    const o=c.createOscillator(), og=c.createGain(); o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(32,t+.4); env(og,t,.9,.5); o.connect(og).connect(c.destination); o.start(t); o.stop(t+.55);
+  }); },
+  rack(delay=0){ play((c,t)=>{ for (const [dt,fq] of [[0,1400],[.13,900]]){ const n=noise(.06), f=c.createBiquadFilter(), g=c.createGain(); f.type='bandpass'; f.frequency.value=fq; f.Q.value=3; env(g,t+dt,.5,.06); n.connect(f).connect(g).connect(c.destination); n.start(t+dt); } }, delay); },
+  clink(delay=0){ play((c,t)=>{ for (const fq of [2650,3980,5200]){ const o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=fq; env(g,t,.06,.3); o.connect(g).connect(c.destination); o.start(t); o.stop(t+.32); } }, delay); },
+  load(delay=0){ play((c,t)=>{ const n=noise(.05), f=c.createBiquadFilter(), g=c.createGain(); f.type='bandpass'; f.frequency.value=700; f.Q.value=2; env(g,t,.5,.05); n.connect(f).connect(g).connect(c.destination); n.start(t); }, delay); },
+  thump(delay=0){ play((c,t)=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.setValueAtTime(70,t); o.frequency.exponentialRampToValueAtTime(40,t+.18); env(g,t,.55,.22); o.connect(g).connect(c.destination); o.start(t); o.stop(t+.25); }, delay); },
+  saw(){ play((c,t)=>{ const n=noise(1.2), f=c.createBiquadFilter(), g=c.createGain(), lfo=c.createOscillator(), lg=c.createGain();
+    f.type='bandpass'; f.frequency.value=2800; f.Q.value=1.5; g.gain.value=.12; lfo.frequency.value=7; lg.gain.value=.1; lfo.connect(lg).connect(g.gain);
+    g.gain.setValueAtTime(.12,t); g.gain.linearRampToValueAtTime(0,t+1.15); n.connect(f).connect(g).connect(c.destination); n.start(t); lfo.start(t); lfo.stop(t+1.2); }); },
+  lens(){ play((c,t)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(1300,t+.5); env(g,t,.08,.6); o.connect(g).connect(c.destination); o.start(t); o.stop(t+.62); }); },
+  puff(){ play((c,t)=>{ const n=noise(.6), f=c.createBiquadFilter(), g=c.createGain(); f.type='lowpass'; f.frequency.value=900; env(g,t,.15,.6); n.connect(f).connect(g).connect(c.destination); n.start(t); }); },
+  pop(delay=0){ play((c,t)=>{ const o=c.createOscillator(), g=c.createGain(); o.type='sine'; o.frequency.setValueAtTime(420,t); o.frequency.exponentialRampToValueAtTime(900,t+.08); env(g,t,.12,.12); o.connect(g).connect(c.destination); o.start(t); o.stop(t+.14); }, delay); }
+};
+const vibrate = p => { try { navigator.vibrate && navigator.vibrate(p); } catch(e){} };
+$('#soundBtn').onclick = () => { soundOn = !soundOn; $('#soundBtn').textContent = soundOn ? '🔊' : '🔇'; $('#soundBtn').setAttribute('aria-label', soundOn ? 'Silenciar sonido' : 'Activar sonido'); };
+
+// ---------- Estado ----------
+const MAX_LIVES = 3;
+const ITEM_NAMES = {'🔍':'Lupa','🪚':'Sierra','🚬':'Cigarro'};
+const P = [
+  {id:0, name:'Vos', you:true, angle:90},
+  {id:1, name:'Lucía', angle:180},
+  {id:2, name:'Tomi', angle:270},
+  {id:3, name:'Nacho', angle:0}
+];
+let shells = [], round = 0, turn = 0, sawed = false, gunAngle = 0, youResolve = null;
+
+const table = $('#table'), gun = $('#gun');
+
+function buildSeats(){
+  table.querySelectorAll('.seat').forEach(s => s.remove());
+  for (const p of P){
+    const rad = p.angle*Math.PI/180, r = 43;
+    const seat = document.createElement('div'); seat.className = 'seat';
+    seat.style.left = (50 + r*Math.cos(rad)) + '%'; seat.style.top = (50 + r*Math.sin(rad)) + '%';
+    const card = document.createElement('div'); card.className = 'card' + (p.you ? ' you' : '');
+    card.setAttribute('role','button'); card.tabIndex = -1;
+    card.innerHTML = `<span class="name">${p.name}</span><span class="lives"></span><span class="items"></span>`;
+    card.onclick = () => { if (youResolve && !p.you && p.lives > 0){ const r = youResolve; youResolve = null; r({target:p.id}); } };
+    card.onkeydown = e => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); card.onclick(); } };
+    seat.appendChild(card); table.appendChild(seat);
+    p.card = card;
+  }
+}
+function renderCard(p){
+  p.card.querySelector('.lives').innerHTML = Array.from({length:MAX_LIVES}, (_,i) => `<i class="${i >= p.lives ? 'spent' : ''}"></i>`).join('');
+  p.card.querySelector('.items').textContent = p.items.join('');
+  p.card.classList.toggle('dead', p.lives <= 0);
+  p.card.classList.toggle('active', P[turn] === p && p.lives > 0);
+}
+const renderAll = () => P.forEach(renderCard);
+const alive = () => P.filter(p => p.lives > 0);
+
+function renderChamber(){
+  $('#roundTxt').textContent = round ? 'Ronda ' + round : '';
+  const minis = $('#minis'); minis.innerHTML = shells.map(() => '<span class="mini"></span>').join('');
+}
+function popMini(){ const m = [...document.querySelectorAll('#minis .mini:not(.gone)')][0]; if (m) m.classList.add('gone'); }
+function setKnown(kind){ const k = $('#known'); k.className = kind || ''; k.textContent = kind ? (kind==='live' ? 'La próxima es REAL' : 'La próxima es FALSA') : ''; }
+
+// ---------- Escopeta ----------
+function shortest(cur, t){ while (t-cur > 180) t -= 360; while (t-cur < -180) t += 360; return t; }
+function setGun(angle, dur){
+  gunAngle = shortest(gunAngle, angle);
+  gun.style.transitionDuration = (reduced ? .2 : dur) + 's';
+  gun.style.transform = `translate(-50%,-50%) rotate(${gunAngle}deg) translateZ(4px)`;
+}
+// Punto de la mesa (en px, relativo al centro) a cierta distancia sobre el eje del arma.
+function alongGun(svgX){
+  const w = gun.offsetWidth, off = (svgX - 110) / 220 * w, rad = gunAngle*Math.PI/180;
+  return {x: Math.cos(rad)*off, y: Math.sin(rad)*off};
+}
+function spawnFx(cls, x, y, html){
+  const el = document.createElement('div'); el.className = 'fx ' + cls; if (html) el.innerHTML = html;
+  el.style.transform = `translate(-50%,-50%) translate3d(${x}px,${y}px,6px)`; table.appendChild(el); return el;
+}
+
+// ---------- Director: un evento por vez, en orden ----------
+async function aim(target){
+  setGun(target.angle, 1.2);
+  sfx.thump(0); sfx.thump(.5); sfx.thump(.95);
+  if (target.you) vibrate([15,480,15,430,15]);
+  await sleep(reduced ? 250 : 1250);
+  // un temblor antes del gatillo
+  if (!reduced) await $('#gunBody').animate(
+    [{transform:'none'},{transform:'translate(1px,-1px) rotate(.6deg)'},{transform:'translate(-1px,1px) rotate(-.6deg)'},{transform:'translate(1px,0) rotate(.4deg)'},{transform:'none'}],
+    {duration:420, easing:'linear'}).finished;
+  else await sleep(150);
+}
+
+function recoil(strong){
+  $('#gunBody').animate([{transform:'none'},{transform:`translateX(${strong?-16:-5}px) rotate(${strong?-5:-1}deg)`, offset:.18},{transform:'translateX(3px)', offset:.5},{transform:'none'}],
+    {duration: strong ? 550 : 300, easing:'cubic-bezier(.2,.9,.3,1)'});
+}
+function muzzleFlash(){
+  const fx = $('#muzzleFx'), inner = $('#muzzleInner');
+  fx.animate([{opacity:1},{opacity:1, offset:.4},{opacity:0}], {duration:180});
+  inner.animate([{transform:'scale(.4)'},{transform:'scale(1.25)'},{transform:'scale(.9)'}], {duration:180});
+  const tip = alongGun(sawed ? 171 : 214);
+  for (let i=0;i<4;i++){
+    const s = spawnFx('smoke', tip.x, tip.y);
+    const dx = (Math.random()-.5)*30, dy = (Math.random()-.5)*30;
+    s.animate([
+      {transform:`translate(-50%,-50%) translate3d(${tip.x}px,${tip.y}px,8px) scale(.4)`, opacity:.9},
+      {transform:`translate(-50%,-50%) translate3d(${tip.x+dx}px,${tip.y+dy}px,${70+i*20}px) scale(${2+i*.4})`, opacity:0}
+    ], {duration:1300+i*200, easing:'ease-out'}).finished.then(() => s.remove());
+  }
+}
+function shake(power){
+  if (reduced) return;
+  const k = [];
+  for (let i=0;i<8;i++){ const a = power*(1-i/8); k.push({transform:`translate(${(Math.random()-.5)*a}px,${(Math.random()-.5)*a}px) rotate(${(Math.random()-.5)*a*.08}deg)`}); }
+  k.push({transform:'none'});
+  $('#shake').animate(k, {duration:450, easing:'ease-out'});
+}
+function screenFlash(){ $('#flash').animate([{opacity:.85},{opacity:0}], {duration:320, easing:'ease-out'}); }
+function hurtYou(){ $('#hurt').animate([{opacity:1},{opacity:1, offset:.3},{opacity:0}], {duration:1500, easing:'ease-out'}); }
+
+function hitCard(p, dmg){
+  p.card.animate([{transform:'none'},{transform:'translateY(-10px) rotate(-4deg) scale(1.06)', offset:.2},{transform:'translateY(2px) rotate(1deg)', offset:.5},{transform:'none'}], {duration:520, easing:'ease-out'});
+  const dots = [...p.card.querySelectorAll('.lives i:not(.spent)')].slice(-dmg);
+  dots.forEach(d => d.animate([{transform:'scale(1)', filter:'brightness(1)'},{transform:'scale(1.9)', filter:'brightness(2)', opacity:1},{transform:'scale(.2)', opacity:0}], {duration:520, easing:'ease-out'}));
+}
+
+function ejectShell(kind){
+  const old = table.querySelectorAll('.spent');
+  if (old.length >= 5) old[0].remove();
+  const el = document.createElement('div'); el.className = 'spent ' + kind; table.appendChild(el);
+  const dir = (gunAngle + 90 + (Math.random()-.5)*50) * Math.PI/180, dist = 60 + Math.random()*40;
+  const ox = alongGun(92), x = ox.x + Math.cos(dir)*dist, y = ox.y + Math.sin(dir)*dist, r = rand(720)-360;
+  const at = (px,py,z,rot) => `translate(-50%,-50%) translate3d(${px}px,${py}px,${z}px) rotate(${rot}deg)`;
+  el.animate([
+    {transform: at(ox.x,ox.y,10,gunAngle)},
+    {transform: at(ox.x+(x-ox.x)*.55, oy(ox,y,.55), 110, r*.6), offset:.45},
+    {transform: at(x,y,2,r), offset:.82},
+    {transform: at(x+(x-ox.x)*.06,y+(y-ox.y)*.06,14,r+25), offset:.91},
+    {transform: at(x+(x-ox.x)*.1,y+(y-ox.y)*.1,2,r+30)}
+  ], {duration: reduced ? 1 : 900, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards'});
+  sfx.clink(.62); sfx.clink(.8);
+}
+function oy(o, y, t){ return o.y + (y - o.y)*t; }
+
+function waitTap(ms){
+  return new Promise(res => {
+    let done = false;
+    const fin = () => { if (done) return; done = true; removeEventListener('pointerdown', fin); res(); };
+    setTimeout(() => addEventListener('pointerdown', fin), 350);
+    setTimeout(fin, ms);
+  });
+}
+async function banner(kind, big, sub){
+  const b = $('#banner'); b.querySelector('.big').className = 'big display ' + kind;
+  b.querySelector('.big').textContent = big; b.querySelector('.sub').textContent = sub;
+  b.animate([{opacity:0, transform:'translateX(-50%) scale(.7)'},{opacity:1, transform:'translateX(-50%) scale(1.06)', offset:.7},{opacity:1, transform:'translateX(-50%) scale(1)'}], {duration:320, fill:'forwards', easing:'ease-out'});
+  await waitTap(2600);
+  await b.animate([{opacity:1},{opacity:0}], {duration:200, fill:'forwards'}).finished;
+}
+
+async function shoot(shooter, target){
+  const shell = shells.shift();
+  setKnown(null); P.forEach(p => { if (!p.you) p.knows = null; });
+  status(`<b>${shooter.you ? 'Vos' : shooter.name}</b> apunta ${target === shooter ? (shooter.you ? 'a vos mismo' : 'a sí mism' + (shooter.name==='Lucía'?'a':'o')) : 'a <b>' + (target.you ? 'vos' : target.name) + '</b>'}…`);
+  await aim(target);
+  popMini();
+  const live = shell === 'live';
+  let dmg = 0;
+  if (live){
+    dmg = sawed ? 2 : 1;
+    sfx.bang(); muzzleFlash(); recoil(true); shake(sawed ? 26 : 16); screenFlash();
+    target.lives = Math.max(0, target.lives - dmg);
+    hitCard(target, dmg);
+    if (target.you){ hurtYou(); vibrate([90,40,200]); } else vibrate(60);
+  } else {
+    sfx.click(); recoil(false); shake(3);
+    if (target.you) vibrate(20);
+  }
+  setTimeout(() => { sfx.rack(); ejectShell(shell); }, live ? 380 : 260);
+  await sleep(450);
+  renderCard(target);
+  if (sawed){ sawed = false; setTimeout(() => gun.classList.remove('sawed'), 900); }
+  await sleep(500);
+  const who = target.you ? 'Perdés' : target.name + ' pierde';
+  if (live) await banner('live', 'REAL', `${who} ${dmg} vida${dmg>1?'s':''}${target.lives===0 ? (target.you ? ' y quedás afuera' : ' y queda afuera') : ''}`);
+  else await banner('blank', 'FALSA', target === shooter ? (shooter.you ? 'Seguís tirando vos' : shooter.name + ' sigue tirando') : 'No pasó nada');
+  return !live && target === shooter;
+}
+
+// ---------- Ítems ----------
+async function useLens(p){
+  sfx.lens();
+  const real = $('#lensReal'), ring = $('#lensRing');
+  const kind = shells[0];
+  real.className = 'shell ' + (p.you ? kind : '');
+  $('#lensHidden').className = 'shell';
+  $('#lensText').innerHTML = p.you ? `${kind==='live' ? 'Real' : 'Falsa'}<small>Solo vos la viste</small>` : `${p.name} miró la próxima bala<small>Vos no sabés qué vio</small>`;
+  $('#lens').style.display = 'flex';
+  const rp = [{t:10},{t:48},{t:44}];
+  ring.animate([{transform:'translate(-60px,70px)'},{transform:'translate(0,0)'}], {duration:700, easing:'ease-out', fill:'forwards'});
+  real.animate([{clipPath:'circle(0px at 20% 70%)'},{clipPath:'circle(38px at 50% 48%)'}], {duration:700, easing:'ease-out', fill:'forwards'});
+  await sleep(1900);
+  $('#lens').style.display = 'none';
+  if (p.you) setKnown(kind); else p.knows = kind;
+}
+async function useSaw(p){
+  const cut = alongGun(171);
+  const saw = spawnFx('saw', cut.x, cut.y, '🪚');
+  saw.style.transform = `translate(-50%,-80%) translate3d(${cut.x}px,${cut.y}px,20px) rotateX(calc(-1 * var(--tilt)))`;
+  sfx.saw();
+  const base = `translate(-50%,-80%) translate3d(${cut.x}px,${cut.y}px,20px) rotateX(calc(-1 * var(--tilt)))`;
+  saw.animate([{transform: base + ' translateX(-10px) rotate(-8deg)'},{transform: base + ' translateX(10px) rotate(4deg)'}], {duration:140, iterations:8, direction:'alternate'});
+  for (let i=0;i<16;i++){
+    setTimeout(() => {
+      const s = spawnFx('spark', cut.x, cut.y); const a = Math.random()*Math.PI*2, d = 20+Math.random()*40;
+      s.animate([{transform:`translate(-50%,-50%) translate3d(${cut.x}px,${cut.y}px,8px)`, opacity:1},
+                 {transform:`translate(-50%,-50%) translate3d(${cut.x+Math.cos(a)*d}px,${cut.y+Math.sin(a)*d}px,${30+Math.random()*50}px)`, opacity:0}],
+                {duration:500, easing:'ease-out'}).finished.then(() => s.remove());
+    }, i*65);
+  }
+  await sleep(1150); saw.remove();
+  sawed = true; gun.classList.add('sawed'); sfx.load(); sfx.load(.08);
+  await sleep(900);
+  await banner('live', 'CAÑO RECORTADO', 'Si la próxima es real, saca 2 vidas');
+}
+async function useCig(p){
+  sfx.puff();
+  for (let i=0;i<5;i++){
+    const s = document.createElement('div'); s.className = 'smoke'; s.style.cssText = 'position:absolute;left:50%;top:10px;pointer-events:none';
+    p.card.appendChild(s);
+    s.animate([{transform:`translate(-50%,0) scale(.5)`, opacity:.8},{transform:`translate(${-50+(Math.random()-.5)*60}%,-60px) scale(2.2)`, opacity:0}], {duration:1200+i*150, delay:i*120, easing:'ease-out'}).finished.then(() => s.remove());
+  }
+  await sleep(700);
+  p.lives = Math.min(MAX_LIVES, p.lives + 1); renderCard(p); sfx.pop();
+  const dot = [...p.card.querySelectorAll('.lives i:not(.spent)')].pop();
+  if (dot) dot.animate([{transform:'scale(0)', filter:'brightness(2.5)'},{transform:'scale(1.6)', filter:'brightness(2)'},{transform:'scale(1)', filter:'brightness(1)'}], {duration:500, easing:'ease-out'});
+  await sleep(700);
+}
+async function useItem(p, item){
+  p.items.splice(p.items.indexOf(item), 1); renderCard(p); renderTray();
+  status(`<b>${p.you ? 'Usás' : p.name + ' usa'}</b> ${ITEM_NAMES[item].toLowerCase()} ${item}`);
+  await sleep(500);
+  if (item === '🔍') await useLens(p);
+  if (item === '🪚') await useSaw(p);
+  if (item === '🚬') await useCig(p);
+}
+
+// ---------- Recarga ----------
+async function reload(){
+  round++; sawed = false; gun.classList.remove('sawed'); setKnown(null);
+  const total = 2 + rand(4) + Math.min(round, 2);
+  const live = Math.max(1, Math.min(total-1, Math.round(total*(.35+Math.random()*.3))));
+  const order = [...Array(live).fill('live'), ...Array(total-live).fill('blank')];
+  shells = [...order].sort(() => Math.random() - .5);
+
+  const ov = $('#reload'), row = $('#shellRow');
+  $('#reloadTitle').textContent = 'RONDA ' + round; $('#reloadLegend').innerHTML = ''; $('#reloadHint').textContent = '';
+  row.innerHTML = order.map(k => `<div class="shell ${k}"><svg><use href="#shellSide"/></svg></div>`).join('');
+  ov.style.display = 'flex';
+  const els = [...row.children];
+  els.forEach(e => e.style.opacity = 0);
+  $('#reloadTitle').animate([{opacity:0, transform:'scale(1.4)'},{opacity:1, transform:'scale(1)'}], {duration:400, easing:'ease-out'});
+  await sleep(600);
+  for (const [i,e] of els.entries()){
+    e.style.opacity = 1;
+    e.animate([{transform:'translateY(-30px) scale(.6)', opacity:0},{transform:'translateY(4px) scale(1.05)', opacity:1},{transform:'none'}], {duration:300, easing:'ease-out'});
+    sfx.pop(); await sleep(reduced ? 40 : 140);
+  }
+  $('#reloadLegend').innerHTML = `<b class="l">${live} real${live>1?'es':''}</b> · <b class="b">${total-live} falsa${total-live>1?'s':''}</b>`;
+  $('#reloadHint').textContent = 'Memorizá. El orden va a ser secreto.';
+  await sleep(2200);
+  // se dan vuelta
+  $('#reloadHint').textContent = '';
+  await Promise.all(els.map((e,i) => (async () => {
+    await sleep(i*60);
+    await e.animate([{transform:'rotateY(0)'},{transform:'rotateY(90deg)'}], {duration:140, fill:'forwards'}).finished;
+    e.className = 'shell';
+    await e.animate([{transform:'rotateY(90deg)'},{transform:'rotateY(0)'}], {duration:140, fill:'forwards'}).finished;
+  })()));
+  // se mezclan
+  const slotW = els.length > 1 ? els[1].offsetLeft - els[0].offsetLeft : 0;
+  let slots = els.map((_,i) => i);
+  for (let s=0; s<(reduced?1:4); s++){
+    const next = [...slots].sort(() => Math.random() - .5);
+    sfx.load();
+    await Promise.all(els.map((e,i) => e.animate([
+      {transform:`translateX(${(slots[i]-i)*slotW}px)`},
+      {transform:`translateX(${((slots[i]+next[i])/2-i)*slotW}px) translateY(${i%2?-26:26}px)`},
+      {transform:`translateX(${(next[i]-i)*slotW}px)`}
+    ], {duration:260, easing:'ease-in-out', fill:'forwards'}).finished));
+    slots = next;
+  }
+  await sleep(250);
+  // entran al arma
+  const byPos = els.map((e,i) => ({e, i, pos:slots[i]})).sort((a,b) => a.pos - b.pos);
+  for (const {e,i,pos} of byPos){
+    const x = (pos-i)*slotW;
+    e.animate([{transform:`translateX(${x}px)`, opacity:1},{transform:`translateX(${x}px) translateY(-18px)`, offset:.25},{transform:`translateX(${-i*slotW + (els.length-1)*slotW/2}px) translateY(46vh) scale(.25)`, opacity:0}],
+      {duration:420, easing:'cubic-bezier(.5,0,.8,.6)', fill:'forwards'});
+    sfx.load(.36); await sleep(reduced ? 60 : 200);
+  }
+  await sleep(450); sfx.rack();
+  ov.style.display = 'none';
+  renderChamber();
+  // reparto de ítems
+  for (const p of alive()){
+    for (let k=0;k<2 && p.items.length<4;k++) p.items.push(pick(Object.keys(ITEM_NAMES)));
+  }
+  renderAll(); renderTray();
+  P.forEach(p => p.lives > 0 && p.card.querySelector('.items').animate([{transform:'scale(0)'},{transform:'scale(1.3)'},{transform:'scale(1)'}], {duration:400, easing:'ease-out'}));
+  await sleep(600);
+}
+
+// ---------- Controles ----------
+function status(html){ $('#status').innerHTML = html; }
+function renderTray(){
+  const you = P[0], mine = youResolve !== null;
+  $('#tray').innerHTML = you.items.map(it => `<button class="item" data-it="${it}" ${mine ? '' : 'disabled'} aria-label="${ITEM_NAMES[it]}">${it}<small>${ITEM_NAMES[it]}</small></button>`).join('');
+  $('#tray').querySelectorAll('.item').forEach(b => b.onclick = () => {
+    const it = b.dataset.it;
+    if (!youResolve) return;
+    if (it === '🪚' && sawed) return;
+    if (it === '🚬' && you.lives >= MAX_LIVES) { status('Ya tenés todas las vidas.'); return; }
+    const r = youResolve; youResolve = null; r({item: it});
+  });
+}
+function setTargetable(on){
+  P.forEach(p => { const t = on && !p.you && p.lives > 0; p.card.classList.toggle('targetable', t); p.card.tabIndex = t ? 0 : -1; });
+  $('#actions').innerHTML = on ? '<button class="act primary" id="selfBtn">Dispararme a mí</button>' : '';
+  if (on) $('#selfBtn').onclick = () => { if (!youResolve) return; const r = youResolve; youResolve = null; r({target:0}); };
+}
+function waitYou(){
+  return new Promise(res => {
+    youResolve = a => { setTargetable(false); renderTray(); res(a); };
+    status('<b>Te toca.</b> Tocá a un rival para dispararle, o disparate a vos: si es falsa, seguís.');
+    setTargetable(true); renderTray();
+  });
+}
+async function botThink(p){
+  status(`Turno de <b>${p.name}</b>…`);
+  await sleep(1000);
+  const liveLeft = shells.filter(s => s === 'live').length, ratio = liveLeft / shells.length;
+  if (p.items.includes('🚬') && p.lives < MAX_LIVES) return {item:'🚬'};
+  if (p.items.includes('🔍') && !p.knows && shells.length > 1 && Math.random() < .5) return {item:'🔍'};
+  const guess = p.knows || (ratio >= .5 ? 'live' : 'blank');
+  if (guess === 'live' && p.items.includes('🪚') && !sawed && Math.random() < .7) return {item:'🪚'};
+  const others = alive().filter(o => o !== p);
+  if (guess === 'blank' && Math.random() < .75) return {target:p.id};
+  const you = others.find(o => o.you);
+  return {target: (you && Math.random() < .45 ? you : pick(others)).id};
+}
+function advance(){
+  do { turn = (turn + 1) % P.length; } while (P[turn].lives <= 0);
+}
+
+// ---------- Partida ----------
+async function run(){
+  while (true){
+    if (alive().length <= 1) break;
+    if (shells.length === 0) await reload();
+    const p = P[turn];
+    renderAll();
+    setGun(p.angle + 180, .8);
+    await sleep(500);
+    const act = p.you ? await waitYou() : await botThink(p);
+    if (act.item){ await useItem(p, act.item); continue; }
+    const keep = await shoot(p, P[act.target]);
+    if (P[0].lives <= 0 && alive().length > 1){ status('Quedaste afuera. Mirá cómo termina.'); await sleep(900); }
+    if (!keep && alive().length > 1) advance();
+  }
+  const w = alive()[0];
+  $('#endTitle').textContent = w.you ? 'GANASTE' : 'GANÓ ' + w.name.toUpperCase();
+  $('#endSub').textContent = w.you ? 'Última persona en la mesa.' : 'Te quedaste sin vidas. La recámara no perdona.';
+  $('#endScreen').style.display = 'flex';
+  $('#againBtn').focus();
+}
+function newGame(){
+  P.forEach(p => { p.lives = MAX_LIVES; p.items = []; p.knows = null; });
+  shells = []; round = 0; turn = 0; sawed = false; gun.classList.remove('sawed');
+  table.querySelectorAll('.spent').forEach(s => s.remove());
+  buildSeats(); renderAll(); renderTray(); renderChamber(); setKnown(null); status('');
+  run();
+}
+$('#startBtn').onclick = () => { initAudio(); $('#startScreen').style.display = 'none'; newGame(); };
+$('#againBtn').onclick = () => { $('#endScreen').style.display = 'none'; newGame(); };
+
+// escena de fondo detrás de la pantalla de inicio
+P.forEach(p => { p.lives = MAX_LIVES; p.items = []; });
+buildSeats(); renderAll();
+setGun(-30, .1);
+})();
+</script>
+</body>
+</html>
