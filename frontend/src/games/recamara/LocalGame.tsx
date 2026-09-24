@@ -27,10 +27,13 @@ import { ChamberCard } from "./components/ChamberCard";
 import { FlashOverlay } from "./components/FlashOverlay";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { DuelTable } from "./components/DuelTable";
+import { SoundToggle } from "./components/SoundToggle";
 import { frontAngle, seatAngle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
 import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
 import { useLogVisible } from "./hooks/logVisibility";
 import { useEventDirector } from "./hooks/eventDirector";
+import { useRecamaraSfx } from "./hooks/recamaraSfx";
+import { useEventSfx } from "./hooks/eventSfx";
 import { useChamberCountdown } from "./hooks/chamberCountdown";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -126,6 +129,18 @@ export function LocalGame() {
   const busy = director.busy;
   const playingShot = director.current?.kind === "shot" ? director.current : null;
   const playingItem = director.current?.kind === "item" ? director.current : null;
+
+  const sfx = useRecamaraSfx();
+  useEventSfx(
+    director.current && {
+      id: director.current.id,
+      kind: director.current.kind,
+      shellKind: playingShot?.payload.result.shellKind,
+      item: playingItem?.payload.item,
+    },
+    shotAnim.fireStage,
+    sfx,
+  );
 
   useEffect(() => {
     if (!winner || busy) {
@@ -454,6 +469,7 @@ export function LocalGame() {
     <div className="recamara">
       <div className="rec-table">
         <div className="turn-banner">
+          <SoundToggle muted={sfx.muted} onToggle={sfx.toggleMuted} />
           <span className="dot" />
           <span className="txt">
             Turno de <strong>{current.name}</strong>

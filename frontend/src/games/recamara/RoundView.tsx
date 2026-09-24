@@ -18,12 +18,15 @@ import { RoundAnnounce } from "./components/RoundAnnounce";
 import { ChamberCard } from "./components/ChamberCard";
 import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
 import { DuelTable } from "./components/DuelTable";
+import { SoundToggle } from "./components/SoundToggle";
 import { FlashOverlay } from "./components/FlashOverlay";
 import { frontAngle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
 import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
 import { useLogVisible } from "./hooks/logVisibility";
 import { useDuelEntryFlash } from "./hooks/duelTransition";
 import { useOnlineRoundDirector } from "./hooks/onlineRoundDirector";
+import { useRecamaraSfx } from "./hooks/recamaraSfx";
+import { useEventSfx } from "./hooks/eventSfx";
 import { useChamberCountdown } from "./hooks/chamberCountdown";
 import type { RoundViewProps } from "../gameTypes";
 
@@ -57,6 +60,20 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   const round = director.shown;
   const shotAnim = director.shotAnim;
   const busy = director.busy;
+
+  const sfx = useRecamaraSfx();
+  const playing = director.current;
+  useEventSfx(
+    playing && {
+      id: playing.id,
+      kind: playing.kind,
+      shellKind: playing.kind === "shot" ? playing.payload.shellKind : undefined,
+      targetIsMe: playing.kind === "shot" && playing.payload.targetId === myPlayerId,
+      item: playing.kind === "item" ? playing.payload.item : undefined,
+    },
+    shotAnim.fireStage,
+    sfx,
+  );
 
   // Reveal: each player pops their own chest at their own pace (see
   // ChestReveal) — purely client-side, since the items themselves were
@@ -316,6 +333,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     <div className="recamara">
       <div className="rec-table">
         <div className="turn-banner">
+          <SoundToggle muted={sfx.muted} onToggle={sfx.toggleMuted} />
           <span className="dot" />
           <span className="txt">
             Turno de <strong>{isMyTurn ? "vos" : current.name}</strong>

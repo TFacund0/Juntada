@@ -210,6 +210,25 @@
   font-size: 0.9rem;
 }
 
+/* Mute button, mirroring .direction-tag on the other side of the bar. */
+.recamara .sound-toggle {
+  position: absolute;
+  left: 0;
+  background: none;
+  border: 1px solid var(--rec-hair);
+  border-radius: 6px;
+  width: 32px;
+  height: 28px;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.recamara .sound-toggle:focus-visible {
+  outline: 2px solid var(--rec-blank);
+  outline-offset: 2px;
+}
+
 @keyframes rec-pulse {
   0%,
   100% {
