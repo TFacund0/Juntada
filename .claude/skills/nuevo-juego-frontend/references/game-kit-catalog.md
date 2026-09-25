@@ -112,6 +112,27 @@ Hook que tickea cada 500ms una cuenta regresiva propia a partir de un `timerEnd`
 - Props/params: `timerEnd: number`, `total?: number` → retorna `{ secs, total }`.
 - Cuándo usarlo: para cualquier timer visual (barra o anillo) que solo tiene el timestamp de fin del servidor y necesita su propio tick local; usar `timerUrgencyColor` para colorear cualquier timer sin reimplementar el ternario de umbrales.
 
+### useGameAudio (+ función `vibrate`)
+
+Sonido sintetizado con Web Audio por dispositivo: desbloquea el `AudioContext` con el primer gesto real (pointerup/touchend/click/keydown — pointerdown no cuenta en touch), recuerda el silencio en `localStorage` bajo la clave propia de cada juego y expone `vibrate` protegido (en iPhone no existe `navigator.vibrate`). Cada juego trae sus propios sintetizadores y los pasa a `play`.
+
+- Props/params: `storageKey: string` → retorna `{ muted, toggleMuted, play(run: (ac: AudioContext) => void), vibrate(pattern) }`.
+- Cuándo usarlo: para cualquier juego con efectos de sonido propios (usado por recámara vía `useRecamaraSfx` y rayado-libre vía `useRayadoSfx`), en vez de reimplementar el desbloqueo de audio y el silencio.
+
+### usePrefersReducedMotion
+
+Lado JS de `prefers-reduced-motion` (se actualiza en vivo), para animaciones hechas con timers o Web Animations API; el lado CSS son las clases `motion-reduce:`.
+
+- Props/params: ninguno → `boolean`.
+- Cuándo usarlo: antes de lanzar cualquier `element.animate(...)` o secuencia por `requestAnimationFrame`.
+
+### useAnimationGate (+ función `canAnimateAt`)
+
+Devuelve una función que dice si una animación "de evento" (un salto, una revelación, un sonido) debe reproducirse ahora: no con la pestaña oculta, ni durante ~1 s después de volver a ella (el estado que llega al reconectar es noticia vieja y se muestra tal cual).
+
+- Props/params: ninguno → `() => boolean`.
+- Cuándo usarlo: en cualquier efecto que anime o haga sonar un cambio de estado que llega por WebSocket, para no reproducir animaciones atrasadas al volver de otra app.
+
 ### Timer
 
 Barra de progreso con cuenta regresiva memoizada (React.memo), con tick interno de 500ms.
@@ -187,5 +208,5 @@ Set de íconos SVG inline estilo Feather (viewBox 24, stroke `currentColor`), ca
 
 Círculo con iniciales del nombre y color de fondo determinístico según la primera letra; memoizado.
 
-- Props: `name: string`, `size?: number` (default 40).
+- Props: `name: string`, `size?: number` (default 40), `className?: string` (extras propios de un juego, ej. un anillo con `shadow-*`).
 - Cuándo usarlo: en cualquier lista de jugadores (sala/lobby/votación/podio/turnos) — memo evita re-renderizar toda la lista ante broadcasts de WS no relacionados.

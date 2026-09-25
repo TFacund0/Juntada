@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
-// The JS side of prefers-reduced-motion, for sequences driven by timers
-// rather than CSS (the CSS side lives in motion.css). Tracks changes live.
+// The JS side of prefers-reduced-motion, for sequences driven by timers or
+// the Web Animations API rather than CSS (the CSS side is each game's own
+// `motion-reduce:` classes or media query). Tracks changes live. Moved here
+// from recamara once rayado-libre needed the same thing.
 const QUERY = "(prefers-reduced-motion: reduce)";
 
 function matches(): boolean {
