@@ -3,7 +3,7 @@
 // schedules nodes on the context it's given, starting at `t` — no state of
 // its own, so useRecamaraSfx owns the context, muting and error handling.
 
-export type SfxName = "thump" | "bang" | "click" | "rack" | "clink" | "saw" | "lens" | "puff" | "pop";
+export type SfxName = "thump" | "bang" | "click" | "rack" | "clink" | "saw" | "lens" | "puff" | "pop" | "load";
 
 type Synth = (ac: AudioContext, t: number) => void;
 
@@ -113,6 +113,8 @@ const SYNTHS: Record<SfxName, Synth> = {
   lens: (ac, t) => tone(ac, t, "sine", 500, 1300, 0.5, 0.08, 0.6),
   puff: (ac, t) => filteredNoise(ac, t, 0.6, "lowpass", 900, 1, 0.15),
   pop: (ac, t) => tone(ac, t, "sine", 420, 900, 0.08, 0.12, 0.12),
+  // A shell sliding into the magazine during the reload.
+  load: (ac, t) => filteredNoise(ac, t, 0.05, "bandpass", 700, 2, 0.5),
 };
 
 export function playSfx(ac: AudioContext, name: SfxName, delaySeconds = 0): void {

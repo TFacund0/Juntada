@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import type { ItemKind, ShellKind } from "@juntada/recamara-engine";
+import type { ItemKind } from "@juntada/recamara-engine";
 import type { SfxName } from "../utils/sfx";
+import type { PlayingFx } from "../utils/playingFx";
 import type { FireStage } from "./shotAnimation";
 import type { RecamaraSfx } from "./recamaraSfx";
 
@@ -10,20 +11,9 @@ import type { RecamaraSfx } from "./recamaraSfx";
 // empty casing onto the table. Shared by LocalGame and RoundView so both
 // sound identical.
 
-export interface PlayingSfxEvent {
-  // Distinct per started event (PlayingEvent.id) — sounds fire once per id.
-  id: number;
-  kind: "shot" | "item";
-  shellKind?: ShellKind;
-  // Online only: the shot is aimed at this device's player. Local play has
-  // no "me", so it's always false there.
-  targetIsMe?: boolean;
-  item?: ItemKind;
-}
-
 const ITEM_SFX: Partial<Record<ItemKind, SfxName>> = { "🪚": "saw", "🔍": "lens", "🚬": "puff" };
 
-export function useEventSfx(event: PlayingSfxEvent | null, fireStage: FireStage, sfx: RecamaraSfx): void {
+export function useEventSfx(event: PlayingFx | null, fireStage: FireStage, sfx: RecamaraSfx): void {
   const latest = useRef({ event, sfx });
   useEffect(() => {
     latest.current = { event, sfx };

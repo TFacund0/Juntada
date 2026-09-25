@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { ItemKind, ShellKind } from "@juntada/recamara-engine";
 import { createQueue, enqueue, finish, reset, type EventQueue, type PlayingEvent, type QueuedEvent } from "../utils/eventQueue";
-import { ITEM_ACTIVATE_MS } from "../utils/timing";
+import { itemFxMs } from "../utils/timing";
 import { useShotAnimation, type ShotAnimation } from "./shotAnimation";
 
 // Plays queued shots and items one at a time, in order — shared by LocalGame
@@ -62,7 +62,7 @@ export function useEventDirector<S, Shot, Item extends { item: ItemKind }>(
       return shotAnim.playShot(angle, shellKind);
     }
     setItemResultReady(false);
-    const t = setTimeout(() => setItemResultReady(true), ITEM_ACTIVATE_MS);
+    const t = setTimeout(() => setItemResultReady(true), itemFxMs(current.payload.item));
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id]);

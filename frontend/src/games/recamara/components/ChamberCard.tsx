@@ -1,23 +1,27 @@
 import type { ReactNode } from "react";
 import { Timer } from "../../../components/game-kit/Timer";
+import type { RecamaraSfx } from "../hooks/recamaraSfx";
 import { Shotgun } from "./Shotgun";
+import { ReloadSequence } from "./ReloadSequence";
 
-// Beat 3 of "reveal" — the chamber card (gun + real/falso shell count as
-// shuffled 🔴/🟡 icons, see shuffledBulletIcons in arena.ts), held up for a
+// Beat 3 of "reveal" — the chamber card (gun + the chamber being loaded,
+// real/falso shells shown and then shuffled face-down, see ReloadSequence), held up for a
 // visible countdown before the duel actually starts. Shared verbatim by
 // LocalGame and RoundView; only the button in `controls` differs (local
 // starts the duel client-side, online sends `ready_for_duel`).
 export function ChamberCard({
-  shellCount,
-  bulletIcons,
+  liveCount,
+  blankCount,
+  sfx,
   introEndsAt,
   introMs,
   controls,
   overlay,
   showLegend = false,
 }: {
-  shellCount: number;
-  bulletIcons: string[];
+  liveCount: number;
+  blankCount: number;
+  sfx?: RecamaraSfx;
   introEndsAt: number;
   introMs: number;
   controls: ReactNode;
@@ -33,13 +37,9 @@ export function ChamberCard({
           <div className="mx-auto mb-2.5 w-40">
             <Shotgun />
           </div>
-          <div className="bullet-row">
-            {bulletIcons.map((icon, i) => (
-              <span key={i}>{icon}</span>
-            ))}
-          </div>
+          <ReloadSequence liveCount={liveCount} blankCount={blankCount} sfx={sfx} />
           {showLegend && <p className="bullet-legend mono">🔴 real · 🟡 falsa</p>}
-          <p className="shell-count mono">{shellCount} cartuchos en la recámara — el orden es secreto</p>
+          <p className="shell-count mono">{liveCount + blankCount} cartuchos en la recámara — el orden es secreto</p>
         </div>
         {introEndsAt > 0 && <Timer timerEnd={introEndsAt} total={introMs / 1000} label="Tiempo para mirar" />}
       </div>

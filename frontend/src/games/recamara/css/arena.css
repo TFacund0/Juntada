@@ -7,10 +7,18 @@
   perspective-origin: 50% 0%;
   display: flex;
   justify-content: center;
-  /* The tilted table only paints roughly the middle of its layout box, so
-     pull the content around it in instead of leaving that gap empty. The
-     top one is covered by the seat cards standing above the far rim. */
-  margin: 24px auto calc(-0.12 * min(88vw, 360px));
+  /* The tilted table only paints roughly the middle of its layout box —
+     pull the log up a little into that empty band, but never under the
+     painted rim. */
+  margin: 24px auto calc(-0.05 * min(88vw, 360px));
+  /* Its (untransformed) layout box is taller than what it paints, so it
+     must not swallow clicks meant for whatever sits just below it (the
+     "Ocultar registro" toggle). Only the seat cards are interactive. */
+  pointer-events: none;
+}
+
+.recamara .duel-stage .token {
+  pointer-events: auto;
 }
 
 .recamara .arena {
@@ -91,36 +99,6 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-/* The one shell casing that's ever shown — the last one fired. Colored by
-   that single shot's real/blank result; no count, no history, no order.
-   Its left/top/rotate come from inline style (LocalGame's shellSpot/
-   shellPhase) — a new spot every shot, always close to the gun but never
-   exactly on it — and the transition below is what makes it visibly fly
-   out from the gun to that spot instead of just appearing there. */
-.recamara .last-shell {
-  position: absolute;
-  width: 13px;
-  height: 22px;
-  border-radius: 3px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
-  z-index: 1;
-  transition:
-    left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.recamara .last-shell.live {
-  background: var(--rec-live);
-  box-shadow:
-    0 3px 6px rgba(0, 0, 0, 0.5),
-    0 0 10px -2px var(--rec-live-glow);
-}
-
-.recamara .last-shell.blank {
-  background: var(--rec-blank);
 }
 
 .recamara .token {

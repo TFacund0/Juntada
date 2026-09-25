@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { escapeHtml } from "@juntada/core-utils";
 import "./css/index.css";
 import {
@@ -25,10 +25,11 @@ import { OutcomeBanner } from "./components/OutcomeBanner";
 import { RoundAnnounce } from "./components/RoundAnnounce";
 import { ChamberCard } from "./components/ChamberCard";
 import { FlashOverlay } from "./components/FlashOverlay";
-import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
+import { ItemEffect } from "./components/ItemEffect";
 import { DuelTable } from "./components/DuelTable";
 import { SoundToggle } from "./components/SoundToggle";
-import { frontAngle, seatAngle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
+import { frontAngle, seatAngle, shortestGunAngle } from "./utils/arena";
+import { localPlayingFx } from "./utils/playingFx";
 import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
 import { useLogVisible } from "./hooks/logVisibility";
 import { useEventDirector } from "./hooks/eventDirector";
@@ -131,16 +132,8 @@ export function LocalGame() {
   const playingItem = director.current?.kind === "item" ? director.current : null;
 
   const sfx = useRecamaraSfx();
-  useEventSfx(
-    director.current && {
-      id: director.current.id,
-      kind: director.current.kind,
-      shellKind: playingShot?.payload.result.shellKind,
-      item: playingItem?.payload.item,
-    },
-    shotAnim.fireStage,
-    sfx,
-  );
+  const fx = localPlayingFx(director.current, gameState?.players ?? []);
+  useEventSfx(fx, shotAnim.fireStage, sfx);
 
   useEffect(() => {
     if (!winner || busy) {
@@ -190,13 +183,6 @@ export function LocalGame() {
   };
 
   const phase: Phase = !gameState ? "setup" : subPhase;
-
-  // Computed unconditionally (hooks can't live inside the phase branches
-  // below) — shuffled once per round via useMemo so it doesn't reshuffle
-  // on every unrelated re-render.
-  const liveCount = gameState ? gameState.shells.filter(s => s.kind === "live").length : 0;
-  const blankCount = gameState ? gameState.shells.length - liveCount : 0;
-  const bulletIcons = useMemo(() => shuffledBulletIcons(liveCount, blankCount), [liveCount, blankCount, roundNumber]);
 
   const addPlayerName = () => setNames(n => (n.length < 6 ? [...n, `Jugador ${n.length + 1}`] : n));
   const removePlayerName = (i: number) => setNames(n => (n.length > 2 ? n.filter((_, idx) => idx !== i) : n));
@@ -441,8 +427,9 @@ export function LocalGame() {
     // ROUND_INTRO_MS with a visible countdown.
     return (
       <ChamberCard
-        shellCount={state.shells.length}
-        bulletIcons={bulletIcons}
+        liveCount={state.shells.filter(s => s.kind === "live").length}
+        blankCount={state.shells.filter(s => s.kind === "blank").length}
+        sfx={sfx}
         introEndsAt={introEndsAt}
         introMs={ROUND_INTRO_MS}
         showLegend={roundNumber === 1}
@@ -484,7 +471,8 @@ export function LocalGame() {
           players={state.players}
           currentId={currentId}
           direction={state.direction}
-          sawedOff={state.sawedOff}
+          sawedOff={state.sawedOff || fx?.item === "🪚"}
+          playing={fx}
           busy={busy}
           shotAnim={shotAnim}
           onSelectPlayer={setSheetPlayerId}
@@ -555,7 +543,7 @@ export function LocalGame() {
         <OutcomeBanner line={describeItemResult(playingItem.payload, nameOf(state.players))} onContinue={continueAfterItem} />
       )}
 
-      {director.stage === "item-activating" && playingItem && <ItemActivatingOverlay icon={playingItem.payload.item} />}
+      {director.stage === "item-activating" && fx?.kind === "item" && <ItemEffect fx={fx} />}
 
       {sheetPlayer && !pendingItem && !busy && (
         <PlayerItemsSheet

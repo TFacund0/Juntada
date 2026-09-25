@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { useEventSfx, type PlayingSfxEvent } from "../hooks/eventSfx";
+import { useEventSfx } from "../hooks/eventSfx";
+import type { PlayingFx } from "../utils/playingFx";
 import type { FireStage } from "../hooks/shotAnimation";
 import type { RecamaraSfx } from "../hooks/recamaraSfx";
 
@@ -8,14 +9,14 @@ function fakeSfx(): RecamaraSfx & { play: ReturnType<typeof vi.fn>; vibrate: Ret
   return { muted: false, toggleMuted: vi.fn(), play: vi.fn(), vibrate: vi.fn() };
 }
 
-function setup(initial: { event: PlayingSfxEvent | null; stage: FireStage }) {
+function setup(initial: { event: PlayingFx | null; stage: FireStage }) {
   const sfx = fakeSfx();
   const hook = renderHook(({ event, stage }) => useEventSfx(event, stage, sfx), { initialProps: initial });
   const names = () => sfx.play.mock.calls.map(c => c[0]);
   return { sfx, names, rerender: hook.rerender };
 }
 
-const liveShot = (id: number, targetIsMe = false): PlayingSfxEvent => ({ id, kind: "shot", shellKind: "live", targetIsMe });
+const liveShot = (id: number, targetIsMe = false): PlayingFx => ({ id, kind: "shot", shellKind: "live", targetIsMe });
 
 describe("useEventSfx", () => {
   it("nothing playing: silence", () => {

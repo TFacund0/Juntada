@@ -1,9 +1,12 @@
 import type { Player } from "@juntada/recamara-engine";
 import type { ShotAnimation } from "../hooks/shotAnimation";
+import type { PlayingFx } from "../utils/playingFx";
 import { seatStyle } from "../utils/arena";
 import { DirectionRing } from "./DirectionRing";
 import { PlayerToken } from "./PlayerToken";
 import { Shotgun } from "./Shotgun";
+import { SpentShells } from "./SpentShells";
+import { ShotEffects } from "./ShotEffects";
 
 interface DuelTableProps {
   // Seat order (engine ids) — fixed for the whole game, see seatAngle.
@@ -15,49 +18,52 @@ interface DuelTableProps {
   busy: boolean;
   shotAnim: ShotAnimation;
   onSelectPlayer: (playerId: number) => void;
+  // What the event director is playing right now (see playingFx.ts) —
+  // drives the scene shake, the hit on the target's card and the
+  // full-screen flash.
+  playing?: PlayingFx | null;
   // Online shows your own seat as "Vos"; local has no "you".
   nameFor?: (player: Player) => string;
 }
 
 // The duel table shared by LocalGame and RoundView: felt tilted back in
-// perspective (see arena.css), the shotgun and last spent shell lying on it,
-// and each player's card standing up at their seat. Everything that moves
-// comes from shotAnim; this only lays it out.
-export function DuelTable({ order, players, currentId, direction, sawedOff, busy, shotAnim, onSelectPlayer, nameFor }: DuelTableProps) {
-  const shell = shotAnim.lastShell;
-  const landed = shotAnim.shellPhase === "landed";
+// perspective (see arena.css), the shotgun and the spent casings lying on
+// it, and each player's card standing up at their seat. Everything that
+// moves comes from shotAnim and `playing`; this only lays it out.
+export function DuelTable(props: DuelTableProps) {
+  const { order, players, currentId, direction, sawedOff, busy, shotAnim, onSelectPlayer, playing = null, nameFor } = props;
+  const firing = shotAnim.fireStage === "firing" && playing?.kind === "shot";
+  const live = firing && playing?.shellKind === "live";
+  const shake = firing ? (live ? " shake-live" : " shake-blank") : "";
 
+  // ShotEffects sits outside .duel-stage on purpose: its perspective (and
+  // the shake transform) would make it the containing block of the
+  // position: fixed flash, shrinking it to the table instead of the screen.
   return (
-    <div className="duel-stage">
-      <div className={`arena${busy ? " busy" : ""}`}>
-        <DirectionRing direction={direction} />
-        <div className="gun-aim" style={{ transform: `translate(-50%, -50%) rotate(${shotAnim.gunAngle}deg) translateZ(4px)` }}>
-          <Shotgun recoil={shotAnim.recoil} flash={shotAnim.flash} sawed={sawedOff} />
+    <>
+      <div className={`duel-stage${shake}`}>
+        <div className={`arena${busy ? " busy" : ""}`}>
+          <DirectionRing direction={direction} />
+          <div className="gun-aim" style={{ transform: `translate(-50%, -50%) rotate(${shotAnim.gunAngle}deg) translateZ(4px)` }}>
+            <Shotgun aiming={shotAnim.fireStage === "aiming"} recoil={shotAnim.recoil} flash={shotAnim.flash} sawed={sawedOff} />
+          </div>
+
+          <SpentShells shells={shotAnim.spentShells} />
+
+          {order.map(id => {
+            const player = players.find(p => p.id === id);
+            if (!player) return null;
+            const name = nameFor?.(player) ?? player.name;
+            const hit = live && playing?.targetId === id;
+            return (
+              <div key={id} className={`seat${hit ? " hit" : ""}`} style={seatStyle(order, id)}>
+                <PlayerToken player={{ ...player, name }} isActive={id === currentId} onClick={() => !busy && onSelectPlayer(id)} />
+              </div>
+            );
+          })}
         </div>
-
-        {shell && (
-          <div
-            className={`last-shell ${shell}`}
-            title={shell === "live" ? "Última bala: real" : "Última bala: falsa"}
-            style={{
-              left: `${landed ? shotAnim.shellSpot.left : 50}%`,
-              top: `${landed ? shotAnim.shellSpot.top : 50}%`,
-              transform: `translate(-50%, -50%) rotate(${landed ? shotAnim.shellSpot.rot : 0}deg)`,
-            }}
-          />
-        )}
-
-        {order.map(id => {
-          const player = players.find(p => p.id === id);
-          if (!player) return null;
-          const name = nameFor?.(player) ?? player.name;
-          return (
-            <div key={id} className="seat" style={seatStyle(order, id)}>
-              <PlayerToken player={{ ...player, name }} isActive={id === currentId} onClick={() => !busy && onSelectPlayer(id)} />
-            </div>
-          );
-        })}
       </div>
-    </div>
+      <ShotEffects shot={playing} fireStage={shotAnim.fireStage} />
+    </>
   );
 }

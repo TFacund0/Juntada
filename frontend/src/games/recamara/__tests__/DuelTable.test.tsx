@@ -18,9 +18,7 @@ function shotAnim(overrides: Partial<ShotAnimation> = {}): ShotAnimation {
     recoil: false,
     flash: false,
     gunAngle: 0,
-    lastShell: null,
-    shellSpot: { left: 50, top: 50, rot: 0 },
-    shellPhase: "eject",
+    spentShells: [],
     setGunAngle: vi.fn(),
     playShot: vi.fn(() => () => {}),
     finishShot: vi.fn(),
@@ -72,16 +70,57 @@ describe("DuelTable", () => {
     expect(container.querySelector(".shotgun")).toHaveClass("sawed", "recoil");
   });
 
-  it("shows the last spent shell only once one was fired, at its landing spot", () => {
-    expect(renderTable().container.querySelector(".last-shell")).toBeNull();
+  it("shows the last casing at its landing spot, and fades the previous one out", () => {
+    expect(renderTable().container.querySelector(".spent-shell")).toBeNull();
 
     const { container } = renderTable({
-      shotAnim: shotAnim({ lastShell: "live", shellPhase: "landed", shellSpot: { left: 30, top: 70, rot: 45 } }),
+      shotAnim: shotAnim({
+        spentShells: [
+          { id: 1, kind: "live", left: 30, top: 70, rot: 45 },
+          { id: 2, kind: "blank", left: 60, top: 35, rot: -90 },
+        ],
+      }),
     });
-    const shell = container.querySelector(".last-shell") as HTMLElement;
-    expect(shell).toHaveClass("live");
-    expect(shell.style.left).toBe("30%");
-    expect(shell.style.top).toBe("70%");
+    const shells = container.querySelectorAll<HTMLElement>(".spent-shell");
+    expect(shells).toHaveLength(2);
+    expect(shells[0]).toHaveClass("live", "fading");
+    expect(shells[0].style.getPropertyValue("--x")).toBe("30%");
+    expect(shells[0].style.getPropertyValue("--y")).toBe("70%");
+    expect(shells[1]).toHaveClass("blank");
+    expect(shells[1]).not.toHaveClass("fading");
+  });
+
+  it("on a live trigger: the scene shakes hard, the target's card takes the hit and the screen flashes", () => {
+    const { container } = renderTable({
+      shotAnim: shotAnim({ fireStage: "firing" }),
+      playing: { id: 1, kind: "shot", shellKind: "live", targetId: 2, targetIsMe: true },
+    });
+    expect(container.querySelector(".duel-stage")).toHaveClass("shake-live");
+    const hit = container.querySelectorAll(".seat.hit");
+    expect(hit).toHaveLength(1);
+    expect(hit[0]).toHaveTextContent("Caro");
+    expect(container.querySelector(".shot-flash")).toBeInTheDocument();
+    expect(container.querySelector(".shot-hurt")).toBeInTheDocument();
+  });
+
+  it("a blank only twitches the scene: no hit, no flash", () => {
+    const { container } = renderTable({
+      shotAnim: shotAnim({ fireStage: "firing" }),
+      playing: { id: 1, kind: "shot", shellKind: "blank", targetId: 2 },
+    });
+    expect(container.querySelector(".duel-stage")).toHaveClass("shake-blank");
+    expect(container.querySelector(".seat.hit")).toBeNull();
+    expect(container.querySelector(".shot-flash")).toBeNull();
+  });
+
+  it("the gun trembles while aiming, and nothing else fires yet", () => {
+    const { container } = renderTable({
+      shotAnim: shotAnim({ fireStage: "aiming" }),
+      playing: { id: 1, kind: "shot", shellKind: "live", targetId: 2 },
+    });
+    expect(container.querySelector(".shotgun")).toHaveClass("aiming");
+    expect(container.querySelector(".duel-stage")?.className).toBe("duel-stage");
+    expect(container.querySelector(".shot-flash")).toBeNull();
   });
 
   it("uses nameFor to relabel a seat (online shows your own as Vos)", () => {

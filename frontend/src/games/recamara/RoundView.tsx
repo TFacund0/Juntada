@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./css/index.css";
 import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
 import { StartButton } from "../../components/setup/StartButton";
@@ -16,11 +16,12 @@ import { ChestReveal } from "./components/ChestReveal";
 import { OutcomeBanner } from "./components/OutcomeBanner";
 import { RoundAnnounce } from "./components/RoundAnnounce";
 import { ChamberCard } from "./components/ChamberCard";
-import { ItemActivatingOverlay } from "./components/ItemActivatingOverlay";
+import { ItemEffect } from "./components/ItemEffect";
 import { DuelTable } from "./components/DuelTable";
 import { SoundToggle } from "./components/SoundToggle";
 import { FlashOverlay } from "./components/FlashOverlay";
-import { frontAngle, shortestGunAngle, shuffledBulletIcons } from "./utils/arena";
+import { frontAngle, shortestGunAngle } from "./utils/arena";
+import { onlinePlayingFx } from "./utils/playingFx";
 import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
 import { useLogVisible } from "./hooks/logVisibility";
 import { useDuelEntryFlash } from "./hooks/duelTransition";
@@ -62,18 +63,14 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   const busy = director.busy;
 
   const sfx = useRecamaraSfx();
-  const playing = director.current;
-  useEventSfx(
-    playing && {
-      id: playing.id,
-      kind: playing.kind,
-      shellKind: playing.kind === "shot" ? playing.payload.shellKind : undefined,
-      targetIsMe: playing.kind === "shot" && playing.payload.targetId === myPlayerId,
-      item: playing.kind === "item" ? playing.payload.item : undefined,
-    },
-    shotAnim.fireStage,
-    sfx,
-  );
+  const fx = onlinePlayingFx(director.current, {
+    seatOrder: round?.seatOrder ?? [],
+    players: round?.state.players ?? [],
+    myPlayerId,
+    myRole,
+    nameFor: id => room.players.find(p => p.id === id)?.name ?? "",
+  });
+  useEventSfx(fx, shotAnim.fireStage, sfx);
 
   // Reveal: each player pops their own chest at their own pace (see
   // ChestReveal) — purely client-side, since the items themselves were
@@ -173,13 +170,6 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     return () => clearTimeout(t);
   }, [round?.winnerRoomId, busy]);
 
-  // Shuffled once per round via useMemo so it doesn't reshuffle on every
-  // unrelated re-render (this component re-renders on every server update).
-  const bulletIcons = useMemo(
-    () => shuffledBulletIcons(round?.liveCount ?? 0, round?.blankCount ?? 0),
-    [round?.liveCount, round?.blankCount, round?.roundNumber],
-  );
-
   if (!round || !myPlayerId) return null;
 
   const nameFor = (roomId: string | null): string => {
@@ -264,8 +254,9 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     // ROUND_INTRO_MS with a visible countdown before signaling ready.
     return (
       <ChamberCard
-        shellCount={round.state.shells.length}
-        bulletIcons={bulletIcons}
+        liveCount={round.liveCount}
+        blankCount={round.blankCount}
+        sfx={sfx}
         introEndsAt={introEndsAt}
         introMs={ROUND_INTRO_MS}
         showLegend={round.roundNumber === 1}
@@ -348,7 +339,10 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           players={state.players}
           currentId={currentEngineId}
           direction={state.direction}
-          sawedOff={state.sawedOff}
+          // The 🪚 shortens the barrel while its own effect plays, not only
+          // once its banner is dismissed.
+          sawedOff={state.sawedOff || fx?.item === "🪚"}
+          playing={fx}
           busy={busy}
           shotAnim={shotAnim}
           onSelectPlayer={setSheetPlayerId}
@@ -448,7 +442,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           return <OutcomeBanner line={line} onContinue={director.finish} />;
         })()}
 
-      {stage === "item-activating" && playingItem && <ItemActivatingOverlay icon={playingItem.payload.item} />}
+      {stage === "item-activating" && fx?.kind === "item" && <ItemEffect fx={fx} />}
 
       {sheetPlayer && !pendingItem && !busy && (
         <PlayerItemsSheet

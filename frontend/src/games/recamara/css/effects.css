@@ -1,0 +1,503 @@
+/* Shot, casing, item and reload effects, ported from
+   docs/referencias/recamara-referencia.html. Timings mirror utils/timing.ts;
+   every animation here is switched off under prefers-reduced-motion in
+   motion.css. */
+
+/* ───────── Shot ───────── */
+
+/* A 420ms tremor right before the trigger: starts 945ms in, so it ends
+   exactly at AIM_MS (1365ms, utils/timing.ts), once the swing has settled. */
+.recamara .shotgun.aiming {
+  animation: rec-gun-tremor 0.42s linear 0.945s;
+}
+
+@keyframes rec-gun-tremor {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translate(1px, -1px) rotate(0.6deg);
+  }
+  50% {
+    transform: translate(-1px, 1px) rotate(-0.6deg);
+  }
+  75% {
+    transform: translate(1px, 0) rotate(0.4deg);
+  }
+}
+
+/* Smoke off the muzzle after a live shot; follows the barrel when sawed
+   (the tip sits at x=214 of the 220-unit viewBox, 171 once sawed). */
+.recamara .gun-smoke {
+  position: absolute;
+  left: 97%;
+  top: 45%;
+  pointer-events: none;
+}
+
+.recamara .shotgun.sawed .gun-smoke {
+  left: 78%;
+}
+
+.recamara .gun-smoke i {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(210, 200, 190, 0.55), transparent 70%);
+  opacity: 0;
+  animation: rec-smoke 1.3s ease-out forwards;
+}
+
+.recamara .gun-smoke i:nth-child(2) {
+  animation-duration: 1.5s;
+  --drift: -12px;
+}
+
+.recamara .gun-smoke i:nth-child(3) {
+  animation-duration: 1.7s;
+  --drift: 10px;
+}
+
+.recamara .gun-smoke i:nth-child(4) {
+  animation-duration: 1.9s;
+  --drift: -4px;
+}
+
+@keyframes rec-smoke {
+  0% {
+    opacity: 0.9;
+    transform: translate(0, 0) scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift, 6px), -34px) scale(2.4);
+  }
+}
+
+/* The whole scene jolts on the trigger: hard on a live shell, a twitch on
+   a blank. */
+.recamara .duel-stage.shake-live {
+  animation: rec-shake-live 0.45s ease-out;
+}
+
+.recamara .duel-stage.shake-blank {
+  animation: rec-shake-blank 0.3s ease-out;
+}
+
+@keyframes rec-shake-live {
+  0%,
+  100% {
+    transform: none;
+  }
+  12% {
+    transform: translate(-8px, 5px) rotate(-0.6deg);
+  }
+  25% {
+    transform: translate(7px, -6px) rotate(0.5deg);
+  }
+  40% {
+    transform: translate(-5px, 3px) rotate(-0.3deg);
+  }
+  60% {
+    transform: translate(3px, -2px);
+  }
+  80% {
+    transform: translate(-1px, 1px);
+  }
+}
+
+@keyframes rec-shake-blank {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translate(-1.5px, 1px);
+  }
+  60% {
+    transform: translate(1px, -1px);
+  }
+}
+
+/* The target's card takes the hit. */
+.recamara .seat.hit .token {
+  animation: rec-card-hit 0.52s ease-out;
+}
+
+@keyframes rec-card-hit {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateY(-10px) rotate(-4deg) scale(1.06);
+    border-color: var(--rec-live-glow);
+  }
+  50% {
+    transform: translateY(2px) rotate(1deg);
+  }
+}
+
+.recamara .shot-flash,
+.recamara .shot-hurt {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.recamara .shot-flash {
+  z-index: 60;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 240, 210, 0.95), rgba(255, 77, 61, 0.55) 40%, rgba(120, 0, 0, 0.2) 80%);
+  animation: rec-screen-flash 0.32s ease-out;
+}
+
+@keyframes rec-screen-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Only when the live shell hit this device's player. */
+.recamara .shot-hurt {
+  z-index: 59;
+  opacity: 0;
+  box-shadow: inset 0 0 120px 40px rgba(179, 38, 30, 0.85);
+  animation: rec-hurt 1.5s ease-out;
+}
+
+@keyframes rec-hurt {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ───────── Spent casings ───────── */
+
+/* Positioned at its landing spot (--x/--y, set inline by SpentShells) and
+   thrown there from the gun: up off the felt, tumbling, one small bounce. */
+.recamara .spent-shell {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 9px;
+  height: 22px;
+  border-radius: 3px 3px 2px 2px;
+  z-index: 1;
+  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%) translateZ(2px) rotate(var(--rot));
+  animation: rec-shell-eject 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+
+/* The previous casing, on its way out as the new one lands. */
+.recamara .spent-shell.fading {
+  animation: rec-shell-fade 0.6s ease-out 0.3s both;
+}
+
+@keyframes rec-shell-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+.recamara .spent-shell.live {
+  background: linear-gradient(to bottom, var(--rec-live) 0 70%, #c9a45a 70%);
+}
+
+.recamara .spent-shell.blank {
+  background: linear-gradient(to bottom, var(--rec-blank) 0 70%, #8f7433 70%);
+}
+
+@keyframes rec-shell-eject {
+  0% {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) translateZ(10px) rotate(0deg);
+  }
+  45% {
+    left: calc(50% + (var(--x) - 50%) * 0.55);
+    top: calc(50% + (var(--y) - 50%) * 0.55);
+    transform: translate(-50%, -50%) translateZ(110px) rotate(calc(var(--rot) * 0.6));
+  }
+  82% {
+    left: var(--x);
+    top: var(--y);
+    transform: translate(-50%, -50%) translateZ(2px) rotate(var(--rot));
+  }
+  91% {
+    transform: translate(-50%, -50%) translateZ(14px) rotate(calc(var(--rot) + 25deg));
+  }
+  100% {
+    left: var(--x);
+    top: var(--y);
+    transform: translate(-50%, -50%) translateZ(2px) rotate(var(--rot));
+  }
+}
+
+/* ───────── Shell icon (reload, lens) ───────── */
+
+.recamara .shell-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.6));
+}
+
+.recamara .shell-icon .shell-hull {
+  fill: #2e2721;
+  transition: fill 0.14s;
+}
+
+.recamara .shell-icon.live .shell-hull {
+  fill: var(--rec-live);
+}
+
+.recamara .shell-icon.blank .shell-hull {
+  fill: var(--rec-blank);
+}
+
+.recamara .shell-icon .shell-brass {
+  fill: #c9a45a;
+}
+
+/* ───────── Reload ───────── */
+
+.recamara .reload-row {
+  gap: 8px;
+  min-height: 56px;
+  align-items: flex-end;
+}
+
+.recamara .reload-shell {
+  display: block;
+  width: 20px;
+  height: 50px;
+  opacity: 0;
+  transform: translateY(-24px) scale(0.6);
+  transition:
+    opacity 0.25s ease-out,
+    transform 0.3s ease-out;
+}
+
+.recamara .reload-shell.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Face-down flip: squashes to nothing and back while the fill switches. */
+.recamara .phase-flip .reload-shell {
+  animation: rec-shell-flip 0.32s ease-in-out;
+  animation-delay: calc(var(--i) * 30ms);
+}
+
+@keyframes rec-shell-flip {
+  50% {
+    transform: scaleX(0);
+  }
+}
+
+/* Shuffling: neighbours bob up and down past each other. */
+.recamara .phase-shuffle .reload-shell {
+  animation: rec-shell-shuffle 0.25s ease-in-out 3;
+}
+
+.recamara .phase-shuffle .reload-shell:nth-child(even) {
+  animation-name: rec-shell-shuffle-alt;
+}
+
+@keyframes rec-shell-shuffle {
+  50% {
+    transform: translate(10px, -14px);
+  }
+}
+
+@keyframes rec-shell-shuffle-alt {
+  50% {
+    transform: translate(-10px, 14px);
+  }
+}
+
+/* Loading: each one drops into the gun above and disappears. */
+.recamara .reload-shell.loaded {
+  opacity: 0;
+  transform: translateY(-60px) scale(0.3);
+  transition:
+    opacity 0.22s ease-in,
+    transform 0.22s cubic-bezier(0.5, 0, 0.8, 0.6);
+}
+
+/* ───────── Items ───────── */
+
+.recamara .item-fx {
+  min-width: 220px;
+}
+
+.recamara .item-fx-stage {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recamara .item-fx-text {
+  margin: 10px 0 0;
+  font-size: 1rem;
+  color: var(--rec-ink);
+}
+
+.recamara .item-fx-text small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--rec-ink-faint);
+}
+
+/* 🪚 sawing back and forth, throwing sparks all around. */
+.recamara .item-fx-saw {
+  font-size: 44px;
+  animation: rec-saw 0.14s ease-in-out 8 alternate;
+}
+
+@keyframes rec-saw {
+  from {
+    transform: translateX(-10px) rotate(-8deg);
+  }
+  to {
+    transform: translateX(10px) rotate(4deg);
+  }
+}
+
+.recamara .item-fx-spark {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffd36b;
+  box-shadow: 0 0 6px #ffb02e;
+  opacity: 0;
+  animation: rec-spark 0.5s ease-out var(--d) 2;
+}
+
+@keyframes rec-spark {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateX(46px);
+  }
+}
+
+/* 🔍 the ring slides over the face-down shell; only the item's user gets
+   the real one revealed under it. */
+.recamara .item-fx-stage.lens .lens-shell {
+  position: absolute;
+  width: 40px;
+  height: 98px;
+}
+
+.recamara .lens-real {
+  clip-path: circle(0 at 20% 70%);
+  animation: rec-lens-reveal 0.7s ease-out 0.2s forwards;
+}
+
+@keyframes rec-lens-reveal {
+  to {
+    clip-path: circle(34px at 50% 48%);
+  }
+}
+
+.recamara .lens-ring {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 5px solid #c9b48a;
+  box-shadow:
+    0 0 0 2px #3a2a18,
+    0 10px 20px rgba(0, 0, 0, 0.6),
+    inset 0 0 20px rgba(255, 255, 255, 0.25);
+  animation: rec-lens-ring 0.7s ease-out 0.2s both;
+}
+
+@keyframes rec-lens-ring {
+  from {
+    transform: translate(-50px, 60px);
+  }
+  to {
+    transform: translate(0, -6px);
+  }
+}
+
+/* 🚬 smoke rising, and the life it gives back popping in. */
+.recamara .item-fx-cig {
+  font-size: 44px;
+}
+
+.recamara .item-fx-puff {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(210, 200, 190, 0.55), transparent 70%);
+  opacity: 0;
+  animation: rec-puff 1.2s ease-out var(--d) forwards;
+}
+
+@keyframes rec-puff {
+  0% {
+    opacity: 0.8;
+    transform: translate(0, 0) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), -54px) scale(2.2);
+  }
+}
+
+.recamara .item-fx-life {
+  position: absolute;
+  right: 6px;
+  bottom: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--rec-live);
+  background: radial-gradient(circle at 35% 30%, var(--rec-live-glow), var(--rec-live) 70%);
+  animation: rec-life-pop 0.5s ease-out 0.7s both;
+}
+
+@keyframes rec-life-pop {
+  0% {
+    transform: scale(0);
+    filter: brightness(2.5);
+  }
+  60% {
+    transform: scale(1.6);
+    filter: brightness(2);
+  }
+  100% {
+    transform: scale(1);
+    filter: none;
+  }
+}

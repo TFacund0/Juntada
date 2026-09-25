@@ -77,7 +77,7 @@ describe("Recámara LocalGame", () => {
     await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
     await clickThroughReveal(user, { fakeTimers: true });
     expect(screen.getByText(/Turno de/)).toBeInTheDocument();
-    expect(document.querySelector(".last-shell")).not.toBeInTheDocument();
+    expect(document.querySelector(".spent-shell")).not.toBeInTheDocument();
 
     for (let i = 0; i < 60; i++) {
       if (screen.queryByText(/Fin del duelo/)) break;
@@ -90,7 +90,7 @@ describe("Recámara LocalGame", () => {
       // Wait out the aim + shot beats, then dismiss the result banner —
       // nothing commits to game state until "Continuar" is tapped.
       await vi.advanceTimersByTimeAsync(2000);
-      expect(document.querySelector(".last-shell")).toBeInTheDocument();
+      expect(document.querySelector(".spent-shell")).toBeInTheDocument();
       // The result banner is two lines: who-shot-whom on top, then the
       // real/falso verdict underneath in its own danger/safe color.
       expect(document.querySelector(".rec-banner-text")?.textContent).toMatch(/dispara/);

@@ -1,6 +1,8 @@
 import { useId } from "react";
 
 interface ShotgunProps {
+  // Aiming: trembles right before the trigger (see .shotgun.aiming).
+  aiming?: boolean;
   recoil?: boolean;
   flash?: boolean;
   sawed?: boolean;
@@ -14,14 +16,14 @@ interface ShotgunProps {
 //
 // Gradient ids go through useId so two shotguns mounted at once (e.g. a
 // test rendering both screens) never resolve each other's fills.
-export function Shotgun({ recoil = false, flash = false, sawed = false }: ShotgunProps) {
+export function Shotgun({ aiming = false, recoil = false, flash = false, sawed = false }: ShotgunProps) {
   const id = useId().replace(/:/g, "");
   const metal = `${id}-metal`;
   const wood = `${id}-wood`;
   const fire = `${id}-fire`;
 
   return (
-    <div className={`shotgun${recoil ? " recoil" : ""}${sawed ? " sawed" : ""}`}>
+    <div className={`shotgun${aiming ? " aiming" : ""}${recoil ? " recoil" : ""}${sawed ? " sawed" : ""}`}>
       <svg className="shotgun-svg" viewBox="0 0 220 44" aria-hidden="true">
         <defs>
           <linearGradient id={metal} x1="0" y1="0" x2="0" y2="1">
@@ -62,6 +64,16 @@ export function Shotgun({ recoil = false, flash = false, sawed = false }: Shotgu
           </g>
         </g>
       </svg>
+      {/* Smoke drifting up off the muzzle after a live shot; remounted by
+          each new flash so it replays every time. */}
+      {flash && (
+        <span className="gun-smoke" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+        </span>
+      )}
     </div>
   );
 }

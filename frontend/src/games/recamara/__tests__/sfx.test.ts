@@ -38,7 +38,7 @@ function fakeContext() {
   return { ctx: ctx as unknown as AudioContext, started, connectedToDestination };
 }
 
-const ALL: SfxName[] = ["thump", "bang", "click", "rack", "clink", "saw", "lens", "puff", "pop"];
+const ALL: SfxName[] = ["thump", "bang", "click", "rack", "clink", "saw", "lens", "puff", "pop", "load"];
 
 describe("playSfx", () => {
   it.each(ALL)("%s schedules sound that reaches the speakers", name => {
