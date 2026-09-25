@@ -1,4 +1,5 @@
 @media (prefers-reduced-motion: reduce) {
+  .recamara .token.targetable,
   .recamara .shotgun.recoil,
   .recamara .shotgun.aiming,
   .recamara .gun-smoke i,
@@ -16,7 +17,6 @@
   .recamara .item-fx-life,
   .recamara .shotgun-muzzle-fire.flash,
   .recamara .direction-ring,
-  .recamara .turn-banner .dot,
   .recamara .log .line,
   .recamara .rec-modal-icon.activating,
   .recamara .chest-big.shake,
@@ -26,15 +26,20 @@
   .recamara .round-intro,
   .recamara .round-chamber,
   .recamara .rec-flash-card,
-  .recamara .item-btn[data-tooltip]:hover::after,
-  .recamara .item-btn[data-tooltip]:focus-visible::after {
+  .recamara .tray-item[data-tooltip]:hover::after,
+  .recamara .tray-item[data-tooltip]:focus-visible::after {
     animation: none !important;
   }
   .recamara .gun-aim,
   .recamara .shotgun-barrel,
   .recamara .shotgun-muzzle,
-  .recamara .reload-shell {
+  .recamara .reload-shell,
+  .recamara .chamber-minis .mini {
     transition: none !important;
+  }
+  /* The pulse is how you tell who you can shoot — keep it, just static. */
+  .recamara .token.targetable {
+    border-color: var(--rec-blank);
   }
   /* No fade: the old casing just goes. */
   .recamara .spent-shell.fading {

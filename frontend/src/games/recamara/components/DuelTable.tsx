@@ -24,6 +24,11 @@ interface DuelTableProps {
   playing?: PlayingFx | null;
   // Online shows your own seat as "Vos"; local has no "you".
   nameFor?: (player: Player) => string;
+  // This device's own seat (online only).
+  youId?: number;
+  // Set only when it's this device's turn to shoot: every other living
+  // player becomes a target, and tapping their card fires at them.
+  onFire?: (playerId: number) => void;
 }
 
 // The duel table shared by LocalGame and RoundView: felt tilted back in
@@ -31,7 +36,7 @@ interface DuelTableProps {
 // it, and each player's card standing up at their seat. Everything that
 // moves comes from shotAnim and `playing`; this only lays it out.
 export function DuelTable(props: DuelTableProps) {
-  const { order, players, currentId, direction, sawedOff, busy, shotAnim, onSelectPlayer, playing = null, nameFor } = props;
+  const { order, players, currentId, direction, sawedOff, busy, shotAnim, onSelectPlayer, playing = null, nameFor, youId, onFire } = props;
   const firing = shotAnim.fireStage === "firing" && playing?.kind === "shot";
   const live = firing && playing?.shellKind === "live";
   const shake = firing ? (live ? " shake-live" : " shake-blank") : "";
@@ -55,9 +60,20 @@ export function DuelTable(props: DuelTableProps) {
             if (!player) return null;
             const name = nameFor?.(player) ?? player.name;
             const hit = live && playing?.targetId === id;
+            const targetable = !!onFire && !busy && id !== currentId && player.lives > 0;
             return (
               <div key={id} className={`seat${hit ? " hit" : ""}`} style={seatStyle(order, id)}>
-                <PlayerToken player={{ ...player, name }} isActive={id === currentId} onClick={() => !busy && onSelectPlayer(id)} />
+                <PlayerToken
+                  player={{ ...player, name }}
+                  isActive={id === currentId}
+                  isYou={id === youId}
+                  targetable={targetable}
+                  onClick={() => {
+                    if (busy) return;
+                    if (targetable && onFire) onFire(id);
+                    else onSelectPlayer(id);
+                  }}
+                />
               </div>
             );
           })}

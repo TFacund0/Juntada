@@ -8,7 +8,6 @@ import {
   describeItemResult,
   describeSkippedTurn,
   fireShot,
-  ITEM_LABEL,
   ITEMS_PER_RELOAD,
   useItem as applyItem,
   type FireResult,
@@ -26,8 +25,7 @@ import { RoundAnnounce } from "./components/RoundAnnounce";
 import { ChamberCard } from "./components/ChamberCard";
 import { FlashOverlay } from "./components/FlashOverlay";
 import { ItemEffect } from "./components/ItemEffect";
-import { DuelTable } from "./components/DuelTable";
-import { SoundToggle } from "./components/SoundToggle";
+import { DuelScene } from "./components/DuelScene";
 import { frontAngle, seatAngle, shortestGunAngle } from "./utils/arena";
 import { localPlayingFx } from "./utils/playingFx";
 import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
@@ -35,6 +33,9 @@ import { useLogVisible } from "./hooks/logVisibility";
 import { useEventDirector } from "./hooks/eventDirector";
 import { useRecamaraSfx } from "./hooks/recamaraSfx";
 import { useEventSfx } from "./hooks/eventSfx";
+import { useKnownShell } from "./hooks/knownShell";
+import { statusLine } from "./utils/statusLine";
+import { aimingAt, shellsLeft } from "./utils/scene";
 import { useChamberCountdown } from "./hooks/chamberCountdown";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -134,6 +135,7 @@ export function LocalGame() {
   const sfx = useRecamaraSfx();
   const fx = localPlayingFx(director.current, gameState?.players ?? []);
   useEventSfx(fx, shotAnim.fireStage, sfx);
+  const known = useKnownShell(fx, roundNumber);
 
   useEffect(() => {
     if (!winner || busy) {
@@ -451,72 +453,50 @@ export function LocalGame() {
   const alive = state.players.filter(p => p.lives > 0);
   const shell = state.shells[state.idx];
   const sheetPlayer = sheetPlayerId != null ? state.players.find(p => p.id === sheetPlayerId) : undefined;
+  const canShoot = !busy && !!shell;
 
   return (
     <div className="recamara">
-      <div className="rec-table">
-        <div className="turn-banner">
-          <SoundToggle muted={sfx.muted} onToggle={sfx.toggleMuted} />
-          <span className="dot" />
-          <span className="txt">
-            Turno de <strong>{current.name}</strong>
-          </span>
-          <span className="direction-tag" title={state.direction === 1 ? "Sentido horario" : "Sentido antihorario"}>
-            {state.direction === 1 ? "↻" : "↺"}
-          </span>
-        </div>
-
-        <DuelTable
-          order={state.order}
-          players={state.players}
-          currentId={currentId}
-          direction={state.direction}
-          sawedOff={state.sawedOff || fx?.item === "🪚"}
-          playing={fx}
-          busy={busy}
-          shotAnim={shotAnim}
-          onSelectPlayer={setSheetPlayerId}
-        />
-
-        <div className="log">
-          <button type="button" className="log-toggle" onClick={toggleLogVisible}>
-            {logVisible ? "Ocultar registro ▾" : "Mostrar registro ▸"}
-          </button>
-          {logVisible &&
-            log.map((l, i) => {
-              // Redact 📞/🔍's real hint the moment the turn moves on from
-              // whoever used it — see addItemLog above.
-              const text = l.privateToPlayerId != null && l.privateToPlayerId !== current.id ? (l.redactedText ?? l.text) : l.text;
-              return <div key={`${l.id}-${i}`} className={`line${l.cls ? ` ${l.cls}` : ""}`} dangerouslySetInnerHTML={{ __html: text }} />;
-            })}
-        </div>
-
-        <div className="controls">
-          <button className="act primary" disabled={busy || !shell} onClick={() => fire(current.id)}>
-            Dispararte a vos mismo
-          </button>
-          {alive
-            .filter(p => p.id !== current.id)
-            .map(p => (
-              <button key={p.id} className="act" disabled={busy || !shell} onClick={() => fire(p.id)}>
-                Dispararle a {p.name}
-              </button>
-            ))}
-        </div>
-
-        {current.items.length > 0 && (
-          <div className="your-items">
-            <span className="your-items-label">Tus ítems</span>
-            <div className="your-items-row">
-              {current.items.map((item, i) => (
-                <button key={i} className="item-btn" disabled={busy} onClick={() => setPendingItem(item)} data-tooltip={ITEM_LABEL[item]}>
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      <DuelScene
+        table={{
+          order: state.order,
+          players: state.players,
+          currentId,
+          direction: state.direction,
+          sawedOff: state.sawedOff || fx?.item === "🪚",
+          playing: fx,
+          busy,
+          shotAnim,
+          onSelectPlayer: setSheetPlayerId,
+          onFire: canShoot ? fire : undefined,
+        }}
+        roundNumber={roundNumber}
+        shellsTotal={state.shells.length}
+        shellsLeft={shellsLeft(state.shells, fx, shotAnim.fireStage)}
+        known={known}
+        status={statusLine({
+          currentName: current.name,
+          currentIsMe: false,
+          passAndPlay: true,
+          aiming: fx?.kind === "shot" ? aimingAt(fx, state.players, currentId) : null,
+        })}
+        canShoot={canShoot}
+        onSelfFire={() => fire(current.id)}
+        items={current.items}
+        itemsDisabled={busy}
+        onUseItem={setPendingItem}
+        // Redact 📞/🔍's real hint the moment the turn moves on from
+        // whoever used it — see addItemLog above.
+        log={log.map((l, i) => ({
+          key: `${l.id}-${i}`,
+          html: l.privateToPlayerId != null && l.privateToPlayerId !== current.id ? (l.redactedText ?? l.text) : l.text,
+          cls: l.cls,
+        }))}
+        logVisible={logVisible}
+        onToggleLog={toggleLogVisible}
+        muted={sfx.muted}
+        onToggleMute={sfx.toggleMuted}
+      />
 
       {director.stage === "shot-result" &&
         playingShot &&

@@ -53,7 +53,7 @@ async function playIntoRound2(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
   await clickThroughReveal(user, { fakeTimers: true });
   for (let i = 0; i < 8 && !document.querySelector(".round-intro"); i++) {
-    await user.click(screen.getByRole("button", { name: "Dispararte a vos mismo" }));
+    await user.click(screen.getByRole("button", { name: "Dispararme a mí" }));
     await vi.advanceTimersByTimeAsync(2000);
     await user.click(screen.getByRole("button", { name: "Continuar" }));
   }
@@ -76,7 +76,7 @@ describe("Recámara LocalGame", () => {
 
     await user.click(screen.getByRole("button", { name: "Cargar la recámara" }));
     await clickThroughReveal(user, { fakeTimers: true });
-    expect(screen.getByText(/Turno de/)).toBeInTheDocument();
+    expect(screen.getByText(/Te toca/)).toBeInTheDocument();
     expect(document.querySelector(".spent-shell")).not.toBeInTheDocument();
 
     for (let i = 0; i < 60; i++) {
@@ -85,7 +85,7 @@ describe("Recámara LocalGame", () => {
         await clickThroughReveal(user, { fakeTimers: true });
         continue;
       }
-      const btn = screen.getByRole("button", { name: "Dispararte a vos mismo" });
+      const btn = screen.getByRole("button", { name: "Dispararme a mí" });
       await user.click(btn);
       // Wait out the aim + shot beats, then dismiss the result banner —
       // nothing commits to game state until "Continuar" is tapped.
@@ -127,7 +127,7 @@ describe("Recámara LocalGame", () => {
 
     await user.click(screen.getByRole("button", { name: "Empezar a disparar" }));
     await new Promise(resolve => setTimeout(resolve, 1000));
-    expect(screen.getByText(/Turno de/)).toBeInTheDocument();
+    expect(screen.getByText(/Te toca/)).toBeInTheDocument();
   }, 15000);
 
   test("once the chamber reloads (round 2+), the reveal screen cycles one chest per player before the chamber card, popping one item per tap, without the legend", async () => {
@@ -141,7 +141,7 @@ describe("Recámara LocalGame", () => {
     // happens — random shell order, so this just needs enough shots to
     // guarantee it eventually empties an at-most-8-shell chamber.
     for (let i = 0; i < 8 && !document.querySelector(".round-intro"); i++) {
-      await user.click(screen.getByRole("button", { name: "Dispararte a vos mismo" }));
+      await user.click(screen.getByRole("button", { name: "Dispararme a mí" }));
       await vi.advanceTimersByTimeAsync(2000);
       await user.click(screen.getByRole("button", { name: "Continuar" }));
     }
@@ -194,31 +194,28 @@ describe("Recámara LocalGame", () => {
 
     await user.click(screen.getByRole("button", { name: "Empezar a disparar" }));
     await vi.advanceTimersByTimeAsync(1000);
-    expect(screen.getByText(/Turno de/)).toBeInTheDocument();
+    expect(screen.getByText(/Te toca/)).toBeInTheDocument();
     vi.useRealTimers();
   }, 20000);
 
-  test("tapping a player opens a read-only items sheet, and your own item opens the use modal", async () => {
+  test("on your turn a rival's card shoots them, and your own card opens your items", async () => {
     // Round 1 has no items to test with (see createInitialState) — play
     // into round 2's reload first, which is what actually hands out items.
     const user = userEvent.setup();
     render(<LocalGame />);
     await playIntoRound2(user);
 
-    const currentName = screen.getByText(/Turno de/).querySelector("strong")!.textContent!;
+    const currentName = document.querySelector(".token.active .token-name")!.textContent!;
     const otherName = screen
       .getAllByText(/^Jugador \d$/, { selector: ".token-name" })
       .map(el => el.textContent)
       .find(n => n !== currentName)!;
 
-    // Opening the *other* player's token is read-only: no clickable items.
-    await user.click(screen.getByText(otherName, { selector: ".token-name" }));
-    expect(screen.getByText(otherName, { selector: ".rec-sheet-head b" })).toBeInTheDocument();
-    const rivalItemButtons = screen.getAllByRole("button").filter(b => b.className.includes("rec-sheet-item"));
-    expect(rivalItemButtons.every(b => (b as HTMLButtonElement).disabled)).toBe(true);
-    await user.click(screen.getByTitle("Cerrar"));
+    // A rival's card is a target: it's labeled as such and pulses.
+    const rival = screen.getByRole("button", { name: `Dispararle a ${otherName}` });
+    expect(rival).toHaveClass("targetable");
 
-    // Your own token during your turn: items are clickable and open the modal.
+    // Your own card during your turn: items are clickable and open the modal.
     await user.click(screen.getByText(currentName, { selector: ".token-name" }));
     const myItemButtons = screen.getAllByRole("button").filter(b => b.className.includes("rec-sheet-item"));
     await user.click(myItemButtons[0]);
@@ -233,7 +230,7 @@ describe("Recámara LocalGame", () => {
     render(<LocalGame />);
     await playIntoRound2(user);
 
-    const itemButtons = document.querySelectorAll(".your-items .item-btn");
+    const itemButtons = document.querySelectorAll(".item-tray .tray-item");
     expect(itemButtons.length).toBe(2);
     await user.click(itemButtons[0] as HTMLButtonElement);
     expect(document.querySelector(".rec-modal")).toBeInTheDocument();

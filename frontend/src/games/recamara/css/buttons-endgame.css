@@ -1,5 +1,5 @@
 .recamara button.act {
-  font-family: Georgia, serif;
+  font-family: inherit;
   font-size: 0.86rem;
   background: var(--rec-bg-raised);
   color: var(--rec-ink);

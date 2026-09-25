@@ -54,7 +54,7 @@ base("recámara online: un segundo disparo espera mientras el otro jugador sigue
     }
 
     // Whoever got the first turn is "first"; the other one is "second".
-    const selfShot = (page: Page) => page.getByRole("button", { name: "Dispararte a vos mismo" });
+    const selfShot = (page: Page) => page.getByRole("button", { name: "Dispararme a mí" });
     await expect(selfShot(ana).or(selfShot(beto))).toBeVisible({ timeout: 20_000 });
     const anaStarts = await selfShot(ana).isVisible();
     const [first, second] = anaStarts ? [ana, beto] : [beto, ana];

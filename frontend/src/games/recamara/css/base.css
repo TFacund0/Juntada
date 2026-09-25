@@ -32,7 +32,7 @@
   --rec-box-md: clamp(36px, 9vw, 44px);
   --rec-box-lg: clamp(76px, 22vw, 96px);
 
-  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  font-family: "Spectral", Georgia, "Iowan Old Style", "Palatino Linotype", serif;
   color: var(--rec-ink);
 
   /* Centra verticalmente el bloque de cada fase (setup, ronda, cámara,
@@ -75,7 +75,8 @@
 }
 
 .recamara .display {
-  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", "Franklin Gothic Bold", sans-serif;
+  font-family: "Anton", Impact, Haettenschweiler, "Arial Narrow Bold", "Franklin Gothic Bold", sans-serif;
+  font-weight: 400;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -173,70 +174,4 @@
   inset: 0;
   background-image: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 26px);
   pointer-events: none;
-}
-
-.recamara .turn-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 18px;
-  position: relative;
-}
-
-.recamara .turn-banner .dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--rec-live);
-  box-shadow: 0 0 10px var(--rec-live-glow);
-  animation: rec-pulse 1.6s ease-in-out infinite;
-}
-
-.recamara .turn-banner .txt {
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--rec-ink-dim);
-}
-
-.recamara .turn-banner strong {
-  color: var(--rec-ink);
-}
-
-.recamara .direction-tag {
-  position: absolute;
-  right: 0;
-  font-size: 0.9rem;
-}
-
-/* Mute button, mirroring .direction-tag on the other side of the bar. */
-.recamara .sound-toggle {
-  position: absolute;
-  left: 0;
-  background: none;
-  border: 1px solid var(--rec-hair);
-  border-radius: 6px;
-  width: 32px;
-  height: 28px;
-  font-size: 0.85rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.recamara .sound-toggle:focus-visible {
-  outline: 2px solid var(--rec-blank);
-  outline-offset: 2px;
-}
-
-@keyframes rec-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.35;
-    transform: scale(0.7);
-  }
 }

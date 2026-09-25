@@ -193,12 +193,12 @@ describe("Recámara RoundView — duel", () => {
     const send = vi.fn();
     render(<RoundView room={duelRoom()} me={meP1} myPlayer={myPlayerP1} myRole={null} wordReveal={null} isHost={true} send={send} />);
 
-    expect(screen.getByText(/Turno de/)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Dispararte a vos mismo" }));
+    expect(screen.getByText(/Te toca/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Dispararme a mí" }));
     expect(send).toHaveBeenCalledWith({ type: "fire", targetId: "p1" });
   });
 
-  test("it's not my turn: fire controls are hidden and a waiting message shows instead", () => {
+  test("it's not my turn: fire controls are hidden, rivals aren't targets, and the status says whose turn it is", () => {
     render(
       <RoundView
         room={duelRoom({ state: { ...makeRound().state, turnPos: 1 } })}
@@ -211,8 +211,9 @@ describe("Recámara RoundView — duel", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Dispararte a vos mismo" })).not.toBeInTheDocument();
-    expect(screen.getByText(/Esperando a que dispare/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dispararme a mí" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Dispararle a/ })).not.toBeInTheDocument();
+    expect(document.querySelector(".scene-status")).toHaveTextContent("Turno de Jugador 2…");
   });
 
   test("a pending fire event plays out the aim/shot/banner sequence before the real post-shot state shows", async () => {
@@ -263,14 +264,14 @@ describe("Recámara RoundView — duel", () => {
 
     // Still mid-animation — the real turnPos/lives haven't visibly applied
     // yet (pre-shot it was p1's/"vos" turn, not p2's).
-    expect(screen.getByText(/Turno de/)).toHaveTextContent("vos");
+    expect(document.querySelector(".token.active")).toHaveTextContent("Vos");
 
     await vi.advanceTimersByTimeAsync(2000);
     expect(document.querySelector(".rec-banner-text")?.textContent).toMatch(/dispara/);
     expect(document.querySelector(".rec-banner-subtext")?.textContent).toMatch(/Cartucho real/);
 
     await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(screen.getByRole("button", { name: "Continuar" }));
-    expect(screen.getByText(/Esperando a que dispare/)).toBeInTheDocument();
+    expect(document.querySelector(".scene-status")).toHaveTextContent("Turno de Jugador 2…");
     vi.useRealTimers();
   });
 
@@ -348,7 +349,7 @@ describe("Recámara RoundView — duel", () => {
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(livesOf("Vos")).toBe("4 de 5 vidas");
     expect(livesOf("Jugador 2")).toBe("4 de 5 vidas");
-    expect(screen.getByText(/Turno de/)).toHaveTextContent("vos");
+    expect(document.querySelector(".token.active")).toHaveTextContent("Vos");
     vi.useRealTimers();
   });
 
@@ -369,7 +370,7 @@ describe("Recámara RoundView — duel", () => {
 
     expect(document.querySelector(".rec-banner-text")).not.toBeInTheDocument();
     expect(livesOf("Vos")).toBe("3 de 5 vidas");
-    expect(screen.getByRole("button", { name: "Dispararte a vos mismo" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Dispararme a mí" })).toBeEnabled();
     vi.useRealTimers();
   });
 

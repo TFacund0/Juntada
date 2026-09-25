@@ -1,0 +1,205 @@
+/* The duel scene as the reference lays it out (see DuelScene.tsx): no card
+   around it — the table sits in a dim room under a warm lamp — with the
+   title bar, the chamber strip, the narrative status line and the item tray
+   around the table. */
+
+.recamara .duel-scene {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  /* Keeps the room's z-index: -1 backdrop inside the scene instead of
+     behind the app's own background. */
+  isolation: isolate;
+}
+
+/* The room: warm lamp light pooling over the table, fading out to the
+   page's own dark background — no edge, so the scene never reads as a box
+   (the reference's darker vignette is left out for that reason). Sits
+   behind the scene's content and never takes clicks. */
+.recamara .duel-scene::before {
+  content: "";
+  position: absolute;
+  inset: -60px -40px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 45% at 50% 40%, rgba(255, 214, 150, 0.13), transparent 70%);
+}
+
+.recamara .scene-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0 2px;
+}
+
+.recamara .scene-logo {
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--rec-ink);
+}
+
+.recamara .scene-header .sound-toggle {
+  position: static;
+  width: 38px;
+  height: 34px;
+  font-size: 1rem;
+  color: var(--rec-ink);
+  border-radius: 8px;
+}
+
+/* ───────── Chamber strip ───────── */
+
+.recamara .chamber-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 0;
+}
+
+.recamara .chamber-round {
+  font-size: 0.8rem;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .chamber-minis {
+  display: flex;
+  gap: 5px;
+}
+
+.recamara .chamber-minis .mini {
+  width: 9px;
+  height: 22px;
+  border-radius: 3px 3px 1px 1px;
+  background: linear-gradient(to bottom, #3a322a 0 70%, #7a6436 70%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  transition:
+    transform 0.35s ease-in,
+    opacity 0.35s ease-in;
+}
+
+.recamara .chamber-minis .mini.gone {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+.recamara .chamber-known {
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.recamara .chamber-known.live {
+  background: var(--rec-live);
+  color: #fff;
+}
+
+.recamara .chamber-known.blank {
+  background: var(--rec-blank);
+  color: #221a10;
+}
+
+.recamara .chamber-strip .direction-tag {
+  position: absolute;
+  right: 0;
+  color: var(--rec-ink-dim);
+}
+
+/* ───────── Seat cards ───────── */
+
+.recamara .token.you {
+  border-color: #5a6b4a;
+}
+
+/* Your turn: rivals you can shoot pulse, and tapping them fires. */
+.recamara .token.targetable {
+  animation: rec-target-pulse 1.2s ease-in-out infinite;
+}
+
+.recamara .token.targetable:focus-visible,
+.recamara .tray-item:focus-visible,
+.recamara .scene-header .sound-toggle:focus-visible {
+  outline: 2px solid var(--rec-blank);
+  outline-offset: 2px;
+}
+
+@keyframes rec-target-pulse {
+  50% {
+    box-shadow:
+      0 0 0 2px var(--rec-blank),
+      0 0 24px -2px var(--rec-blank),
+      0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ───────── Status + actions ───────── */
+
+.recamara .scene-controls {
+  position: relative;
+  z-index: 2;
+  padding: 6px 0 4px;
+}
+
+.recamara .scene-status {
+  margin: 0 0 8px;
+  min-height: 44px;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .scene-status b {
+  color: var(--rec-ink);
+}
+
+/* ───────── Item tray ───────── */
+
+.recamara .item-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+  padding-bottom: 18px;
+}
+
+.recamara .tray-item {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  border: 1px solid var(--rec-hair);
+  background: var(--rec-bg-raised);
+  font-size: 24px;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+
+.recamara .tray-item:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--rec-live);
+}
+
+.recamara .tray-item:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.recamara .tray-item small {
+  position: absolute;
+  bottom: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--rec-ink-faint);
+  white-space: nowrap;
+}
