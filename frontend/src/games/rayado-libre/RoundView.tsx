@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRevealCountdown } from "../../components/game-kit/RevealCountdown";
 import { BigTextFlash } from "../../components/game-kit/BigTextFlash";
 import { type Tool } from "./components/Canvas";
+import { DEFAULT_TOOL } from "./utils/palette";
 import { ChoosingPhaseScreen } from "./components/ChoosingPhaseScreen";
 import { DrawingPhaseScreen } from "./components/DrawingPhaseScreen";
 import { RevealPhaseScreen } from "./components/RevealPhaseScreen";
@@ -21,7 +22,7 @@ import type { RayadoLibreRoundState } from "./types/roundView";
 // impostor's RoundView.
 export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEnteredRound }: RoundViewProps) {
   const round = room.round as RayadoLibreRoundState | null;
-  const [tool, setTool] = useState<Tool>({ mode: "draw", color: "#1a1a1a", size: 10 });
+  const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
   const [guessText, setGuessText] = useState("");
   const [wordVisible, setWordVisible] = useState(true);
   const sfx = useRayadoSfx();

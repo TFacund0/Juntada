@@ -3,7 +3,7 @@
 // Cada uno solo agenda nodos en el contexto que recibe, a partir de `t` —
 // sin estado propio: useRayadoSfx es dueño del contexto, del silencio y del
 // manejo de errores. El garabato continuo de dibujo (scribble) tiene estado
-// y llega con la paleta, en la fase 2.
+// y vive aparte, en scribble.ts.
 
 export type RayadoSfxName =
   | "msg"

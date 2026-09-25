@@ -7,6 +7,7 @@ import { nextPlayerName } from "../../utils/nextPlayerName";
 import { CATEGORIES } from "@juntada/rayado-libre-data";
 import { scoreForGuess, DRAWER_POINTS_PER_GUESS, TURN_SECONDS, buildHintOrder, computeWordHint } from "@juntada/rayado-libre-scoring";
 import { type DrawAction, type Tool } from "./components/Canvas";
+import { DEFAULT_TOOL } from "./utils/palette";
 import type { LocalPlayer, LocalGamePhase } from "./types/localGame";
 import { SetupScreen } from "./components/SetupScreen";
 import { WordRevealScreen } from "./components/WordRevealScreen";
@@ -64,7 +65,7 @@ export function LocalGame() {
   const [lastTurnPoints, setLastTurnPoints] = useState<Record<number, number>>({});
   const [strokes, setStrokes] = useState<DrawAction[]>([]);
   const [rerollUsed, setRerollUsed] = useState(false);
-  const [tool, setTool] = useState<Tool>({ mode: "draw", color: "#1a1a1a", size: 10 });
+  const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
   const [drawingStartedAt, setDrawingStartedAt] = useState<number | null>(null);
   const hintOrderRef = useRef<number[]>([]);
   // Forces a re-render every 300ms while drawing so the progressive hint
@@ -261,6 +262,7 @@ export function LocalGame() {
       <LocalDrawingScreen
         drawer={drawer}
         timerEnd={timerEnd}
+        word={word}
         wordHint={wordHint}
         scores={scores}
         sfx={sfx}

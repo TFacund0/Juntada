@@ -93,15 +93,21 @@
    AppHeader.css) el navbar terminaba más alto que ese padding y tapaba las
    primeras filas de contenido. Un tamaño puesto por `style` nunca puede
    perder contra una regla de hoja de estilos (ni siquiera dentro de un
-   @media), así que este ajuste tiene que vivir en una clase, no inline. */
-.jt-content-pad-top {
-  padding-top: 68px;
+   @media), así que este ajuste tiene que vivir en una clase, no inline.
+   El valor vive en --jt-content-pad-top para que quien necesite el alto
+   del navbar (ej. rayado-libre/components/DrawingStage.tsx) lo lea de acá. */
+:root {
+  --jt-content-pad-top: 68px;
 }
 
 @media (min-width: 900px) {
-  .jt-content-pad-top {
-    padding-top: 78px;
+  :root {
+    --jt-content-pad-top: 78px;
   }
+}
+
+.jt-content-pad-top {
+  padding-top: var(--jt-content-pad-top);
 }
 
 /* Opt-in para el LocalGame/RoundView de un juego con `wideRoundView: true`

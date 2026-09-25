@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import type { PlayerRow } from "../utils/playerRows";
 import { type DrawAction, type Tool } from "./Canvas";
-import { Toolbar } from "./Toolbar";
+import { Palette } from "./palette/Palette";
+import { WordFlip } from "./WordFlip";
 import { TimerRing } from "./TimerRing";
 import { DrawingStage } from "./DrawingStage";
 import { TurnBar } from "./TurnBar";
@@ -10,7 +11,7 @@ import { PaperBoard } from "./PaperBoard";
 import { PlayersPanel } from "./PlayersPanel";
 import { MuteButton } from "./MuteButton";
 
-/** Todo lo que el tablero reenvía a `Canvas`/`Toolbar` sin transformarlo — agrupado aparte para no dejar 6 props sueltas en {@link DrawingBoardProps} con la misma forma que ya tiene `CanvasProps` (ver Canvas.tsx). */
+/** Todo lo que el tablero reenvía a `Canvas`/`Palette` — agrupado aparte para no dejar 6 props sueltas en {@link DrawingBoardProps} con la misma forma que ya tiene `CanvasProps` (ver Canvas.tsx). */
 interface DrawingBoardCanvasProps {
   strokes: DrawAction[];
   tool: Tool;
@@ -19,6 +20,8 @@ interface DrawingBoardCanvasProps {
   onFillAt: (x: number, y: number, color: string) => void;
   onClear: () => void;
   onUndo: () => void;
+  /** Cambia cuando la hoja se vacía por pedir otra palabra (no es un "borrar todo", ver useClearFx). */
+  resetKey: string;
 }
 
 /** Cabecera del turno, ya resuelta por quien llama según el rol (ver TurnBar). */
@@ -26,6 +29,8 @@ interface DrawingBoardHeader {
   drawerName: string;
   subtitle: string;
   word: ReactNode;
+  /** La palabra de quien dibuja: al cambiar (pedir otra) gira en X (ver WordFlip). */
+  wordKey?: string;
   notice?: ReactNode;
 }
 
@@ -79,7 +84,14 @@ export function DrawingBoard({
   remotePen = false,
   onReroll,
 }: DrawingBoardProps) {
-  const { strokes, tool, onToolChange, onStrokeChunk, onFillAt, onClear, onUndo } = canvas;
+  const { strokes, tool, onToolChange, onStrokeChunk, onFillAt, onClear, onUndo, resetKey } = canvas;
+  // "¿Borrar?" confirmados acá: la hoja tiembla aunque deshacer hubiera podido vaciarla igual (ver useClearFx).
+  const [clearRequest, setClearRequest] = useState(0);
+  const clearAll = () => {
+    sfx.play("splat");
+    setClearRequest(n => n + 1);
+    onClear();
+  };
 
   return (
     <DrawingStage
@@ -90,14 +102,17 @@ export function DrawingBoard({
           drawing={interactive}
           drawerName={header.drawerName}
           subtitle={header.subtitle}
-          word={header.word}
+          word={<WordFlip flipKey={header.wordKey}>{header.word}</WordFlip>}
           extra={
             <>
               {interactive && onReroll && (
                 // En celular horizontal queda solo el ícono (el texto sigue para lectores de pantalla).
                 <button
                   type="button"
-                  onClick={onReroll}
+                  onClick={() => {
+                    sfx.play("card");
+                    onReroll();
+                  }}
                   title="Pedir otra palabra"
                   className="mt-1 cursor-pointer rounded-full landscape-short:mt-0 border border-rl-card-border bg-rl-card px-[10px] py-1 text-xs font-bold"
                 >
@@ -117,18 +132,20 @@ export function DrawingBoard({
           interactive={interactive}
           tool={interactive ? tool : undefined}
           onStrokeChunk={onStrokeChunk}
-          onFillAt={onFillAt}
+          onFillAt={(x, y, color) => {
+            sfx.play("fill");
+            onFillAt(x, y, color);
+          }}
           idleText={interactive ? idleText : null}
           remotePen={!interactive && remotePen}
+          resetKey={resetKey}
+          clearRequest={clearRequest}
+          scribble={interactive ? sfx.scribble : undefined}
         />
       }
       tools={
         interactive && (
-          // Lugar de la paleta: debajo del tablero, o en columna a su costado en
-          // celular horizontal. La paleta rediseñada llega en la fase 2.
-          <div className="mt-[10px] flex flex-col gap-2 rounded-[18px] border border-rl-card-border bg-rl-surface px-[10px] pb-[9px] pt-[10px] @min-[1000px]:mx-auto @min-[1000px]:mt-3 @min-[1000px]:w-[min(100%,calc(100dvh-300px))] short-screen:gap-[6px] short-screen:p-2 landscape-short:col-start-1 landscape-short:row-start-2 landscape-short:m-0 landscape-short:max-h-full landscape-short:w-[150px] landscape-short:self-start landscape-short:overflow-y-auto landscape-short:p-[6px]">
-            <Toolbar bare tool={tool} onChange={onToolChange} onClear={onClear} onUndo={onUndo} />
-          </div>
+          <Palette tool={tool} onToolChange={onToolChange} hasDrawing={strokes.length > 0} onUndo={onUndo} onClear={clearAll} sfx={sfx} />
         )
       }
       chat={sideContent}

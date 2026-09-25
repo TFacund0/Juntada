@@ -15,12 +15,17 @@ interface DrawingStageProps {
 }
 
 // Tamaño máximo del tablero (cuadrado): el ancho lo limita la columna, el
-// alto este --board-max, según formato y rol — tabla de la referencia.
+// alto este --board-max, según formato y rol — tabla de la referencia. Las
+// fórmulas de la referencia suponen su <header> de 42px; acá arriba está el
+// navbar fijo (--jt-content-pad-top, 68/78px), así que a cada `calc` se le
+// resta la diferencia (--rl-chrome-offset, definida en DrawingStage) para
+// que tablero y paleta entren igual que en la referencia.
+const CHROME_OFFSET = "[--rl-chrome-offset:calc(var(--jt-content-pad-top)-42px)]";
 const BOARD_MAX_GUESSING =
-  "[--board-max:56dvh] @min-[700px]:[--board-max:calc(100dvh-150px)] @min-[1000px]:[--board-max:calc(100dvh-180px)]";
+  "[--board-max:56dvh] @min-[700px]:[--board-max:calc(100dvh-150px-var(--rl-chrome-offset))] @min-[1000px]:[--board-max:calc(100dvh-180px-var(--rl-chrome-offset))]";
 const BOARD_MAX_DRAWING = clsx(
-  "[--board-max:calc(100dvh-330px)] @min-[700px]:[--board-max:calc(100dvh-250px)] @min-[1000px]:[--board-max:calc(100dvh-300px)]",
-  "landscape-short:col-start-2 landscape-short:row-start-2 landscape-short:[--board-max:calc(100dvh-118px)]",
+  "[--board-max:calc(100dvh-330px-var(--rl-chrome-offset))] @min-[700px]:[--board-max:calc(100dvh-250px-var(--rl-chrome-offset))] @min-[1000px]:[--board-max:calc(100dvh-300px-var(--rl-chrome-offset))]",
+  "landscape-short:col-start-2 landscape-short:row-start-2 landscape-short:[--board-max:calc(100dvh-118px-var(--rl-chrome-offset))]",
 );
 
 /**
@@ -43,7 +48,7 @@ const BOARD_MAX_DRAWING = clsx(
 export function DrawingStage({ drawing, players, turn, board, tools, chat, chatLabel }: DrawingStageProps) {
   useResizesContentViewport();
   return (
-    <div className="@container -mx-4 -mb-[60px] h-[calc(100dvh-68px)] font-figtree text-rl-ink min-[900px]:h-[calc(100dvh-78px)]">
+    <div className={clsx("@container -mx-4 -mb-[60px] h-[calc(100dvh-var(--jt-content-pad-top))] font-figtree text-rl-ink", CHROME_OFFSET)}>
       <div
         className={clsx(
           "flex h-full min-h-0 flex-col gap-2 px-[14px] pb-[calc(10px+env(safe-area-inset-bottom,0px))]",

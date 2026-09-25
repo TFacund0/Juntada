@@ -63,6 +63,7 @@
   --color-rl-ok: #33c07a;
   --color-rl-ok-text: #9ff0c6;
   --color-rl-warn: #e2c44a;
+  --color-rl-danger: #e24b4a;
   --color-rl-paper: #fbf7ee;
   --color-rl-r1: #ff4d4d;
   --color-rl-r2: #ffa53d;
@@ -107,10 +108,12 @@
 
 /* Celular horizontal (paleta al costado del tablero) y pantallas bajas — los
    dos únicos cortes de Rayado que dependen del viewport y no del ancho del
-   contenedor del juego. Declarados en este orden (después de los @container
-   de Tailwind) para ganar la cascada igual que en la referencia. */
-@custom-variant landscape-short (@media (orientation: landscape) and (max-height: 520px));
+   contenedor del juego. Declarados después de los @container de Tailwind
+   para ganar la cascada igual que en la referencia, y landscape-short
+   último: todo celular horizontal es también pantalla baja, y en la
+   referencia sus reglas (`.game.drawing ...`) son más específicas. */
 @custom-variant short-screen (@media (max-height: 620px));
+@custom-variant landscape-short (@media (orientation: landscape) and (max-height: 520px));
 
 /* Cuánto del reloj queda (0..1): registrada para que el anillo pueda
    transicionar el valor en vez de saltar. */

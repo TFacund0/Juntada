@@ -111,6 +111,8 @@ export function DrawingPhaseScreen({
           onFillAt: (x, y, color) => send({ type: "draw_fill", x, y, color }),
           onClear: () => send({ type: "draw_clear" }),
           onUndo: () => send({ type: "draw_undo" }),
+          // Pedir otra palabra vacía la hoja en el motor: eso no es un "borrar todo".
+          resetKey: `${round.turnNumber}:${!!round.rerollUsed}`,
         }}
         interactive={isDrawer}
         timerEnd={round.timerEnd}
@@ -120,6 +122,7 @@ export function DrawingPhaseScreen({
           drawerName,
           subtitle: turnSubtitle({ isDrawer, drawerName, letters: letterCount(isDrawer ? (myWord ?? "") : hint) }),
           word,
+          wordKey: isDrawer ? myWord : undefined,
           notice: drawerOffline && (
             <p className="mt-1 text-xs text-rl-warn">
               ⚠️ {drawerName} se desconectó — el turno sigue corriendo hasta que se acabe el tiempo
