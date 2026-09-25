@@ -102,6 +102,8 @@ export interface GameDef {
   // a propósito para el resto — ver el comentario en App.tsx) — para un
   // juego cuya pantalla principal (ej. un canvas) realmente aprovecha el
   // ancho de un monitor en vez de quedar incómodo. Ver `.jt-round-wrap-wide`
-  // en theme/sharedChrome.css.
-  wideRoundView?: boolean;
+  // en theme/sharedChrome.css. `"full"` crece hasta 1440px a todo ancho de
+  // pantalla (`.jt-round-wrap-full`), para un juego con su propio layout
+  // responsivo por container queries (rayado-libre).
+  wideRoundView?: boolean | "full";
 }

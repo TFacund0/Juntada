@@ -119,6 +119,13 @@
   }
 }
 
+/* `wideRoundView: "full"` (rayado-libre): el ancho del #app de su
+   referencia visual, a cualquier ancho de pantalla — el juego decide su
+   propio layout con container queries. */
+.jt-round-wrap-full {
+  max-width: 1440px;
+}
+
 /* Chip de "cerrar" compartido por todo modal/diálogo nuevo (RoomEntryModal,
    GroupEntryModal, GameRules) — antes cada uno definía el mismo cuadrado de
    30px/fondo-acento-suave/borde/hover a mano, con una sola diferencia real

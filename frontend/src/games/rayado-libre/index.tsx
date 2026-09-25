@@ -22,7 +22,9 @@ export const rayadoLibreGame: GameDef = {
   minPlayers: MIN_PLAYERS,
   category: "equipos",
   gameTheme: "rayado-libre",
-  wideRoundView: true,
+  // Hasta 1440px a cualquier ancho: la pantalla de dibujo arma su propio
+  // layout de 1, 2 o 3 columnas según el ancho (ver DrawingStage).
+  wideRoundView: "full",
   rules: [
     "Por turnos, cada jugador recibe 3 palabras al azar y elige una para dibujar.",
     "Mientras dibuja, el resto escribe sus intentos en el chat.",

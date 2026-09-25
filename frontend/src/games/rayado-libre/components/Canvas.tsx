@@ -13,8 +13,13 @@ import type { StrokeAction, FillAction, ClearAction, DrawAction } from "@juntada
  */
 export const CANVAS_WIDTH = 800;
 
-/** Alto interno fijo del tablero, en píxeles del espacio de coordenadas compartido. Ver {@link CANVAS_WIDTH}. */
-export const CANVAS_HEIGHT = 600;
+/**
+ * Alto interno fijo del tablero, en píxeles del espacio de coordenadas
+ * compartido. Ver {@link CANVAS_WIDTH}. El tablero es cuadrado (hoja de
+ * papel de la referencia visual): si cambia, revisar `drawCoord` en
+ * packages/shared-types y la clase `aspect-square` del `<canvas>` de abajo.
+ */
+export const CANVAS_HEIGHT = 800;
 
 // Re-exported from the shared package (not redeclared here) so both this
 // component and the engine agree on exactly one shape for a turn's drawing
@@ -54,7 +59,13 @@ interface CanvasProps {
   onFillAt?: (x: number, y: number, color: string) => void;
 }
 
-const ERASE_COLOR = "#ffffff";
+/**
+ * Color del papel del tablero (`--color-rl-paper` en theme/tailwind.css).
+ * La goma y el "borrar todo" pintan con este color en vez de blanco, así lo
+ * borrado se funde con la hoja en vez de dejar manchas blancas encima.
+ */
+export const PAPER_COLOR = "#fbf7ee";
+const ERASE_COLOR = PAPER_COLOR;
 const FLUSH_INTERVAL_MS = 60;
 
 /**
@@ -148,7 +159,7 @@ function floodFill(ctx: CanvasRenderingContext2D, startX: number, startY: number
 
   const stack: [number, number][] = [[sx, sy]];
   // Bounds the amount of work a single fill can do — a legitimately closed
-  // shape on an 800x600 board never gets close to this; it only protects
+  // shape on an 800x800 board never gets close to this; it only protects
   // against an accidentally-open shape flooding the entire board pixel by
   // pixel on every redraw.
   const MAX_PIXELS = w * h;
@@ -242,7 +253,7 @@ function paintAction(ctx: CanvasRenderingContext2D, action: DrawAction): void {
   if (action.type === "stroke") drawStrokeAction(ctx, action);
   else if (action.type === "fill") floodFill(ctx, action.x, action.y, action.color);
   else if (action.type === "clear") {
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = PAPER_COLOR;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
 }
@@ -273,7 +284,7 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
   };
   const drawingRef = useRef(false);
   // Posición del puntero/dedo, en píxeles de PANTALLA relativos al canvas
-  // (no en el espacio de coordenadas interno 800x600) — solo para dibujar el
+  // (no en el espacio de coordenadas interno 800x800) — solo para dibujar el
   // indicador visual de "lápiz" (ver el overlay en el return), nunca se usa
   // para trazar. Da trazabilidad de dónde va a caer el trazo mientras se
   // dibuja, algo que el cursor nativo del sistema no muestra en touch (los
@@ -317,7 +328,7 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
     // como un parpadeo del trazo.
     const isIncrementalExtension = toPaint.length >= prev.length && prev.every((action, i) => actionsEqual(action, toPaint[i]));
     if (!isIncrementalExtension) {
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = PAPER_COLOR;
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       for (const action of toPaint) paintAction(ctx, action);
     } else {
@@ -455,23 +466,14 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
         onPointerUp={endStroke}
         onPointerLeave={handlePointerLeave}
         className={clsx(
-          "block w-full touch-none rounded-xl border border-[rgba(127,119,221,0.25)] bg-white",
+          // Cuadrado como CANVAS_WIDTH x CANVAS_HEIGHT. El canvas arranca con
+          // píxeles transparentes hasta el primer repintado completo (ver
+          // paintIncremental), así que el fondo de papel va también por CSS.
+          "block aspect-square w-full touch-none bg-rl-paper",
           // El indicador de abajo reemplaza al cursor nativo — mostrar los
-          // dos a la vez se leía como dos punteros superpuestos. El canvas
-          // arranca con píxeles transparentes hasta que llega la primera
-          // acción "clear" del historial (ver paintAction) — sin `bg-white`
-          // de base, el tablero deja ver el fondo oscuro del tema por detrás
-          // y el trazo por defecto (casi negro) queda invisible encima.
+          // dos a la vez se leía como dos punteros superpuestos.
           interactive && tool ? "cursor-none" : "cursor-default",
         )}
-        style={{
-          // No expresable como clase estática de Tailwind: depende de las
-          // constantes CANVAS_WIDTH/CANVAS_HEIGHT de arriba, no de un valor
-          // fijo — una clase arbitraria interpolada (`aspect-[${...}]`) no
-          // la detectaría el compilador JIT de Tailwind al escanear el
-          // código fuente (necesita ver el string literal completo).
-          aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-        }}
       />
       {/* Indicador de "lápiz": un círculo del color/grosor real de la
           herramienta activa, centrado en la posición exacta del puntero o
@@ -482,19 +484,14 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt }: 
           mueve. */}
       {cursorPos && tool && (
         <div
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] border-black/55 shadow-[0_0_0_1px_rgba(255,255,255,0.85)]"
+          // Posición, tamaño y color siguen al puntero y a la herramienta.
           style={{
-            position: "absolute",
             left: cursorPos.x,
             top: cursorPos.y,
             width: Math.max(tool.size * cursorPos.scale, 6),
             height: Math.max(tool.size * cursorPos.scale, 6),
-            marginLeft: -Math.max(tool.size * cursorPos.scale, 6) / 2,
-            marginTop: -Math.max(tool.size * cursorPos.scale, 6) / 2,
-            borderRadius: "50%",
             background: tool.mode === "erase" ? "transparent" : tool.color,
-            border: "1.5px solid rgba(0,0,0,0.55)",
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.85)",
-            pointerEvents: "none",
           }}
         />
       )}

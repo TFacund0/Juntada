@@ -4,7 +4,7 @@ import type { SetupTab } from "../../components/setup/SetupTabs";
 import { useFlashError } from "../../hooks/ui/useFlashError";
 import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/nextPlayerName";
-import { CATEGORIES, activeWordPool, pickThreeWords as pickThreeWordsFromPool } from "@juntada/rayado-libre-data";
+import { CATEGORIES } from "@juntada/rayado-libre-data";
 import { scoreForGuess, DRAWER_POINTS_PER_GUESS, TURN_SECONDS, buildHintOrder, computeWordHint } from "@juntada/rayado-libre-scoring";
 import { type DrawAction, type Tool } from "./components/Canvas";
 import type { LocalPlayer, LocalGamePhase } from "./types/localGame";
@@ -14,6 +14,8 @@ import { LocalDrawingScreen } from "./components/LocalDrawingScreen";
 import { LocalRevealScreen } from "./components/LocalRevealScreen";
 import { LocalResultScreen } from "./components/LocalResultScreen";
 import { InkSweepReveal } from "./components/InkSweepReveal";
+import { pickLocalWords as pickThreeWords } from "./utils/localWords";
+import { useRayadoSfx } from "./hooks/useRayadoSfx";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RAYADO LIBRE — modo local: pantalla compartida + juez manual. Un solo
@@ -28,18 +30,6 @@ import { InkSweepReveal } from "./components/InkSweepReveal";
 // LocalResultScreen) — mismo criterio que el modo online (ver RoundView.tsx
 // y components/*PhaseScreen.tsx).
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// Same pool/pick algorithm the backend engine uses (see
-// @juntada/rayado-libre-data) — this just adapts it to LocalGame's plain
-// ref-array bookkeeping instead of room.usedWords, so the two can't drift.
-// `customWords` folds in the host's own words the same way the engine does
-// (see engine.ts's own pickThreeWords), on top of the active categories.
-function pickThreeWords(activeCatKeys: string[], usedWordsRef: { current: string[] }, customWords: string[]): string[] {
-  const pool = [...activeWordPool(CATEGORIES, activeCatKeys), ...customWords];
-  const { words, resetUsed } = pickThreeWordsFromPool(pool, usedWordsRef.current);
-  if (resetUsed) usedWordsRef.current = [];
-  return words;
-}
 
 // Costo en segundos de pedir otra palabra a mitad de turno — mismo valor y
 // misma razón que REROLL_TIME_PENALTY_SECONDS en el motor online (ver
@@ -84,6 +74,8 @@ export function LocalGame() {
   // bumping this.
   const [, forceTick] = useState(0);
   const usedWordsRef = useRef<string[]>([]);
+  // Montado acá (no solo en el tablero) para que cualquier toque desde el setup ya desbloquee el audio.
+  const sfx = useRayadoSfx();
 
   const isDuplicateName = (name: string, excludeId: number | null) => {
     const norm = name.trim().toLowerCase();
@@ -267,11 +259,11 @@ export function LocalGame() {
     const wordHint = word && drawingStartedAt ? computeWordHint(word, hintOrderRef.current, (Date.now() - drawingStartedAt) / 1000) : null;
     return (
       <LocalDrawingScreen
-        turnNumber={turnNumber}
-        totalTurns={totalTurns}
         drawer={drawer}
         timerEnd={timerEnd}
         wordHint={wordHint}
+        scores={scores}
+        sfx={sfx}
         strokes={strokes}
         setStrokes={setStrokes}
         tool={tool}

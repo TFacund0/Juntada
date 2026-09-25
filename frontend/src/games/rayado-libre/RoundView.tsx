@@ -8,11 +8,14 @@ import { RevealPhaseScreen } from "./components/RevealPhaseScreen";
 import { ResultPhaseScreen } from "./components/ResultPhaseScreen";
 import { InkSweepReveal } from "./components/InkSweepReveal";
 import { WordRevealSweep } from "./components/WordRevealSweep";
+import { usePointsToast, type LastGuess } from "./hooks/usePointsToast";
+import { useRayadoSfx } from "./hooks/useRayadoSfx";
 import type { RoundViewProps } from "../gameTypes";
 import type { RayadoLibreRoundState } from "./types/roundView";
 
 // Owns the state and effects shared across phases (drawing tool, the guess
-// input, the "+N puntos" toast, whether my own word is hidden) and picks
+// input, the "+N puntos" toast, whether my own word is hidden, the game's
+// sound — mounted here so any tap in any phase unlocks audio) and picks
 // which phase screen to render — the phase screens themselves (see
 // components/*PhaseScreen.tsx) are pure presentation, same split as
 // impostor's RoundView.
@@ -20,26 +23,13 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
   const round = room.round as RayadoLibreRoundState | null;
   const [tool, setTool] = useState<Tool>({ mode: "draw", color: "#1a1a1a", size: 10 });
   const [guessText, setGuessText] = useState("");
-  const [pointsToast, setPointsToast] = useState<number | null>(null);
   const [wordVisible, setWordVisible] = useState(true);
-  const lastGuessId = useRef<number | null>(null);
+  const sfx = useRayadoSfx();
 
   const isDrawer = !!myRole?.isDrawer;
   const wordChoices = (myRole?.wordChoices as string[] | null) ?? null;
   const myWord = myRole?.word as string | undefined;
-  const lastGuess = myRole?.lastGuess as { playerId: string; points: number; guessId: number } | undefined;
-
-  // Shows a brief "+N puntos" toast exactly once per correct guess, diffing
-  // guessId the same way impostor diffs rerollCount — private_role can arrive
-  // again for unrelated reasons and shouldn't replay the toast each time.
-  useEffect(() => {
-    if (lastGuess && lastGuess.guessId !== lastGuessId.current) {
-      lastGuessId.current = lastGuess.guessId;
-      setPointsToast(lastGuess.points);
-      const t = setTimeout(() => setPointsToast(null), 2500);
-      return () => clearTimeout(t);
-    }
-  }, [lastGuess]);
+  const pointsToast = usePointsToast(myRole?.lastGuess as LastGuess | undefined);
 
   useEffect(() => {
     setGuessText("");
@@ -132,6 +122,7 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
         pointsToast={pointsToast}
         wordVisible={wordVisible}
         setWordVisible={setWordVisible}
+        sfx={sfx}
         send={send}
       />
     );

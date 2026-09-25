@@ -192,6 +192,71 @@ describe("Rayado Libre RoundView — drawing phase", () => {
   });
 });
 
+describe("Rayado Libre RoundView — drawing screen (turn header, players, clock)", () => {
+  function renderGuesser(roundOverrides: Record<string, unknown>) {
+    return (
+      <RoundView
+        room={makeRoom("drawing", roundOverrides, { score: { p1: 20, p2: 70 } })}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[1]}
+        myRole={{ isDrawer: false }}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />
+    );
+  }
+
+  test("a guesser sees who draws and how many letters, and the players panel sorted by score", () => {
+    render(renderGuesser({ wordHint: "_a__" }));
+    expect(screen.getByText("Dibuja Ana · adiviná la palabra (4 letras)")).toBeInTheDocument();
+    const panel = screen.getByRole("complementary", { name: "Jugadores" });
+    const names = Array.from(panel.querySelectorAll(".truncate")).map(el => el.textContent);
+    expect(names).toEqual(["Beto", "Ana"]);
+    expect(panel).toHaveTextContent("✏️ dibujando");
+  });
+
+  test("the drawer sees the empty-board prompt with their word", () => {
+    render(
+      <RoundView
+        room={makeRoom("drawing")}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, word: "Perro" }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Dibujás vos · los demás adivinan")).toBeInTheDocument();
+    expect(screen.getByText("Dibujá PERRO acá")).toBeInTheDocument();
+  });
+
+  test("the mute button toggles its label", async () => {
+    const user = userEvent.setup();
+    localStorage.clear();
+    render(renderGuesser({ wordHint: "____" }));
+    await user.click(screen.getByRole("button", { name: "Silenciar sonido" }));
+    expect(screen.getByRole("button", { name: "Activar sonido" })).toBeInTheDocument();
+    localStorage.clear();
+  });
+
+  test("a first correct guess that lowers the clock shows '¡El reloj saltó a N!'", () => {
+    const now = Date.now();
+    const { rerender } = render(renderGuesser({ wordHint: "____", timerEnd: now + 88_000 }));
+    expect(screen.getByRole("status")).toHaveTextContent("");
+    rerender(renderGuesser({ wordHint: "____", timerEnd: now + 60_000, correctGuessers: ["p2"] }));
+    expect(screen.getByRole("status")).toHaveTextContent("¡El reloj saltó a 60!");
+  });
+
+  test("a reroll lowering the clock (no new guess) is not a jump", () => {
+    const now = Date.now();
+    const { rerender } = render(renderGuesser({ wordHint: "____", timerEnd: now + 88_000 }));
+    rerender(renderGuesser({ wordHint: "____", timerEnd: now + 73_000 }));
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+});
+
 describe("Rayado Libre RoundView — reveal phase", () => {
   test("tapping ready sends player_ready, then shows a waiting count", async () => {
     const user = userEvent.setup();

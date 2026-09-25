@@ -20,6 +20,8 @@ interface GuessChatPanelProps {
     onSubmit: () => void;
     disabledReason?: string;
   };
+  /** Sin la card propia — para cuando ya va dentro de la columna del chat de la pantalla de dibujo (ver DrawingStage). */
+  bare?: boolean;
 }
 
 /**
@@ -30,12 +32,20 @@ interface GuessChatPanelProps {
  * fila de chips de quién acertó) — este feed es solo lo que la gente
  * efectivamente escribió.
  */
-export function GuessChatPanel({ chatLog, players, correctGuessers, roundPoints, variant = "live", input }: GuessChatPanelProps) {
+export function GuessChatPanel({
+  chatLog,
+  players,
+  correctGuessers,
+  roundPoints,
+  variant = "live",
+  input,
+  bare = false,
+}: GuessChatPanelProps) {
   const messages = chatLog.filter(e => e.type !== "correct");
   const visible = variant === "live" ? messages.slice(-5) : messages;
 
   return (
-    <div className={T.card}>
+    <div className={bare ? "p-3" : T.card}>
       {variant === "live" && correctGuessers.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {correctGuessers.map(id => {
@@ -82,7 +92,8 @@ export function GuessChatPanel({ chatLog, players, correctGuessers, roundPoints,
                 if (e.key === "Enter") input.onSubmit();
               }}
             />
-            <Btn onClick={input.onSubmit} style={{ width: "auto", padding: "11px 18px" }}>
+            {/* `!`: pisa el ancho completo y el padding de la variante base de Btn. */}
+            <Btn onClick={input.onSubmit} className="w-auto! px-[18px]! py-[11px]!">
               Enviar
             </Btn>
           </div>

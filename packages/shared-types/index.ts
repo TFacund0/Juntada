@@ -25,7 +25,7 @@ const configPrimitive = z.union([z.string().max(300), z.number(), z.boolean()]);
 const configRecord = z.record(z.string(), configPrimitive);
 const configValue = z.union([configPrimitive, z.array(configPrimitive).max(50), configRecord, z.array(configRecord).max(50)]);
 
-// Rayado Libre's board is a fixed 800x600 (see Canvas.tsx's CANVAS_WIDTH/
+// Rayado Libre's board is a fixed 800x800 (see Canvas.tsx's CANVAS_WIDTH/
 // CANVAS_HEIGHT) — coupled to that constant on purpose, not imported from
 // it, since this schema has to stay a plain data description. The margin
 // beyond the edges tolerates a pointer briefly overshooting the canvas

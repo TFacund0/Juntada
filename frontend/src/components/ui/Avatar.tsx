@@ -1,8 +1,11 @@
 import { memo } from "react";
+import clsx from "clsx";
 
 interface AvatarProps {
   name: string;
   size?: number;
+  /** Clases extra (ej. un anillo o un peso de letra propio de un juego). */
+  className?: string;
 }
 
 /**
@@ -21,7 +24,7 @@ interface AvatarProps {
  * cualquier fila (avatar + texto), pero además respeta el `text-align`
  * heredado cuando es el único elemento centrado de un bloque.
  */
-export const Avatar = memo(function Avatar({ name, size = 40 }: AvatarProps) {
+export const Avatar = memo(function Avatar({ name, size = 40, className }: AvatarProps) {
   const initials =
     name
       .trim()
@@ -34,19 +37,9 @@ export const Avatar = memo(function Avatar({ name, size = 40 }: AvatarProps) {
   const bg = colors[(name.charCodeAt(0) || 0) % colors.length];
   return (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: bg,
-        color: "#fff",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 700,
-        fontSize: size * 0.35,
-        flexShrink: 0,
-      }}
+      className={clsx("inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white", className)}
+      // Tamaño y color dependen de props (no son clases estáticas posibles).
+      style={{ width: size, height: size, background: bg, fontSize: size * 0.35 }}
     >
       {initials}
     </div>
