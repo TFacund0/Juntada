@@ -7,7 +7,9 @@ import { PlayerItemsSheet } from "./components/PlayerItemsSheet";
 import { ItemUseModal } from "./components/ItemUseModal";
 import { ResultBanner } from "./components/ResultBanner";
 import { RoundOverlay } from "./components/RoundOverlay";
+import { ownChest } from "./utils/chests";
 import { EndScreen } from "./components/EndScreen";
+import { EliminationBanner } from "./components/EliminationBanner";
 import { ItemEffect } from "./components/ItemEffect";
 import { DuelScene } from "./components/DuelScene";
 import { frontAngle, shortestGunAngle } from "./utils/arena";
@@ -17,9 +19,6 @@ import { useLogVisible } from "./hooks/logVisibility";
 import { useOnlineRoundDirector } from "./hooks/onlineRoundDirector";
 import { useRecamaraSfx } from "./hooks/recamaraSfx";
 import { useEventSfx } from "./hooks/eventSfx";
-import { useKnownShell } from "./hooks/knownShell";
-import { statusLine } from "./utils/statusLine";
-import { aimingAt, shellsLeft } from "./utils/scene";
 import type { RoundViewProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -62,7 +61,6 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
     nameFor: id => room.players.find(p => p.id === id)?.name ?? "",
   });
   useEventSfx(fx, shotAnim.fireStage, sfx);
-  const known = useKnownShell(fx, round?.roundNumber ?? 0);
 
   // Every round opens with the round overlay over the table (RoundOverlay):
   // once this device has watched it, it tells the server it's ready and
@@ -203,21 +201,13 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           youId: myEngineId,
           onFire: canShoot ? id => fire(round.seatOrder[id]) : undefined,
           hideItems: showOverlay,
+          itemActivating: stage === "item-activating",
           dealtRound: round.roundNumber > 1 ? round.roundNumber : undefined,
         }}
         roundNumber={round.roundNumber}
-        shellsTotal={state.shells.length}
-        shellsLeft={shellsLeft(state.shells, fx, shotAnim.fireStage)}
-        known={known}
-        status={statusLine({
-          currentName: current.name,
-          currentIsMe: isMyTurn,
-          aiming: fx?.kind === "shot" ? aimingAt(fx, state.players, currentEngineId, myEngineId) : null,
-          amEliminated: !amAlive,
-          waiting: round.subPhase === "reveal" && !showOverlay && amAlive,
-        })}
         canShoot={canShoot}
         onSelfFire={() => fire(myPlayerId)}
+        waitingForTurn={!isMyTurn && amAlive && round.subPhase === "duel"}
         items={isMyTurn && round.subPhase === "duel" ? current.items : null}
         itemsDisabled={busy}
         onUseItem={setPendingItem}
@@ -238,6 +228,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           const targetEngineId = round.seatOrder.indexOf(shot.targetId);
           const targetBefore = state.players.find(p => p.id === targetEngineId);
           const targetAfter = playingShot.after?.state.players.find(p => p.id === targetEngineId);
+          const eliminated = (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0;
           const banner = shotBanner({
             shellKind: shot.shellKind,
             damage: shot.damage,
@@ -246,8 +237,19 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
             targetName: nameFor(shot.targetId),
             targetIsMe: shot.targetId === myPlayerId,
             selfShot: shot.targetId === shot.shooterId,
-            eliminated: (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0,
+            eliminated,
           });
+          // Someone just lost their last life: their own, bigger moment.
+          if (eliminated)
+            return (
+              <EliminationBanner
+                key={playingShot.id}
+                name={nameFor(shot.targetId)}
+                isMe={shot.targetId === myPlayerId}
+                whoHtml={outcome.actionLine}
+                onContinue={director.finish}
+              />
+            );
           return (
             <ResultBanner
               key={playingShot.id}
@@ -287,6 +289,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           return (
             <ResultBanner
               key={playingItem.id}
+              compact
               tone={line.cls === "danger" ? "live" : "blank"}
               big={itemBannerTitle(itemBanner.item)}
               subHtml={line.text}
@@ -325,6 +328,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           roundNumber={round.roundNumber}
           liveCount={round.liveCount}
           blankCount={round.blankCount}
+          chests={ownChest(round.roundNumber, myPlayer)}
           sfx={sfx}
           onDone={onOverlayDone}
         />
@@ -332,7 +336,8 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
 
       {showWinner && round.winnerRoomId && (
         <EndScreen
-          title={round.winnerRoomId === myPlayerId ? "Ganaste" : `Ganó ${nameFor(round.winnerRoomId)}`}
+          winnerName={nameFor(round.winnerRoomId)}
+          isMe={round.winnerRoomId === myPlayerId}
           sub={round.winnerRoomId === myPlayerId ? "Última persona en la mesa." : "La recámara no perdona."}
         >
           {isHost ? (

@@ -1,9 +1,30 @@
 @media (prefers-reduced-motion: reduce) {
-  .recamara .token.targetable,
   .recamara .round-overlay-title,
   .recamara .token-items.dealt,
   .recamara .result-banner,
   .recamara .end-panel,
+  .recamara .token.active,
+  .recamara .token.active .token-name,
+  .recamara .chest,
+  .recamara .chest-body-wrap,
+  .recamara .chest-body-wrap.jolt .chest-lid,
+  .recamara .chest-glow,
+  .recamara .chest-prize,
+  .recamara .chest-prize-rays,
+  .recamara .chest-slot.filled,
+  .recamara .elim-overlay,
+  .recamara .elim-flash,
+  .recamara .elim-card,
+  .recamara .elim-skull,
+  .recamara .elim-title,
+  .recamara .elim-name,
+  .recamara .elim-who,
+  .recamara .seat.eliminated .token,
+  .recamara .rec-overlay.winner-overlay,
+  .recamara .end-rays,
+  .recamara .end-trophy,
+  .recamara .end-panel .end-title,
+  .recamara .end-winner,
   .recamara .shotgun.recoil,
   .recamara .shotgun.aiming,
   .recamara .gun-smoke i,
@@ -14,33 +35,36 @@
   .recamara .spent-shell,
   .recamara .phase-flip .reload-shell,
   .recamara .phase-shuffle .reload-shell,
-  .recamara .item-fx-saw,
-  .recamara .item-fx-spark,
+  .recamara .saw-on-gun-blade,
+  .recamara .saw-spark,
+  .recamara .life-dot.burst,
   .recamara .lens-ring,
-  .recamara .item-fx-puff,
-  .recamara .item-fx-life,
+  .recamara .card-smoke i,
+  .recamara .life-dot.regen,
   .recamara .shotgun-muzzle-fire.flash,
   .recamara .direction-ring,
   .recamara .log .line,
-  .recamara .rec-modal-icon.activating,
-  .recamara .tray-item[data-tooltip]:hover::after,
-  .recamara .tray-item[data-tooltip]:focus-visible::after {
+  .recamara .rec-modal-icon.activating {
     animation: none !important;
   }
   .recamara .gun-aim,
   .recamara .shotgun-barrel,
   .recamara .shotgun-muzzle,
-  .recamara .reload-shell,
-  .recamara .chamber-minis .mini {
+  .recamara .reload-shell {
     transition: none !important;
-  }
-  /* The pulse is how you tell who you can shoot — keep it, just static. */
-  .recamara .token.targetable {
-    border-color: var(--rec-blank);
   }
   /* No fade: the old casing just goes. */
   .recamara .spent-shell.fading {
     display: none;
+  }
+  /* Falling shells would just sit hidden above the top edge. */
+  .recamara .end-confetti {
+    display: none;
+  }
+  /* The knocked-out card still reads as out, just without the fall. */
+  .recamara .seat.eliminated .token {
+    filter: grayscale(1) brightness(0.6);
+    opacity: 0.55;
   }
   /* Keep the final frame of reveals that would otherwise stay hidden. */
   .recamara .lens-real {

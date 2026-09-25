@@ -1,15 +1,17 @@
 import { describe, test, expect, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocalGame } from "../LocalGame";
 
 // Every round opens with the round overlay over the table (RoundOverlay):
 // "RONDA N", the chamber's shells shown, flipped, shuffled and loaded, then
-// it lifts by itself and the duel goes on underneath. Waits it out under
-// fake timers.
+// — after a reload — each player's item chest, tapped open, and it lifts
+// and the duel goes on underneath. Waits it out under fake timers.
 async function waitOutRoundOverlay() {
-  for (let i = 0; i < 20 && document.querySelector(".round-overlay"); i++) {
-    await vi.advanceTimersByTimeAsync(1000);
+  for (let i = 0; i < 40 && document.querySelector(".round-overlay"); i++) {
+    const chest = document.querySelector<HTMLButtonElement>(".chest-box");
+    if (chest) fireEvent.click(chest);
+    await vi.advanceTimersByTimeAsync(chest ? 700 : 1000);
   }
   if (document.querySelector(".round-overlay")) throw new Error("round overlay never lifted");
 }
@@ -54,7 +56,7 @@ describe("Recámara LocalGame", () => {
     render(<LocalGame />);
 
     await startGame(user);
-    expect(screen.getByText(/Te toca/)).toBeInTheDocument();
+    expect(document.querySelectorAll(".token.active")).toHaveLength(1);
     expect(document.querySelector(".spent-shell")).not.toBeInTheDocument();
 
     for (let i = 0; i < 60; i++) {
@@ -68,9 +70,15 @@ describe("Recámara LocalGame", () => {
       // the result banner is dismissed.
       await vi.advanceTimersByTimeAsync(2000);
       expect(document.querySelector(".spent-shell")).toBeInTheDocument();
-      // The verdict in big letters, who shot whom above it.
-      expect(document.querySelector(".result-banner-big")?.textContent).toMatch(/^(REAL|FALSA)$/);
-      expect(document.querySelector(".result-banner-who")?.textContent).toMatch(/dispara/);
+      // The verdict in big letters, who shot whom above it — or, for the
+      // shot that takes someone's last life, the elimination instead.
+      if (document.querySelector(".elim-overlay")) {
+        expect(document.querySelector(".elim-title")?.textContent).toBe("Eliminado");
+        expect(document.querySelector(".result-banner")).not.toBeInTheDocument();
+      } else {
+        expect(document.querySelector(".result-banner-big")?.textContent).toMatch(/^(REAL|FALSA)$/);
+      }
+      expect(document.querySelector(".result-banner-who, .elim-who")?.textContent).toMatch(/dispara/);
       await user.click(screen.getByRole("button", { name: "Continuar" }));
       // The end screen (if this was the fatal shot) fades in after a short
       // delay instead of popping immediately — see showWinner.
@@ -98,7 +106,6 @@ describe("Recámara LocalGame", () => {
 
     await waitOutRoundOverlay();
     expect(screen.getByRole("button", { name: "Dispararme a mí" })).toBeInTheDocument();
-    expect(screen.getByText(/Te toca/)).toBeInTheDocument();
   }, 20000);
 
   test("after a reload, the new items are dealt onto the cards once the overlay lifts", async () => {

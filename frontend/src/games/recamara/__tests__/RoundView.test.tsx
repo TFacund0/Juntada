@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 import { RoundView } from "../RoundView";
@@ -93,8 +93,8 @@ describe("Recámara RoundView — round overlay", () => {
     await vi.advanceTimersByTimeAsync(OVERLAY_MS);
     expect(document.querySelector(".round-overlay")).not.toBeInTheDocument();
     expect(send).toHaveBeenCalledWith({ type: "ready_for_duel" });
-    // Still the reveal phase server-side: waiting for everyone else.
-    expect(document.querySelector(".scene-status")).toHaveTextContent("Esperando a los demás…");
+    // Still the reveal phase server-side: waiting for everyone else, so no
+    // shooting yet.
     expect(screen.queryByRole("button", { name: "Dispararme a mí" })).not.toBeInTheDocument();
     vi.useRealTimers();
   });
@@ -108,17 +108,32 @@ describe("Recámara RoundView — round overlay", () => {
     await vi.advanceTimersByTimeAsync(OVERLAY_MS);
     expect(document.querySelector(".round-overlay")).not.toBeInTheDocument();
     expect(send).not.toHaveBeenCalled();
-    expect(document.querySelector(".scene-status")).toHaveTextContent("Quedaste afuera. Mirá cómo termina.");
     vi.useRealTimers();
   });
 
-  test("round 2+: items are hidden under the overlay and dealt onto the cards once it lifts", async () => {
+  test("round 2+: after the shells I open my own chest, then items are dealt onto the cards and I report ready", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    renderView({ roundNumber: 2 });
+    const send = vi.fn();
+    renderView({ roundNumber: 2 }, send);
     expect(document.querySelector(".token-items")).not.toBeInTheDocument();
 
-    await vi.advanceTimersByTimeAsync(OVERLAY_MS);
+    // The chamber loads first; the chest only comes after it.
+    expect(document.querySelector(".chest")).not.toBeInTheDocument();
+    for (let i = 0; i < 20 && !document.querySelector(".chest"); i++) await vi.advanceTimersByTimeAsync(500);
+    expect(screen.getByText("Tu caja")).toBeInTheDocument();
+    expect(send).not.toHaveBeenCalled();
+
+    // Jugador 1 (me) got 🔍 and 🚬 this reload — one per tap.
+    fireEvent.click(screen.getByRole("button", { name: "Abrir la caja, 0 de 2" }));
+    expect(screen.getByText("Lupa", { selector: ".chest-prize-name" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir la caja, 1 de 2" }));
+    expect(screen.getByText("Cigarrillo", { selector: ".chest-prize-name" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(document.querySelector(".round-overlay")).not.toBeInTheDocument();
     expect(document.querySelectorAll(".token-items.dealt")).toHaveLength(2);
+    expect(send).toHaveBeenCalledWith({ type: "ready_for_duel" });
     vi.useRealTimers();
   });
 
@@ -138,12 +153,12 @@ describe("Recámara RoundView — duel", () => {
     const send = vi.fn();
     render(<RoundView room={duelRoom()} me={meP1} myPlayer={myPlayerP1} myRole={null} wordReveal={null} isHost={true} send={send} />);
 
-    expect(screen.getByText(/Te toca/)).toBeInTheDocument();
+    expect(document.querySelector(".token.active")).toHaveTextContent("Vos");
     await user.click(screen.getByRole("button", { name: "Dispararme a mí" }));
     expect(send).toHaveBeenCalledWith({ type: "fire", targetId: "p1" });
   });
 
-  test("it's not my turn: fire controls are hidden, rivals aren't targets, and the status says whose turn it is", () => {
+  test("it's not my turn: fire controls are hidden, rivals aren't targets, and only the current player's card glows", () => {
     render(
       <RoundView
         room={duelRoom({ state: { ...makeRound().state, turnPos: 1 } })}
@@ -157,8 +172,12 @@ describe("Recámara RoundView — duel", () => {
     );
 
     expect(screen.queryByRole("button", { name: "Dispararme a mí" })).not.toBeInTheDocument();
+    // Its place is held by a waiting message, so the page doesn't jump.
+    expect(screen.getByText("Esperando tu turno…")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Dispararle a/ })).not.toBeInTheDocument();
-    expect(document.querySelector(".scene-status")).toHaveTextContent("Turno de Jugador 2…");
+    const active = document.querySelectorAll(".token.active");
+    expect(active).toHaveLength(1);
+    expect(active[0]).toHaveTextContent("Jugador 2");
   });
 
   test("a pending fire event plays out the aim/shot/banner sequence before the real post-shot state shows", async () => {
@@ -217,7 +236,8 @@ describe("Recámara RoundView — duel", () => {
     expect(document.querySelector(".result-banner-sub")?.textContent).toBe("Perdés 1 vida");
 
     await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(screen.getByRole("button", { name: "Continuar" }));
-    expect(document.querySelector(".scene-status")).toHaveTextContent("Turno de Jugador 2…");
+    expect(document.querySelector(".token.active")).toHaveTextContent("Jugador 2");
+    expect(screen.queryByRole("button", { name: "Dispararme a mí" })).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 
@@ -296,6 +316,36 @@ describe("Recámara RoundView — duel", () => {
     expect(livesOf("Vos")).toBe("4 de 5 vidas");
     expect(livesOf("Jugador 2")).toBe("4 de 5 vidas");
     expect(document.querySelector(".token.active")).toHaveTextContent("Vos");
+    vi.useRealTimers();
+  });
+
+  test("the shot that takes someone's last life plays the elimination instead of the ordinary banner", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const renderRound = (round: ReturnType<typeof makeRound>) => (
+      <RoundView
+        room={{ ...makeRoom(), round }}
+        me={meP1}
+        myPlayer={myPlayerP1}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />
+    );
+    const { rerender } = render(renderRound({ ...shotRound(0, "p1", "p1", [5, 1], 0), pendingFire: null }));
+    await vi.advanceTimersByTimeAsync(0);
+
+    rerender(renderRound(shotRound(1, "p1", "p2", [5, 0], 0)));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(document.querySelector(".result-banner")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveClass("elim-overlay");
+    expect(screen.getByText("Eliminado")).toBeInTheDocument();
+    expect(screen.getByText("Jugador 2", { selector: ".elim-name" })).toBeInTheDocument();
+    expect(document.querySelector(".seat.eliminated")).toHaveTextContent("Jugador 2");
+
+    await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(screen.getByRole("button", { name: "Continuar" }));
+    expect(document.querySelector(".elim-overlay")).not.toBeInTheDocument();
+    expect(livesOf("Jugador 2")).toBe("0 de 5 vidas");
     vi.useRealTimers();
   });
 

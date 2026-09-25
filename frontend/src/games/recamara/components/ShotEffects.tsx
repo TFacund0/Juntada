@@ -9,7 +9,19 @@ export function ShotEffects({ shot, fireStage }: { shot: PlayingFx | null; fireS
   return (
     <>
       <div className="shot-flash" aria-hidden="true" />
-      {shot.targetIsMe && <div className="shot-hurt" aria-hidden="true" />}
+      {shot.targetIsMe && (
+        <div className="shot-hurt" aria-hidden="true">
+          {/* The reference's cracks across the vignette. */}
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path
+              d="M0 18 L14 24 L9 33 L22 41 M100 70 L84 66 L88 56 L74 50 M70 0 L66 12 L76 17"
+              stroke="rgba(255,255,255,.35)"
+              strokeWidth=".5"
+              fill="none"
+            />
+          </svg>
+        </div>
+      )}
     </>
   );
 }

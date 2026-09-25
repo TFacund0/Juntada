@@ -11,8 +11,13 @@ export interface PlayingFx {
   id: number;
   kind: "shot" | "item";
   shellKind?: ShellKind;
-  // Engine id of the shot's target.
+  // Engine id of the shot's target, and how many lives a live shell takes.
   targetId?: number;
+  damage?: number;
+  // A live shell that takes the target's last life.
+  eliminates?: boolean;
+  // Engine id of whoever used the item.
+  actorId?: number;
   // Online only: aimed at / used by this device's player. Local play has no
   // "me", so these stay false there.
   targetIsMe?: boolean;
@@ -32,6 +37,11 @@ function didHeal(healedTo: number | undefined, livesBefore: number | undefined):
   return healedTo != null && livesBefore != null && healedTo > livesBefore;
 }
 
+// Against the lives still on screen (the pre-shot state).
+function eliminates(shellKind: ShellKind, damage: number, livesBefore: number | undefined): boolean {
+  return shellKind === "live" && livesBefore != null && livesBefore > 0 && livesBefore - damage <= 0;
+}
+
 interface OnlineContext {
   seatOrder: string[];
   // The state still on screen, i.e. right before this event.
@@ -46,11 +56,14 @@ export function onlinePlayingFx(event: PlayingEvent<unknown, PendingFire, LastIt
   if (!event) return null;
   if (event.kind === "shot") {
     const shot = event.payload;
+    const targetId = ctx.seatOrder.indexOf(shot.targetId);
     return {
       id: event.id,
       kind: "shot",
       shellKind: shot.shellKind,
-      targetId: ctx.seatOrder.indexOf(shot.targetId),
+      targetId,
+      damage: shot.damage,
+      eliminates: eliminates(shot.shellKind, shot.damage, ctx.players.find(p => p.id === targetId)?.lives),
       targetIsMe: shot.targetId === ctx.myPlayerId,
     };
   }
@@ -63,6 +76,7 @@ export function onlinePlayingFx(event: PlayingEvent<unknown, PendingFire, LastIt
     id: event.id,
     kind: "item",
     item: used.item,
+    actorId: ctx.seatOrder.indexOf(used.playerId),
     actorIsMe,
     actorName: ctx.nameFor(used.playerId),
     revealedShellKind: actorIsMe && lupa?.seq === used.seq ? lupa.shellKind : null,
@@ -76,7 +90,15 @@ export function localPlayingFx(
 ): PlayingFx | null {
   if (!event) return null;
   if (event.kind === "shot") {
-    return { id: event.id, kind: "shot", shellKind: event.payload.result.shellKind, targetId: event.payload.result.targetId };
+    const { result } = event.payload;
+    return {
+      id: event.id,
+      kind: "shot",
+      shellKind: result.shellKind,
+      targetId: result.targetId,
+      damage: result.damage,
+      eliminates: eliminates(result.shellKind, result.damage, players.find(p => p.id === result.targetId)?.lives),
+    };
   }
   const used = event.payload;
   // Pass-and-play: the device is in the user's hands, so they see it.
@@ -84,6 +106,7 @@ export function localPlayingFx(
     id: event.id,
     kind: "item",
     item: used.item,
+    actorId: used.playerId,
     actorIsMe: true,
     actorName: players.find(p => p.id === used.playerId)?.name,
     revealedShellKind: used.revealedShellKind ?? null,

@@ -31,6 +31,22 @@
   --color-jt-accent-border-soft: var(--jt-accent-border-soft);
 }
 
+/* Recámara's palette. Its --rec-* variables live on the game's .recamara
+   root, not on :root, so these are `inline`: each utility emits
+   var(--rec-*) itself and resolves it where it's used — a plain @theme
+   alias would resolve (to nothing) on :root. */
+@theme inline {
+  --color-rec-ink: var(--rec-ink);
+  --color-rec-ink-dim: var(--rec-ink-dim);
+  --color-rec-ink-faint: var(--rec-ink-faint);
+  --color-rec-bg-raised: var(--rec-bg-raised);
+  --color-rec-hair: var(--rec-hair);
+  --color-rec-blank: var(--rec-blank);
+  --color-rec-live-glow: var(--rec-live-glow);
+  --color-rec-gold: #ffd75a;
+  --color-rec-brass: #c89a45;
+}
+
 /* Usado por OfflineScreen.tsx (animate-[jt-offline-screen-fade-in_...]) —
    Tailwind's arbitrary `animate-[name_...]` utility only sets the
    animation-name/timing, no genera el @keyframes en sí. */

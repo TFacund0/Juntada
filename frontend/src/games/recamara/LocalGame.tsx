@@ -21,7 +21,9 @@ import { PlayerItemsSheet } from "./components/PlayerItemsSheet";
 import { ItemUseModal } from "./components/ItemUseModal";
 import { ResultBanner } from "./components/ResultBanner";
 import { RoundOverlay } from "./components/RoundOverlay";
+import { localChests } from "./utils/chests";
 import { EndScreen } from "./components/EndScreen";
+import { EliminationBanner } from "./components/EliminationBanner";
 import { ItemEffect } from "./components/ItemEffect";
 import { DuelScene } from "./components/DuelScene";
 import { frontAngle, seatAngle, shortestGunAngle } from "./utils/arena";
@@ -31,9 +33,6 @@ import { useLogVisible } from "./hooks/logVisibility";
 import { useEventDirector } from "./hooks/eventDirector";
 import { useRecamaraSfx } from "./hooks/recamaraSfx";
 import { useEventSfx } from "./hooks/eventSfx";
-import { useKnownShell } from "./hooks/knownShell";
-import { statusLine } from "./utils/statusLine";
-import { aimingAt, shellsLeft } from "./utils/scene";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RECÁMARA — un solo dispositivo, pasándoselo por turnos.
@@ -114,7 +113,6 @@ export function LocalGame() {
   const sfx = useRecamaraSfx();
   const fx = localPlayingFx(director.current, gameState?.players ?? []);
   useEventSfx(fx, shotAnim.fireStage, sfx);
-  const known = useKnownShell(fx, roundNumber);
 
   useEffect(() => {
     if (!winner || busy) {
@@ -318,18 +316,10 @@ export function LocalGame() {
           onSelectPlayer: setSheetPlayerId,
           onFire: canShoot ? fire : undefined,
           hideItems: showOverlay,
+          itemActivating: director.stage === "item-activating",
           dealtRound: roundNumber > 1 ? roundNumber : undefined,
         }}
         roundNumber={roundNumber}
-        shellsTotal={state.shells.length}
-        shellsLeft={shellsLeft(state.shells, fx, shotAnim.fireStage)}
-        known={known}
-        status={statusLine({
-          currentName: current.name,
-          currentIsMe: false,
-          passAndPlay: true,
-          aiming: fx?.kind === "shot" ? aimingAt(fx, state.players, currentId) : null,
-        })}
         canShoot={canShoot}
         onSelfFire={() => fire(current.id)}
         items={phase === "duel" ? current.items : null}
@@ -356,6 +346,7 @@ export function LocalGame() {
           const targetBefore = pendingFire.playersBefore.find(p => p.id === pendingFire.result.targetId);
           const targetAfter = pendingFire.result.state.players.find(p => p.id === pendingFire.result.targetId);
           const { result, playersBefore } = pendingFire;
+          const eliminated = (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0;
           const banner = shotBanner({
             shellKind: result.shellKind,
             damage: result.damage,
@@ -364,8 +355,19 @@ export function LocalGame() {
             targetName: targetBefore?.name ?? "",
             targetIsMe: false,
             selfShot: result.targetId === result.shooterId,
-            eliminated: (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0,
+            eliminated,
           });
+          // Someone just lost their last life: their own, bigger moment.
+          if (eliminated)
+            return (
+              <EliminationBanner
+                key={playingShot.id}
+                name={targetBefore?.name ?? ""}
+                isMe={false}
+                whoHtml={outcome.actionLine}
+                onContinue={continueAfterFire}
+              />
+            );
           return (
             <ResultBanner
               key={playingShot.id}
@@ -385,6 +387,7 @@ export function LocalGame() {
           return (
             <ResultBanner
               key={playingItem.id}
+              compact
               tone={line.cls === "danger" ? "live" : "blank"}
               big={itemBannerTitle(playingItem.payload.item)}
               subHtml={line.text}
@@ -423,13 +426,14 @@ export function LocalGame() {
           roundNumber={roundNumber}
           liveCount={state.shells.filter(s => s.kind === "live").length}
           blankCount={state.shells.filter(s => s.kind === "blank").length}
+          chests={localChests(roundNumber, state.order, state.players)}
           sfx={sfx}
           onDone={() => enterDuel(state)}
         />
       )}
 
       {showWinner && winner && (
-        <EndScreen title={`Ganó ${winner.name}`} sub="Última persona en la mesa.">
+        <EndScreen winnerName={winner.name} isMe={false} sub="Última persona en la mesa.">
           <div className="controls">
             <button className="act primary" onClick={playAgain}>
               Jugar de nuevo

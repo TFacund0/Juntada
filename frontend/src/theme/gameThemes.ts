@@ -73,7 +73,6 @@ export const GAME_THEMES: Record<string, GameTheme> = {
     accentStrong: "#ff4d3d",
     surface: "#211b16",
     muted: "#9a9082",
-    backdropEmoji: "💀",
   },
   // Tomado del propio logo/arte de fondo del juego (una máscara blanca vs.
   // una máscara negra con un ojo rojo, sobre negro, con un anillo rojo).

@@ -164,7 +164,13 @@
   }
 }
 
-/* Only when the live shell hit this device's player. */
+/* Only when the live shell hit this device's player: a red vignette with
+   a few cracks across it (see ShotEffects). */
+.recamara .shot-hurt svg {
+  width: 100%;
+  height: 100%;
+}
+
 .recamara .shot-hurt {
   z-index: 59;
   opacity: 0;
@@ -190,9 +196,9 @@
   position: absolute;
   left: var(--x);
   top: var(--y);
-  width: 9px;
-  height: 22px;
-  border-radius: 3px 3px 2px 2px;
+  width: 6px;
+  height: 15px;
+  border-radius: 2px 2px 1px 1px;
   z-index: 1;
   box-shadow: 0 3px 4px rgba(0, 0, 0, 0.55);
   transform: translate(-50%, -50%) translateZ(2px) rotate(var(--rot));
@@ -370,45 +376,6 @@
   color: var(--rec-ink-faint);
 }
 
-/* 🪚 sawing back and forth, throwing sparks all around. */
-.recamara .item-fx-saw {
-  font-size: 44px;
-  animation: rec-saw 0.14s ease-in-out 8 alternate;
-}
-
-@keyframes rec-saw {
-  from {
-    transform: translateX(-10px) rotate(-8deg);
-  }
-  to {
-    transform: translateX(10px) rotate(4deg);
-  }
-}
-
-.recamara .item-fx-spark {
-  position: absolute;
-  left: 50%;
-  top: 60%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #ffd36b;
-  box-shadow: 0 0 6px #ffb02e;
-  opacity: 0;
-  animation: rec-spark 0.5s ease-out var(--d) 2;
-}
-
-@keyframes rec-spark {
-  0% {
-    opacity: 1;
-    transform: rotate(var(--a)) translateX(0);
-  }
-  100% {
-    opacity: 0;
-    transform: rotate(var(--a)) translateX(46px);
-  }
-}
-
 /* 🔍 the ring slides over the face-down shell; only the item's user gets
    the real one revealed under it. */
 .recamara .item-fx-stage.lens .lens-shell {
@@ -450,20 +417,74 @@
   }
 }
 
-/* 🚬 smoke rising, and the life it gives back popping in. */
-.recamara .item-fx-cig {
-  font-size: 44px;
+/* ───────── Items on the table (SceneItemFx) ───────── */
+
+/* 🪚 working on the gun at the barrel's cut point (x=171 of the 220-unit
+   viewBox), turning with the gun since it lives inside .gun-aim. */
+.recamara .saw-on-gun {
+  position: absolute;
+  left: 77.7%;
+  top: 50%;
+  pointer-events: none;
+  transform-style: preserve-3d;
 }
 
-.recamara .item-fx-puff {
+.recamara .saw-on-gun-blade {
+  position: absolute;
+  font-size: 30px;
+  line-height: 1;
+  transform: translate(-50%, -80%);
+  animation: rec-saw 0.14s ease-in-out 8 alternate;
+}
+
+@keyframes rec-saw {
+  from {
+    transform: translate(-50%, -80%) translateX(-10px) rotate(-8deg);
+  }
+  to {
+    transform: translate(-50%, -80%) translateX(10px) rotate(4deg);
+  }
+}
+
+.recamara .saw-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: #ffd36b;
+  box-shadow: 0 0 6px #ffb02e;
+  opacity: 0;
+  animation: rec-spark 0.5s ease-out var(--d) both;
+}
+
+@keyframes rec-spark {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateX(40px);
+  }
+}
+
+/* 🚬 smoke rising off its user's card. */
+.recamara .card-smoke {
   position: absolute;
   left: 50%;
-  top: 30%;
-  width: 22px;
-  height: 22px;
-  margin-left: -11px;
+  top: 10px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.recamara .card-smoke i {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(210, 200, 190, 0.55), transparent 70%);
+  background: radial-gradient(circle, rgba(210, 200, 190, 0.6), transparent 70%);
   opacity: 0;
   animation: rec-puff 1.2s ease-out var(--d) forwards;
 }
@@ -475,23 +496,16 @@
   }
   100% {
     opacity: 0;
-    transform: translate(var(--dx), -54px) scale(2.2);
+    transform: translate(var(--dx), -60px) scale(2.2);
   }
 }
 
-.recamara .item-fx-life {
-  position: absolute;
-  right: 6px;
-  bottom: 10px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid var(--rec-live);
-  background: radial-gradient(circle at 35% 30%, var(--rec-live-glow), var(--rec-live) 70%);
-  animation: rec-life-pop 0.5s ease-out 0.7s both;
+/* The life it gives back pops into the card's own dots. */
+.recamara .life-dot.regen {
+  animation: rec-life-regen 0.5s ease-out 0.7s both;
 }
 
-@keyframes rec-life-pop {
+@keyframes rec-life-regen {
   0% {
     transform: scale(0);
     filter: brightness(2.5);
@@ -503,5 +517,26 @@
   100% {
     transform: scale(1);
     filter: none;
+  }
+}
+
+/* A live hit: the lives it takes flare and burst off the target's card. */
+.recamara .life-dot.burst {
+  animation: rec-life-burst 0.52s ease-out forwards;
+}
+
+@keyframes rec-life-burst {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(1.9);
+    filter: brightness(2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.2);
+    opacity: 0;
   }
 }

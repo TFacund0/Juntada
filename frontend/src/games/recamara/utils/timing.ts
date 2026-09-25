@@ -36,3 +36,10 @@ export const ROUND_OUTRO_MS = 450;
 // its own result), and it moves on by itself after BANNER_AUTO_MS.
 export const BANNER_TAP_GUARD_MS = 350;
 export const BANNER_AUTO_MS = 2600;
+// A shot that eliminates someone gets its own, longer beat (EliminationBanner).
+export const ELIMINATION_AUTO_MS = 3800;
+// The item chest after a reload (see ItemChest): it opens the next item by
+// itself if nobody taps for CHEST_IDLE_MS, and moves on CHEST_DONE_AUTO_MS
+// after the last one is out.
+export const CHEST_IDLE_MS = 6000;
+export const CHEST_DONE_AUTO_MS = 2400;

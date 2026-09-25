@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { BANNER_AUTO_MS, BANNER_TAP_GUARD_MS } from "../utils/timing";
+import { useBannerDismiss } from "../hooks/bannerDismiss";
+import { BANNER_AUTO_MS } from "../utils/timing";
 
 interface ResultBannerProps {
   tone: "live" | "blank";
@@ -11,46 +11,20 @@ interface ResultBannerProps {
   subHtml?: string;
   // Who shot whom / who used what, as the engine phrases it (escaped HTML).
   whoHtml?: string;
+  // Items: a smaller headline — their titles and descriptions run longer
+  // than a shot's one-word REAL/FALSA.
+  compact?: boolean;
   onContinue: () => void;
 }
 
 // The verdict over the table (the reference's #banner): no modal — the table
-// stays visible behind it. Tapping anywhere or pressing a key moves on
-// (after a short guard, so the tap that fired the shot doesn't also skip its
-// result), and it moves on by itself after BANNER_AUTO_MS. Every path goes
-// through the same once-only finish: a tap on the button would otherwise
-// count twice (pointerdown, then click) and skip the next queued event.
-export function ResultBanner({ tone, big, sub, subHtml, whoHtml, onContinue }: ResultBannerProps) {
-  const latest = useRef(onContinue);
-  useEffect(() => {
-    latest.current = onContinue;
-  });
-  const done = useRef(false);
-  const finish = useRef(() => {
-    if (done.current) return;
-    done.current = true;
-    latest.current();
-  }).current;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " " || e.key === "Escape") finish();
-    };
-    const guard = setTimeout(() => {
-      window.addEventListener("pointerdown", finish);
-      window.addEventListener("keydown", onKey);
-    }, BANNER_TAP_GUARD_MS);
-    const auto = setTimeout(finish, BANNER_AUTO_MS);
-    return () => {
-      clearTimeout(guard);
-      clearTimeout(auto);
-      window.removeEventListener("pointerdown", finish);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [finish]);
+// stays visible behind it. Moves on with a tap/key or by itself after
+// BANNER_AUTO_MS (see useBannerDismiss).
+export function ResultBanner({ tone, big, sub, subHtml, whoHtml, compact = false, onContinue }: ResultBannerProps) {
+  const finish = useBannerDismiss(onContinue, BANNER_AUTO_MS);
 
   return (
-    <div className={`result-banner ${tone}`} role="status" aria-live="assertive">
+    <div className={`result-banner ${tone}${compact ? " compact" : ""}`} role="status" aria-live="assertive">
       {whoHtml && <p className="result-banner-who" dangerouslySetInnerHTML={{ __html: whoHtml }} />}
       <p className={`result-banner-big display ${tone}`}>{big}</p>
       {subHtml != null ? (

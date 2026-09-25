@@ -5,15 +5,23 @@ interface PlayerTokenProps {
   isActive: boolean;
   // This device's own seat (online) — its card gets its own border.
   isYou?: boolean;
-  // It's your turn and this rival can be shot: the card pulses and tapping
-  // it fires (the reference's "tocá a un rival"). Its accessible name then
-  // says so, since the tap now shoots instead of opening the item sheet.
+  // It's your turn and this rival can be shot: tapping the card fires (the
+  // reference's "tocá a un rival"). Its accessible name then says so, since
+  // the tap now shoots instead of opening the item sheet.
   targetable?: boolean;
   // While the round overlay covers the table the items stay hidden; once it
   // lifts they're "dealt" onto the card with a pop (the reference's reload
   // ending) — keyed by round so each reload replays it.
   hideItems?: boolean;
   dealtRound?: number;
+  // How many of the remaining lives are being shot off right now (they
+  // burst), and whether a life is being smoked back (it pops in).
+  losing?: number;
+  regen?: boolean;
+  // The effect already played and its banner is up: show its outcome as is
+  // (the lost lives gone, the smoked one back), no animation — the state on
+  // screen is still the pre-event one until the banner is dismissed.
+  settled?: boolean;
   onClick: () => void;
 }
 
@@ -27,6 +35,9 @@ export function PlayerToken({
   targetable = false,
   hideItems = false,
   dealtRound,
+  losing = 0,
+  regen = false,
+  settled = false,
   onClick,
 }: PlayerTokenProps) {
   const isDead = player.lives <= 0;
@@ -42,9 +53,13 @@ export function PlayerToken({
         {player.name}
       </span>
       <span className="token-lives" role="img" aria-label={`${player.lives} de ${STARTING_LIVES} vidas`}>
-        {Array.from({ length: STARTING_LIVES }).map((_, i) => (
-          <i key={i} className={`life-dot${i >= player.lives ? " spent" : ""}`} />
-        ))}
+        {Array.from({ length: STARTING_LIVES }).map((_, i) => {
+          const regenDot = regen && i === player.lives;
+          const losingDot = !regenDot && i < player.lives && i >= player.lives - losing;
+          const spent = (i >= player.lives && !regenDot) || (settled && losingDot);
+          const cls = spent ? " spent" : settled ? "" : losingDot ? " burst" : regenDot ? " regen" : "";
+          return <i key={i} className={`life-dot${cls}`} />;
+        })}
       </span>
       {!hideItems && player.items.length > 0 && (
         <span key={dealtRound} className={`token-items${dealtRound ? " dealt" : ""}`}>

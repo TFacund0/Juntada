@@ -4,7 +4,8 @@ import { itemBannerTitle, shotBanner } from "../utils/banners";
 import { ResultBanner } from "../components/ResultBanner";
 import { RoundOverlay } from "../components/RoundOverlay";
 import { EndScreen } from "../components/EndScreen";
-import { BANNER_AUTO_MS, BANNER_TAP_GUARD_MS } from "../utils/timing";
+import { EliminationBanner } from "../components/EliminationBanner";
+import { BANNER_AUTO_MS, BANNER_TAP_GUARD_MS, ELIMINATION_AUTO_MS } from "../utils/timing";
 
 const base = {
   shellKind: "live" as const,
@@ -118,14 +119,70 @@ describe("RoundOverlay", () => {
 });
 
 describe("EndScreen", () => {
-  it("shows who won and focuses the first action", () => {
+  it("my own win: ¡Ganaste! with the trophy, and focus on the first action", () => {
     render(
-      <EndScreen title="Ganaste" sub="Última persona en la mesa.">
+      <EndScreen winnerName="Ana" isMe sub="Última persona en la mesa.">
         <button>Volver a la sala</button>
       </EndScreen>,
     );
     expect(screen.getByRole("dialog", { name: "Ganaste" })).toBeInTheDocument();
+    expect(screen.getByText("¡Ganaste!")).toHaveClass("end-title");
+    expect(screen.queryByText("Ana")).not.toBeInTheDocument();
     expect(screen.getByText("Última persona en la mesa.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Volver a la sala" })).toHaveFocus();
+  });
+
+  it("someone else's win names them, over rays and falling shells", () => {
+    render(
+      <EndScreen winnerName="<b>Beto</b>" isMe={false} sub="x">
+        <button>Jugar de nuevo</button>
+      </EndScreen>,
+    );
+    expect(screen.getByRole("dialog", { name: "Ganó <b>Beto</b>" })).toBeInTheDocument();
+    // A player name is text, never markup.
+    expect(screen.getByText("<b>Beto</b>")).toHaveClass("end-winner");
+    expect(document.querySelector(".end-rays")).toBeInTheDocument();
+    expect(document.querySelectorAll(".end-confetti i").length).toBeGreaterThan(0);
+  });
+});
+
+describe("EliminationBanner", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("someone else is out: Eliminado and their name", () => {
+    render(<EliminationBanner name="Tomi" isMe={false} whoHtml="<b>Lucía</b> le dispara a <b>Tomi</b>." onContinue={vi.fn()} />);
+    expect(screen.getByRole("alert")).toHaveClass("elim-overlay");
+    expect(screen.getByText("Eliminado")).toBeInTheDocument();
+    expect(screen.getByText("Tomi", { selector: ".elim-name" })).toBeInTheDocument();
+    expect(document.querySelector(".elim-who")?.textContent).toBe("Lucía le dispara a Tomi.");
+  });
+
+  it("me out: Quedaste afuera, no name", () => {
+    render(<EliminationBanner name="Ana" isMe onContinue={vi.fn()} />);
+    expect(screen.getByText("Quedaste afuera")).toBeInTheDocument();
+    expect(screen.queryByText("Ana")).not.toBeInTheDocument();
+  });
+
+  it("moves on once on a tap", () => {
+    const onContinue = vi.fn();
+    render(<EliminationBanner name="Tomi" isMe={false} onContinue={onContinue} />);
+    act(() => void vi.advanceTimersByTime(BANNER_TAP_GUARD_MS + 10));
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Continuar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+    expect(onContinue).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves on by itself, after a longer beat than an ordinary result", () => {
+    const onContinue = vi.fn();
+    render(<EliminationBanner name="Tomi" isMe={false} onContinue={onContinue} />);
+    act(() => void vi.advanceTimersByTime(BANNER_AUTO_MS + 50));
+    expect(onContinue).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(ELIMINATION_AUTO_MS));
+    expect(onContinue).toHaveBeenCalledTimes(1);
   });
 });
