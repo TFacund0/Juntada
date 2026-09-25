@@ -1,0 +1,318 @@
+/* The duel scene as the reference lays it out (see DuelScene.tsx): no card
+   around it — the table sits in a dim room under a warm lamp — with the
+   title bar, the chamber strip, the narrative status line and the item tray
+   around the table. */
+
+.recamara .duel-scene {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  /* Keeps the room's z-index: -1 backdrop inside the scene instead of
+     behind the app's own background. */
+  isolation: isolate;
+}
+
+/* The room: warm lamp light pooling over the table, fading out to the
+   page's own dark background — no edge, so the scene never reads as a box
+   (the reference's darker vignette is left out for that reason). Sits
+   behind the scene's content and never takes clicks. */
+.recamara .duel-scene::before {
+  content: "";
+  position: absolute;
+  /* Only vertically past the scene: sideways it would overflow narrow
+     screens into a horizontal scrollbar (the glow fades out anyway). */
+  inset: -60px 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 60% 45% at 50% 40%, rgba(255, 214, 150, 0.13), transparent 70%);
+}
+
+/* ───────── Chamber strip ───────── */
+
+.recamara .chamber-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 4px 0;
+}
+
+/* Mute toggle pinned to the left edge; the round (and the 🔍 pill) sit
+   centered between it and the direction tag on the right. */
+.recamara .chamber-strip-left {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+}
+
+.recamara .chamber-strip-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recamara .chamber-round {
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .chamber-strip .sound-toggle {
+  position: static;
+  width: 34px;
+  height: 30px;
+  font-size: 0.95rem;
+  color: var(--rec-ink);
+  border-radius: 8px;
+}
+
+.recamara .chamber-strip .direction-tag {
+  position: absolute;
+  right: 0;
+  color: var(--rec-ink-dim);
+}
+
+/* ───────── Seat cards ───────── */
+
+.recamara .token.you {
+  border-color: #5a6b4a;
+}
+
+/* Your turn: rivals can be shot by tapping their card. No pulse — only the
+   card of whoever's turn it is glows, so the turn never reads ambiguous. */
+.recamara .token.targetable:hover {
+  border-color: var(--rec-blank);
+}
+
+.recamara .token.targetable:focus-visible,
+.recamara .tray-item:focus-visible,
+.recamara .chamber-strip .sound-toggle:focus-visible {
+  outline: 2px solid var(--rec-blank);
+  outline-offset: 2px;
+}
+
+/* ───────── Status + actions ───────── */
+
+.recamara .scene-controls {
+  position: relative;
+  z-index: 2;
+  padding: 6px 0 4px;
+}
+
+/* ───────── Item tray ───────── */
+
+.recamara .item-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+  padding-bottom: 18px;
+}
+
+.recamara .tray-item {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  border: 1px solid var(--rec-hair);
+  background: var(--rec-bg-raised);
+  font-size: 24px;
+  cursor: pointer;
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+
+.recamara .tray-item:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--rec-live);
+}
+
+.recamara .tray-item:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.recamara .tray-item small {
+  position: absolute;
+  bottom: -17px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--rec-ink-faint);
+  white-space: nowrap;
+}
+
+/* ───────── Round overlay (RoundOverlay) ───────── */
+
+/* The reference's #reload: dims the whole table while the chamber is shown
+   and loaded, then lifts off with the duel already underneath. */
+.recamara .round-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--jt-z-fullscreen-flash, 200);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: rgba(10, 7, 5, 0.88);
+  animation: rec-fade-in 0.2s ease-out;
+}
+
+.recamara .round-overlay-title {
+  margin: 0 0 6px;
+  font-size: 3.4rem;
+  line-height: 1;
+  color: var(--rec-ink);
+  animation: rec-round-title-in 0.4s ease-out both;
+}
+
+@keyframes rec-round-title-in {
+  from {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.recamara .reload-legend {
+  min-height: 22px;
+  margin: 0 0 26px;
+  font-size: 0.95rem;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .reload-legend b.live {
+  color: var(--rec-live-glow);
+}
+
+.recamara .reload-legend b.blank {
+  color: var(--rec-blank);
+}
+
+.recamara .reload-hint {
+  min-height: 18px;
+  margin: 26px 0 0;
+  font-size: 0.8rem;
+  color: var(--rec-ink-faint);
+}
+
+/* Items land on the cards with a pop once the overlay lifts. */
+.recamara .token-items.dealt {
+  animation: rec-deal 0.4s ease-out;
+}
+
+@keyframes rec-deal {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ───────── Result banner (ResultBanner) ───────── */
+
+/* The reference's #banner: over the lower part of the table, no dimming —
+   the table stays in view behind it. */
+.recamara .result-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 22%;
+  z-index: var(--jt-z-fullscreen-flash, 200);
+  transform: translateX(-50%);
+  min-width: 220px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 22px 12px;
+  text-align: center;
+  background: rgba(12, 9, 7, 0.92);
+  border: 1px solid var(--rec-hair);
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  animation: rec-banner-in 0.32s ease-out both;
+}
+
+@keyframes rec-banner-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.recamara .result-banner-who {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--rec-ink-dim);
+}
+
+.recamara .result-banner-big {
+  margin: 0;
+  font-size: 2.9rem;
+  line-height: 1;
+}
+
+.recamara .result-banner-big.live {
+  color: var(--rec-live-glow);
+  text-shadow: 0 0 18px rgba(255, 77, 61, 0.5);
+}
+
+.recamara .result-banner-big.blank {
+  color: var(--rec-blank);
+}
+
+.recamara .result-banner-sub {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  color: var(--rec-ink);
+}
+
+/* Item results: a smaller headline and text. */
+.recamara .result-banner.compact {
+  max-width: min(320px, calc(100vw - 32px));
+}
+
+.recamara .result-banner.compact .result-banner-big {
+  font-size: 1.6rem;
+}
+
+.recamara .result-banner.compact .result-banner-sub {
+  font-size: 0.82rem;
+}
+
+.recamara .result-banner-tap {
+  margin-top: 6px;
+  padding: 2px 6px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--rec-ink-faint);
+  cursor: pointer;
+}
+
+.recamara .result-banner-tap:focus-visible {
+  outline: 2px solid var(--rec-blank);
+  outline-offset: 2px;
+}

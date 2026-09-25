@@ -11,13 +11,22 @@ export function seatAngle(order: number[], playerId: number): number {
   return -90 + (360 / order.length) * i;
 }
 
+// Where a seat sits on the table, as a point near its rim. The card that
+// stands there is anchored by its bottom edge and counter-rotated against
+// the table's tilt in CSS (see .seat in arena.css), not here. Standing up,
+// a card reaches about a quarter of the table "back" from its anchor — so
+// every seat is nudged toward the viewer (SEAT_DY) on a flattened ellipse:
+// the far card stays inside the rim instead of poking out past it, and the
+// near one sits on the front edge instead of halfway to the center.
+const SEAT_RX = 44;
+const SEAT_RY = 39;
+const SEAT_DY = 8;
+
 export function seatStyle(order: number[], playerId: number) {
   const rad = (seatAngle(order, playerId) * Math.PI) / 180;
-  const r = 38;
   return {
-    left: `${50 + r * Math.cos(rad)}%`,
-    top: `${50 + r * Math.sin(rad)}%`,
-    transform: "translate(-50%, -50%)",
+    left: `${50 + SEAT_RX * Math.cos(rad)}%`,
+    top: `${50 + SEAT_DY + SEAT_RY * Math.sin(rad)}%`,
   };
 }
 
@@ -46,29 +55,24 @@ export function shortestGunAngle(current: number, target: number): number {
   return next;
 }
 
-// A shuffled row of 🔴/🟡 standing in for the chamber's real/falso split on
-// the round-intro card — never grouped ("all the reds first"), since even
-// though the count itself is public info the *order* still shouldn't read
-// as meaningful (the real shell order stays secret regardless).
-export function shuffledBulletIcons(liveCount: number, blankCount: number): string[] {
-  const icons = [...Array(liveCount).fill("🔴"), ...Array(blankCount).fill("🟡")];
-  for (let i = icons.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [icons[i], icons[j]] = [icons[j], icons[i]];
-  }
-  return icons;
+// Where a spent shell lands after a shot: thrown out of the ejection port,
+// roughly perpendicular to wherever the gun is pointing (the reference's
+// "gunAngle + 90° ± 25°"), a short distance from the center — beside the
+// gun instead of under it. `rot` is how much it tumbles on the way down
+// (see .spent-shell in effects.css).
+export interface ShellSpot {
+  left: number;
+  top: number;
+  rot: number;
 }
 
-// Where the spent shell lands after a shot — somewhere different around the
-// table each time, close to the gun but never exactly on top of it (hence
-// the minimum radius) and never far off either (hence the small max).
-export function randomShellSpot(): { left: number; top: number; rot: number } {
-  const angle = Math.random() * 360;
-  const radius = 16 + Math.random() * 10; // 16%..26% from the arena's center
+export function ejectShellSpot(gunAngle: number, rand: () => number = Math.random): ShellSpot {
+  const angle = gunAngle + 90 + (rand() - 0.5) * 50;
+  const radius = 16 + rand() * 10; // 16%..26% from the table's center
   const rad = (angle * Math.PI) / 180;
   return {
     left: 50 + radius * Math.cos(rad),
     top: 50 + radius * Math.sin(rad),
-    rot: Math.floor(Math.random() * 361) - 180,
+    rot: Math.floor(rand() * 721) - 360,
   };
 }

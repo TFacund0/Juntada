@@ -1,12 +1,19 @@
 /* Recámara's styles, split by area (see css/) instead of one 1300-line
    file — imported in the same order the single file used to have them in,
-   since a couple of rules (.rec-overlay / .rec-overlay-solid in
-   overlays.css) rely on source order for the cascade, not just specificity. */
+   since a few rules rely on source order for the cascade, not just
+   specificity. */
+/* The reference's type: Anton for display titles, Spectral for text.
+   @import must come first; loaded only when Recámara's CSS is. */
+@import url("https://fonts.googleapis.com/css2?family=Anton&family=Spectral:wght@400;600&display=swap");
 @import "./base.css";
 @import "./arena.css";
-@import "./reveal.css";
 @import "./overlays.css";
 @import "./shotgun-banner.css";
 @import "./log-items.css";
 @import "./buttons-endgame.css";
+@import "./effects.css";
+@import "./scene.css";
+@import "./finale.css";
+@import "./chest.css";
+@import "./desktop.css";
 @import "./motion.css";

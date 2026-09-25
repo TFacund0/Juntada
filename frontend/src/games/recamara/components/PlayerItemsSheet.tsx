@@ -6,11 +6,13 @@ interface PlayerItemsSheetProps {
   // else (including peeking at your own items mid-opponent's-turn) gets a
   // read-only look, per "presionando cada jugador podamos ver los items".
   interactive: boolean;
+  // Per item, on top of `interactive`: see ItemTray's isUsable.
+  isUsable?: (item: ItemKind) => boolean;
   onUseItem?: (item: ItemKind) => void;
   onClose: () => void;
 }
 
-export function PlayerItemsSheet({ player, interactive, onUseItem, onClose }: PlayerItemsSheetProps) {
+export function PlayerItemsSheet({ player, interactive, isUsable = () => true, onUseItem, onClose }: PlayerItemsSheetProps) {
   return (
     <div className="rec-overlay rec-overlay-sheet" onClick={onClose}>
       <div className="rec-sheet" onClick={e => e.stopPropagation()}>
@@ -24,18 +26,21 @@ export function PlayerItemsSheet({ player, interactive, onUseItem, onClose }: Pl
           <p className="rec-sheet-empty">No tiene ítems.</p>
         ) : (
           <div className="rec-sheet-grid">
-            {player.items.map((item, i) => (
-              <button
-                key={i}
-                type="button"
-                className={`rec-sheet-item${interactive ? " usable" : ""}`}
-                onClick={() => interactive && onUseItem?.(item)}
-                disabled={!interactive}
-              >
-                <span className="icon">{item}</span>
-                <span className="label">{ITEM_LABEL[item]}</span>
-              </button>
-            ))}
+            {player.items.map((item, i) => {
+              const usable = interactive && isUsable(item);
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className={`rec-sheet-item${usable ? " usable" : ""}`}
+                  onClick={() => usable && onUseItem?.(item)}
+                  disabled={!usable}
+                >
+                  <span className="icon">{item}</span>
+                  <span className="label">{ITEM_LABEL[item]}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

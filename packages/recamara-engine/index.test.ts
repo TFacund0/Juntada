@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildShells,
+  canUseItem,
   createInitialState,
   describeFireOutcome,
   describeItemResult,
@@ -97,6 +98,56 @@ describe("useItem", () => {
     const result = useItem(state, "🧤", { targetId: 999, stolenItem: "🔒" });
     expect(result.victimId).toBe(1);
     expect(result.stolenItem).toBe("🚬");
+  });
+
+  it("🧤 never steals another 🧤: a victim holding only 🧤 has nothing to take", () => {
+    const state = baseState();
+    state.players[0].items = ["🧤"];
+    state.players[1].items = ["🧤", "🚬"];
+    for (let i = 0; i < 20; i++) expect(useItem(state, "🧤").stolenItem).toBe("🚬");
+    // Asking for their 🧤 falls back to something that can be taken.
+    expect(useItem(state, "🧤", { targetId: 1, stolenItem: "🧤" }).stolenItem).toBe("🚬");
+
+    state.players[1].items = ["🧤"];
+    const result = useItem(state, "🧤");
+    expect(result.victimId).toBeNull();
+    expect(result.state.players[1].items).toEqual(["🧤"]);
+  });
+
+  it("🧤 works once per turn: a second one waits for the next turn", () => {
+    const state = baseState();
+    state.players[0].items = ["🧤", "🧤"];
+    state.players[1].items = ["🚬", "🔍"];
+    expect(canUseItem(state, "🧤")).toBe(true);
+    const first = useItem(state, "🧤");
+    expect(first.state.stealUsedThisTurn).toBe(true);
+    expect(canUseItem(first.state, "🧤")).toBe(false);
+    expect(() => useItem(first.state, "🧤")).toThrow();
+    // Other items are still fine this turn.
+    first.state.players[0].items.push("🚬");
+    expect(canUseItem(first.state, "🚬")).toBe(true);
+  });
+
+  it("the steal is back once the turn passes, but not after a blank self-shot (same turn)", () => {
+    const state = baseState();
+    state.players[0].items = ["🧤", "🧤"];
+    state.players[1].items = ["🚬", "🔍"];
+    const used = useItem(state, "🧤").state;
+
+    const blankSelf = { ...used, shells: used.shells.map((s, i) => (i === used.idx ? { ...s, kind: "blank" as const } : s)) };
+    const kept = fireShot(blankSelf, 0).state;
+    expect(kept.turnPos).toBe(used.turnPos);
+    expect(canUseItem(kept, "🧤")).toBe(false);
+
+    const passed = fireShot(blankSelf, 1).state;
+    expect(passed.stealUsedThisTurn).toBe(false);
+  });
+
+  it("canUseItem: only what the current player actually holds", () => {
+    const state = baseState();
+    state.players[0].items = ["🔍"];
+    expect(canUseItem(state, "🔍")).toBe(true);
+    expect(canUseItem(state, "🚬")).toBe(false);
   });
 
   it("🔒 falls back to a random valid target when the requested one is invalid", () => {

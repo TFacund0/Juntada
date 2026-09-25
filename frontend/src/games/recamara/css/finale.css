@@ -1,0 +1,250 @@
+/* The two big moments of a duel: someone losing their last life
+   (EliminationBanner, plus their card knocked over on the table) and the
+   end of the duel (EndScreen). Only gradients, drawings and animations live
+   here — layout and type are Tailwind in the components. */
+
+/* ───────── Elimination ───────── */
+
+.recamara .elim-overlay {
+  background: rgba(30, 4, 4, 0.8);
+  animation: rec-elim-bg 0.7s ease-out both;
+}
+
+@keyframes rec-elim-bg {
+  0% {
+    background: rgba(255, 40, 30, 0.6);
+  }
+  100% {
+    background: rgba(30, 4, 4, 0.8);
+  }
+}
+
+/* A white-hot flash that burns down into red. */
+.recamara .elim-flash {
+  background: radial-gradient(circle at 50% 45%, rgba(255, 240, 220, 0.95), rgba(255, 60, 40, 0.5) 40%, transparent 75%);
+  opacity: 0;
+  animation: rec-elim-flash 0.7s ease-out;
+}
+
+@keyframes rec-elim-flash {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.recamara .elim-card {
+  animation: rec-elim-shake 0.5s ease-out 0.3s both;
+}
+
+@keyframes rec-elim-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  15% {
+    transform: translate(-8px, 4px) rotate(-1.5deg);
+  }
+  30% {
+    transform: translate(7px, -4px) rotate(1.2deg);
+  }
+  50% {
+    transform: translate(-5px, 2px);
+  }
+  70% {
+    transform: translate(3px, -1px);
+  }
+}
+
+/* The skull drops from above and lands hard. */
+.recamara .elim-skull {
+  animation: rec-elim-skull 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes rec-elim-skull {
+  0% {
+    opacity: 0;
+    transform: translateY(-120px) scale(2.2) rotate(-20deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(8px) scale(0.95) rotate(4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* A verdict that slams in, oversized first — shared with the victory. */
+@keyframes rec-slam {
+  0% {
+    opacity: 0;
+    transform: scale(3);
+    letter-spacing: 0.3em;
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    letter-spacing: 0.02em;
+  }
+}
+
+@keyframes rec-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.recamara .elim-title {
+  animation: rec-slam 0.42s cubic-bezier(0.3, 1.6, 0.5, 1) 0.18s both;
+}
+
+.recamara .elim-name {
+  animation: rec-rise-in 0.4s ease-out 0.5s both;
+}
+
+.recamara .elim-who {
+  animation: rec-rise-in 0.4s ease-out 0.7s both;
+}
+
+/* .result-banner-tap sets its own margin (unlayered, so a utility can't
+   override it). */
+.recamara .elim-card .result-banner-tap {
+  margin-top: 16px;
+}
+
+/* On the table, the eliminated player's card is knocked over. */
+.recamara .seat.eliminated .token {
+  animation: rec-card-knockout 0.9s cubic-bezier(0.5, 0, 0.7, 1) 0.15s forwards;
+}
+
+@keyframes rec-card-knockout {
+  0% {
+    transform: none;
+  }
+  25% {
+    transform: translateY(-14px) rotate(-8deg) scale(1.08);
+    filter: brightness(1.6);
+  }
+  100% {
+    transform: translateY(18px) rotate(24deg) scale(0.9);
+    filter: grayscale(1) brightness(0.6);
+    opacity: 0.55;
+  }
+}
+
+/* ───────── Victory ───────── */
+
+/* .rec-overlay is the shared (legacy) overlay rule in overlays.css. */
+.recamara .rec-overlay.winner-overlay {
+  padding: 24px;
+  overflow: hidden;
+  background: rgba(10, 7, 5, 0.9);
+  animation: rec-victory-flash 0.9s ease-out both;
+}
+
+@keyframes rec-victory-flash {
+  0% {
+    background: rgba(255, 215, 90, 0.6);
+  }
+  100% {
+    background: rgba(10, 7, 5, 0.9);
+  }
+}
+
+/* Light rays turning slowly behind the panel. */
+.recamara .end-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 180vmax;
+  height: 180vmax;
+  margin: -90vmax 0 0 -90vmax;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 215, 90, 0.14) 0deg 8deg, transparent 8deg 22deg);
+  mask-image: radial-gradient(circle, black 0%, transparent 55%);
+  animation: rec-rays-spin 24s linear infinite;
+}
+
+@keyframes rec-rays-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Shells raining down like confetti — each one's spot and timing come in
+   as --x/--d/--r/--t from EndScreen. */
+.recamara .end-confetti i {
+  position: absolute;
+  left: var(--x);
+  top: -40px;
+  width: 9px;
+  height: 22px;
+  border-radius: 3px 3px 2px 2px;
+  opacity: 0;
+  animation: rec-confetti var(--t) linear var(--d) infinite;
+}
+
+.recamara .end-confetti i.live {
+  background: linear-gradient(to bottom, var(--rec-live) 0 70%, #c9a45a 70%);
+}
+
+.recamara .end-confetti i.blank {
+  background: linear-gradient(to bottom, var(--rec-blank) 0 70%, #8f7433 70%);
+}
+
+@keyframes rec-confetti {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+  100% {
+    opacity: 0.2;
+    transform: translateY(110vh) rotate(var(--r));
+  }
+}
+
+.recamara .end-panel {
+  animation: rec-end-in 0.4s ease-out both;
+}
+
+@keyframes rec-end-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.recamara .end-trophy {
+  animation: rec-trophy-in 0.7s cubic-bezier(0.2, 1.5, 0.4, 1) 0.2s both;
+}
+
+@keyframes rec-trophy-in {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.3) rotate(-25deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.recamara .end-title {
+  animation: rec-slam 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) 0.45s both;
+}
+
+.recamara .end-winner {
+  animation: rec-rise-in 0.4s ease-out 0.75s both;
+}

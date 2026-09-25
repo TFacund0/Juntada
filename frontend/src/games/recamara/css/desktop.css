@@ -1,0 +1,166 @@
+/* Recámara on a computer screen. Everything else is sized for a phone, which
+   on a desktop left the table as a small island in the middle of the page.
+   From 1024px up the game gets the wide shell (wideRoundView in index.tsx)
+   and this scales the scene to match: a bigger table, bigger cards and
+   type, a bigger tray. The table's size tracks the viewport's height too
+   (--rec-arena), so the whole duel still fits without scrolling on a short
+   laptop screen. Phones never reach this file. */
+
+@media (min-width: 1024px) {
+  .recamara {
+    --rec-arena: min(600px, 68vh);
+  }
+
+  /* The pre-game setup (the player list) stays phone-sized: it isn't built
+     for width. */
+  .recamara:has(> .setup-card) {
+    width: 100%;
+    max-width: 480px;
+    margin-inline: auto;
+  }
+
+  .recamara .duel-scene {
+    max-width: calc(var(--rec-arena) + 280px);
+  }
+
+  /* The tilted table paints well inside its square layout box — measured,
+     the empty band is ~18% of its width above the table and next to
+     nothing below — so pull it up under the strip (the stage takes no
+     clicks), leaving room for the top seat's card (taller once it holds
+     items), and leave the bottom alone. */
+  .recamara .duel-stage {
+    margin: calc(36px - 0.16 * var(--rec-arena)) auto 12px;
+  }
+
+  /* ── Strip above the table ── */
+  .recamara .chamber-strip {
+    min-height: 48px;
+  }
+
+  .recamara .chamber-round {
+    font-size: 1.15rem;
+  }
+
+  .recamara .chamber-strip .sound-toggle {
+    width: 42px;
+    height: 38px;
+    font-size: 1.15rem;
+  }
+
+  .recamara .chamber-strip .direction-tag {
+    font-size: 1.3rem;
+  }
+
+  /* ── Seat cards ── */
+  .recamara .token {
+    width: 108px;
+    gap: 5px;
+    padding: 9px 7px 8px;
+    border-radius: 9px;
+  }
+
+  .recamara .token-name {
+    font-size: 0.84rem;
+  }
+
+  .recamara .token-lives {
+    gap: 4px;
+  }
+
+  .recamara .life-dot {
+    width: 9px;
+    height: 9px;
+  }
+
+  .recamara .token-item {
+    font-size: 0.8rem;
+  }
+
+  .recamara .token-cuffed {
+    font-size: 0.9rem;
+  }
+
+  .recamara .spent-shell {
+    width: 8px;
+    height: 19px;
+  }
+
+  /* ── Below the table ── */
+  .recamara button.act {
+    font-size: 1rem;
+    padding: 12px 22px;
+  }
+
+  /* The self-shot button and the item tray side by side instead of
+     stacked — on a wide screen the height is what's scarce. */
+  .recamara .scene-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px 28px;
+  }
+
+  .recamara .scene-controls .controls {
+    min-height: 48px;
+    margin-top: 0;
+  }
+
+  .recamara .tray-item {
+    width: 66px;
+    height: 66px;
+    font-size: 30px;
+    border-radius: 12px;
+  }
+
+  .recamara .tray-item small {
+    bottom: -20px;
+    font-size: 0.78rem;
+  }
+
+  /* Its labels hang below the buttons; the padding keeps them in the row. */
+  .recamara .item-tray {
+    gap: 12px;
+    margin-top: 0;
+    padding: 0 0 20px;
+    transform: translateY(10px);
+  }
+
+  .recamara .log-toggle {
+    font-size: 0.82rem;
+  }
+
+  .recamara .log .line {
+    font-size: 0.92rem;
+  }
+
+  /* ── Result banner ── */
+  .recamara .result-banner {
+    min-width: 300px;
+    padding: 14px 30px 16px;
+  }
+
+  .recamara .result-banner-who {
+    font-size: 0.95rem;
+  }
+
+  .recamara .result-banner-big {
+    font-size: 3.6rem;
+  }
+
+  .recamara .result-banner-sub {
+    font-size: 1.1rem;
+  }
+
+  .recamara .result-banner.compact {
+    max-width: 380px;
+  }
+
+  .recamara .result-banner.compact .result-banner-big {
+    font-size: 2rem;
+  }
+
+  .recamara .result-banner.compact .result-banner-sub {
+    font-size: 0.95rem;
+  }
+}

@@ -2,3 +2,5 @@ pnpm-lock.yaml
 **/dist/
 **/node_modules/
 frontend/dev-dist/
+# Reference material (third-party mockups) kept byte-for-byte as received.
+docs/referencias/

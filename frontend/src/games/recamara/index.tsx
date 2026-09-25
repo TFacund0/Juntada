@@ -19,13 +19,16 @@ export const recamaraGame: GameDef = {
   minPlayers: 2,
   category: "destacados",
   gameTheme: "recamara",
+  // On a computer screen the duel gets the wide shell (1040px from 1024px
+  // up) and scales its table and cards to it — see css/desktop.css.
+  wideRoundView: true,
   rules: [
     "La recámara se carga con entre 3 y 8 cartuchos, mezcla de reales y falsos en una proporción aleatoria, en un orden que nadie conoce de antemano.",
     "En tu turno, elegís dispararte a vos mismo o a otro jugador.",
     "Cartucho falso: no pasa nada. Si te disparaste a vos mismo con uno falso, seguís jugando el turno.",
     "Cartucho real: quien lo recibe pierde una o más vidas.",
     "Cada vez que se agota la recámara, se recarga y todos los jugadores reciben 2 ítems nuevos al azar.",
-    "Los ítems se usan una sola vez: lupa (ver la bala actual), cigarrillo (curar una vida), sierra (duplicar el daño del próximo disparo real), inversor (cambiar el sentido de los turnos), ladrón (robarle un ítem a otro jugador), teléfono (pista sobre una bala futura) y esposas (el objetivo pierde su próximo turno).",
+    "Los ítems se usan una sola vez: lupa (ver la bala actual), cigarrillo (curar una vida), sierra (duplicar el daño del próximo disparo real), inversor (cambiar el sentido de los turnos), ladrón (robarle un ítem a otro jugador: uno solo por turno, y nunca otro ladrón), teléfono (pista sobre una bala futura) y esposas (el objetivo pierde su próximo turno).",
     "Gana quien queda como último jugador con vidas.",
   ],
   LocalGame,
