@@ -46,6 +46,12 @@ describe("ItemTray", () => {
     expect(saw).not.toHaveAttribute("title");
   });
 
+  it("an item that can't be used right now (a second 🧤 this turn) is disabled and says why", () => {
+    render(<ItemTray items={["🧤", "🔍"]} disabled={false} isUsable={item => item !== "🧤"} onUse={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Ladrón (ya usado este turno)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Lupa" })).toBeEnabled();
+  });
+
   it("renders nothing without items", () => {
     const { container } = render(<ItemTray items={[]} disabled={false} onUse={vi.fn()} />);
     expect(container).toBeEmptyDOMElement();

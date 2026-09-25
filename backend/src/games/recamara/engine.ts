@@ -29,6 +29,7 @@ import type { Room } from "@juntada/shared-types";
 import { escapeHtml } from "@juntada/core-utils";
 import type { GameEngine } from "../engineTypes";
 import {
+  canUseItem,
   createInitialState,
   describeFireResult,
   describeItemResult,
@@ -190,6 +191,8 @@ function useItemAction(room: Room, playerId: string, payload: Record<string, unk
 
   const item = payload.item;
   if (typeof item !== "string" || !(ITEM_POOL as readonly string[]).includes(item)) return { handled: false };
+  // Holding it, and a second 🧤 in the same turn — see canUseItem.
+  if (!canUseItem(r.state, item as ItemKind)) return { handled: false };
 
   const targetRoomId = payload.targetId;
   const stolenItem = payload.stolenItem;

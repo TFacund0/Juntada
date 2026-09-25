@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { itemBannerTitle, shotBanner } from "../utils/banners";
+import { highlightShellHints, itemBannerTitle, shotBanner } from "../utils/banners";
 import { ResultBanner } from "../components/ResultBanner";
 import { RoundOverlay } from "../components/RoundOverlay";
 import { EndScreen } from "../components/EndScreen";
@@ -34,6 +34,23 @@ describe("shotBanner", () => {
   it("item titles: the saw's own headline, everything else its short name", () => {
     expect(itemBannerTitle("🪚")).toBe("CAÑO RECORTADO");
     expect(itemBannerTitle("🔍")).toBe("LUPA");
+  });
+});
+
+describe("highlightShellHints", () => {
+  it("colors what the 🔍/📞 revealed — real red, falsa yellow — and chips the position", () => {
+    const lupa = highlightShellHints("<b>Ana</b> usa la lupa: la próxima bala es <b>real</b>.");
+    expect(lupa).toContain('<b class="text-rec-live-glow uppercase">real</b>');
+    const phone = highlightShellHints(
+      "<b>Ana</b> recibe una pista por teléfono: la bala en la posición <b>3</b> del cargador es <b>falsa</b>.",
+    );
+    expect(phone).toContain('<b class="text-rec-gold uppercase">falsa</b>');
+    expect(phone).toContain('posición <b class="rounded bg-white/15 px-1.5 text-rec-ink">3</b>');
+  });
+
+  it("never recolors a player who happens to be named like a shell", () => {
+    const html = "<b>real</b> le roba 🔍 a <b>falsa</b>.";
+    expect(highlightShellHints(html)).toBe(html);
   });
 });
 

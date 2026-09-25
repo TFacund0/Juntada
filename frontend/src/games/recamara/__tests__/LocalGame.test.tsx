@@ -2,6 +2,7 @@ import { describe, test, expect, vi, afterEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LocalGame } from "../LocalGame";
+import { BANNER_AUTO_MS } from "../utils/timing";
 
 // Every round opens with the round overlay over the table (RoundOverlay):
 // "RONDA N", the chamber's shells shown, flipped, shuffled and loaded, then
@@ -162,7 +163,7 @@ describe("Recámara LocalGame", () => {
     await user.click(screen.getByRole("button", { name: "Dispararme a mí" }));
     await vi.advanceTimersByTimeAsync(2000);
     expect(document.querySelector(".result-banner")).toBeInTheDocument();
-    await vi.advanceTimersByTimeAsync(3000);
+    await vi.advanceTimersByTimeAsync(BANNER_AUTO_MS + 500);
     expect(document.querySelector(".result-banner")).not.toBeInTheDocument();
   }, 20000);
 });

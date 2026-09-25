@@ -34,7 +34,7 @@ export const ITEM_LABEL: Record<ItemKind, string> = {
   "🚬": "Cigarrillo — curar 1 vida",
   "🪚": "Sierra — recortar el caño (doble daño en el próximo disparo real)",
   "🔄": "Inversor — cambia el sentido de los turnos",
-  "🧤": "Ladrón — robar un ítem al azar de otro jugador",
+  "🧤": "Ladrón — robar un ítem de otro jugador (uno por turno, nunca otro ladrón)",
   "📞": "Teléfono — pista sobre una bala futura",
   "🔒": "Esposas — el objetivo pierde su próximo turno",
 };
@@ -66,6 +66,11 @@ export interface GameState {
   shells: Shell[];
   idx: number;
   sawedOff: boolean;
+  // Someone already used a 🧤 during the current turn — only one steal per
+  // turn (see canUseItem). Cleared whenever the turn passes to someone else;
+  // a blank self-shot keeps the same turn, so it stays set. Optional so a
+  // state saved before this rule existed still loads.
+  stealUsedThisTurn?: boolean;
 }
 
 // 🔄 flips the turn order's direction — meaningless with only two players
@@ -262,7 +267,15 @@ export function fireShot(state: GameState, targetId: number): FireResult {
   }
 
   return {
-    state: { ...state, players: finalPlayers, shells: reload.shells, idx: reload.idx, sawedOff: false, turnPos },
+    state: {
+      ...state,
+      players: finalPlayers,
+      shells: reload.shells,
+      idx: reload.idx,
+      sawedOff: false,
+      turnPos,
+      stealUsedThisTurn: keepsTurn ? state.stealUsedThisTurn : false,
+    },
     shooterId: shooter.id,
     targetId,
     shellKind: shell.kind,
@@ -293,6 +306,23 @@ export interface UseItemOptions {
   // 🔒: cuff this exact opponent instead of a random one.
   targetId?: number;
   stolenItem?: ItemKind;
+}
+
+// A 🧤 can take anything but another 🧤.
+function stealableItems(player: Player): ItemKind[] {
+  return player.items.filter(i => i !== "🧤");
+}
+
+// Whether the player whose turn it is may use this item right now: they have
+// to actually hold it, and a 🧤 only works once per turn. The online engine
+// checks this before applying a client's use_item; the UI uses it to disable
+// what can't be used. Takes only the fields it reads, so the online client
+// can pass its public view (whose shells are partly hidden) as well.
+export function canUseItem(state: Pick<GameState, "players" | "order" | "turnPos" | "stealUsedThisTurn">, item: ItemKind): boolean {
+  const player = state.players.find(p => p.id === state.order[state.turnPos]);
+  if (!player?.items.includes(item)) return false;
+  if (item === "🧤" && state.stealUsedThisTurn) return false;
+  return true;
 }
 
 function consumeItem(state: GameState, playerId: number, item: ItemKind): Player[] {
@@ -338,9 +368,12 @@ export function useItem(state: GameState, item: ItemKind, options?: UseItemOptio
       };
     }
     case "🧤": {
-      const others = state.players.filter(p => p.id !== player.id && p.items.length > 0);
+      if (state.stealUsedThisTurn) throw new Error("recamara: only one 🧤 per turn (check canUseItem first)");
+      // Once it's used — even with nothing to steal — this turn's steal is spent.
+      const after = { ...state, stealUsedThisTurn: true };
+      const others = state.players.filter(p => p.id !== player.id && stealableItems(p).length > 0);
       if (others.length === 0) {
-        return { state: { ...state, players: consumeItem(state, player.id, item) }, playerId: player.id, item, victimId: null };
+        return { state: { ...after, players: consumeItem(state, player.id, item) }, playerId: player.id, item, victimId: null };
       }
       // options come straight off the wire in the online engine — an
       // out-of-date or malicious targetId/stolenItem must never crash this
@@ -351,10 +384,9 @@ export function useItem(state: GameState, item: ItemKind, options?: UseItemOptio
       // back to a random, always-valid pick instead.
       const requestedVictim = options?.targetId != null ? others.find(p => p.id === options.targetId) : undefined;
       const victim = requestedVictim ?? others[Math.floor(Math.random() * others.length)];
+      const loot = stealableItems(victim);
       const stolen =
-        options?.stolenItem && victim.items.includes(options.stolenItem)
-          ? options.stolenItem
-          : victim.items[Math.floor(Math.random() * victim.items.length)];
+        options?.stolenItem && loot.includes(options.stolenItem) ? options.stolenItem : loot[Math.floor(Math.random() * loot.length)];
       const players = consumeItem(state, player.id, item).map(p => {
         if (p.id === victim.id) {
           const items = [...p.items];
@@ -364,7 +396,7 @@ export function useItem(state: GameState, item: ItemKind, options?: UseItemOptio
         if (p.id === player.id) return { ...p, items: capItems([...p.items, stolen]) };
         return p;
       });
-      return { state: { ...state, players }, playerId: player.id, item, victimId: victim.id, stolenItem: stolen };
+      return { state: { ...after, players }, playerId: player.id, item, victimId: victim.id, stolenItem: stolen };
     }
     case "📞": {
       // Any not-yet-fired shell is fair game, including the very next one

@@ -92,12 +92,53 @@ describe("useRecamaraSfx", () => {
     const { result } = renderHook(() => useRecamaraSfx());
     expect(FakeAudioContext.created).toBe(0);
 
-    window.dispatchEvent(new Event("pointerdown"));
+    window.dispatchEvent(new Event("touchend"));
     expect(FakeAudioContext.created).toBe(1);
     expect(playSfx).not.toHaveBeenCalled();
 
     result.current.play("click");
     expect(FakeAudioContext.created).toBe(1);
     expect(playSfx).toHaveBeenCalledTimes(1);
+  });
+
+  it("on a touch screen, pointerdown isn't a gesture: it doesn't use up the unlock", () => {
+    renderHook(() => useRecamaraSfx());
+    window.dispatchEvent(new Event("pointerdown"));
+    expect(FakeAudioContext.created).toBe(0);
+    window.dispatchEvent(new Event("pointerup"));
+    expect(FakeAudioContext.created).toBe(1);
+  });
+
+  it("keeps trying on every tap while the browser still refuses to resume, then stops", async () => {
+    let refuse = true;
+    const resume = vi.fn(async function (this: FakeAudioContext) {
+      if (!refuse) this.state = "running";
+    });
+    class StubbornContext extends FakeAudioContext {
+      resume = resume;
+    }
+    vi.stubGlobal("AudioContext", StubbornContext);
+    renderHook(() => useRecamaraSfx());
+
+    window.dispatchEvent(new Event("click"));
+    window.dispatchEvent(new Event("click"));
+    await Promise.resolve();
+    expect(resume).toHaveBeenCalledTimes(2);
+
+    refuse = false;
+    window.dispatchEvent(new Event("click")); // resumes now
+    await Promise.resolve();
+    window.dispatchEvent(new Event("click")); // running: this one stops listening
+    window.dispatchEvent(new Event("click"));
+    expect(resume).toHaveBeenCalledTimes(3);
+    expect(FakeAudioContext.created).toBe(1);
+  });
+
+  it("asks iOS to play through the ringer switch", () => {
+    const audioSession = { type: "auto" };
+    vi.stubGlobal("navigator", { ...navigator, audioSession });
+    renderHook(() => useRecamaraSfx());
+    window.dispatchEvent(new Event("click"));
+    expect(audioSession.type).toBe("playback");
   });
 });

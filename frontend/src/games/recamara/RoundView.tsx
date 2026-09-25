@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import "./css/index.css";
 import { LeaveToLobbyButton } from "../../components/game-kit/LeaveToLobbyButton";
 import { StartButton } from "../../components/setup/StartButton";
-import { describeFireOutcome, describeItemResult, type ItemKind, type RecamaraRoundView, type ShellKind } from "@juntada/recamara-engine";
+import {
+  canUseItem,
+  describeFireOutcome,
+  describeItemResult,
+  type ItemKind,
+  type RecamaraRoundView,
+  type ShellKind,
+} from "@juntada/recamara-engine";
 import { PlayerItemsSheet } from "./components/PlayerItemsSheet";
 import { ItemUseModal } from "./components/ItemUseModal";
 import { ResultBanner } from "./components/ResultBanner";
@@ -210,6 +217,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         waitingForTurn={!isMyTurn && amAlive && round.subPhase === "duel"}
         items={isMyTurn && round.subPhase === "duel" ? current.items : null}
         itemsDisabled={busy}
+        isItemUsable={item => canUseItem(state, item)}
         onUseItem={setPendingItem}
         log={round.log.map((l, i) => ({ key: i, html: l.text, cls: l.cls }))}
         logVisible={logVisible}
@@ -304,6 +312,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         <PlayerItemsSheet
           player={sheetPlayer}
           interactive={sheetPlayer.id === currentEngineId && isMyTurn}
+          isUsable={item => canUseItem(state, item)}
           onUseItem={item => setPendingItem(item)}
           onClose={() => setSheetPlayerId(null)}
         />

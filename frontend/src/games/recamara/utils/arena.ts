@@ -13,13 +13,20 @@ export function seatAngle(order: number[], playerId: number): number {
 
 // Where a seat sits on the table, as a point near its rim. The card that
 // stands there is anchored by its bottom edge and counter-rotated against
-// the table's tilt in CSS (see .seat in arena.css), not here.
+// the table's tilt in CSS (see .seat in arena.css), not here. Standing up,
+// a card reaches about a quarter of the table "back" from its anchor — so
+// every seat is nudged toward the viewer (SEAT_DY) on a flattened ellipse:
+// the far card stays inside the rim instead of poking out past it, and the
+// near one sits on the front edge instead of halfway to the center.
+const SEAT_RX = 44;
+const SEAT_RY = 39;
+const SEAT_DY = 8;
+
 export function seatStyle(order: number[], playerId: number) {
   const rad = (seatAngle(order, playerId) * Math.PI) / 180;
-  const r = 40;
   return {
-    left: `${50 + r * Math.cos(rad)}%`,
-    top: `${50 + r * Math.sin(rad)}%`,
+    left: `${50 + SEAT_RX * Math.cos(rad)}%`,
+    top: `${50 + SEAT_DY + SEAT_RY * Math.sin(rad)}%`,
   };
 }
 

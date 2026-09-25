@@ -52,9 +52,10 @@ describe("DuelTable", () => {
     const seats = container.querySelectorAll(".arena > .seat");
     expect(seats).toHaveLength(3);
     expect(Array.from(seats).map(s => s.querySelector(".token-name")?.textContent)).toEqual(["Ana", "Beto", "💀 Caro"]);
-    // The first seat sits at the top of the table (seatAngle -90°).
+    // The first seat sits at the top of the table (seatAngle -90°), far
+    // enough in that its standing card stays inside the rim.
     expect((seats[0] as HTMLElement).style.left).toBe("50%");
-    expect((seats[0] as HTMLElement).style.top).toBe("10%");
+    expect((seats[0] as HTMLElement).style.top).toBe("19%");
   });
 
   it("highlights whoever's turn it is", () => {

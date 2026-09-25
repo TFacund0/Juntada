@@ -10,7 +10,7 @@
   /* The tilted table only paints roughly the middle of its layout box —
      pull the log up a little into that empty band, but never under the
      painted rim. */
-  margin: 24px auto calc(-0.05 * min(88vw, 360px));
+  margin: 24px auto calc(-0.05 * var(--rec-arena));
   /* Its (untransformed) layout box is taller than what it paints, so it
      must not swallow clicks meant for whatever sits just below it (the
      "Ocultar registro" toggle). Only the seat cards are interactive. */
@@ -23,7 +23,7 @@
 
 .recamara .arena {
   position: relative;
-  width: min(88vw, 360px);
+  width: var(--rec-arena);
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   transform: rotateX(var(--rec-tilt));

@@ -37,3 +37,17 @@ export function itemBannerTitle(item: ItemKind): string {
   if (item === "🪚") return "CAÑO RECORTADO";
   return ITEM_LABEL[item].split(" — ")[0].toUpperCase();
 }
+
+// The engine's item results (describeItemResult) bold what a 🔍 or 📞
+// revealed — "es <b>real</b>", "posición <b>3</b>". On the banner those are
+// the whole point, so they get the shell's own color (real red, falsa
+// yellow) and the position a chip of its own. Matched with the words the
+// engine puts before them, so a player who happens to be named "real"
+// (names come escaped and bold too) is never recolored.
+export function highlightShellHints(html: string): string {
+  return html
+    .replace(/ es <b>(real|falsa)<\/b>/g, (_, kind: string) =>
+      kind === "real" ? ' es <b class="text-rec-live-glow uppercase">real</b>' : ' es <b class="text-rec-gold uppercase">falsa</b>',
+    )
+    .replace(/posición <b>(\d+)<\/b>/g, 'posición <b class="rounded bg-white/15 px-1.5 text-rec-ink">$1</b>');
+}

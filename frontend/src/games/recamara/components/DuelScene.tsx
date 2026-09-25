@@ -24,6 +24,7 @@ interface DuelSceneProps {
   // The acting player's items, or null when it isn't this device's turn.
   items: ItemKind[] | null;
   itemsDisabled: boolean;
+  isItemUsable?: (item: ItemKind) => boolean;
   onUseItem: (item: ItemKind) => void;
   log: SceneLogLine[];
   logVisible: boolean;
@@ -38,7 +39,7 @@ interface DuelSceneProps {
 // and the actions and item tray below. Whose turn it is reads from the
 // table itself: only that player's card glows.
 export function DuelScene(props: DuelSceneProps) {
-  const { table, roundNumber, canShoot, onSelfFire, waitingForTurn = false, items, itemsDisabled, onUseItem } = props;
+  const { table, roundNumber, canShoot, onSelfFire, waitingForTurn = false, items, itemsDisabled, isItemUsable, onUseItem } = props;
   return (
     <div className="duel-scene">
       <ChamberStrip roundNumber={roundNumber} direction={table.direction} muted={props.muted} onToggleMute={props.onToggleMute} />
@@ -57,7 +58,7 @@ export function DuelScene(props: DuelSceneProps) {
             waitingForTurn && <p className="m-0 text-[0.85rem] tracking-[0.06em] text-rec-ink-faint">Esperando tu turno…</p>
           )}
         </div>
-        {items && <ItemTray items={items} disabled={itemsDisabled} onUse={onUseItem} />}
+        {items && <ItemTray items={items} disabled={itemsDisabled} isUsable={isItemUsable} onUse={onUseItem} />}
       </div>
 
       <div className="log">

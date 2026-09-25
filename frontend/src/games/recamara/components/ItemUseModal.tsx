@@ -26,7 +26,9 @@ export function ItemUseModal({
   onCuffNoTarget,
 }: ItemUseModalProps) {
   const [victimId, setVictimId] = useState<number | null>(null);
-  const eligible = opponents.filter(p => p.items.length > 0);
+  // A 🧤 can take anything but another 🧤 (see the engine's useItem).
+  const stealable = (p: Player) => p.items.filter(it => it !== "🧤");
+  const eligible = opponents.filter(p => stealable(p).length > 0);
 
   if (item === "🔒") {
     if (opponents.length === 0) {
@@ -118,7 +120,7 @@ export function ItemUseModal({
           <div className="rec-modal-list">
             {eligible.map(p => (
               <button key={p.id} className="rec-modal-list-item" onClick={() => setVictimId(p.id)}>
-                {p.name} <span className="mono">({p.items.length} ítems)</span>
+                {p.name} <span className="mono">({stealable(p).length} ítems)</span>
               </button>
             ))}
           </div>
@@ -140,7 +142,7 @@ export function ItemUseModal({
           Ítems de <b>{victim.name}</b> — elegí cuál robarle:
         </p>
         <div className="rec-modal-list">
-          {victim.items.map((it, i) => (
+          {stealable(victim).map((it, i) => (
             <button key={i} className="rec-modal-list-item" onClick={() => onSteal(victim.id, it)}>
               <span className="icon">{it}</span> {ITEM_LABEL[it]}
             </button>

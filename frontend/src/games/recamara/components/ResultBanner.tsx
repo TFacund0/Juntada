@@ -1,4 +1,5 @@
 import { useBannerDismiss } from "../hooks/bannerDismiss";
+import { highlightShellHints } from "../utils/banners";
 import { BANNER_AUTO_MS } from "../utils/timing";
 
 interface ResultBannerProps {
@@ -28,7 +29,7 @@ export function ResultBanner({ tone, big, sub, subHtml, whoHtml, compact = false
       {whoHtml && <p className="result-banner-who" dangerouslySetInnerHTML={{ __html: whoHtml }} />}
       <p className={`result-banner-big display ${tone}`}>{big}</p>
       {subHtml != null ? (
-        <p className="result-banner-sub" dangerouslySetInnerHTML={{ __html: subHtml }} />
+        <p className="result-banner-sub" dangerouslySetInnerHTML={{ __html: highlightShellHints(subHtml) }} />
       ) : (
         <p className="result-banner-sub">{sub}</p>
       )}

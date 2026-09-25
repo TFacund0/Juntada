@@ -12,6 +12,9 @@
   /* How far the duel table leans back (see .arena in arena.css). The seat
      cards counter-rotate by the same amount to stand upright. */
   --rec-tilt: 55deg;
+  /* The table's width (see .arena in arena.css) — phone-sized here,
+     scaled up for computer screens in desktop.css. */
+  --rec-arena: min(88vw, 360px);
   --rec-ink: #ece4d6;
   --rec-ink-dim: #9a9082;
   --rec-ink-faint: #6b6459;

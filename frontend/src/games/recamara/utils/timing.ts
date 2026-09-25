@@ -35,9 +35,9 @@ export const ROUND_OUTRO_MS = 450;
 // BANNER_TAP_GUARD_MS are ignored (so the tap that fired doesn't also skip
 // its own result), and it moves on by itself after BANNER_AUTO_MS.
 export const BANNER_TAP_GUARD_MS = 350;
-export const BANNER_AUTO_MS = 2600;
+export const BANNER_AUTO_MS = 4500;
 // A shot that eliminates someone gets its own, longer beat (EliminationBanner).
-export const ELIMINATION_AUTO_MS = 3800;
+export const ELIMINATION_AUTO_MS = 5200;
 // The item chest after a reload (see ItemChest): it opens the next item by
 // itself if nobody taps for CHEST_IDLE_MS, and moves on CHEST_DONE_AUTO_MS
 // after the last one is out.

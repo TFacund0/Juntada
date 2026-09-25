@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { escapeHtml } from "@juntada/core-utils";
 import "./css/index.css";
 import {
+  canUseItem,
   createInitialState,
   describeFireOutcome,
   describeFireResult,
@@ -324,6 +325,7 @@ export function LocalGame() {
         onSelfFire={() => fire(current.id)}
         items={phase === "duel" ? current.items : null}
         itemsDisabled={busy}
+        isItemUsable={item => canUseItem(state, item)}
         onUseItem={setPendingItem}
         // Redact 📞/🔍's real hint the moment the turn moves on from
         // whoever used it — see addItemLog above.
@@ -402,6 +404,7 @@ export function LocalGame() {
         <PlayerItemsSheet
           player={sheetPlayer}
           interactive={sheetPlayer.id === currentId}
+          isUsable={item => canUseItem(state, item)}
           onUseItem={item => setPendingItem(item)}
           onClose={() => setSheetPlayerId(null)}
         />
