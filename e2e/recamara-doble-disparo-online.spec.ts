@@ -49,8 +49,9 @@ base("recámara online: un segundo disparo espera mientras el otro jugador sigue
     await ana.getByText("Recámara", { exact: true }).first().click();
     await ana.getByRole("button", { name: "Iniciar ronda" }).click();
 
+    // Each client plays the round overlay and reports ready by itself.
     for (const page of [ana, beto]) {
-      await page.getByRole("button", { name: "Listo, a disparar" }).click({ timeout: 20_000 });
+      await expect(page.locator(".round-overlay")).toBeHidden({ timeout: 30_000 });
     }
 
     // Whoever got the first turn is "first"; the other one is "second".
@@ -59,34 +60,35 @@ base("recámara online: un segundo disparo espera mientras el otro jugador sigue
     const anaStarts = await selfShot(ana).isVisible();
     const [first, second] = anaStarts ? [ana, beto] : [beto, ana];
     const [firstName, secondName] = anaStarts ? ["Ana", "Beto"] : ["Beto", "Ana"];
-    const banner = (page: Page) => page.locator(".rec-banner-text");
+    const banner = (page: Page) => page.locator(".result-banner-who");
     const continueBtn = (page: Page) => page.getByRole("button", { name: "Continuar" });
 
-    // Shot 1: first shoots second. first stays on the banner on purpose.
+    // Shot 1: first shoots second (tapping their card) and doesn't dismiss
+    // its own banner.
     await first.getByRole("button", { name: `Dispararle a ${secondName}` }).click();
     await expect(banner(first)).toHaveText(`${firstName} le dispara a ${secondName}.`, { timeout: 10_000 });
     await expect(banner(second)).toHaveText(`${firstName} le dispara a ${secondName}.`, { timeout: 10_000 });
     const secondLivesAfterShot1 = await livesOf(second, "Vos").getAttribute("aria-label");
 
-    // Shot 2: second dismisses their own banner and shoots back.
+    // Shot 2: second dismisses their own banner right away and shoots back
+    // — first's banner (which only closes by itself after ~2.6s) is still up.
     await continueBtn(second).click();
     await second.getByRole("button", { name: `Dispararle a ${firstName}` }).click();
-    await expect(banner(second)).toHaveText(`${secondName} le dispara a ${firstName}.`, { timeout: 10_000 });
 
     // first is still on shot 1's banner, and nothing from shot 2 shows yet.
     await expect(banner(first)).toHaveText(`${firstName} le dispara a ${secondName}.`);
     await expect(livesOf(first, "Vos")).toHaveAttribute("aria-label", "5 de 5 vidas");
     await expect(livesOf(first, secondName)).toHaveAttribute("aria-label", "5 de 5 vidas");
 
-    // Dismissing it commits exactly shot 1, then shot 2 plays on its own.
+    // Once it's dismissed, exactly shot 1 commits, then shot 2 plays on its own.
     await continueBtn(first).click();
     await expect(livesOf(first, secondName)).toHaveAttribute("aria-label", secondLivesAfterShot1!);
     await expect(livesOf(first, "Vos")).toHaveAttribute("aria-label", "5 de 5 vidas");
     await expect(banner(first)).toHaveText(`${secondName} le dispara a ${firstName}.`, { timeout: 10_000 });
 
-    // Once both are through, both screens agree on every player's lives.
-    await continueBtn(first).click();
-    await continueBtn(second).click();
+    // Once both are through (the banners also close by themselves), both
+    // screens agree on every player's lives.
+    for (const page of [first, second]) await expect(page.locator(".result-banner")).toBeHidden({ timeout: 10_000 });
     await expect(livesOf(first, "Vos")).toHaveAttribute("aria-label", (await livesOf(second, firstName).getAttribute("aria-label"))!);
     await expect(livesOf(first, secondName)).toHaveAttribute("aria-label", (await livesOf(second, "Vos").getAttribute("aria-label"))!);
   } finally {

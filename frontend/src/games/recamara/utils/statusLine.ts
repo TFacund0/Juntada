@@ -17,9 +17,13 @@ export interface StatusInput {
   amEliminated?: boolean;
   // Local only: the device is passed around, so "you" is whoever's turn it is.
   passAndPlay?: boolean;
+  // Online only: this device already watched the round overlay and is
+  // waiting for everyone else to finish theirs.
+  waiting?: boolean;
 }
 
-export function statusLine({ currentName, currentIsMe, aiming, amEliminated, passAndPlay }: StatusInput): StatusSegment[] {
+export function statusLine({ currentName, currentIsMe, aiming, amEliminated, passAndPlay, waiting }: StatusInput): StatusSegment[] {
+  if (waiting) return [{ text: "Esperando a los demás…" }];
   if (aiming) {
     const shooter = currentIsMe ? "Vos" : currentName;
     const verb = currentIsMe ? " apuntás " : " apunta ";

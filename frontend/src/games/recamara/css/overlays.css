@@ -1,4 +1,4 @@
-/* Overlays shared by PlayerItemsSheet, ItemUseModal, OutcomeBanner, etc.
+/* Overlays shared by PlayerItemsSheet, ItemUseModal, ItemEffect, etc.
    Centrado por defecto (el caso común: casi todo consumidor pone un
    `.rec-modal` adentro y lo quiere centrado) — antes era al revés
    (`align-items: flex-end` por defecto + `.rec-overlay:has(.rec-modal)`
@@ -21,13 +21,6 @@
 
 .recamara .rec-overlay-sheet {
   align-items: flex-end;
-}
-
-/* FlashOverlay's own variant — fully opaque, mismo centrado que el resto,
-   así lo que sea que esté tapando (ej. la lista de "esperando a los demás"
-   de RoundView) nunca se traslucja detrás del texto flasheado. */
-.recamara .rec-overlay-solid {
-  background: var(--rec-bg);
 }
 
 .recamara .rec-sheet {
@@ -174,114 +167,6 @@
 
 .recamara .rec-modal-list-item:hover {
   border-color: var(--rec-live);
-}
-
-/* The centered "what just happened" alert shown after a shot resolves or an
-   item gets used (see OutcomeBanner) — stays up until the player taps
-   "Continuar", which is what actually slows the pacing down on purpose. */
-.recamara .rec-banner {
-  border-width: 2px;
-}
-
-.recamara .rec-overlay-elimination {
-  background: rgba(40, 5, 5, 0.82);
-  animation: rec-elimination-flash 0.5s ease-out;
-}
-
-@keyframes rec-elimination-flash {
-  0% {
-    background: rgba(255, 30, 30, 0.45);
-  }
-  100% {
-    background: rgba(40, 5, 5, 0.82);
-  }
-}
-
-.recamara .rec-banner.elimination {
-  border-color: #ff2a2a;
-  box-shadow:
-    0 0 45px -5px rgba(255, 42, 42, 0.8),
-    0 0 15px 2px rgba(255, 100, 100, 0.4) inset;
-  animation: rec-banner-shake 0.45s ease-out;
-}
-
-@keyframes rec-banner-shake {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  20% {
-    transform: translate(-6px, 3px) rotate(-1deg);
-  }
-  40% {
-    transform: translate(6px, -3px) rotate(1deg);
-  }
-  60% {
-    transform: translate(-4px, 2px);
-  }
-  80% {
-    transform: translate(3px, -1px);
-  }
-}
-
-.recamara .rec-elimination-callout {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.recamara .rec-elimination-skull {
-  font-size: 2.8rem;
-  line-height: 1;
-  animation: rec-skull-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.recamara .rec-elimination-title {
-  font-size: 1.25rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  color: #ff4747;
-  text-shadow: 0 0 16px rgba(255, 71, 71, 0.8);
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.recamara .rec-banner.danger {
-  border-color: var(--rec-live);
-  box-shadow: 0 0 30px -8px var(--rec-live-glow);
-}
-
-.recamara .rec-banner.safe {
-  border-color: var(--rec-blank);
-  box-shadow: 0 0 30px -8px var(--rec-blank);
-}
-
-.recamara .rec-banner-text {
-  font-size: 1.05rem;
-  line-height: 1.5;
-  margin: 0 0 18px;
-}
-
-.recamara .rec-banner-text b {
-  color: var(--rec-live-glow);
-}
-
-/* The real/falso verdict line under the neutral "who shot whom" line —
-   colored to match the shot itself (see .rec-banner.danger/.safe borders). */
-.recamara .rec-banner-subtext {
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin: 0 0 18px;
-}
-
-.recamara .rec-banner-subtext.danger {
-  color: var(--rec-live-glow);
-}
-
-.recamara .rec-banner-subtext.safe {
-  color: var(--rec-blank);
 }
 
 .recamara .center {

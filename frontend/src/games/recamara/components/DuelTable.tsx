@@ -29,6 +29,9 @@ interface DuelTableProps {
   // Set only when it's this device's turn to shoot: every other living
   // player becomes a target, and tapping their card fires at them.
   onFire?: (playerId: number) => void;
+  // See PlayerToken: items hidden under the round overlay, then dealt.
+  hideItems?: boolean;
+  dealtRound?: number;
 }
 
 // The duel table shared by LocalGame and RoundView: felt tilted back in
@@ -36,7 +39,22 @@ interface DuelTableProps {
 // it, and each player's card standing up at their seat. Everything that
 // moves comes from shotAnim and `playing`; this only lays it out.
 export function DuelTable(props: DuelTableProps) {
-  const { order, players, currentId, direction, sawedOff, busy, shotAnim, onSelectPlayer, playing = null, nameFor, youId, onFire } = props;
+  const {
+    order,
+    players,
+    currentId,
+    direction,
+    sawedOff,
+    busy,
+    shotAnim,
+    onSelectPlayer,
+    playing = null,
+    nameFor,
+    youId,
+    onFire,
+    hideItems,
+    dealtRound,
+  } = props;
   const firing = shotAnim.fireStage === "firing" && playing?.kind === "shot";
   const live = firing && playing?.shellKind === "live";
   const shake = firing ? (live ? " shake-live" : " shake-blank") : "";
@@ -68,6 +86,8 @@ export function DuelTable(props: DuelTableProps) {
                   isActive={id === currentId}
                   isYou={id === youId}
                   targetable={targetable}
+                  hideItems={hideItems}
+                  dealtRound={dealtRound}
                   onClick={() => {
                     if (busy) return;
                     if (targetable && onFire) onFire(id);

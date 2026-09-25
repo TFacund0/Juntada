@@ -9,13 +9,26 @@ interface PlayerTokenProps {
   // it fires (the reference's "tocá a un rival"). Its accessible name then
   // says so, since the tap now shoots instead of opening the item sheet.
   targetable?: boolean;
+  // While the round overlay covers the table the items stay hidden; once it
+  // lifts they're "dealt" onto the card with a pop (the reference's reload
+  // ending) — keyed by round so each reload replays it.
+  hideItems?: boolean;
+  dealtRound?: number;
   onClick: () => void;
 }
 
 // One player's card, standing at their seat around the table (see DuelTable) — just
 // enough to identify them and their state at a glance. Tapping it opens
 // PlayerItemsSheet with the actual item list — or shoots them, when targetable.
-export function PlayerToken({ player, isActive, isYou = false, targetable = false, onClick }: PlayerTokenProps) {
+export function PlayerToken({
+  player,
+  isActive,
+  isYou = false,
+  targetable = false,
+  hideItems = false,
+  dealtRound,
+  onClick,
+}: PlayerTokenProps) {
   const isDead = player.lives <= 0;
   const cls = `token${isActive ? " active" : ""}${isDead ? " dead" : ""}${isYou ? " you" : ""}${targetable ? " targetable" : ""}`;
   return (
@@ -33,8 +46,8 @@ export function PlayerToken({ player, isActive, isYou = false, targetable = fals
           <i key={i} className={`life-dot${i >= player.lives ? " spent" : ""}`} />
         ))}
       </span>
-      {player.items.length > 0 && (
-        <span className="token-items">
+      {!hideItems && player.items.length > 0 && (
+        <span key={dealtRound} className={`token-items${dealtRound ? " dealt" : ""}`}>
           {player.items.map((item, i) => (
             <span key={i} className="token-item">
               {item}

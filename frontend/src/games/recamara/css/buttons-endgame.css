@@ -37,75 +37,44 @@
   border-color: var(--rec-live-glow);
 }
 
+/* The end of the duel (see EndScreen), the reference's end panel: a dim
+   overlay with one raised card, the verdict in big display type. */
 .recamara .rec-overlay.winner-overlay {
-  /* .rec-overlay ya centra por defecto (ver overlays.css) — acá suma su
-     propia animación de entrada, un flash dorado que se asienta igual que
-     rec-elimination-flash pero en tono celebratorio en vez de alarmante. */
-  animation: rec-victory-flash 0.6s ease-out;
-}
-
-@keyframes rec-victory-flash {
-  0% {
-    background: rgba(255, 215, 90, 0.5);
-  }
-  100% {
-    background: rgba(0, 0, 0, 0.72);
-  }
-}
-
-.recamara .final-card {
-  text-align: center;
+  background: rgba(10, 7, 5, 0.88);
   padding: 24px;
 }
 
-.recamara .final-card.winner-in {
-  border-color: #ffd75a;
-  box-shadow:
-    0 0 45px -5px rgba(255, 215, 90, 0.8),
-    0 0 15px 2px rgba(255, 231, 150, 0.4) inset;
-  animation: rec-winner-in 0.6s ease-out both;
+.recamara .end-panel {
+  max-width: 360px;
+  padding: 28px 24px 24px;
+  text-align: center;
+  background: var(--rec-bg-raised);
+  border: 1px solid var(--rec-hair);
+  border-radius: 12px;
+  box-shadow: var(--rec-shadow);
+  animation: rec-end-in 0.4s ease-out both;
 }
 
-@keyframes rec-winner-in {
+.recamara .end-title {
+  margin: 0;
+  font-size: 3.2rem;
+  line-height: 1;
+  color: var(--rec-ink);
+}
+
+.recamara .end-sub {
+  margin: 12px 0 20px;
+  line-height: 1.55;
+  color: var(--rec-ink-dim);
+}
+
+@keyframes rec-end-in {
   from {
     opacity: 0;
-    transform: scale(0.92) translateY(8px);
+    transform: scale(0.94) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: none;
   }
-}
-
-.recamara .rec-victory-callout {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.recamara .rec-victory-trophy {
-  font-size: 2.8rem;
-  line-height: 1;
-  animation: rec-skull-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.recamara .rec-victory-title {
-  font-size: 1.25rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  color: #ffd75a;
-  text-shadow: 0 0 16px rgba(255, 215, 90, 0.8);
-  margin: 0;
-  text-transform: uppercase;
-}
-
-.recamara .final-card .winner {
-  font-size: clamp(1.6rem, 5vw, 2.4rem);
-  margin: 6px 0 4px;
-}
-
-.recamara .final-card .winner span {
-  color: var(--rec-live);
 }

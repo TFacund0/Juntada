@@ -274,15 +274,19 @@
 /* ───────── Reload ───────── */
 
 .recamara .reload-row {
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 4px auto 10px;
+  gap: 10px;
   min-height: 56px;
   align-items: flex-end;
 }
 
 .recamara .reload-shell {
   display: block;
-  width: 20px;
-  height: 50px;
+  width: 30px;
+  height: 74px;
   opacity: 0;
   transform: translateY(-24px) scale(0.6);
   transition:
@@ -297,8 +301,8 @@
 
 /* Face-down flip: squashes to nothing and back while the fill switches. */
 .recamara .phase-flip .reload-shell {
-  animation: rec-shell-flip 0.32s ease-in-out;
-  animation-delay: calc(var(--i) * 30ms);
+  animation: rec-shell-flip 0.28s ease-in-out;
+  animation-delay: calc(var(--i) * 60ms);
 }
 
 @keyframes rec-shell-flip {
@@ -309,7 +313,7 @@
 
 /* Shuffling: neighbours bob up and down past each other. */
 .recamara .phase-shuffle .reload-shell {
-  animation: rec-shell-shuffle 0.25s ease-in-out 3;
+  animation: rec-shell-shuffle 0.26s ease-in-out 4;
 }
 
 .recamara .phase-shuffle .reload-shell:nth-child(even) {

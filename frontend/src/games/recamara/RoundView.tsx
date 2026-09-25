@@ -5,30 +5,26 @@ import { StartButton } from "../../components/setup/StartButton";
 import { describeFireOutcome, describeItemResult, type ItemKind, type RecamaraRoundView, type ShellKind } from "@juntada/recamara-engine";
 import { PlayerItemsSheet } from "./components/PlayerItemsSheet";
 import { ItemUseModal } from "./components/ItemUseModal";
-import { ChestReveal } from "./components/ChestReveal";
-import { OutcomeBanner } from "./components/OutcomeBanner";
-import { RoundAnnounce } from "./components/RoundAnnounce";
-import { ChamberCard } from "./components/ChamberCard";
+import { ResultBanner } from "./components/ResultBanner";
+import { RoundOverlay } from "./components/RoundOverlay";
+import { EndScreen } from "./components/EndScreen";
 import { ItemEffect } from "./components/ItemEffect";
 import { DuelScene } from "./components/DuelScene";
-import { FlashOverlay } from "./components/FlashOverlay";
 import { frontAngle, shortestGunAngle } from "./utils/arena";
 import { onlinePlayingFx } from "./utils/playingFx";
-import { ROUND_INTRO_MS, DUEL_TRANSITION_MS } from "./utils/timing";
+import { itemBannerTitle, shotBanner } from "./utils/banners";
 import { useLogVisible } from "./hooks/logVisibility";
-import { useDuelEntryFlash } from "./hooks/duelTransition";
 import { useOnlineRoundDirector } from "./hooks/onlineRoundDirector";
 import { useRecamaraSfx } from "./hooks/recamaraSfx";
 import { useEventSfx } from "./hooks/eventSfx";
 import { useKnownShell } from "./hooks/knownShell";
 import { statusLine } from "./utils/statusLine";
 import { aimingAt, shellsLeft } from "./utils/scene";
-import { useChamberCountdown } from "./hooks/chamberCountdown";
 import type { RoundViewProps } from "../gameTypes";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RECÁMARA — modo online. Mismo duelo que el modo local (misma UI incluso:
-// PlayerToken/ChestReveal/ItemUseModal/PlayerItemsSheet/OutcomeBanner se
+// PlayerToken/DuelScene/ItemUseModal/PlayerItemsSheet/ResultBanner se
 // reusan tal cual) pero el estado real vive en el servidor
 // (backend/src/games/recamara/engine.ts) — acá solo se renderiza `room.round`
 // y se manda `fire`/`use_item`/`ready_for_duel`. Cada disparo/uso de ítem ya
@@ -68,72 +64,35 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   useEventSfx(fx, shotAnim.fireStage, sfx);
   const known = useKnownShell(fx, round?.roundNumber ?? 0);
 
-  // Reveal: each player pops their own chest at their own pace (see
-  // ChestReveal) — purely client-side, since the items themselves were
-  // never secret (same as local mode, just one shared screen there).
+  // Every round opens with the round overlay over the table (RoundOverlay):
+  // once this device has watched it, it tells the server it's ready and
+  // waits for the rest — the duel itself starts server-side once everyone
+  // alive is. Remembered per round so a re-render never replays it.
   const lastRoundNumberRef = useRef(0);
-  // Set only when a reload just ended a round (never for the very first
-  // round we ever see) — tells RoundAnnounce to close out that round before
-  // crossfading into the new one instead of jumping straight to the new
-  // number.
-  const [endedRoundNumber, setEndedRoundNumber] = useState<number | null>(null);
-  const [revealStage, setRevealStage] = useState<"announce" | "chests" | "chamber">("announce");
-  const [revealedCount, setRevealedCount] = useState(0);
-  const [readySent, setReadySent] = useState(false);
+  const [overlayDoneRound, setOverlayDoneRound] = useState<number | null>(null);
 
   const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
   const [pendingItem, setPendingItem] = useState<ItemKind | null>(null);
   const [showWinner, setShowWinner] = useState(false);
   const [logVisible, toggleLogVisible] = useLogVisible();
-  // Same "A disparar" beat LocalGame plays itself before flipping its own
-  // subPhase — here subPhase flips server-side with no transition of its
-  // own, so this holds the switch to the duel view back for the same
-  // beat, flash overlaid on whichever reveal screen is still showing.
-  const { flashing: duelTransition, showDuel } = useDuelEntryFlash(round?.subPhase === "duel", DUEL_TRANSITION_MS);
 
-  // A fresh reveal beat (game start, or right after a reload) resets the
-  // local chest/ready UI. `round` only reaches the new roundNumber once the
-  // reloading shot's banner was dismissed, so that shot always finishes
-  // playing out first.
+  // A new round (game start, or right after a reload) sweeps the table.
+  // `round` only reaches the new roundNumber once the reloading shot's
+  // banner was dismissed, so that shot always finishes playing out first.
   useEffect(() => {
     if (!round) return;
     if (round.roundNumber !== lastRoundNumberRef.current) {
-      // 0 is the ref's initial sentinel (never a real round number), so the
-      // very first round we ever see never gets a "terminada" beat, only
-      // reloads after it do.
-      setEndedRoundNumber(lastRoundNumberRef.current || null);
       lastRoundNumberRef.current = round.roundNumber;
-      setRevealStage("announce");
-      setRevealedCount(0);
-      setReadySent(false);
-      // recoil/flash are plain booleans, never toggled back off after a shot
-      // (the CSS keyframe animation itself decays, not this state) — fine
-      // while the arena stays mounted, but the reveal beats ahead unmount it
-      // entirely. Left at true, the next duel's arena would remount with
-      // "recoil"/"flash" already on its very first paint, replaying both
-      // animations immediately with no shot fired — reading as the shotgun
-      // going off by itself right as the new round starts.
+      // Off the table go the last round's casing and the recoil/flash
+      // classes (plain booleans that never switch themselves back off).
       shotAnim.resetForNewRound();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round?.roundNumber]);
 
-  // The chamber card (gun + shell count) moves on by itself — sending
-  // ready_for_duel — after ROUND_INTRO_MS, once your own chest is done.
-  // Every player gets the same few seconds to actually look at the gun/
-  // shell count, not just whoever taps through fastest. Shared with
-  // LocalGame's version of this same countdown (there it calls enterDuel
-  // directly instead of sending ready_for_duel) via useChamberCountdown.
   const myEngineId = round?.seatOrder.indexOf(myPlayerId ?? "") ?? -1;
   const myPlayer = round?.state.players.find(p => p.id === myEngineId);
   const amAlive = !myPlayer || myPlayer.lives > 0;
-
-  const introEndsAt = useChamberCountdown(round?.subPhase === "reveal" && revealStage === "chamber", ROUND_INTRO_MS, () => {
-    if (amAlive) {
-      send({ type: "ready_for_duel" });
-    }
-    setReadySent(true);
-  });
 
   // Idle aim: whenever nothing's mid-animation, the gun rests pointing away
   // from whoever's turn it currently is. Also the one guaranteed moment the
@@ -178,105 +137,13 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   const playingItem = director.current?.kind === "item" ? director.current : null;
   const state = round.state;
 
-  if ((round.subPhase === "reveal" || !showDuel) && !busy) {
-    // Only alive players draw new items on a reload (see
-    // @juntada/recamara-engine's reloadIfNeeded) and only alive players are
-    // required to confirm ready_for_duel (see the backend engine's
-    // readyForDuel) — so this "waiting" list only ever shows who's still in
-    // the duel, and an eliminated player never has to click through their
-    // own (empty) chest/chamber beats either.
-    const alivePlayerIds = new Set(round.state.players.filter(p => p.lives > 0).map(p => round.seatOrder[p.id]));
-
-    if (readySent) {
-      return (
-        <div className="recamara">
-          <div className="rec-table text-center">
-            <p className="mono eyebrow">{amAlive ? "Esperando a los demás" : "Estás eliminado — mirando la partida"}</p>
-            <div className="mt-3 flex flex-col gap-1.5">
-              {round.seatOrder
-                .filter(id => alivePlayerIds.has(id))
-                .map(id => (
-                  <p key={id} className="m-0">
-                    {round.readyForDuel.includes(id) ? "✅" : "⏳"} {nameFor(id)}
-                  </p>
-                ))}
-            </div>
-          </div>
-          {duelTransition && <FlashOverlay text="A disparar" />}
-        </div>
-      );
-    }
-
-    // Beat 1: a plain "Ronda N" announcement — nothing else on it, moves on
-    // by itself shortly after, so the round change itself gets its own
-    // moment before items/gun show up.
-    if (revealStage === "announce")
-      return (
-        <RoundAnnounce
-          roundNumber={round.roundNumber}
-          previousRoundNumber={endedRoundNumber ?? undefined}
-          // Round 1 plays with no items (see createInitialState), and eliminated
-          // players never draw items either — so skip straight to the chamber
-          // card instead of showing an empty chest.
-          onDone={() => setRevealStage(!amAlive || round.roundNumber === 1 ? "chamber" : "chests")}
-        />
-      );
-
-    // Beat 2: your own chest, items only — nothing about the gun/shells
-    // here on purpose (that's its own separate screen next).
-    if (revealStage === "chests") {
-      const myNewItems = myPlayer?.lastGrantedItems ?? [];
-      const chestDone = revealedCount >= myNewItems.length;
-      return (
-        <div className="recamara">
-          <div className="rec-table">
-            <ChestReveal
-              player={myPlayer ?? { id: myEngineId, name: "Vos", lives: 0, items: [], lastGrantedItems: [] }}
-              newItems={myNewItems}
-              revealedCount={revealedCount}
-              onReveal={() => setRevealedCount(c => c + 1)}
-            />
-          </div>
-          <div className="controls">
-            <button className="act primary" disabled={!chestDone} onClick={() => setRevealStage("chamber")}>
-              Ver la recámara
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Beat 3: the chamber card — gun + real/falso shell count, held up for
-    // ROUND_INTRO_MS with a visible countdown before signaling ready.
-    return (
-      <ChamberCard
-        liveCount={round.liveCount}
-        blankCount={round.blankCount}
-        sfx={sfx}
-        introEndsAt={introEndsAt}
-        introMs={ROUND_INTRO_MS}
-        showLegend={round.roundNumber === 1}
-        controls={
-          amAlive ? (
-            <button
-              className="act primary"
-              onClick={() => {
-                send({ type: "ready_for_duel" });
-                setReadySent(true);
-              }}
-            >
-              Listo, a disparar
-            </button>
-          ) : (
-            <button className="act cursor-default! opacity-75!" disabled>
-              👁️ Mirando como espectador
-            </button>
-          )
-        }
-        overlay={duelTransition && <FlashOverlay text="A disparar" />}
-      />
-    );
-  }
+  const showOverlay = round.subPhase === "reveal" && overlayDoneRound !== round.roundNumber && !busy;
+  const onOverlayDone = () => {
+    setOverlayDoneRound(round.roundNumber);
+    // Only alive players are asked to confirm (see the backend's
+    // readyForDuel) — an eliminated one just watches.
+    if (amAlive) send({ type: "ready_for_duel" });
+  };
 
   // ─── duel ───
   const currentEngineId = state.order[state.turnPos];
@@ -285,7 +152,7 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
   const alive = state.players.filter(p => p.lives > 0);
   const isMyTurn = currentRoomId === myPlayerId;
   const sheetPlayer = sheetPlayerId != null ? state.players.find(p => p.id === sheetPlayerId) : undefined;
-  const canShoot = isMyTurn && !busy;
+  const canShoot = isMyTurn && !busy && round.subPhase === "duel";
 
   const fire = (targetRoomId: string) => {
     if (busy || !isMyTurn) return;
@@ -335,6 +202,8 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           nameFor: p => (p.id === myEngineId ? "Vos" : p.name),
           youId: myEngineId,
           onFire: canShoot ? id => fire(round.seatOrder[id]) : undefined,
+          hideItems: showOverlay,
+          dealtRound: round.roundNumber > 1 ? round.roundNumber : undefined,
         }}
         roundNumber={round.roundNumber}
         shellsTotal={state.shells.length}
@@ -345,10 +214,11 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           currentIsMe: isMyTurn,
           aiming: fx?.kind === "shot" ? aimingAt(fx, state.players, currentEngineId, myEngineId) : null,
           amEliminated: !amAlive,
+          waiting: round.subPhase === "reveal" && !showOverlay && amAlive,
         })}
         canShoot={canShoot}
         onSelfFire={() => fire(myPlayerId)}
-        items={isMyTurn ? current.items : null}
+        items={isMyTurn && round.subPhase === "duel" ? current.items : null}
         itemsDisabled={busy}
         onUseItem={setPendingItem}
         log={round.log.map((l, i) => ({ key: i, html: l.text, cls: l.cls }))}
@@ -368,15 +238,23 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
           const targetEngineId = round.seatOrder.indexOf(shot.targetId);
           const targetBefore = state.players.find(p => p.id === targetEngineId);
           const targetAfter = playingShot.after?.state.players.find(p => p.id === targetEngineId);
-          const isElimination = (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0;
-          const eliminatedName = isElimination ? nameFor(shot.targetId) : undefined;
-
+          const banner = shotBanner({
+            shellKind: shot.shellKind,
+            damage: shot.damage,
+            shooterName: nameFor(shot.shooterId),
+            shooterIsMe: shot.shooterId === myPlayerId,
+            targetName: nameFor(shot.targetId),
+            targetIsMe: shot.targetId === myPlayerId,
+            selfShot: shot.targetId === shot.shooterId,
+            eliminated: (targetBefore?.lives ?? 0) > 0 && (targetAfter?.lives ?? 0) <= 0,
+          });
           return (
-            <OutcomeBanner
-              line={{ text: outcome.actionLine }}
-              subLine={{ text: outcome.shellLine, cls: outcome.cls }}
-              isElimination={isElimination}
-              eliminatedName={eliminatedName}
+            <ResultBanner
+              key={playingShot.id}
+              tone={banner.tone}
+              big={banner.big}
+              sub={banner.sub}
+              whoHtml={outcome.actionLine}
               onContinue={director.finish}
             />
           );
@@ -406,7 +284,15 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
               revealLupaHint: itemBanner.item === "🔍" ? canRevealLupa : true,
             },
           );
-          return <OutcomeBanner line={line} onContinue={director.finish} />;
+          return (
+            <ResultBanner
+              key={playingItem.id}
+              tone={line.cls === "danger" ? "live" : "blank"}
+              big={itemBannerTitle(itemBanner.item)}
+              subHtml={line.text}
+              onContinue={director.finish}
+            />
+          );
         })()}
 
       {stage === "item-activating" && fx?.kind === "item" && <ItemEffect fx={fx} />}
@@ -433,31 +319,35 @@ export function RoundView({ room, me, isHost, send, myRole }: RoundViewProps) {
         />
       )}
 
+      {showOverlay && (
+        <RoundOverlay
+          key={round.roundNumber}
+          roundNumber={round.roundNumber}
+          liveCount={round.liveCount}
+          blankCount={round.blankCount}
+          sfx={sfx}
+          onDone={onOverlayDone}
+        />
+      )}
+
       {showWinner && round.winnerRoomId && (
-        <div className="rec-overlay winner-overlay">
-          <div className="rec-table final-card winner-in max-w-[420px]">
-            <div className="rec-victory-callout">
-              <span className="rec-victory-trophy">🏆</span>
-              <p className="rec-victory-title display">¡VICTORIA!</p>
-            </div>
-            <p className="mono eyebrow">Fin del duelo</p>
-            <p className="display winner">
-              Gana <span>{round.winnerRoomId === myPlayerId ? "vos" : nameFor(round.winnerRoomId)}</span>
-            </p>
-            {isHost ? (
-              // Recámara's rematch goes back through the lobby (not a
-              // straight start_round like other games' "jugar de nuevo") so
-              // the host can add/remove players before the next chamber —
-              // see backToLobby in backend/src/ws/roomHandlers.ts.
-              <StartButton onClick={() => send({ type: "back_to_lobby" })}>Volver a la sala</StartButton>
-            ) : (
-              <p className="text-sm text-[var(--rec-ink-dim)]">Esperando que el anfitrión vuelva a la sala</p>
-            )}
-            {/* Host's primary button above already sends back_to_lobby — this is
+        <EndScreen
+          title={round.winnerRoomId === myPlayerId ? "Ganaste" : `Ganó ${nameFor(round.winnerRoomId)}`}
+          sub={round.winnerRoomId === myPlayerId ? "Última persona en la mesa." : "La recámara no perdona."}
+        >
+          {isHost ? (
+            // Recámara's rematch goes back through the lobby (not a
+            // straight start_round like other games' "jugar de nuevo") so
+            // the host can add/remove players before the next chamber —
+            // see backToLobby in backend/src/ws/roomHandlers.ts.
+            <StartButton onClick={() => send({ type: "back_to_lobby" })}>Volver a la sala</StartButton>
+          ) : (
+            <p className="text-sm text-[var(--rec-ink-dim)]">Esperando que el anfitrión vuelva a la sala</p>
+          )}
+          {/* Host's primary button above already sends back_to_lobby — this is
                 only useful for a non-host who doesn't want to wait for the host. */}
-            {!isHost && <LeaveToLobbyButton groupCode={room.groupCode} send={send} message="Se interrumpe el duelo para todos." />}
-          </div>
-        </div>
+          {!isHost && <LeaveToLobbyButton groupCode={room.groupCode} send={send} message="Se interrumpe el duelo para todos." />}
+        </EndScreen>
       )}
     </div>
   );

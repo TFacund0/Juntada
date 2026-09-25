@@ -1,5 +1,9 @@
 @media (prefers-reduced-motion: reduce) {
   .recamara .token.targetable,
+  .recamara .round-overlay-title,
+  .recamara .token-items.dealt,
+  .recamara .result-banner,
+  .recamara .end-panel,
   .recamara .shotgun.recoil,
   .recamara .shotgun.aiming,
   .recamara .gun-smoke i,
@@ -19,13 +23,6 @@
   .recamara .direction-ring,
   .recamara .log .line,
   .recamara .rec-modal-icon.activating,
-  .recamara .chest-big.shake,
-  .recamara .chest-big.shake:active,
-  .recamara .chest-glow,
-  .recamara .chest-reveal-card,
-  .recamara .round-intro,
-  .recamara .round-chamber,
-  .recamara .rec-flash-card,
   .recamara .tray-item[data-tooltip]:hover::after,
   .recamara .tray-item[data-tooltip]:focus-visible::after {
     animation: none !important;

@@ -66,120 +66,65 @@ function makeRoom(roundOverrides: Record<string, unknown> = {}): RoomPublicState
 const meP1 = { playerId: "p1", roomCode: "TEST1" };
 const myPlayerP1: PublicPlayer = { id: "p1", accountId: "p1", name: "Jugador 1", ready: false, online: true, hasVoted: false };
 
-describe("Recámara RoundView — reveal", () => {
-  test("round 1 has no items to reveal — skips straight from the announcement to the chamber card, with the bullet legend", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const send = vi.fn();
-    const noItemsState = { ...makeRound().state, players: makeRound().state.players.map(p => ({ ...p, items: [] })) };
+// The round overlay (RoundOverlay) takes this long to play out in full,
+// title → shells shown → flip → shuffle → load → outro — comfortably
+// above the 4+4-shell chamber's actual length.
+const OVERLAY_MS = 10000;
+
+describe("Recámara RoundView — round overlay", () => {
+  const renderView = (roundOverrides: Record<string, unknown>, send = vi.fn(), me = meP1) =>
     render(
-      <RoundView
-        room={makeRoom({ state: noItemsState })}
-        me={meP1}
-        myPlayer={myPlayerP1}
-        myRole={null}
-        wordReveal={null}
-        isHost={true}
-        send={send}
-      />,
+      <RoundView room={makeRoom(roundOverrides)} me={me} myPlayer={myPlayerP1} myRole={null} wordReveal={null} isHost={true} send={send} />,
     );
 
-    expect(screen.getByText("1", { selector: ".round-intro-number" })).toBeInTheDocument();
+  test("a new round plays its overlay over the table, with the real/falsa count, then reports ready", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const send = vi.fn();
+    renderView({}, send);
+
+    // The table is already there underneath — no separate screens.
+    expect(document.querySelector(".duel-scene")).toBeInTheDocument();
+    expect(screen.getByText("Ronda 1", { selector: ".round-overlay-title" })).toBeInTheDocument();
     await vi.advanceTimersByTimeAsync(2000);
+    expect(document.querySelector(".reload-legend")).toHaveTextContent("2 reales · 2 falsas");
+    expect(document.querySelectorAll(".reload-shell")).toHaveLength(4);
+    expect(send).not.toHaveBeenCalled();
 
-    // No chest beat at all — nothing to reveal in round 1.
-    expect(document.querySelector(".chest-stage")).not.toBeInTheDocument();
-    expect(document.querySelector(".chamber-focus")).toBeInTheDocument();
-    expect(document.querySelectorAll(".bullet-row span")).toHaveLength(4);
-    expect(screen.getByText("🔴 real · 🟡 falsa")).toBeInTheDocument();
-
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Listo, a disparar" }));
+    await vi.advanceTimersByTimeAsync(OVERLAY_MS);
+    expect(document.querySelector(".round-overlay")).not.toBeInTheDocument();
     expect(send).toHaveBeenCalledWith({ type: "ready_for_duel" });
+    // Still the reveal phase server-side: waiting for everyone else.
+    expect(document.querySelector(".scene-status")).toHaveTextContent("Esperando a los demás…");
+    expect(screen.queryByRole("button", { name: "Dispararme a mí" })).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 
-  test("round 2+: the announcement moves on by itself, then my own chest, then the chamber card with liveCount+blankCount bullet icons, no legend", async () => {
+  test("an eliminated player watches the overlay but never reports ready", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const send = vi.fn();
-    const { rerender } = render(
-      <RoundView
-        room={makeRoom({ roundNumber: 2 })}
-        me={meP1}
-        myPlayer={myPlayerP1}
-        myRole={null}
-        wordReveal={null}
-        isHost={true}
-        send={send}
-      />,
-    );
+    const state = makeRound().state;
+    renderView({ roundNumber: 2, state: { ...state, players: state.players.map(p => (p.id === 0 ? { ...p, lives: 0 } : p)) } }, send);
 
-    expect(screen.getByText("2", { selector: ".round-intro-number" })).toBeInTheDocument();
-    expect(document.querySelector(".chamber-focus")).not.toBeInTheDocument();
-    await vi.advanceTimersByTimeAsync(2000);
-
-    // My own chest — pop both items before "Ver la recámara" enables.
-    const user = userEvent.setup();
-    let nextBtn = screen.getByRole("button", { name: "Ver la recámara" });
-    expect(nextBtn).toBeDisabled();
-    await user.click(document.querySelector(".chest-big")!);
-    await user.click(document.querySelector(".chest-big")!);
-    nextBtn = screen.getByRole("button", { name: "Ver la recámara" });
-    expect(nextBtn).not.toBeDisabled();
-    await user.click(nextBtn);
-
-    // The chamber card: gun + one 🔴/🟡 icon per shell (liveCount + blankCount),
-    // never the numeric "2 reales" text, and no legend — round 1 already
-    // showed it.
-    expect(document.querySelector(".chamber-focus")).toBeInTheDocument();
-    expect(document.querySelectorAll(".bullet-row span")).toHaveLength(4);
-    expect(screen.queryByText(/reales/)).not.toBeInTheDocument();
-    expect(screen.queryByText("🔴 real · 🟡 falsa")).not.toBeInTheDocument();
-    expect(screen.getByText("Tiempo para mirar")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Listo, a disparar" }));
-    expect(send).toHaveBeenCalledWith({ type: "ready_for_duel" });
-
-    // Re-rendering with readyForDuel reflecting just me shows the waiting screen.
-    rerender(
-      <RoundView
-        room={makeRoom({ roundNumber: 2, readyForDuel: ["p1"] })}
-        me={meP1}
-        myPlayer={myPlayerP1}
-        myRole={null}
-        wordReveal={null}
-        isHost={true}
-        send={send}
-      />,
-    );
-    expect(screen.getByText("Esperando a los demás")).toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(OVERLAY_MS);
+    expect(document.querySelector(".round-overlay")).not.toBeInTheDocument();
+    expect(send).not.toHaveBeenCalled();
+    expect(document.querySelector(".scene-status")).toHaveTextContent("Quedaste afuera. Mirá cómo termina.");
     vi.useRealTimers();
   });
 
-  test("the chamber card also auto-advances (sends ready_for_duel) after its own countdown", async () => {
+  test("round 2+: items are hidden under the overlay and dealt onto the cards once it lifts", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    const send = vi.fn();
-    render(
-      <RoundView
-        room={makeRoom({ roundNumber: 2, readyForDuel: [] })}
-        me={meP1}
-        myPlayer={myPlayerP1}
-        myRole={null}
-        wordReveal={null}
-        isHost={true}
-        send={send}
-      />,
-    );
-    await vi.advanceTimersByTimeAsync(2000);
+    renderView({ roundNumber: 2 });
+    expect(document.querySelector(".token-items")).not.toBeInTheDocument();
 
-    const user = userEvent.setup();
-    await user.click(document.querySelector(".chest-big")!);
-    await user.click(document.querySelector(".chest-big")!);
-    await user.click(screen.getByRole("button", { name: "Ver la recámara" }));
-
-    expect(document.querySelector(".chamber-focus")).toBeInTheDocument();
-    await vi.advanceTimersByTimeAsync(5200);
-    expect(send).toHaveBeenCalledWith({ type: "ready_for_duel" });
+    await vi.advanceTimersByTimeAsync(OVERLAY_MS);
+    expect(document.querySelectorAll(".token-items.dealt")).toHaveLength(2);
     vi.useRealTimers();
+  });
+
+  test("once the duel starts there's no overlay at all", () => {
+    renderView({ subPhase: "duel" });
+    expect(document.querySelector(".round-overlay")).not.toBeInTheDocument();
   });
 });
 
@@ -267,8 +212,9 @@ describe("Recámara RoundView — duel", () => {
     expect(document.querySelector(".token.active")).toHaveTextContent("Vos");
 
     await vi.advanceTimersByTimeAsync(2000);
-    expect(document.querySelector(".rec-banner-text")?.textContent).toMatch(/dispara/);
-    expect(document.querySelector(".rec-banner-subtext")?.textContent).toMatch(/Cartucho real/);
+    expect(document.querySelector(".result-banner-who")?.textContent).toMatch(/dispara/);
+    expect(document.querySelector(".result-banner-big")?.textContent).toBe("REAL");
+    expect(document.querySelector(".result-banner-sub")?.textContent).toBe("Perdés 1 vida");
 
     await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(screen.getByRole("button", { name: "Continuar" }));
     expect(document.querySelector(".scene-status")).toHaveTextContent("Turno de Jugador 2…");
@@ -329,12 +275,12 @@ describe("Recámara RoundView — duel", () => {
     // Shot 1: I hit Jugador 2. I'm left looking at its banner...
     rerender(renderRound(shotRound(1, "p1", "p2", [5, 4], 1)));
     await vi.advanceTimersByTimeAsync(2000);
-    expect(document.querySelector(".rec-banner-text")?.textContent).toBe("Jugador 1 le dispara a Jugador 2.");
+    expect(document.querySelector(".result-banner-who")?.textContent).toBe("Jugador 1 le dispara a Jugador 2.");
 
     // ...while Jugador 2 already dismissed theirs and shoots back.
     rerender(renderRound(shotRound(2, "p2", "p1", [4, 4], 0)));
     await vi.advanceTimersByTimeAsync(2000);
-    expect(document.querySelector(".rec-banner-text")?.textContent).toBe("Jugador 1 le dispara a Jugador 2.");
+    expect(document.querySelector(".result-banner-who")?.textContent).toBe("Jugador 1 le dispara a Jugador 2.");
     expect(livesOf("Vos")).toBe("5 de 5 vidas");
     expect(livesOf("Jugador 2")).toBe("5 de 5 vidas");
 
@@ -342,10 +288,10 @@ describe("Recámara RoundView — duel", () => {
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(livesOf("Vos")).toBe("5 de 5 vidas");
     expect(livesOf("Jugador 2")).toBe("4 de 5 vidas");
-    expect(document.querySelector(".rec-banner-text")).not.toBeInTheDocument();
+    expect(document.querySelector(".result-banner-who")).not.toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(2000);
-    expect(document.querySelector(".rec-banner-text")?.textContent).toBe("Jugador 2 le dispara a Jugador 1.");
+    expect(document.querySelector(".result-banner-who")?.textContent).toBe("Jugador 2 le dispara a Jugador 1.");
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     expect(livesOf("Vos")).toBe("4 de 5 vidas");
     expect(livesOf("Jugador 2")).toBe("4 de 5 vidas");
@@ -368,7 +314,7 @@ describe("Recámara RoundView — duel", () => {
     );
     await vi.advanceTimersByTimeAsync(3000);
 
-    expect(document.querySelector(".rec-banner-text")).not.toBeInTheDocument();
+    expect(document.querySelector(".result-banner-who")).not.toBeInTheDocument();
     expect(livesOf("Vos")).toBe("3 de 5 vidas");
     expect(screen.getByRole("button", { name: "Dispararme a mí" })).toBeEnabled();
     vi.useRealTimers();
@@ -392,11 +338,11 @@ describe("Recámara RoundView — duel", () => {
 
     rerender(renderRound(shotRound(1, "p1", "p2", [5, 4], 1)));
     await vi.advanceTimersByTimeAsync(2000);
-    expect(document.querySelector(".rec-banner-text")).toBeInTheDocument();
+    expect(document.querySelector(".result-banner-who")).toBeInTheDocument();
 
     rerender(renderRound(shotRound(3, "p2", "p1", [4, 3], 0)));
     await vi.advanceTimersByTimeAsync(0);
-    expect(document.querySelector(".rec-banner-text")).not.toBeInTheDocument();
+    expect(document.querySelector(".result-banner-who")).not.toBeInTheDocument();
     expect(livesOf("Vos")).toBe("4 de 5 vidas");
     expect(livesOf("Jugador 2")).toBe("3 de 5 vidas");
     vi.useRealTimers();
