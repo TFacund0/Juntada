@@ -17,6 +17,7 @@ import { ScreenSwap } from "./components/ScreenSwap";
 import { pickLocalWords as pickThreeWords } from "./utils/localWords";
 import { localRoundPoints } from "./utils/localTurn";
 import { useRayadoSfx } from "./hooks/useRayadoSfx";
+import { RayadoSfxContext } from "./hooks/rayadoSfxContext";
 import { useTurnEndSound } from "./hooks/useTurnEndSound";
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -196,7 +197,11 @@ export function LocalGame() {
 
   useTurnEndSound(phase, sfx);
   // Cada fase entra y sale como en la referencia (ver ScreenSwap).
-  return <ScreenSwap screenKey={phase}>{phaseScreen()}</ScreenSwap>;
+  return (
+    <RayadoSfxContext.Provider value={sfx}>
+      <ScreenSwap screenKey={phase}>{phaseScreen()}</ScreenSwap>
+    </RayadoSfxContext.Provider>
+  );
 
   function phaseScreen() {
     if (phase === "setup") {
@@ -234,7 +239,6 @@ export function LocalGame() {
           revealChoices={() => setChoicesRevealed(true)}
           wordChoices={wordChoices}
           chooseWord={chooseWord}
-          sfx={sfx}
         />
       );
     }
@@ -248,7 +252,6 @@ export function LocalGame() {
           timerEnd={timerEnd}
           wordHint={wordHint}
           scores={scores}
-          sfx={sfx}
           strokes={strokes}
           setStrokes={setStrokes}
           tool={tool}
@@ -273,12 +276,11 @@ export function LocalGame() {
           guessSeconds={guessSeconds}
           isLastTurn={turnNumber === totalTurns}
           goToNextTurn={goToNextTurn}
-          sfx={sfx}
         />
       );
     }
 
     // ── RESULT ──
-    return <LocalResultScreen players={players} scores={scores} backToSetup={backToSetup} sfx={sfx} />;
+    return <LocalResultScreen players={players} scores={scores} backToSetup={backToSetup} />;
   }
 }

@@ -1,5 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { buildTurnScoreRows, countUpValue, flipOffsets, scoreReason, sortByTotal } from "../utils/turnScores";
+import {
+  COUNT_MS,
+  buildTurnScoreRows,
+  countFrame,
+  countUpValue,
+  flipOffsets,
+  scoreReason,
+  sortByTotal,
+  type TurnScoreRow,
+} from "../utils/turnScores";
 
 const players = [
   { id: "ana", name: "Ana" },
@@ -78,5 +87,20 @@ describe("flipOffsets", () => {
       ["a", -50],
       ["b", 50],
     ]);
+  });
+});
+
+describe("countFrame", () => {
+  const row: TurnScoreRow = { id: "a", name: "A", plus: 40, before: 10, after: 50, isDrawer: false, isMe: false, why: "" };
+
+  test("first the +N counts up from 0 while the total stays at the previous one", () => {
+    expect(countFrame([row], 0)).toEqual({ values: { a: { plus: 0, total: 10 } }, done: false });
+    expect(countFrame([row], COUNT_MS / 2).values.a).toEqual({ plus: 35, total: 10 }); // 40 * 0.875
+  });
+
+  test("then the total counts up to the new one, and the sequence ends after both stretches", () => {
+    expect(countFrame([row], COUNT_MS).values.a).toEqual({ plus: 40, total: 10 });
+    expect(countFrame([row], COUNT_MS * 1.5)).toEqual({ values: { a: { plus: 40, total: 45 } }, done: false }); // 10 + 40 * 0.875
+    expect(countFrame([row], COUNT_MS * 2)).toEqual({ values: { a: { plus: 40, total: 50 } }, done: true });
   });
 });

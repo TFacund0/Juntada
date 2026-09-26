@@ -1,5 +1,4 @@
 import { useState, type ReactNode } from "react";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import type { PlayerRow } from "../utils/playerRows";
 import { type DrawAction, type Tool } from "./Canvas";
 import { Palette } from "./palette/Palette";
@@ -8,6 +7,7 @@ import { DrawingStage } from "./DrawingStage";
 import { TurnBar } from "./TurnBar";
 import { PaperBoard } from "./PaperBoard";
 import { PlayersPanel } from "./PlayersPanel";
+import { useRayadoSfxContext } from "../hooks/rayadoSfxContext";
 
 /** Todo lo que el tablero reenvía a `Canvas`/`Palette` — agrupado aparte para no dejar 6 props sueltas en {@link DrawingBoardProps} con la misma forma que ya tiene `CanvasProps` (ver Canvas.tsx). */
 interface DrawingBoardCanvasProps {
@@ -43,7 +43,6 @@ interface DrawingBoardProps {
   /** Contenido de la columna del chat — el chat de adivinanzas online, o la lista de "¿quién acertó?" del modo local. */
   sideContent: ReactNode;
   sideLabel: string;
-  sfx: RayadoSfx;
   /** Texto sobre la hoja vacía de quien dibuja (ver PaperBoard). */
   idleText?: string | null;
   /** Marcador que sigue el trazo remoto (solo quien mira, online). */
@@ -68,10 +67,10 @@ export function DrawingBoard({
   players,
   sideContent,
   sideLabel,
-  sfx,
   idleText,
   remotePen = false,
 }: DrawingBoardProps) {
+  const sfx = useRayadoSfxContext();
   const { strokes, tool, onToolChange, onStrokeChunk, onFillAt, onClear, onUndo, resetKey } = canvas;
   // "¿Borrar?" confirmados acá: la hoja tiembla aunque deshacer hubiera podido vaciarla igual (ver useClearFx).
   const [clearRequest, setClearRequest] = useState(0);
@@ -92,7 +91,7 @@ export function DrawingBoard({
           subtitle={header.subtitle}
           word={header.word}
           extra={header.notice}
-          timer={timerEnd ? <TimerRing timerEnd={timerEnd} total={total} correctCount={correctCount} sfx={sfx} /> : null}
+          timer={timerEnd ? <TimerRing timerEnd={timerEnd} total={total} correctCount={correctCount} /> : null}
         />
       }
       board={
@@ -114,7 +113,7 @@ export function DrawingBoard({
       }
       tools={
         interactive && (
-          <Palette tool={tool} onToolChange={onToolChange} hasDrawing={strokes.length > 0} onUndo={onUndo} onClear={clearAll} sfx={sfx} />
+          <Palette tool={tool} onToolChange={onToolChange} hasDrawing={strokes.length > 0} onUndo={onUndo} onClear={clearAll} />
         )
       }
       chat={sideContent}

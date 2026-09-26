@@ -58,6 +58,8 @@
   --color-rl-card-border: rgba(127, 119, 221, 0.2);
   --color-rl-accent: #7f77dd;
   --color-rl-accent-strong: #afa9ec;
+  /* Final del degradé de los botones principales (Enviar, Siguiente turno). */
+  --color-rl-accent-deep: #5b52c7;
   --color-rl-muted: #8a82b4;
   --color-rl-ink: #eeeaff;
   --color-rl-ok: #33c07a;

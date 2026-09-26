@@ -1,16 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { GameScreenLayout } from "../../../../components/game-kit/GameScreenLayout";
-import type { RayadoSfx } from "../../hooks/useRayadoSfx";
 import { canAnimateNow, useMountMotion } from "../../hooks/useMountMotion";
 import type { TurnScoreRow } from "../../utils/turnScores";
 import { RevealWord, STROKE_MS } from "./RevealWord";
 import { TurnScoreTable } from "./TurnScoreTable";
+import { useRayadoSfxContext } from "../../hooks/rayadoSfxContext";
 
 interface RevealViewProps {
   word: string;
   rows: readonly TurnScoreRow[];
-  sfx: Pick<RayadoSfx, "play">;
   /** El botón de abajo (o su reemplazo); aparece cuando termina la tabla. */
   foot: ReactNode;
   /** Algo más debajo de la tabla (online: el chat del turno). */
@@ -23,7 +22,8 @@ interface RevealViewProps {
  * el botón de abajo, que aparece recién cuando la tabla terminó de contar y
  * reordenarse.
  */
-export function RevealView({ word, rows, sfx, foot, children }: RevealViewProps) {
+export function RevealView({ word, rows, foot, children }: RevealViewProps) {
+  const sfx = useRayadoSfxContext();
   const animated = useMountMotion();
   const [tableDone, setTableDone] = useState(!animated);
 
@@ -39,7 +39,7 @@ export function RevealView({ word, rows, sfx, foot, children }: RevealViewProps)
       center={
         <div className="mx-auto flex w-full max-w-[480px] flex-col items-center pt-5 text-center font-figtree text-rl-ink">
           <RevealWord word={word} animated={animated} />
-          <TurnScoreTable rows={rows} animated={animated} startDelay={STROKE_MS} sfx={sfx} onDone={() => setTableDone(true)} />
+          <TurnScoreTable rows={rows} animated={animated} startDelay={STROKE_MS} onDone={() => setTableDone(true)} />
           {children && <div className="mt-4 w-full text-left">{children}</div>}
         </div>
       }

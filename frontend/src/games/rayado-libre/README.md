@@ -65,8 +65,13 @@ UI entre los dos modos:
 - **`Toolbar.tsx`** — paleta de colores, grosor de trazo, deshacer/limpiar.
 - **`choose/`** — la pantalla de elegir palabra (`ChooseWordPanel`) y su
   abanico de 3 cartas de papel (`WordCardFan`), online y local.
-- **`TurnHeader.tsx`**, **`CircularTimer.tsx`**, **`HintText.tsx`** —
-  piezas chicas de header reusadas en varias fases.
+- **`TurnHeader.tsx`**, **`HintText.tsx`** — piezas chicas de header
+  reusadas en varias fases. **`CountdownRing.tsx`** es el anillo arcoíris
+  que se vacía: el reloj del turno (`TimerRing`) y el anillo alrededor del
+  avatar de quien elige palabra (`WaitingForWordCard`).
+- **`hooks/rayadoSfxContext.ts`** — el sonido (`useRayadoSfx`) se monta una
+  vez en `RoundView`/`LocalGame` y lo lee cada pieza que suena vía
+  `useRayadoSfxContext()`, sin pasarlo prop por prop.
 - **`reveal/`** — la revelación (`RevealView`: la palabra con su pincelada y
   la tabla del turno animada, con la secuencia en
   `hooks/useScoreTableSequence`), online y local.

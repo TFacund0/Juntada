@@ -41,7 +41,7 @@ frontend/src/games/<nombre-juego>/
 ├── components/          # subcomponentes de presentación específicos del juego
 ├── types/                # tipos TypeScript locales al juego
 ├── utils/                # helpers puros (sin JSX) específicos del juego
-├── tests/                # tests con Vitest, uno por componente/módulo relevante
+├── __tests__/            # tests con Vitest, uno por componente/módulo relevante
 ├── assets/               # imágenes/recursos propios del juego (si aplica)
 └── README.md             # opcional, documenta reglas del juego si no son obvias
 ```
@@ -49,7 +49,7 @@ frontend/src/games/<nombre-juego>/
 Si el juego nuevo tiene todo el código en un solo archivo gigante en `index.tsx`, o mezcla
 componentes sueltos directamente en `frontend/src/games/` sin las subcarpetas, reorganizalo
 a esta forma. No hace falta que tenga las seis carpetas si el juego es simple (un juego de una
-sola pantalla puede no necesitar `types/` propio), pero la carpeta `components/` y `tests/`
+sola pantalla puede no necesitar `types/` propio), pero la carpeta `components/` y `__tests__/`
 son casi siempre necesarias en cuanto el juego pasa de un componente.
 
 Si el juego tiene modo online, confirmá que existe la carpeta simétrica en
@@ -112,9 +112,9 @@ El proyecto testea con Vitest + jsdom (`frontend/vitest.config.ts`,
 `frontend/src/test/setup.ts`). Para lógica que involucra WebSocket/modo online, hay un mock
 listo en `frontend/src/test/mockWebSocket.ts` — usalo en vez de armar un mock nuevo.
 
-- Los tests del juego van en `frontend/src/games/<nombre-juego>/tests/*.test.tsx`, uno por
+- Los tests del juego van en `frontend/src/games/<nombre-juego>/__tests__/*.test.ts(x)`, uno por
   componente/módulo con lógica no trivial (no hace falta testear componentes puramente
-  decorativos sin ramas condicionales). Mirá `rayado-libre/tests/` como plantilla de estilo
+  decorativos sin ramas condicionales). Mirá `rayado-libre/__tests__/` como plantilla de estilo
   (nombre de archivo espejo del componente, `describe`/`it` en español o inglés según lo que ya
   uses en el resto del juego — seguí la convención del propio juego si ya escribiste algo).
 - Priorizá testear la capa de reglas puras (`utils/`) primero — son las más baratas de testear y

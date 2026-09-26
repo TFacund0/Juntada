@@ -8,7 +8,7 @@ export function PrimaryButton({ children, onClick, className }: { children: stri
       onClick={onClick}
       className={clsx(
         "w-full cursor-pointer rounded-[14px] border-0 p-3.5 font-figtree text-base font-extrabold text-white",
-        "bg-[linear-gradient(135deg,var(--color-rl-accent),#5b52c7)] shadow-[0_10px_26px_-8px_rgba(127,119,221,.7)]",
+        "bg-linear-[135deg] from-rl-accent to-rl-accent-deep shadow-[0_10px_26px_-8px] shadow-rl-accent/70",
         className,
       )}
     >

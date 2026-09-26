@@ -2,9 +2,9 @@ import clsx from "clsx";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAnimationGate } from "../../../components/game-kit/hooks/useAnimationGate";
 import type { LocalPlayer } from "../types/localGame";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { MuteButton } from "./MuteButton";
 import { ChatHeader } from "./chat/ChatHeader";
+import { useRayadoSfxContext } from "../hooks/rayadoSfxContext";
 
 interface LocalGuessersPanelProps {
   players: LocalPlayer[];
@@ -12,7 +12,6 @@ interface LocalGuessersPanelProps {
   correctGuessers: number[];
   lastTurnPoints: Record<number, number>;
   markCorrect: (playerId: number) => void;
-  sfx: RayadoSfx;
 }
 
 /**
@@ -20,7 +19,8 @@ interface LocalGuessersPanelProps {
  * el dispositivo, con la misma cabecera y el mismo estilo de panel que el
  * chat de respuestas online.
  */
-export function LocalGuessersPanel({ players, drawerId, correctGuessers, lastTurnPoints, markCorrect, sfx }: LocalGuessersPanelProps) {
+export function LocalGuessersPanel({ players, drawerId, correctGuessers, lastTurnPoints, markCorrect }: LocalGuessersPanelProps) {
+  const sfx = useRayadoSfxContext();
   const canAnimate = useAnimationGate();
   const guessers = players.filter(p => p.id !== drawerId);
   const guessed = correctGuessers.flatMap(id => {

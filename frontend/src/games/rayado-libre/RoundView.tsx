@@ -8,6 +8,7 @@ import { RevealPhaseScreen } from "./components/RevealPhaseScreen";
 import { ResultPhaseScreen } from "./components/ResultPhaseScreen";
 import { ScreenSwap } from "./components/ScreenSwap";
 import { useRayadoSfx } from "./hooks/useRayadoSfx";
+import { RayadoSfxContext } from "./hooks/rayadoSfxContext";
 import { useTurnEndSound } from "./hooks/useTurnEndSound";
 import { useMyGuessCelebration, type LastGuess } from "./hooks/useMyGuessCelebration";
 import type { RoundViewProps } from "../gameTypes";
@@ -75,7 +76,11 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
   const drawerOffline = !isDrawer && !!drawerPlayer && !drawerPlayer.online;
 
   const { key: screenKey, node: screen } = phaseScreen();
-  return <ScreenSwap screenKey={screenKey}>{screen}</ScreenSwap>;
+  return (
+    <RayadoSfxContext.Provider value={sfx}>
+      <ScreenSwap screenKey={screenKey}>{screen}</ScreenSwap>
+    </RayadoSfxContext.Provider>
+  );
 
   function phaseScreen(): { key: string; node: ReactNode } {
     if (!round) return { key: "none", node: null };
@@ -95,7 +100,6 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
             wordChoices={wordChoices}
             drawerPlayer={drawerPlayer}
             drawerOffline={drawerOffline}
-            sfx={sfx}
             send={send}
           />
         ),
@@ -120,7 +124,6 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
             setGuessText={setGuessText}
             wordVisible={wordVisible}
             setWordVisible={setWordVisible}
-            sfx={sfx}
             send={send}
           />
         ),
@@ -129,13 +132,10 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
     if (room.phase === "reveal") {
       return {
         key: "reveal",
-        node: (
-          <RevealPhaseScreen room={room} round={round} me={me} myPlayer={myPlayer} closeEntryIds={closeEntryIds} sfx={sfx} send={send} />
-        ),
+        node: <RevealPhaseScreen room={room} round={round} me={me} myPlayer={myPlayer} closeEntryIds={closeEntryIds} send={send} />,
       };
     }
-    if (room.phase === "result")
-      return { key: "result", node: <ResultPhaseScreen room={room} me={me} isHost={isHost} sfx={sfx} send={send} /> };
+    if (room.phase === "result") return { key: "result", node: <ResultPhaseScreen room={room} me={me} isHost={isHost} send={send} /> };
     return { key: "none", node: null };
   }
 }

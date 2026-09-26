@@ -34,13 +34,13 @@ export const PlayersPanel = memo(function PlayersPanel({ rows }: { rows: PlayerR
           className={clsx(
             "flex items-center gap-[10px] rounded-xl border px-[10px] py-2",
             row.status === "drawing"
-              ? "border-rl-card-border bg-[rgba(127,119,221,.12)]"
+              ? "border-rl-card-border bg-rl-accent/12"
               : row.status === "guessed"
-                ? "border-[rgba(51,192,122,.35)] bg-[rgba(51,192,122,.1)]"
+                ? "border-rl-ok/35 bg-rl-ok/10"
                 : "border-transparent",
           )}
         >
-          <Avatar name={row.name} size={34} className="shadow-[0_0_0_2px_rgba(255,255,255,.15)]" />
+          <Avatar name={row.name} size={34} className="shadow-[0_0_0_2px] shadow-white/15" />
           <span className="min-w-0 flex-1 font-bold">
             <span className="block truncate">{row.name}</span>
             <small

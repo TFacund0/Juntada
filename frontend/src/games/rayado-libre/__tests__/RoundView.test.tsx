@@ -281,9 +281,9 @@ describe("Rayado Libre RoundView — drawing phase", () => {
     );
 
     const word = screen.getByText("Perro");
-    expect(word).toHaveStyle({ visibility: "visible" });
+    expect(word).not.toHaveClass("invisible");
     await user.click(screen.getByRole("button", { name: "Ocultar palabra" }));
-    expect(word).toHaveStyle({ visibility: "hidden" });
+    expect(word).toHaveClass("invisible");
   });
 
   test("the drawer gets no 'Pedir otra palabra' control (it was removed)", () => {

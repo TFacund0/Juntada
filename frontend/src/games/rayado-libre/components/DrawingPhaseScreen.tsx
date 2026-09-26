@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useRef } from "react";
+import clsx from "clsx";
 import { TURN_SECONDS } from "@juntada/rayado-libre-scoring";
 import type { RoundViewProps } from "../../gameTypes";
 import type { PrivateChatView, RayadoLibreRoundState } from "../types/roundView";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { useTypingIds } from "../hooks/useTypingIds";
 import { useTypingSignal } from "../hooks/useTypingSignal";
 import { useLiftRoomChatBubble } from "../hooks/useLiftRoomChatBubble";
@@ -16,6 +16,7 @@ import { EyeToggle } from "./EyeToggle";
 import { OnlineAnswersPanel } from "./chat/OnlineAnswersPanel";
 import { DrawingBoard } from "./DrawingBoard";
 import { HintText } from "./HintText";
+import { useRayadoSfxContext } from "../hooks/rayadoSfxContext";
 
 interface DrawingPhaseScreenProps {
   room: RoundViewProps["room"];
@@ -32,7 +33,6 @@ interface DrawingPhaseScreenProps {
   setGuessText: (text: string) => void;
   wordVisible: boolean;
   setWordVisible: (visible: boolean | ((v: boolean) => boolean)) => void;
-  sfx: RayadoSfx;
   send: RoundViewProps["send"];
 }
 
@@ -52,9 +52,9 @@ export function DrawingPhaseScreen({
   setGuessText,
   wordVisible,
   setWordVisible,
-  sfx,
   send,
 }: DrawingPhaseScreenProps) {
+  const sfx = useRayadoSfxContext();
   const strokes = round.strokes ?? [];
   const chatLog = round.chatLog ?? [];
   const correctGuessers = round.correctGuessers ?? [];
@@ -92,14 +92,12 @@ export function DrawingPhaseScreen({
 
   // Quien dibuja ve su palabra entera (subrayado verde) y puede taparla con
   // el ojo. El <p> oculto es el texto accesible de la palabra (las letras
-  // sueltas de la pista son decorativas) y lo que lee el e2e; su
-  // `visibility` va inline porque es lo que verifican los tests.
+  // sueltas de la pista son decorativas) y lo que lee el e2e; al taparla
+  // también se oculta para lectores de pantalla (`invisible`).
   const word =
     isDrawer && myWord ? (
       <div className="rl-board-word flex items-center gap-2 @min-[1000px]:justify-center">
-        <p className="sr-only" style={{ visibility: wordVisible ? "visible" : "hidden" }}>
-          {myWord}
-        </p>
+        <p className={clsx("sr-only", !wordVisible && "invisible")}>{myWord}</p>
         <div className={wordVisible ? undefined : "invisible"}>
           <HintText hint={myWord} full showCount />
         </div>
@@ -141,7 +139,6 @@ export function DrawingPhaseScreen({
           ),
         }}
         players={players}
-        sfx={sfx}
         idleText={myWord && wordVisible ? `Dibujá ${myWord.toUpperCase()} acá` : null}
         remotePen
         sideLabel="Chat de respuestas"
@@ -165,7 +162,6 @@ export function DrawingPhaseScreen({
               },
               onSubmit: submitGuess,
             }}
-            sfx={sfx}
           />
         }
       />

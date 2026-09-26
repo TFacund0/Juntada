@@ -1,7 +1,6 @@
 import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RayadoLibreRoundState } from "../types/roundView";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { CENTERED_BLOCK, FULL_HEIGHT_SCREEN } from "../utils/screenLayout";
 import { TurnHeader } from "./TurnHeader";
 import { WaitingForWordCard } from "./WaitingForWordCard";
@@ -15,12 +14,11 @@ interface ChoosingPhaseScreenProps {
   wordChoices: string[] | null;
   drawerPlayer: RoundViewProps["room"]["players"][number] | undefined;
   drawerOffline: boolean;
-  sfx: RayadoSfx;
   send: RoundViewProps["send"];
 }
 
 /** Fase "choosing": quien dibuja elige entre 3 palabras mientras el resto espera — centrado en vertical en todo el alto disponible. */
-export function ChoosingPhaseScreen({ round, isDrawer, wordChoices, drawerPlayer, drawerOffline, sfx, send }: ChoosingPhaseScreenProps) {
+export function ChoosingPhaseScreen({ round, isDrawer, wordChoices, drawerPlayer, drawerOffline, send }: ChoosingPhaseScreenProps) {
   return (
     <GameScreenLayout
       className={FULL_HEIGHT_SCREEN}
@@ -41,7 +39,6 @@ export function ChoosingPhaseScreen({ round, isDrawer, wordChoices, drawerPlayer
             <ChooseWordPanel
               words={wordChoices ?? []}
               onChoose={w => send({ type: "choose_word", word: w })}
-              sfx={sfx}
               autoPickAt={round.chooseTimerEnd}
               autoPickTotal={CHOOSE_SECONDS}
             />

@@ -1,4 +1,5 @@
-import { useGameAudio } from "../../../components/game-kit/hooks/useGameAudio";
+import { useEffect, useMemo, useRef } from "react";
+import { useGameAudio, vibrate } from "../../../components/game-kit/hooks/useGameAudio";
 import { playRayadoSfx, type RayadoSfxName } from "../utils/sfx";
 import { useScribbleSound, type ScribbleSound } from "./useScribbleSound";
 
@@ -19,11 +20,23 @@ export interface RayadoSfx {
 export function useRayadoSfx(): RayadoSfx {
   const audio = useGameAudio(KEY);
   const scribble = useScribbleSound(audio);
-  return {
-    muted: audio.muted,
-    toggleMuted: audio.toggleMuted,
-    play: (name, delaySeconds = 0) => audio.play(ac => playRayadoSfx(ac, name, delaySeconds)),
-    vibrate: audio.vibrate,
-    scribble,
-  };
+  // useGameAudio devuelve funciones nuevas en cada render: se leen desde un
+  // ref para que el objeto de abajo solo cambie cuando cambia el silencio.
+  const audioRef = useRef(audio);
+  useEffect(() => {
+    audioRef.current = audio;
+  });
+  const { muted } = audio;
+  // Memoizado: los efectos que dependen de `sfx` (ver useChatFeedback) no
+  // tienen que volver a correr en cada tecla del chat.
+  return useMemo(
+    () => ({
+      muted,
+      toggleMuted: () => audioRef.current.toggleMuted(),
+      play: (name: RayadoSfxName, delaySeconds = 0) => audioRef.current.play(ac => playRayadoSfx(ac, name, delaySeconds)),
+      vibrate,
+      scribble,
+    }),
+    [muted, scribble],
+  );
 }

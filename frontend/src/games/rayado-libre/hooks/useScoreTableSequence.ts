@@ -1,24 +1,18 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { RayadoSfx } from "./useRayadoSfx";
-import { countUpValue, flipOffsets, sortByTotal, type TurnScoreRow } from "../utils/turnScores";
+import { countFrame, flipOffsets, sortByTotal, type RowValues, type TurnScoreRow } from "../utils/turnScores";
 
 // Tiempos de `revealScreen` en la referencia, contados desde que arranca la tabla.
 const ROW_ENTER_MS = 300;
 const ROW_FIRST_DELAY_MS = 300;
 const ROW_STAGGER_MS = 90;
 const COUNT_START_MS = 900;
-const COUNT_MS = 600;
 const FLIP_MS = 600;
 const BUTTON_AFTER_FLIP_MS = 500;
 const ROW_ENTER: Keyframe[] = [
   { opacity: 0, transform: "translateX(-24px)" },
   { opacity: 1, transform: "none" },
 ];
-
-export interface RowValues {
-  plus: number;
-  total: number;
-}
 
 interface SequenceInput {
   rows: readonly TurnScoreRow[];
@@ -84,18 +78,14 @@ export function useScoreTableSequence({ rows, animated, startDelay, sfx, onDone 
         const t0 = performance.now();
         let last = "";
         const step = (now: number) => {
-          const elapsed = now - t0;
-          const next = valuesOf(list, r => ({
-            plus: countUpValue(0, r.plus, elapsed / COUNT_MS),
-            total: elapsed < COUNT_MS ? r.before : countUpValue(r.before, r.after, (elapsed - COUNT_MS) / COUNT_MS),
-          }));
+          const { values: next, done } = countFrame(list, now - t0);
           const signature = JSON.stringify(next);
           if (signature !== last) {
             if (last) sfx.play("count");
             last = signature;
             setValues(next);
           }
-          if (elapsed < 2 * COUNT_MS) raf = requestAnimationFrame(step);
+          if (!done) raf = requestAnimationFrame(step);
           else reorder();
         };
         raf = requestAnimationFrame(step);

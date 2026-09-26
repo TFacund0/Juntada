@@ -81,7 +81,12 @@ export function SetupScreen({
             <div key={p.id} className="mb-2 flex items-center gap-2">
               <Avatar name={p.name} size={32} />
               <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-              <button onClick={() => removePlayer(p.id)} className={T.squareIconBtn("danger")}>
+              <button
+                type="button"
+                onClick={() => removePlayer(p.id)}
+                aria-label={`Quitar a ${p.name}`}
+                className={T.squareIconBtn("danger")}
+              >
                 ×
               </button>
             </div>

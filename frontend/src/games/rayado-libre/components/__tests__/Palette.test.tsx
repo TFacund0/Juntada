@@ -4,20 +4,29 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { Palette } from "../palette/Palette";
 import { DEFAULT_TOOL, type Tool } from "../../utils/palette";
+import { RayadoSfxContext } from "../../hooks/rayadoSfxContext";
+import type { RayadoSfx } from "../../hooks/useRayadoSfx";
 
 function setup({ hasDrawing = true, initial = DEFAULT_TOOL }: { hasDrawing?: boolean; initial?: Tool } = {}) {
   const play = vi.fn();
   const onUndo = vi.fn();
   const onClear = vi.fn();
+  const sfx: RayadoSfx = {
+    muted: false,
+    toggleMuted: vi.fn(),
+    play,
+    vibrate: vi.fn(),
+    scribble: { start: vi.fn(), speed: vi.fn(), stop: vi.fn() },
+  };
   let current = initial;
   function Harness() {
     const [tool, setTool] = useState(initial);
     current = tool;
     return (
-      <>
+      <RayadoSfxContext.Provider value={sfx}>
         <input aria-label="chat" />
-        <Palette tool={tool} onToolChange={setTool} hasDrawing={hasDrawing} onUndo={onUndo} onClear={onClear} sfx={{ play }} />
-      </>
+        <Palette tool={tool} onToolChange={setTool} hasDrawing={hasDrawing} onUndo={onUndo} onClear={onClear} />
+      </RayadoSfxContext.Provider>
     );
   }
   render(<Harness />);

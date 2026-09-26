@@ -1,7 +1,6 @@
 import { useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import { TURN_SECONDS, popLastDrawUnit } from "@juntada/rayado-libre-scoring";
 import type { LocalPlayer } from "../types/localGame";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { useLocalGuessFx } from "../hooks/useLocalGuessFx";
 import { buildPlayerRows } from "../utils/playerRows";
 import { letterCount } from "../utils/hintCells";
@@ -11,13 +10,13 @@ import { type DrawAction, type Tool } from "./Canvas";
 import { DrawingBoard } from "./DrawingBoard";
 import { HintText } from "./HintText";
 import { LocalGuessersPanel } from "./LocalGuessersPanel";
+import { useRayadoSfxContext } from "../hooks/rayadoSfxContext";
 
 interface LocalDrawingScreenProps {
   drawer: LocalPlayer | undefined;
   timerEnd: number | null;
   wordHint: string | null;
   scores: Record<number, number>;
-  sfx: RayadoSfx;
   strokes: DrawAction[];
   setStrokes: Dispatch<SetStateAction<DrawAction[]>>;
   tool: Tool;
@@ -41,7 +40,6 @@ export function LocalDrawingScreen({
   timerEnd,
   wordHint,
   scores,
-  sfx,
   strokes,
   setStrokes,
   tool,
@@ -52,6 +50,7 @@ export function LocalDrawingScreen({
   lastTurnPoints,
   markCorrect,
 }: LocalDrawingScreenProps) {
+  const sfx = useRayadoSfxContext();
   const drawerName = drawer?.name ?? "";
   const hint = wordHint ?? "";
   const rootRef = useRef<HTMLDivElement>(null);
@@ -90,7 +89,6 @@ export function LocalDrawingScreen({
           word: <HintText hint={hint} onReveal={() => sfx.play("card")} />,
         }}
         players={rows}
-        sfx={sfx}
         idleText="Dibujá acá"
         sideLabel="¿Quién acertó?"
         sideContent={
@@ -100,7 +98,6 @@ export function LocalDrawingScreen({
             correctGuessers={correctGuessers}
             lastTurnPoints={lastTurnPoints}
             markCorrect={markCorrect}
-            sfx={sfx}
           />
         }
       />

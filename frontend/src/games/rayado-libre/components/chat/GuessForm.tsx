@@ -63,7 +63,7 @@ export function GuessForm({ value, onChange, onSubmit, done, doneWord, closeShak
       {!done && (
         <button
           type="submit"
-          className="cursor-pointer rounded-xl border-0 bg-[linear-gradient(135deg,var(--color-rl-accent),#5b52c7)] px-4 font-extrabold text-white"
+          className="cursor-pointer rounded-xl border-0 bg-linear-[135deg] from-rl-accent to-rl-accent-deep px-4 font-extrabold text-white"
         >
           Enviar
         </button>

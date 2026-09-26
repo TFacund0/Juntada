@@ -12,6 +12,16 @@
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
 
+// Fases de sala de este juego, en un solo lugar: `phase` es `string` suelto
+// en shared-types, así que un typo en un literal no fallaría al compilar.
+const PHASE = {
+  LOBBY: "lobby",
+  CHOOSING: "choosing",
+  DRAWING: "drawing",
+  REVEAL: "reveal",
+  RESULT: "result",
+} as const;
+
 interface Category {
   label: string;
   icon: string;
@@ -172,7 +182,7 @@ function migrateRound(room: Room): void {
   if (!room.round) return;
   const r = round(room);
   if (r.hintOrder == null) r.hintOrder = r.word ? buildHintOrder(r.word) : [];
-  if (r.drawingStartedAt == null && room.phase === "drawing") r.drawingStartedAt = Date.now();
+  if (r.drawingStartedAt == null && room.phase === PHASE.DRAWING) r.drawingStartedAt = Date.now();
   if (r.roundPoints == null) r.roundPoints = {};
   if (r.guessSeconds == null) r.guessSeconds = {};
   if (r.guessId == null) r.guessId = 0;
@@ -246,7 +256,7 @@ function startTurnChoosing(room: Room, drawerId: string): void {
   r.lastGuess = null;
   r.typingUntil = {};
   r.closeEntryIds = {};
-  room.phase = "choosing";
+  room.phase = PHASE.CHOOSING;
 }
 
 // Locks in the chosen word and starts the drawing timer + hint schedule —
@@ -260,7 +270,7 @@ function beginDrawing(room: Room, word: string): void {
   r.timerEnd = Date.now() + TURN_SECONDS * 1000;
   r.drawingStartedAt = Date.now();
   r.hintOrder = buildHintOrder(word);
-  room.phase = "drawing";
+  room.phase = PHASE.DRAWING;
 }
 
 // Drawer's turn is over (timer ran out, or everyone online already guessed
@@ -274,7 +284,7 @@ function finishDrawingPhase(room: Room): void {
   room.usedWords.words = [...((room.usedWords.words as string[] | undefined) ?? []), r.word as string];
   r.timerEnd = null;
   r.chooseTimerEnd = null;
-  room.phase = "reveal";
+  room.phase = PHASE.REVEAL;
   room.players.forEach(p => {
     p.ready = false;
   });
@@ -290,7 +300,7 @@ function advanceToNextTurn(room: Room): void {
   // happened and stay counted).
   r.turnQueue = r.turnQueue.filter(id => room.players.some(p => p.id === id));
   if (r.turnQueue.length === 0) {
-    room.phase = "result";
+    room.phase = PHASE.RESULT;
     return;
   }
   startTurnChoosing(room, r.turnQueue[0]);
@@ -337,7 +347,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     typingUntil: {},
     closeEntryIds: {},
   } satisfies RayadoLibreRound;
-  room.phase = "lobby"; // overwritten by startTurnChoosing below
+  room.phase = PHASE.LOBBY; // overwritten by startTurnChoosing below
   startTurnChoosing(room, turnQueue[0]);
 
   return { success: true };
@@ -367,7 +377,7 @@ function pushChatEntry(room: Room, entry: Omit<ChatEntry, "id">): ChatEntry {
 // never someone who already got it. Shared by "guess" and "typing".
 function canGuess(room: Room, playerId: string): boolean {
   const r = round(room);
-  return room.phase === "drawing" && playerId !== r.drawerId && !r.correctGuessers.includes(playerId);
+  return room.phase === PHASE.DRAWING && playerId !== r.drawerId && !r.correctGuessers.includes(playerId);
 }
 
 // Typing indicators still running, for the public view — the drawer and
@@ -383,14 +393,14 @@ function maybeAdvance(room: Room): void {
   migrateRound(room);
   if (skipTurnIfDrawerGone(room)) return;
   const r = round(room);
-  if (room.phase === "drawing") {
+  if (room.phase === PHASE.DRAWING) {
     const onlineGuessers = room.players.filter(p => p.online && p.id !== r.drawerId);
     if (onlineGuessers.length > 0 && onlineGuessers.every(p => r.correctGuessers.includes(p.id))) {
       finishDrawingPhase(room);
     }
     return;
   }
-  if (room.phase === "reveal") {
+  if (room.phase === PHASE.REVEAL) {
     const online = room.players.filter(p => p.online);
     if (online.length > 0 && online.every(p => p.ready)) advanceToNextTurn(room);
   }
@@ -410,12 +420,12 @@ function onPlayerOffline(room: Room, playerId: string): void {
   migrateRound(room);
   const r = round(room);
   if (playerId !== r.drawerId) return;
-  if (room.phase === "choosing" || room.phase === "drawing") forceReadyAndAdvance(room);
+  if (room.phase === PHASE.CHOOSING || room.phase === PHASE.DRAWING) forceReadyAndAdvance(room);
 }
 
 function forceReadyAndAdvance(room: Room): void {
   const r = round(room);
-  if (room.phase === "choosing") {
+  if (room.phase === PHASE.CHOOSING) {
     const word = r.wordChoices && r.wordChoices.length > 0 ? r.wordChoices[Math.floor(Math.random() * r.wordChoices.length)] : null;
     if (!word) {
       advanceToNextTurn(room);
@@ -424,7 +434,7 @@ function forceReadyAndAdvance(room: Room): void {
     beginDrawing(room, word);
     return;
   }
-  if (room.phase === "drawing") {
+  if (room.phase === PHASE.DRAWING) {
     finishDrawingPhase(room);
   }
   // No case for "reveal" — it has no timer of its own (see finishDrawingPhase),
@@ -434,8 +444,8 @@ function forceReadyAndAdvance(room: Room): void {
 function getPhaseTimerEnd(room: Room): number | null {
   if (!room.round) return null;
   const r = round(room);
-  if (room.phase === "choosing") return r.chooseTimerEnd;
-  if (room.phase === "drawing") return r.timerEnd;
+  if (room.phase === PHASE.CHOOSING) return r.chooseTimerEnd;
+  if (room.phase === PHASE.DRAWING) return r.timerEnd;
   return null;
 }
 
@@ -464,7 +474,7 @@ function handleAction(
       if (playerId !== room.hostId) return { handled: false };
       resetProgress(room);
       room.round = null;
-      room.phase = "lobby";
+      room.phase = PHASE.LOBBY;
       room.players.forEach(p => {
         p.ready = false;
       });
@@ -472,7 +482,7 @@ function handleAction(
     }
 
     case "choose_word": {
-      if (room.phase !== "choosing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.CHOOSING || playerId !== r.drawerId) return { handled: false };
       const word = String(payload.word ?? "");
       if (!r.wordChoices?.includes(word)) return { handled: false };
       beginDrawing(room, word);
@@ -480,7 +490,7 @@ function handleAction(
     }
 
     case "draw_stroke": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       const points = parseStrokePoints(payload.points);
       if (!points) return { handled: false };
       pushDrawAction(room, {
@@ -494,7 +504,7 @@ function handleAction(
     }
 
     case "draw_fill": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       const x = Number(payload.x);
       const y = Number(payload.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return { handled: false };
@@ -503,19 +513,19 @@ function handleAction(
     }
 
     case "draw_clear": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       r.strokes = [];
       return { handled: true };
     }
 
     case "draw_undo": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       r.strokes = popLastDrawUnit(r.strokes);
       return { handled: true };
     }
 
     case "player_ready": {
-      if (room.phase !== "reveal") return { handled: false };
+      if (room.phase !== PHASE.REVEAL) return { handled: false };
       const p = room.players.find(p => p.id === playerId);
       if (!p) return { handled: false };
       p.ready = true;
@@ -595,8 +605,8 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
   const turnNumber = r.totalTurns - r.turnQueue.length + 1;
   const base = { turnNumber, totalTurns: r.totalTurns, drawerId: r.drawerId };
 
-  if (room.phase === "choosing") return { ...base, chooseTimerEnd: r.chooseTimerEnd };
-  if (room.phase === "drawing") {
+  if (room.phase === PHASE.CHOOSING) return { ...base, chooseTimerEnd: r.chooseTimerEnd };
+  if (room.phase === PHASE.DRAWING) {
     const elapsedSeconds = r.drawingStartedAt ? (Date.now() - r.drawingStartedAt) / 1000 : 0;
     const wordHint = r.word ? computeWordHint(r.word, r.hintOrder, elapsedSeconds) : "";
     return {
@@ -610,7 +620,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
       typingUntil: activeTyping(room),
     };
   }
-  if (room.phase === "reveal") {
+  if (room.phase === PHASE.REVEAL) {
     return {
       ...base,
       word: r.word,
@@ -620,7 +630,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
       guessSeconds: r.guessSeconds,
     };
   }
-  if (room.phase === "result") return { ...base, word: r.word };
+  if (room.phase === PHASE.RESULT) return { ...base, word: r.word };
   return base;
 }
 
@@ -630,17 +640,17 @@ function getPrivateView(room: Room, playerId: string): Record<string, unknown> |
   const r = round(room);
   const isDrawer = playerId === r.drawerId;
   const view: Record<string, unknown> = { isDrawer };
-  if (isDrawer && room.phase === "choosing") view.wordChoices = r.wordChoices;
+  if (isDrawer && room.phase === PHASE.CHOOSING) view.wordChoices = r.wordChoices;
   // The drawer needs their own word available at all times while drawing —
   // the public view only ever exposes the blanked-out wordHint (see
   // getPublicRoundView), so without this the drawer would have no way to
   // check what they're supposed to be drawing after picking it.
-  if (isDrawer && room.phase === "drawing") view.word = r.word;
+  if (isDrawer && room.phase === PHASE.DRAWING) view.word = r.word;
   // Someone who already guessed it knows the word anyway — their locked
   // input says "¡Era PALABRA!". Kept apart from `word` (the drawer's) so no
   // drawer-only UI can ever pick it up for a guesser.
-  if (room.phase === "drawing" && r.correctGuessers.includes(playerId)) view.guessedWord = r.word;
-  if (room.phase === "drawing" || room.phase === "reveal") view.closeEntryIds = r.closeEntryIds[playerId] ?? [];
+  if (room.phase === PHASE.DRAWING && r.correctGuessers.includes(playerId)) view.guessedWord = r.word;
+  if (room.phase === PHASE.DRAWING || room.phase === PHASE.REVEAL) view.closeEntryIds = r.closeEntryIds[playerId] ?? [];
   if (r.lastGuess && r.lastGuess.playerId === playerId) view.lastGuess = r.lastGuess;
   return view;
 }

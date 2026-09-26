@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { GameScreenLayout } from "../../../../components/game-kit/GameScreenLayout";
-import type { RayadoSfx } from "../../hooks/useRayadoSfx";
 import { useFxLayer } from "../../hooks/useFxLayer";
 import { canAnimateNow, useMountMotion } from "../../hooks/useMountMotion";
 import { podiumRevealOrder, podiumSlots, podiumTitle, rankEntries, type PodiumEntry } from "../../utils/podium";
 import { PodiumColumn } from "./PodiumColumn";
+import { useRayadoSfxContext } from "../../hooks/rayadoSfxContext";
 
 // `podium` de la referencia.
 const STEP_MS = 520;
@@ -17,7 +17,6 @@ const DROP: Keyframe[] = [
 
 interface RayadoPodiumProps {
   entries: readonly PodiumEntry[];
-  sfx: Pick<RayadoSfx, "play" | "vibrate">;
   /**
    * Festejar al ganador aunque no sea "yo" (modo local: una sola pantalla
    * para toda la mesa, no hay un "vos" que haya perdido).
@@ -33,7 +32,8 @@ interface RayadoPodiumProps {
  * primero. Si gané: fanfarria, vibración y confeti; si no, un ding. Propio
  * del juego — el `PodiumBoard` de game-kit lo siguen usando los demás.
  */
-export function RayadoPodium({ entries, sfx, celebrateAnyWinner = false, foot }: RayadoPodiumProps) {
+export function RayadoPodium({ entries, celebrateAnyWinner = false, foot }: RayadoPodiumProps) {
+  const sfx = useRayadoSfxContext();
   const slots = useMemo(() => podiumSlots(entries), [entries]);
   const winner = useMemo(() => rankEntries(entries)[0], [entries]);
   const listRef = useRef<HTMLOListElement>(null);

@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useAnimationGate } from "../../../../components/game-kit/hooks/useAnimationGate";
 import type { RoundViewProps } from "../../../gameTypes";
 import type { ChatEntry, PrivateChatView } from "../../types/roundView";
-import type { RayadoSfx } from "../../hooks/useRayadoSfx";
 import { useChatFeedback } from "../../hooks/useChatFeedback";
 import { DRAWER_TIP, EMPTY_CHAT_DRAWER, EMPTY_CHAT_GUESSER, buildChatFeed, drawingNowLine, eligibleGuessers } from "../../utils/chatFeed";
 import { MuteButton } from "../MuteButton";
@@ -10,6 +9,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatFeed } from "./ChatFeed";
 import { TypingIndicator } from "./TypingIndicator";
 import { GuessForm } from "./GuessForm";
+import { useRayadoSfxContext } from "../../hooks/rayadoSfxContext";
 
 interface OnlineAnswersPanelProps {
   players: RoundViewProps["room"]["players"];
@@ -24,7 +24,6 @@ interface OnlineAnswersPanelProps {
   /** Quiénes están escribiendo (ver useTypingIds — lo calcula quien llama para compartirlo con la lista de jugadores). */
   typingIds: readonly string[];
   guess: { value: string; onChange: (text: string) => void; onSubmit: () => void };
-  sfx: RayadoSfx;
 }
 
 /**
@@ -45,8 +44,8 @@ export function OnlineAnswersPanel({
   privateChat,
   typingIds,
   guess,
-  sfx,
 }: OnlineAnswersPanelProps) {
+  const sfx = useRayadoSfxContext();
   const canAnimate = useAnimationGate();
   const closeShake = useChatFeedback({ chatLog, myId, closeEntryIds: privateChat.closeEntryIds, sfx, canAnimate });
   const alreadyGuessed = !!myId && correctGuessers.includes(myId);

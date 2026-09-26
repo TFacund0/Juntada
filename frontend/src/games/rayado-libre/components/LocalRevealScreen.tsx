@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { LocalPlayer } from "../types/localGame";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { buildTurnScoreRows } from "../utils/turnScores";
 import { toStringKeys } from "../utils/localTurn";
 import { RevealView } from "./reveal/RevealView";
@@ -16,7 +15,6 @@ interface LocalRevealScreenProps {
   guessSeconds: Record<number, number>;
   isLastTurn: boolean;
   goToNextTurn: () => void;
-  sfx: RayadoSfx;
 }
 
 /** Pantalla "reveal" del modo local: la misma revelación y tabla que online, con un solo botón para toda la mesa (no hay "listo" por jugador). */
@@ -29,7 +27,6 @@ export function LocalRevealScreen({
   guessSeconds,
   isLastTurn,
   goToNextTurn,
-  sfx,
 }: LocalRevealScreenProps) {
   const rows = useMemo(
     () =>
@@ -47,7 +44,6 @@ export function LocalRevealScreen({
     <RevealView
       word={word ?? ""}
       rows={rows}
-      sfx={sfx}
       foot={<PrimaryButton onClick={goToNextTurn}>{isLastTurn ? "Ver podio" : "Siguiente turno"}</PrimaryButton>}
     />
   );

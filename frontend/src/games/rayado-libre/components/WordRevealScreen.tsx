@@ -1,6 +1,5 @@
 import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
 import type { LocalPlayer } from "../types/localGame";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { CENTERED_BLOCK, FULL_HEIGHT_SCREEN } from "../utils/screenLayout";
 import { TurnHeader } from "./TurnHeader";
 import { PassDeviceCard } from "./PassDeviceCard";
@@ -14,7 +13,6 @@ interface WordRevealScreenProps {
   revealChoices: () => void;
   wordChoices: string[];
   chooseWord: (word: string) => void;
-  sfx: RayadoSfx;
 }
 
 /**
@@ -31,7 +29,6 @@ export function WordRevealScreen({
   revealChoices,
   wordChoices,
   chooseWord,
-  sfx,
 }: WordRevealScreenProps) {
   return (
     <GameScreenLayout
@@ -42,7 +39,7 @@ export function WordRevealScreen({
           <PassDeviceCard drawerName={drawer?.name ?? "?"} onReady={revealChoices} />
         ) : (
           <div className={CENTERED_BLOCK}>
-            <ChooseWordPanel words={wordChoices} onChoose={chooseWord} sfx={sfx} />
+            <ChooseWordPanel words={wordChoices} onChoose={chooseWord} />
           </div>
         )
       }

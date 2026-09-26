@@ -74,6 +74,31 @@ export function countUpValue(from: number, to: number, t: number): number {
   return Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
 }
 
+/** Lo que muestra una fila de la tabla en un momento del conteo. */
+export interface RowValues {
+  plus: number;
+  total: number;
+}
+
+/** Duración de cada tramo del conteo (primero el "+N", después el total). */
+export const COUNT_MS = 600;
+
+/**
+ * Un cuadro del conteo de la tabla, a `elapsed` ms de arrancar: el "+N" de
+ * cada fila cuenta desde 0 en el primer tramo y el total, desde el de antes
+ * del turno, en el segundo. `done` cuando los dos tramos terminaron.
+ */
+export function countFrame(rows: readonly TurnScoreRow[], elapsed: number): { values: Record<string, RowValues>; done: boolean } {
+  const values: Record<string, RowValues> = {};
+  for (const r of rows) {
+    values[r.id] = {
+      plus: countUpValue(0, r.plus, elapsed / COUNT_MS),
+      total: elapsed < COUNT_MS ? r.before : countUpValue(r.before, r.after, (elapsed - COUNT_MS) / COUNT_MS),
+    };
+  }
+  return { values, done: elapsed >= 2 * COUNT_MS };
+}
+
 /**
  * FLIP: cuánto hay que correr cada fila (en px) para que arranque desde
  * donde estaba antes de reordenarse. Solo las que se movieron.

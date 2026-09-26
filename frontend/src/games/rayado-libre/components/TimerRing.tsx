@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import clsx from "clsx";
+import { useEffect, useRef, useState } from "react";
 import { useCountdownSeconds } from "../../../components/game-kit/hooks/useCountdownSeconds";
 import { usePrefersReducedMotion } from "../../../components/game-kit/hooks/usePrefersReducedMotion";
 import { useAnimationGate } from "../../../components/game-kit/hooks/useAnimationGate";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
+import { useRayadoSfxContext } from "../hooks/rayadoSfxContext";
 import { detectClockJump, isUrgent, jumpCountAt, type ClockSnapshot } from "../utils/clockJump";
 import { clockJumpLabel } from "../utils/turnText";
+import { CountdownRing } from "./CountdownRing";
 
 // Tiempos y curvas de makeClock en la referencia.
 const COUNT_MS = 700;
@@ -24,17 +24,16 @@ interface TimerRingProps {
   total: number;
   /** Cuántos acertaron hasta ahora — junto con `timerEnd` distingue un salto por acierto de otros cambios del reloj. */
   correctCount: number;
-  sfx: Pick<RayadoSfx, "play" | "vibrate">;
 }
 
 /**
  * Reloj del turno: anillo arcoíris (conic-gradient) que se vacía animando
  * `--p`, late con sonido y vibración en los últimos 10 segundos, y cuando un
  * acierto lo hace saltar de zona cuenta hacia abajo, gira y muestra el
- * cartel "¡El reloj saltó a N!". Conserva la clase `rl-circular-timer` que
- * usan los tests para encontrarlo.
+ * cartel "¡El reloj saltó a N!". El anillo en sí es CountdownRing.
  */
-export function TimerRing({ timerEnd, total, correctCount, sfx }: TimerRingProps) {
+export function TimerRing({ timerEnd, total, correctCount }: TimerRingProps) {
+  const sfx = useRayadoSfxContext();
   const { secs } = useCountdownSeconds(timerEnd, total);
   const reduced = usePrefersReducedMotion();
   const canAnimate = useAnimationGate();
@@ -42,26 +41,6 @@ export function TimerRing({ timerEnd, total, correctCount, sfx }: TimerRingProps
   const badgeRef = useRef<HTMLDivElement>(null);
   const [countOverride, setCountOverride] = useState<number | null>(null);
   const [badge, setBadge] = useState("");
-  // Sin transición de --p al montar ni al volver de otra pestaña: el anillo
-  // aparece directamente en el valor actual en vez de vaciarse de golpe.
-  const [instant, setInstant] = useState(true);
-
-  useEffect(() => {
-    let raf = 0;
-    const settle = () => {
-      setInstant(true);
-      raf = requestAnimationFrame(() => (raf = requestAnimationFrame(() => setInstant(false))));
-    };
-    settle();
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") settle();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
 
   // Salto del reloj por un acierto en una zona nueva.
   const prev = useRef<ClockSnapshot>({ timerEnd, correctCount });
@@ -99,31 +78,20 @@ export function TimerRing({ timerEnd, total, correctCount, sfx }: TimerRingProps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [secs]);
 
-  const progress = total > 0 ? Math.min(1, Math.max(0, secs / total)) : 0;
+  const progress = total > 0 ? secs / total : 0;
   return (
     <div className="relative flex-none">
-      <div
+      <CountdownRing
         ref={ringRef}
-        role="timer"
-        aria-label={`Quedan ${secs} segundos`}
-        className={clsx(
-          "rl-circular-timer relative h-[54px] w-[54px] flex-none rounded-full",
-          "bg-[conic-gradient(var(--color-rl-r1),var(--color-rl-r2),var(--color-rl-r3),var(--color-rl-r4),var(--color-rl-r5),var(--color-rl-r1))]",
-          // Lo que ya pasó se tapa con un segundo conic-gradient; el centro, con el fondo.
-          "before:absolute before:inset-0 before:rounded-full before:bg-[conic-gradient(transparent_calc(var(--p)*360deg),#2a2446_0)]",
-          "after:absolute after:inset-[6px] after:rounded-full after:bg-jt-bg",
-          !instant && "transition-[--p] duration-700 ease-[cubic-bezier(.5,0,.2,1)]",
-          urgent && "animate-rl-beat",
-          "motion-reduce:animate-none motion-reduce:transition-none",
-          "@min-[1000px]:h-16 @min-[1000px]:w-16 short-screen:h-[46px] short-screen:w-[46px]",
-        )}
-        // --p es el valor que se anima (0..1), cambia cada segundo.
-        style={{ "--p": progress.toFixed(4) } as CSSProperties}
+        progress={progress}
+        urgent={urgent}
+        label={`Quedan ${secs} segundos`}
+        className="h-[54px] w-[54px] after:inset-[6px] @min-[1000px]:h-16 @min-[1000px]:w-16 short-screen:h-[46px] short-screen:w-[46px]"
       >
         <b className="absolute inset-0 z-[1] grid place-items-center text-[17px] font-extrabold tabular-nums @min-[1000px]:text-[20px]">
           {countOverride ?? secs}
         </b>
-      </div>
+      </CountdownRing>
       <div
         ref={badgeRef}
         role="status"

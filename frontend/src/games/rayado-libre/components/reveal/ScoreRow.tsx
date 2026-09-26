@@ -17,7 +17,7 @@ export const ScoreRow = forwardRef<HTMLDivElement, ScoreRowProps>(function Score
       ref={ref}
       className={clsx(
         "flex items-center gap-2.5 rounded-[14px] border bg-rl-card px-3 py-[9px] text-left",
-        row.isMe ? "border-[rgba(51,192,122,.5)]" : "border-rl-card-border",
+        row.isMe ? "border-rl-ok/50" : "border-rl-card-border",
       )}
     >
       <Avatar name={row.name} size={34} />

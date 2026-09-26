@@ -30,7 +30,7 @@ export function TurnBar({ drawerName, subtitle, word, extra, timer, drawing }: T
         drawing && "landscape-short:col-span-full",
       )}
     >
-      <Avatar name={drawerName} size={34} className="shadow-[0_0_0_2px_rgba(255,255,255,.15)]" />
+      <Avatar name={drawerName} size={34} className="shadow-[0_0_0_2px] shadow-white/15" />
       {/* Celular horizontal: pista y cantidad en una sola fila, para que entre el tablero. */}
       <div className="min-w-0 flex-1 @min-[1000px]:flex-none @min-[1000px]:text-center landscape-short:flex landscape-short:flex-wrap landscape-short:items-center landscape-short:gap-x-2">
         <small className="block truncate text-xs font-semibold text-rl-muted landscape-short:basis-full">{subtitle}</small>

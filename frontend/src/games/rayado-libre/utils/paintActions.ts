@@ -98,7 +98,7 @@ function paintAction(ctx: CanvasRenderingContext2D, action: DrawAction): void {
  * deserializado con `JSON.parse`, que crea objetos nuevos aunque el
  * contenido sea igual.
  */
-function actionsEqual(a: DrawAction, b: DrawAction): boolean {
+export function actionsEqual(a: DrawAction, b: DrawAction): boolean {
   if (a === b) return true;
   if (a.type !== b.type) return false;
   if (a.type === "stroke" && b.type === "stroke") {
@@ -110,6 +110,14 @@ function actionsEqual(a: DrawAction, b: DrawAction): boolean {
   }
   if (a.type === "fill" && b.type === "fill") return a.x === b.x && a.y === b.y && a.color === b.color;
   return a.type === "clear"; // ambos son "clear" acá (mismo `type`, sin más campos que comparar)
+}
+
+/**
+ * `next` es `prev` más acciones al final (el camino común: cada flush de red
+ * agrega un chunk) — entonces alcanza con pintar solo lo nuevo.
+ */
+export function isHistoryExtension(prev: readonly DrawAction[], next: readonly DrawAction[]): boolean {
+  return next.length >= prev.length && prev.every((action, i) => actionsEqual(action, next[i]));
 }
 
 /**
@@ -127,7 +135,7 @@ function actionsEqual(a: DrawAction, b: DrawAction): boolean {
  * arranque con papel opaco y el balde vea los mismos píxeles en todos lados).
  */
 export function paintHistory(ctx: CanvasRenderingContext2D, prev: readonly DrawAction[], next: readonly DrawAction[], full = false): void {
-  const isExtension = !full && next.length >= prev.length && prev.every((action, i) => actionsEqual(action, next[i]));
+  const isExtension = !full && isHistoryExtension(prev, next);
   if (!isExtension) {
     paintPaper(ctx);
     for (const action of next) paintAction(ctx, action);

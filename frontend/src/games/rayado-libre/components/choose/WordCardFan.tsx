@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { CATEGORIES, categoryLabelOf } from "@juntada/rayado-libre-data";
 import { canAnimateNow, useMountMotion } from "../../hooks/useMountMotion";
-import type { RayadoSfx } from "../../hooks/useRayadoSfx";
 import {
   CARD_CHOOSE_WAIT_MS,
   CARD_CHOSEN_MS,
@@ -14,11 +13,11 @@ import {
   fanTransform,
   stripeColor,
 } from "../../utils/wordFan";
+import { useRayadoSfxContext } from "../../hooks/rayadoSfxContext";
 
 interface WordCardFanProps {
   words: readonly string[];
   onChoose: (word: string) => void;
-  sfx: Pick<RayadoSfx, "play" | "vibrate">;
 }
 
 // Palabras propias del anfitrión: no vienen de ninguna categoría.
@@ -33,7 +32,8 @@ const CUSTOM_LABEL = "Palabra propia";
  * movimiento reducido todo es inmediato. Las cartas conservan la clase
  * `rl-word-card` que usan los e2e.
  */
-export function WordCardFan({ words, onChoose, sfx }: WordCardFanProps) {
+export function WordCardFan({ words, onChoose }: WordCardFanProps) {
+  const sfx = useRayadoSfxContext();
   const cards = useRef<(HTMLButtonElement | null)[]>([]);
   const [chosen, setChosen] = useState<string | null>(null);
   const baseId = useId();

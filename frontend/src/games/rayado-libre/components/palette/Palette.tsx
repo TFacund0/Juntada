@@ -1,6 +1,5 @@
 import { useState } from "react";
 import clsx from "clsx";
-import type { RayadoSfx } from "../../hooks/useRayadoSfx";
 import { usePaletteShortcuts } from "../../hooks/usePaletteShortcuts";
 import { PALETTE, type Tool, type ToolMode } from "../../utils/palette";
 import type { PaletteShortcut } from "../../utils/shortcuts";
@@ -9,6 +8,7 @@ import { SizePicker } from "./SizePicker";
 import { ToolPicker } from "./ToolPicker";
 import { PaletteActions } from "./PaletteActions";
 import { ShortcutsHint } from "./ShortcutsHint";
+import { useRayadoSfxContext } from "../../hooks/rayadoSfxContext";
 
 interface PaletteProps {
   tool: Tool;
@@ -18,7 +18,6 @@ interface PaletteProps {
   onUndo: () => void;
   /** "Borrar todo", ya confirmado. */
   onClear: () => void;
-  sfx: Pick<RayadoSfx, "play">;
 }
 
 // La paleta es su propio contenedor (`@container/palette`): en compu su
@@ -44,7 +43,8 @@ const SPACER_WRAP = "@min-[700px]/stage:@max-[372px]/palette:h-[6px] @min-[700px
  * tablero; en celular horizontal, dos columnas al costado del tablero (en
  * el lugar que reserva DrawingStage).
  */
-export function Palette({ tool, onToolChange, hasDrawing, onUndo, onClear, sfx }: PaletteProps) {
+export function Palette({ tool, onToolChange, hasDrawing, onUndo, onClear }: PaletteProps) {
+  const sfx = useRayadoSfxContext();
   const [bounce, setBounce] = useState(0);
 
   const selectColor = (index: number) => {

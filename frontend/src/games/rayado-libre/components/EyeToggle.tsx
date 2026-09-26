@@ -4,21 +4,13 @@
 export function EyeToggle({ visible, onClick }: { visible: boolean; onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label={visible ? "Ocultar palabra" : "Mostrar palabra"}
-      style={{
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        padding: 4,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#9089c0",
-        flexShrink: 0,
-      }}
+      className="flex flex-none cursor-pointer items-center justify-center border-none bg-transparent p-1 text-rl-muted"
     >
       <svg
+        aria-hidden="true"
         width="22"
         height="22"
         viewBox="0 0 24 24"

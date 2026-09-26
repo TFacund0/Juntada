@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RayadoLibreRoundState } from "../types/roundView";
-import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { roomScore } from "../utils/roomScore";
 import { buildTurnScoreRows } from "../utils/turnScores";
 import { ChatRecap } from "./chat/ChatRecap";
@@ -15,7 +14,6 @@ interface RevealPhaseScreenProps {
   myPlayer: RoundViewProps["myPlayer"];
   /** Mis intentos "cerca" (vista privada) — el recap los sigue marcando solo para mí. */
   closeEntryIds: readonly number[];
-  sfx: RayadoSfx;
   send: RoundViewProps["send"];
 }
 
@@ -27,7 +25,7 @@ const NO_POINTS: Record<string, number> = {};
  * podio") acá marca "listo": el turno avanza cuando todos los conectados lo
  * tocaron, y mientras tanto dice cuántos faltan.
  */
-export function RevealPhaseScreen({ room, round, me, myPlayer, closeEntryIds, sfx, send }: RevealPhaseScreenProps) {
+export function RevealPhaseScreen({ room, round, me, myPlayer, closeEntryIds, send }: RevealPhaseScreenProps) {
   const roundPoints = round.roundPoints ?? NO_POINTS;
   const onlinePlayers = room.players.filter(p => p.online);
   const readyCount = onlinePlayers.filter(p => p.ready).length;
@@ -50,7 +48,6 @@ export function RevealPhaseScreen({ room, round, me, myPlayer, closeEntryIds, sf
     <RevealView
       word={round.word ?? ""}
       rows={rows}
-      sfx={sfx}
       foot={
         myPlayer?.ready ? (
           <PrimaryNote>{`Listo — esperando a los demás (${readyCount}/${onlinePlayers.length})`}</PrimaryNote>
