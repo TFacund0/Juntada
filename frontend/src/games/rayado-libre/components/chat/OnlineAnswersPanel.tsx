@@ -5,6 +5,7 @@ import type { ChatEntry, PrivateChatView } from "../../types/roundView";
 import type { RayadoSfx } from "../../hooks/useRayadoSfx";
 import { useChatFeedback } from "../../hooks/useChatFeedback";
 import { DRAWER_TIP, EMPTY_CHAT_DRAWER, EMPTY_CHAT_GUESSER, buildChatFeed, drawingNowLine, eligibleGuessers } from "../../utils/chatFeed";
+import { MuteButton } from "../MuteButton";
 import { ChatHeader } from "./ChatHeader";
 import { ChatFeed } from "./ChatFeed";
 import { TypingIndicator } from "./TypingIndicator";
@@ -80,6 +81,7 @@ export function OnlineAnswersPanel({
         eligible={eligibleGuessers(players, drawerId, correctGuessers)}
         canAnimate={canAnimate}
         bubbleSpace
+        action={<MuteButton muted={sfx.muted} onToggle={sfx.toggleMuted} />}
       />
       <ChatFeed items={items} emptyText={isDrawer ? EMPTY_CHAT_DRAWER : EMPTY_CHAT_GUESSER} canAnimate={canAnimate} />
       <TypingIndicator names={typingNames} />

@@ -7,7 +7,7 @@ const CONFIRM_MS = 2500;
 const ACTION = clsx(
   "grid h-10 min-w-10 cursor-pointer place-items-center rounded-xl border border-rl-card-border bg-rl-card px-2 text-base",
   "disabled:cursor-default disabled:opacity-35",
-  "@max-[360px]:h-9 @max-[360px]:min-w-[34px] @max-[360px]:px-[6px] landscape-short:h-7",
+  "@max-[360px]/stage:h-9 @max-[360px]/stage:min-w-[34px] @max-[360px]/stage:px-[6px] landscape-short:h-7",
 );
 
 interface PaletteActionsProps {
@@ -55,7 +55,15 @@ export function PaletteActions({ hasDrawing, onUndo, onArmClear, onClear }: Pale
 
   return (
     <>
-      <button type="button" onClick={onUndo} disabled={!hasDrawing} title="Deshacer (Ctrl+Z)" aria-label="Deshacer" className={ACTION}>
+      <button
+        type="button"
+        onClick={onUndo}
+        disabled={!hasDrawing}
+        title="Deshacer (Ctrl+Z)"
+        aria-label="Deshacer"
+        // Con la fila partida en dos (ver Palette), Deshacer y Borrar van a la derecha.
+        className={clsx(ACTION, "@min-[700px]/stage:@max-[372px]/palette:ml-auto")}
+      >
         <span aria-hidden="true">↶</span>
       </button>
       <button

@@ -12,7 +12,7 @@ interface ToolPickerProps {
   onSelect: (mode: ToolMode) => void;
 }
 
-/** Lápiz / Goma / Balde: con etiqueta de texto en compu, solo el ícono en celular. */
+/** Lápiz / Goma / Balde: con etiqueta de texto en compu si la paleta tiene lugar (ver Palette), solo el ícono si no. */
 export function ToolPicker({ mode, onSelect }: ToolPickerProps) {
   return (
     <div role="radiogroup" aria-label="Herramienta" className={SEGMENT}>
@@ -28,7 +28,7 @@ export function ToolPicker({ mode, onSelect }: ToolPickerProps) {
           className={segmentButton(t.mode === mode)}
         >
           <span aria-hidden="true">{t.icon}</span>
-          <span aria-hidden="true" className="hidden @min-[1000px]:inline landscape-short:hidden">
+          <span aria-hidden="true" className="hidden @min-[1000px]/stage:@min-[472px]/palette:inline landscape-short:hidden">
             {t.label}
           </span>
         </button>

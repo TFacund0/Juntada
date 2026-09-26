@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 import { LocalGame } from "../LocalGame";
@@ -21,6 +21,16 @@ describe("Rayado Libre LocalGame", () => {
     expect(screen.getByText("Empezar a jugar")).toBeDisabled();
   });
 
+  test("'Agregar' in the players card adds a player with the typed name", async () => {
+    render(<LocalGame />);
+    const user = userEvent.setup();
+    const nameInput = screen.getByRole("textbox", { name: "Nombre del jugador nuevo" });
+    await user.type(nameInput, "Tobi");
+    await user.click(within(nameInput.parentElement as HTMLElement).getByText("Agregar"));
+    expect(screen.getByDisplayValue("Tobi")).toBeInTheDocument();
+    expect(nameInput).toHaveValue("");
+  });
+
   test("disables 'Empezar a jugar' when no category is active", async () => {
     render(<LocalGame />);
     const user = userEvent.setup();
@@ -36,8 +46,10 @@ describe("Rayado Libre LocalGame", () => {
     await user.click(screen.getByText("Ninguna"));
     expect(screen.getByText("Empezar a jugar")).toBeDisabled();
 
-    await user.type(screen.getByPlaceholderText("Escribí una palabra o frase corta"), "Chiste interno");
-    await user.click(screen.getByText("Agregar"));
+    const wordInput = screen.getByPlaceholderText("Escribí una palabra o frase corta");
+    await user.type(wordInput, "Chiste interno");
+    // Players and config are both in the DOM (side by side from 900px), so scope to this "Agregar".
+    await user.click(within(wordInput.parentElement as HTMLElement).getByText("Agregar"));
     expect(screen.getByText("Chiste interno")).toBeInTheDocument();
     expect(screen.getByText("Empezar a jugar")).toBeEnabled();
   });
@@ -56,7 +68,7 @@ describe("Rayado Libre LocalGame", () => {
 
     expect(document.querySelector(".rl-circular-timer")).toBeInTheDocument();
     const guessCard = screen.getByText("¿Quién acertó?").closest("div") as HTMLElement;
-    const guessButtons = Array.from(guessCard.querySelectorAll("button"));
+    const guessButtons = Array.from(guessCard.querySelectorAll("button[data-fx-anchor]"));
     // 2 non-drawer players out of 3 total.
     expect(guessButtons.length).toBe(2);
     for (const btn of guessButtons) await user.click(btn);
@@ -76,14 +88,14 @@ describe("Rayado Libre LocalGame", () => {
     const choicesCard = screen.getByText("Elegí una palabra. Los demás no la ven.").parentElement as HTMLElement;
     await user.click(choicesCard.querySelectorAll("button")[0]);
     const guessCard = screen.getByText("¿Quién acertó?").closest("div") as HTMLElement;
-    for (const btn of Array.from(guessCard.querySelectorAll("button"))) await user.click(btn);
+    for (const btn of Array.from(guessCard.querySelectorAll("button[data-fx-anchor]"))) await user.click(btn);
 
     expect(screen.getByText("La palabra era")).toBeInTheDocument();
     await user.click(screen.getByText("Siguiente turno"));
     expect(screen.queryByText("La palabra era")).not.toBeInTheDocument();
   });
 
-  test("'Pedir otra palabra' swaps the word once, then disappears for the rest of the turn", async () => {
+  test("the drawing screen has no 'Pedir otra palabra', and mute sits in the '¿Quién acertó?' header", async () => {
     render(<LocalGame />);
     const user = userEvent.setup();
 
@@ -92,14 +104,8 @@ describe("Rayado Libre LocalGame", () => {
     const choicesCard = screen.getByText("Elegí una palabra. Los demás no la ven.").parentElement as HTMLElement;
     await user.click(choicesCard.querySelectorAll("button")[0]);
 
-    const rerollButton = screen.getByText(/Pedir otra palabra/);
-    await user.click(rerollButton);
     expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
-
-    // The turn keeps going normally after the reroll — marking every
-    // guesser correct still reaches the reveal screen.
-    const guessCard = screen.getByText("¿Quién acertó?").closest("div") as HTMLElement;
-    for (const btn of Array.from(guessCard.querySelectorAll("button"))) await user.click(btn);
-    expect(screen.getByText("La palabra era")).toBeInTheDocument();
+    const mute = screen.getByRole("button", { name: /Silenciar sonido|Activar sonido/ });
+    expect(screen.getByRole("complementary", { name: "¿Quién acertó?" })).toContainElement(mute);
   });
 });

@@ -8,19 +8,19 @@ interface TurnBarProps {
   subtitle: string;
   /** Pista (quien adivina) o la palabra entera (quien dibuja). */
   word: ReactNode;
-  /** Debajo de la pista: "Pedir otra palabra", avisos. */
+  /** Debajo de la pista: avisos (ej. quien dibuja se desconectó). */
   extra?: ReactNode;
   timer: ReactNode;
-  mute: ReactNode;
   /** Soy quien dibuja: en celular horizontal la cabecera ocupa toda la fila, arriba de paleta y tablero. */
   drawing: boolean;
 }
 
 /**
- * Cabecera del turno: avatar de quien dibuja, texto de rol, la pista, el
- * reloj y el botón de silencio. Centrada en compu (contenedor ≥1000px).
+ * Cabecera del turno: avatar de quien dibuja, texto de rol, la pista y el
+ * reloj — nada más (el silencio vive en la cabecera del chat, ver
+ * ChatHeader). Centrada en compu (contenedor ≥1000px).
  */
-export function TurnBar({ drawerName, subtitle, word, extra, timer, mute, drawing }: TurnBarProps) {
+export function TurnBar({ drawerName, subtitle, word, extra, timer, drawing }: TurnBarProps) {
   return (
     <div
       className={clsx(
@@ -31,14 +31,13 @@ export function TurnBar({ drawerName, subtitle, word, extra, timer, mute, drawin
       )}
     >
       <Avatar name={drawerName} size={34} className="shadow-[0_0_0_2px_rgba(255,255,255,.15)]" />
-      {/* Celular horizontal: pista, cantidad y "pedir otra palabra" en una sola fila, para que entre el tablero. */}
+      {/* Celular horizontal: pista y cantidad en una sola fila, para que entre el tablero. */}
       <div className="min-w-0 flex-1 @min-[1000px]:flex-none @min-[1000px]:text-center landscape-short:flex landscape-short:flex-wrap landscape-short:items-center landscape-short:gap-x-2">
         <small className="block truncate text-xs font-semibold text-rl-muted landscape-short:basis-full">{subtitle}</small>
         {word}
         {extra}
       </div>
       {timer}
-      {mute}
     </div>
   );
 }

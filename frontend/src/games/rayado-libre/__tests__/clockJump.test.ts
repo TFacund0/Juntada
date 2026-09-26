@@ -12,7 +12,7 @@ describe("detectClockJump", () => {
     });
   });
 
-  test("a reroll lowers the clock without a new guess: not a jump", () => {
+  test("the clock going down without a new guess is not a jump", () => {
     expect(detectClockJump({ timerEnd: at(90), correctCount: 0 }, { timerEnd: at(75), correctCount: 0 }, NOW)).toBeNull();
   });
 

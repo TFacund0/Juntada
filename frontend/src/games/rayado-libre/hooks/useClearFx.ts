@@ -9,8 +9,8 @@ import { isClearTransition } from "../utils/clearTransition";
  * el de quienes miran.
  *
  * @param strokes Historial de dibujo actual.
- * @param resetKey Cambia cuando la hoja se vacía por otra cosa (pedir otra
- * palabra): esa transición no cuenta como borrado.
+ * @param resetKey Cambia cuando la hoja se vacía por otra cosa (el cambio
+ * de turno): esa transición no cuenta como borrado.
  * @param clearRequest Contador de "¿Borrar?" confirmados en este dispositivo
  * (quien dibuja): un pedido pendiente hace que el próximo vaciado cuente
  * aunque deshacer también hubiera podido producirlo.

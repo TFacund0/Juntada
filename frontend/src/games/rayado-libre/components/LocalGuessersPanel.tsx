@@ -2,6 +2,8 @@ import clsx from "clsx";
 import { Avatar } from "../../../components/ui/Avatar";
 import { useAnimationGate } from "../../../components/game-kit/hooks/useAnimationGate";
 import type { LocalPlayer } from "../types/localGame";
+import type { RayadoSfx } from "../hooks/useRayadoSfx";
+import { MuteButton } from "./MuteButton";
 import { ChatHeader } from "./chat/ChatHeader";
 
 interface LocalGuessersPanelProps {
@@ -10,6 +12,7 @@ interface LocalGuessersPanelProps {
   correctGuessers: number[];
   lastTurnPoints: Record<number, number>;
   markCorrect: (playerId: number) => void;
+  sfx: RayadoSfx;
 }
 
 /**
@@ -17,7 +20,7 @@ interface LocalGuessersPanelProps {
  * el dispositivo, con la misma cabecera y el mismo estilo de panel que el
  * chat de respuestas online.
  */
-export function LocalGuessersPanel({ players, drawerId, correctGuessers, lastTurnPoints, markCorrect }: LocalGuessersPanelProps) {
+export function LocalGuessersPanel({ players, drawerId, correctGuessers, lastTurnPoints, markCorrect, sfx }: LocalGuessersPanelProps) {
   const canAnimate = useAnimationGate();
   const guessers = players.filter(p => p.id !== drawerId);
   const guessed = correctGuessers.flatMap(id => {
@@ -27,7 +30,13 @@ export function LocalGuessersPanel({ players, drawerId, correctGuessers, lastTur
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ChatHeader title="¿Quién acertó?" guessed={guessed} eligible={guessers.length} canAnimate={canAnimate} />
+      <ChatHeader
+        title="¿Quién acertó?"
+        guessed={guessed}
+        eligible={guessers.length}
+        canAnimate={canAnimate}
+        action={<MuteButton muted={sfx.muted} onToggle={sfx.toggleMuted} />}
+      />
       <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-3 pt-2.5">
         <p className="m-0 mb-1 self-center text-center text-xs italic text-rl-muted">Tocá el nombre de quien haya adivinado en voz alta.</p>
         {guessers.map(p => {

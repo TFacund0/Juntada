@@ -15,8 +15,6 @@ import { LocalGuessersPanel } from "./LocalGuessersPanel";
 interface LocalDrawingScreenProps {
   drawer: LocalPlayer | undefined;
   timerEnd: number | null;
-  /** La palabra del turno (solo para girarla al pedir otra; en pantalla se ve la pista). */
-  word: string | null;
   wordHint: string | null;
   scores: Record<number, number>;
   sfx: RayadoSfx;
@@ -29,8 +27,6 @@ interface LocalDrawingScreenProps {
   correctGuessers: number[];
   lastTurnPoints: Record<number, number>;
   markCorrect: (playerId: number) => void;
-  rerollAvailable: boolean;
-  onReroll: () => void;
 }
 
 /**
@@ -43,7 +39,6 @@ interface LocalDrawingScreenProps {
 export function LocalDrawingScreen({
   drawer,
   timerEnd,
-  word,
   wordHint,
   scores,
   sfx,
@@ -56,8 +51,6 @@ export function LocalDrawingScreen({
   correctGuessers,
   lastTurnPoints,
   markCorrect,
-  rerollAvailable,
-  onReroll,
 }: LocalDrawingScreenProps) {
   const drawerName = drawer?.name ?? "";
   const hint = wordHint ?? "";
@@ -86,8 +79,6 @@ export function LocalDrawingScreen({
           onFillAt: (x, y, color) => setStrokes(s => [...s, { type: "fill", x, y, color }]),
           onClear: () => setStrokes([]),
           onUndo: () => setStrokes(s => popLastDrawUnit(s)),
-          // Pedir otra palabra vacía la hoja: eso no es un "borrar todo".
-          resetKey: String(rerollAvailable),
         }}
         interactive
         timerEnd={timerEnd}
@@ -97,12 +88,10 @@ export function LocalDrawingScreen({
           drawerName,
           subtitle: turnSubtitle({ isDrawer: false, drawerName, letters: letterCount(hint) }),
           word: <HintText hint={hint} onReveal={() => sfx.play("card")} />,
-          wordKey: word ?? undefined,
         }}
         players={rows}
         sfx={sfx}
         idleText="Dibujá acá"
-        onReroll={rerollAvailable ? onReroll : undefined}
         sideLabel="¿Quién acertó?"
         sideContent={
           <LocalGuessersPanel
@@ -111,6 +100,7 @@ export function LocalDrawingScreen({
             correctGuessers={correctGuessers}
             lastTurnPoints={lastTurnPoints}
             markCorrect={markCorrect}
+            sfx={sfx}
           />
         }
       />

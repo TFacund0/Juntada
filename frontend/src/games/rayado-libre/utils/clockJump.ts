@@ -14,9 +14,9 @@ const secondsLeft = (timerEnd: number, now: number) => Math.max(0, Math.ceil((ti
 
 /**
  * Detecta un salto del reloj por acierto (ver `scoreForGuess`: el primer
- * acierto en cada zona baja el reloj a 60 o 30). "Pedir otra palabra"
- * también baja `timerEnd` (15 s de castigo), pero sin sumar aciertos — por
- * eso hacen falta las dos condiciones: el reloj bajó Y alguien acertó.
+ * acierto en cada zona baja el reloj a 60 o 30). Hacen falta las dos
+ * condiciones — el reloj bajó Y alguien acertó — para que un `timerEnd`
+ * que baja por otro motivo (un reenvío corregido del servidor) no cuente.
  *
  * @returns `from`/`to` en segundos restantes, o `null` si no hubo salto.
  */

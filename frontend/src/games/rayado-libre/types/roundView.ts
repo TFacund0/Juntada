@@ -24,8 +24,6 @@ export interface RayadoLibreRoundState {
   guessSeconds?: Record<string, number>;
   wordHint?: string;
   word?: string;
-  /** Si quien dibuja ya usó su "pedir otra palabra" este turno (ver `reroll_word`) — una sola vez, y solo antes de que alguien acierte. */
-  rerollUsed?: boolean;
   /** Quiénes están escribiendo: id → cuándo se apaga el indicador (ver `activeTypingIds`). */
   typingUntil?: Record<string, number>;
 }

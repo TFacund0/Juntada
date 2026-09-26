@@ -249,9 +249,6 @@ export const SCHEMAS = {
     type: z.literal("choose_word"),
     word: z.string().trim().max(60),
   }),
-  reroll_word: z.object({
-    type: z.literal("reroll_word"),
-  }),
   draw_stroke: z.object({
     type: z.literal("draw_stroke"),
     points: z

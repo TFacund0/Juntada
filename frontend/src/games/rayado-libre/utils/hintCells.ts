@@ -30,8 +30,8 @@ export function letterCount(hint: string): number {
 
 /**
  * Índices que estaban ocultos en `prev` y aparecen revelados en `next`.
- * Una pista de otro largo es otra palabra (turno nuevo, "pedir otra
- * palabra"): ahí no hay letras "nuevas" que animar.
+ * Una pista de otro largo es otra palabra (turno nuevo): ahí no hay
+ * letras "nuevas" que animar.
  */
 export function newlyRevealed(prev: string, next: string): number[] {
   const a = [...prev];

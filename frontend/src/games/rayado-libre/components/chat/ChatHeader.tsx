@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import clsx from "clsx";
 import { Avatar } from "../../../../components/ui/Avatar";
 import { useFreshKeys } from "../../hooks/useFreshKeys";
@@ -21,15 +22,18 @@ interface ChatHeaderProps {
    * online, en local no hay burbuja.
    */
   bubbleSpace?: boolean;
+  /** Al final de la fila, después del contador: el botón de silencio (ver MuteButton). */
+  action?: ReactNode;
 }
 
 /**
  * Cabecera de la columna del chat: título y, a la derecha, una fichita
- * verde por cada uno que adivinó (avatar + "+N", entra con rebote) y el
- * contador "2/3 ✓". Es un `<header>` y no un div: el panel local de "¿Quién
+ * verde por cada uno que adivinó (avatar + "+N", entra con rebote), el
+ * contador "2/3 ✓" y `action` (el silencio). En celular la burbuja del chat
+ * de la sala se sienta a la derecha de todo eso (`bubbleSpace`). Es un `<header>` y no un div: el panel local de "¿Quién
  * acertó?" depende de que el div más cercano al título sea el panel entero.
  */
-export function ChatHeader({ title, guessed, eligible, canAnimate, bubbleSpace = false }: ChatHeaderProps) {
+export function ChatHeader({ title, guessed, eligible, canAnimate, bubbleSpace = false, action }: ChatHeaderProps) {
   const isFresh = useFreshKeys(
     guessed.map(g => g.id),
     canAnimate,
@@ -67,6 +71,7 @@ export function ChatHeader({ title, guessed, eligible, canAnimate, bubbleSpace =
           {guessed.length} de {eligible} adivinaron
         </span>
       </span>
+      {action}
     </header>
   );
 }

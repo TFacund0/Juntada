@@ -36,7 +36,7 @@ export function ColorCaps({ color, onSelect, bounce }: ColorCapsProps) {
       role="radiogroup"
       aria-label="Color"
       className={clsx(
-        "flex justify-between gap-1 pt-[6px] @max-[360px]:gap-[2px]",
+        "flex justify-between gap-1 pt-[6px] @max-[360px]/stage:gap-[2px]",
         "landscape-short:flex-col landscape-short:justify-start landscape-short:gap-[3px] landscape-short:pb-0 landscape-short:pl-0 landscape-short:pr-[6px] landscape-short:pt-0",
       )}
     >
@@ -57,7 +57,7 @@ export function ColorCaps({ color, onSelect, bounce }: ColorCapsProps) {
             className={clsx(
               "relative h-[30px] max-w-[34px] flex-1 cursor-pointer rounded-[9px_9px_13px_13px] border-0 p-0",
               "transition-[transform] duration-150 ease-[cubic-bezier(.3,1.5,.5,1)] motion-reduce:transition-none",
-              "@min-[1000px]:h-[34px] @min-[1000px]:max-w-[40px]",
+              "@min-[1000px]/stage:h-[34px] @min-[1000px]/stage:max-w-[40px]",
               "landscape-short:h-6 landscape-short:w-7 landscape-short:max-w-none landscape-short:flex-none landscape-short:rounded-[7px_12px_12px_7px]",
               c === "#ffffff"
                 ? "shadow-[inset_0_-5px_0_rgba(0,0,0,.12),inset_0_0_0_1px_rgba(0,0,0,.2)]"

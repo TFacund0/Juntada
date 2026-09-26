@@ -3,13 +3,11 @@ import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import type { PlayerRow } from "../utils/playerRows";
 import { type DrawAction, type Tool } from "./Canvas";
 import { Palette } from "./palette/Palette";
-import { WordFlip } from "./WordFlip";
 import { TimerRing } from "./TimerRing";
 import { DrawingStage } from "./DrawingStage";
 import { TurnBar } from "./TurnBar";
 import { PaperBoard } from "./PaperBoard";
 import { PlayersPanel } from "./PlayersPanel";
-import { MuteButton } from "./MuteButton";
 
 /** Todo lo que el tablero reenvía a `Canvas`/`Palette` — agrupado aparte para no dejar 6 props sueltas en {@link DrawingBoardProps} con la misma forma que ya tiene `CanvasProps` (ver Canvas.tsx). */
 interface DrawingBoardCanvasProps {
@@ -20,8 +18,8 @@ interface DrawingBoardCanvasProps {
   onFillAt: (x: number, y: number, color: string) => void;
   onClear: () => void;
   onUndo: () => void;
-  /** Cambia cuando la hoja se vacía por pedir otra palabra (no es un "borrar todo", ver useClearFx). */
-  resetKey: string;
+  /** Cambia cuando la hoja se vacía por otra cosa que no es un "borrar todo", como el cambio de turno (ver useClearFx). */
+  resetKey?: string;
 }
 
 /** Cabecera del turno, ya resuelta por quien llama según el rol (ver TurnBar). */
@@ -29,8 +27,6 @@ interface DrawingBoardHeader {
   drawerName: string;
   subtitle: string;
   word: ReactNode;
-  /** La palabra de quien dibuja: al cambiar (pedir otra) gira en X (ver WordFlip). */
-  wordKey?: string;
   notice?: ReactNode;
 }
 
@@ -52,13 +48,6 @@ interface DrawingBoardProps {
   idleText?: string | null;
   /** Marcador que sigue el trazo remoto (solo quien mira, online). */
   remotePen?: boolean;
-  /**
-   * Si está presente, muestra el botón "Pedir otra palabra" — quien llama
-   * decide cuándo corresponde (solo antes de que alguien acierte, y solo
-   * una vez por turno; ver `reroll_word` en el motor online y su réplica en
-   * `LocalGame.tsx`). Ausente/`undefined` oculta el botón por completo.
-   */
-  onReroll?: () => void;
 }
 
 /**
@@ -82,7 +71,6 @@ export function DrawingBoard({
   sfx,
   idleText,
   remotePen = false,
-  onReroll,
 }: DrawingBoardProps) {
   const { strokes, tool, onToolChange, onStrokeChunk, onFillAt, onClear, onUndo, resetKey } = canvas;
   // "¿Borrar?" confirmados acá: la hoja tiembla aunque deshacer hubiera podido vaciarla igual (ver useClearFx).
@@ -102,28 +90,9 @@ export function DrawingBoard({
           drawing={interactive}
           drawerName={header.drawerName}
           subtitle={header.subtitle}
-          word={<WordFlip flipKey={header.wordKey}>{header.word}</WordFlip>}
-          extra={
-            <>
-              {interactive && onReroll && (
-                // En celular horizontal queda solo el ícono (el texto sigue para lectores de pantalla).
-                <button
-                  type="button"
-                  onClick={() => {
-                    sfx.play("card");
-                    onReroll();
-                  }}
-                  title="Pedir otra palabra"
-                  className="mt-1 cursor-pointer rounded-full landscape-short:mt-0 border border-rl-card-border bg-rl-card px-[10px] py-1 text-xs font-bold"
-                >
-                  🔄<span className="landscape-short:sr-only"> Pedir otra palabra</span>
-                </button>
-              )}
-              {header.notice}
-            </>
-          }
+          word={header.word}
+          extra={header.notice}
           timer={timerEnd ? <TimerRing timerEnd={timerEnd} total={total} correctCount={correctCount} sfx={sfx} /> : null}
-          mute={<MuteButton muted={sfx.muted} onToggle={sfx.toggleMuted} />}
         />
       }
       board={

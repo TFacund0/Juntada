@@ -52,10 +52,6 @@ const {
 };
 const { shuffle } = require("@juntada/core-utils");
 const CHOOSE_SECONDS = 15;
-// Costo en segundos de pedir otra palabra a mitad de turno (ver "reroll_word"
-// más abajo) — se resta del timer en vez de arrancar uno nuevo, así no es
-// gratis alargar el turno pidiendo palabra tras palabra.
-const REROLL_TIME_PENALTY_SECONDS = 15;
 // Bounds how much canvas history a single turn can accumulate — a legitimate
 // drawing never gets close to this; it only guards against one very long
 // turn (or a misbehaving client) growing the broadcast payload unbounded.
@@ -131,9 +127,6 @@ interface RayadoLibreRound {
   strokes: DrawAction[];
   chatLog: ChatEntry[];
   correctGuessers: string[];
-  // Si ya se usó el "pedir otra palabra" (ver "reroll_word") este turno —
-  // solo se permite una vez, y solo antes de que alguien acierte.
-  rerollUsed: boolean;
   // Points gained this specific turn only (guessers' scores plus the
   // drawer's per-guess bonus) — separate from the cumulative cfg(room).score
   // so the reveal screen can show "+N this turn" next to each player's
@@ -187,7 +180,9 @@ function migrateRound(room: Room): void {
   if (r.chatLog == null) r.chatLog = [];
   if (r.correctGuessers == null) r.correctGuessers = [];
   if (r.strokes == null) r.strokes = [];
-  if (r.rerollUsed == null) r.rerollUsed = false;
+  // "Pedir otra palabra" was removed — drop its leftover flag from rounds
+  // persisted by an older server so it never leaks back into a view.
+  delete (r as Partial<RayadoLibreRound> & { rerollUsed?: unknown }).rerollUsed;
   if (r.typingUntil == null) r.typingUntil = {};
   if (r.closeEntryIds == null) r.closeEntryIds = {};
   if (r.chatSeq == null) r.chatSeq = 0;
@@ -234,15 +229,6 @@ function pickThreeWords(room: Room): string[] {
   return words;
 }
 
-// Used by "reroll_word" — a single replacement word, different from the one
-// being abandoned when the pool allows it (a 1-word pool just returns that
-// same word back, an acceptable degenerate case rather than something worth
-// extra handling for).
-function pickReplacementWord(room: Room, currentWord: string): string {
-  const candidates = pickThreeWords(room);
-  return candidates.find(w => w !== currentWord) ?? candidates[0];
-}
-
 function startTurnChoosing(room: Room, drawerId: string): void {
   const r = round(room);
   r.drawerId = drawerId;
@@ -258,7 +244,6 @@ function startTurnChoosing(room: Room, drawerId: string): void {
   r.roundPoints = {};
   r.guessSeconds = {};
   r.lastGuess = null;
-  r.rerollUsed = false;
   r.typingUntil = {};
   r.closeEntryIds = {};
   room.phase = "choosing";
@@ -348,7 +333,6 @@ function startRound(room: Room): { success?: true; error?: string } {
     guessSeconds: {},
     guessId: 0,
     lastGuess: null,
-    rerollUsed: false,
     chatSeq: 0,
     typingUntil: {},
     closeEntryIds: {},
@@ -495,25 +479,6 @@ function handleAction(
       return { handled: true, rerolled: true };
     }
 
-    // Quien dibuja pide otra palabra a mitad de turno — solo antes de que
-    // alguien acierte (evita tener que revertir puntaje ya otorgado) y solo
-    // una vez, con una penalización de tiempo en vez de un timer nuevo (ver
-    // REROLL_TIME_PENALTY_SECONDS) para que no sea gratis pedir varias.
-    case "reroll_word": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
-      if (r.rerollUsed || r.correctGuessers.length > 0) return { handled: false };
-      const oldWord = r.word as string;
-      room.usedWords.words = [...((room.usedWords.words as string[] | undefined) ?? []), oldWord];
-      const newWord = pickReplacementWord(room, oldWord);
-      r.word = newWord;
-      r.strokes = [];
-      r.hintOrder = buildHintOrder(newWord);
-      r.drawingStartedAt = Date.now();
-      r.rerollUsed = true;
-      r.timerEnd = Math.max(Date.now(), (r.timerEnd as number) - REROLL_TIME_PENALTY_SECONDS * 1000);
-      return { handled: true, rerolled: true };
-    }
-
     case "draw_stroke": {
       if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
       const points = parseStrokePoints(payload.points);
@@ -642,7 +607,6 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
       correctGuessers: r.correctGuessers,
       roundPoints: r.roundPoints,
       wordHint,
-      rerollUsed: r.rerollUsed,
       typingUntil: activeTyping(room),
     };
   }

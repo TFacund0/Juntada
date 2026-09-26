@@ -77,6 +77,8 @@
   --color-rl-r3: #33c07a;
   --color-rl-r4: #2e8bff;
   --color-rl-r5: #a855f7;
+  /* Verde menta del degradé "pasale el dispositivo" (ver PassDeviceCard). */
+  --color-rl-mint: #5dcaa5;
 
   --font-marker: "Permanent Marker", "Comic Sans MS", cursive;
   --font-figtree: "Figtree", system-ui, sans-serif;
@@ -85,6 +87,8 @@
   --animate-rl-dot: rl-dot 1s infinite;
   --animate-rl-msg-in: rl-msg-in 220ms ease-out;
   --animate-rl-chip-pop: rl-chip-pop 350ms ease-out;
+  --animate-rl-spin-slow: rl-spin 6s linear infinite;
+  --animate-rl-pulse: rl-pulse 2.2s ease-in-out infinite;
 
   /* Latido del reloj en los últimos 10 segundos. */
   @keyframes rl-beat {
@@ -122,6 +126,24 @@
     }
     100% {
       transform: none;
+    }
+  }
+
+  /* Halo arcoíris girando detrás del avatar de "pasale el dispositivo". */
+  @keyframes rl-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Latido suave del botón "Ya tengo el dispositivo". */
+  @keyframes rl-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.045);
     }
   }
 

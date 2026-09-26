@@ -33,11 +33,6 @@ import { useTurnEndSound } from "./hooks/useTurnEndSound";
 // y components/*PhaseScreen.tsx).
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Costo en segundos de pedir otra palabra a mitad de turno — mismo valor y
-// misma razón que REROLL_TIME_PENALTY_SECONDS en el motor online (ver
-// engine.ts): se descuenta del timer en vez de arrancar uno nuevo.
-const REROLL_TIME_PENALTY_SECONDS = 15;
-
 export function LocalGame() {
   const [phase, setPhase] = useState<LocalGamePhase>("setup");
   const [players, setPlayers] = useState<LocalPlayer[]>([
@@ -67,7 +62,6 @@ export function LocalGame() {
   // Segundos que quedaban en cada acierto, para "adivinó con 57s" en la revelación.
   const [guessSeconds, setGuessSeconds] = useState<Record<number, number>>({});
   const [strokes, setStrokes] = useState<DrawAction[]>([]);
-  const [rerollUsed, setRerollUsed] = useState(false);
   const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
   const [drawingStartedAt, setDrawingStartedAt] = useState<number | null>(null);
   const hintOrderRef = useRef<number[]>([]);
@@ -119,7 +113,6 @@ export function LocalGame() {
     setTimerEnd(null);
     setLastTurnPoints({});
     setGuessSeconds({});
-    setRerollUsed(false);
     setPhase("wordReveal");
   };
 
@@ -146,22 +139,6 @@ export function LocalGame() {
 
   const finishTurn = () => {
     setPhase("reveal");
-  };
-
-  // Réplica a mano de "reroll_word" del motor online (ver su comentario en
-  // engine.ts): solo antes de que alguien acierte, solo una vez por turno,
-  // penalizando el timer en vez de arrancar uno nuevo.
-  const rerollWord = () => {
-    if (rerollUsed || correctGuessers.length > 0 || !word) return;
-    usedWordsRef.current = [...usedWordsRef.current, word];
-    const candidates = pickThreeWords(activeCatKeys, usedWordsRef, customWords);
-    const newWord = candidates.find(w => w !== word) ?? candidates[0];
-    setWord(newWord);
-    setStrokes([]);
-    setTimerEnd(t => (t == null ? t : Math.max(Date.now(), t - REROLL_TIME_PENALTY_SECONDS * 1000)));
-    setDrawingStartedAt(Date.now());
-    hintOrderRef.current = buildHintOrder(newWord);
-    setRerollUsed(true);
   };
 
   const goToNextTurn = () => {
@@ -269,7 +246,6 @@ export function LocalGame() {
         <LocalDrawingScreen
           drawer={drawer}
           timerEnd={timerEnd}
-          word={word}
           wordHint={wordHint}
           scores={scores}
           sfx={sfx}
@@ -282,8 +258,6 @@ export function LocalGame() {
           correctGuessers={correctGuessers}
           lastTurnPoints={lastTurnPoints}
           markCorrect={markCorrect}
-          rerollAvailable={!rerollUsed && correctGuessers.length === 0}
-          onReroll={rerollWord}
         />
       );
     }

@@ -55,7 +55,10 @@ UI entre los dos modos:
   desktop). Recibe `sideContent` como slot para lo que sí difiere entre
   modos: el panel "Respuestas" (`chat/OnlineAnswersPanel`, online) vs. la
   lista de "¿quién acertó?" (`LocalGuessersPanel`, juez manual, local), las
-  dos con la misma cabecera (`chat/ChatHeader`).
+  dos con la misma cabecera (`chat/ChatHeader`), que también lleva el
+  botón de silencio (`MuteButton`). La cabecera del turno (`TurnBar`)
+  queda solo con avatar, palabra/pista y reloj. Quien dibuja no puede
+  pedir otra palabra a mitad de turno (esa opción se sacó).
 - **`Canvas.tsx`** — el tablero de dibujo a nivel píxel (pointer events,
   flood fill, pintado incremental optimista). No sabe nada de turnos ni
   puntaje.

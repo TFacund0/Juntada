@@ -60,7 +60,6 @@ export function DrawingPhaseScreen({
   const correctGuessers = round.correctGuessers ?? [];
   const roundPoints = round.roundPoints ?? {};
   const alreadyGuessed = !!me?.playerId && correctGuessers.includes(me.playerId);
-  const canReroll = isDrawer && !round.rerollUsed && correctGuessers.length === 0;
   const hint = round.wordHint ?? "";
   const drawerName = drawerPlayer?.name ?? "";
   const myId = me?.playerId;
@@ -124,8 +123,8 @@ export function DrawingPhaseScreen({
           onFillAt: (x, y, color) => send({ type: "draw_fill", x, y, color }),
           onClear: () => send({ type: "draw_clear" }),
           onUndo: () => send({ type: "draw_undo" }),
-          // Pedir otra palabra vacía la hoja en el motor: eso no es un "borrar todo".
-          resetKey: `${round.turnNumber}:${!!round.rerollUsed}`,
+          // El cambio de turno vacía la hoja: eso no es un "borrar todo".
+          resetKey: String(round.turnNumber),
         }}
         interactive={isDrawer}
         timerEnd={round.timerEnd}
@@ -135,7 +134,6 @@ export function DrawingPhaseScreen({
           drawerName,
           subtitle: turnSubtitle({ isDrawer, drawerName, letters: letterCount(isDrawer ? (myWord ?? "") : hint) }),
           word,
-          wordKey: isDrawer ? myWord : undefined,
           notice: drawerOffline && (
             <p className="mt-1 text-xs text-rl-warn">
               ⚠️ {drawerName} se desconectó — el turno sigue corriendo hasta que se acabe el tiempo
@@ -146,7 +144,6 @@ export function DrawingPhaseScreen({
         sfx={sfx}
         idleText={myWord && wordVisible ? `Dibujá ${myWord.toUpperCase()} acá` : null}
         remotePen
-        onReroll={canReroll ? () => send({ type: "reroll_word" }) : undefined}
         sideLabel="Chat de respuestas"
         sideContent={
           <OnlineAnswersPanel

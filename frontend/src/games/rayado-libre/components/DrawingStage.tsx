@@ -30,7 +30,7 @@ const BOARD_MAX_DRAWING = clsx(
 
 /**
  * Esqueleto de la pantalla de dibujo (el `.game` de la referencia). Los
- * cortes dependen del ancho del contenedor del juego (`@container`), no de
+ * cortes dependen del ancho del contenedor del juego (`@container/stage`), no de
  * la pantalla:
  * - <700px: apilado — cabecera y tablero arriba, el chat ocupa el resto;
  * - 700–999px: tablero | chat (280–340px);
@@ -48,7 +48,13 @@ const BOARD_MAX_DRAWING = clsx(
 export function DrawingStage({ drawing, players, turn, board, tools, chat, chatLabel }: DrawingStageProps) {
   useResizesContentViewport();
   return (
-    <div className={clsx("@container -mx-4 -mb-[60px] h-[calc(100dvh-var(--jt-content-pad-top))] font-figtree text-rl-ink", CHROME_OFFSET)}>
+    <div
+      data-rl-stage
+      className={clsx(
+        "@container/stage -mx-4 -mb-[60px] h-[calc(100dvh-var(--jt-content-pad-top))] font-figtree text-rl-ink",
+        CHROME_OFFSET,
+      )}
+    >
       <div
         className={clsx(
           "flex h-full min-h-0 flex-col gap-2 px-[14px] pb-[calc(10px+env(safe-area-inset-bottom,0px))]",

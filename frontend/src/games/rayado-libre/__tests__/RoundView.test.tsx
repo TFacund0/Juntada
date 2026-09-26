@@ -286,42 +286,10 @@ describe("Rayado Libre RoundView — drawing phase", () => {
     expect(word).toHaveStyle({ visibility: "hidden" });
   });
 
-  test("the drawer can reroll the word before anyone has guessed", async () => {
-    const user = userEvent.setup();
-    const send = vi.fn();
+  test("the drawer gets no 'Pedir otra palabra' control (it was removed)", () => {
     render(
       <RoundView
         room={makeRoom("drawing")}
-        me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={makePlayers()[0]}
-        myRole={{ isDrawer: true, word: "Perro" }}
-        wordReveal={null}
-        isHost={true}
-        send={send}
-      />,
-    );
-
-    await user.click(screen.getByText(/Pedir otra palabra/));
-    expect(send).toHaveBeenCalledWith({ type: "reroll_word" });
-  });
-
-  test("the reroll button is hidden once it was already used, or once someone has guessed", () => {
-    const { rerender } = render(
-      <RoundView
-        room={makeRoom("drawing", { rerollUsed: true })}
-        me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={makePlayers()[0]}
-        myRole={{ isDrawer: true, word: "Perro" }}
-        wordReveal={null}
-        isHost={true}
-        send={vi.fn()}
-      />,
-    );
-    expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
-
-    rerender(
-      <RoundView
-        room={makeRoom("drawing", { correctGuessers: ["p2"] })}
         me={{ playerId: "p1", roomCode: "TEST1" }}
         myPlayer={makePlayers()[0]}
         myRole={{ isDrawer: true, word: "Perro" }}
@@ -374,11 +342,13 @@ describe("Rayado Libre RoundView — drawing screen (turn header, players, clock
     expect(screen.getByText("Dibujá PERRO acá")).toBeInTheDocument();
   });
 
-  test("the mute button toggles its label", async () => {
+  test("the mute button lives in the answers panel header and toggles its label", async () => {
     const user = userEvent.setup();
     localStorage.clear();
     render(renderGuesser({ wordHint: "____" }));
-    await user.click(screen.getByRole("button", { name: "Silenciar sonido" }));
+    const mute = screen.getByRole("button", { name: "Silenciar sonido" });
+    expect(screen.getByRole("complementary", { name: "Chat de respuestas" })).toContainElement(mute);
+    await user.click(mute);
     expect(screen.getByRole("button", { name: "Activar sonido" })).toBeInTheDocument();
     localStorage.clear();
   });
@@ -391,7 +361,7 @@ describe("Rayado Libre RoundView — drawing screen (turn header, players, clock
     expect(screen.getByRole("status")).toHaveTextContent("¡El reloj saltó a 60!");
   });
 
-  test("a reroll lowering the clock (no new guess) is not a jump", () => {
+  test("the clock going down without a new guess is not a jump", () => {
     const now = Date.now();
     const { rerender } = render(renderGuesser({ wordHint: "____", timerEnd: now + 88_000 }));
     rerender(renderGuesser({ wordHint: "____", timerEnd: now + 73_000 }));

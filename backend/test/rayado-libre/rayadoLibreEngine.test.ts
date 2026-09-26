@@ -499,43 +499,20 @@ test("new_game is host-only, resets the accumulated score, and sends the room ba
   assert.equal(room.phase, "lobby");
 });
 
-test("reroll_word swaps the word, clears the board, penalizes the timer, and only works once before anyone guesses", () => {
+test("the removed reroll_word action is ignored, and an old snapshot's rerollUsed flag is dropped", () => {
   const room = makeRoom();
   enableAllCategories(room);
   engine.startRound(room);
   const drawerId = room.round.drawerId;
   const word = room.round.wordChoices[0];
   engine.handleAction(room, drawerId, "choose_word", { word });
-  engine.handleAction(room, drawerId, "draw_stroke", { points: [[0, 0]], color: "#000", size: 4, strokeId: 1 });
-  const timerBefore = room.round.timerEnd;
+  // A round persisted by a server version that still had "pedir otra palabra".
+  room.round.rerollUsed = false;
 
-  const other = room.players.find((p: TestPlayer) => p.id !== drawerId)!.id;
-  assert.equal(engine.handleAction(room, other, "reroll_word", {}).handled, false, "only the drawer can reroll");
-
-  const res = engine.handleAction(room, drawerId, "reroll_word", {});
-  assert.equal(res.handled, true);
-  assert.equal(res.rerolled, true, "must resend private_role with the new word");
-  assert.notEqual(room.round.word, word);
-  assert.equal(room.round.strokes.length, 0, "the board resets for the new word");
-  assert.equal(room.round.rerollUsed, true);
-  assert.ok(room.round.timerEnd < timerBefore, "the timer is penalized, not reset to a fresh 99s");
-  assert.ok((room.usedWords.words as string[]).includes(word), "the abandoned word doesn't come back up later");
-
-  assert.equal(engine.handleAction(room, drawerId, "reroll_word", {}).handled, false, "only once per turn");
-});
-
-test("reroll_word is rejected once someone has already guessed correctly", () => {
-  const room = makeRoom();
-  enableAllCategories(room);
-  engine.startRound(room);
-  const drawerId = room.round.drawerId;
-  const word = room.round.wordChoices[0];
-  engine.handleAction(room, drawerId, "choose_word", { word });
-  const guesser = room.players.find((p: TestPlayer) => p.id !== drawerId)!.id;
-  engine.handleAction(room, guesser, "guess", { text: word });
-
-  const res = engine.handleAction(room, drawerId, "reroll_word", {});
-  assert.equal(res.handled, false, "no rerolling once points are already on the board for this turn");
+  assert.equal(engine.handleAction(room, drawerId, "reroll_word", {}).handled, false);
+  assert.equal(room.round.word, word);
+  assert.equal("rerollUsed" in room.round, false);
+  assert.equal("rerollUsed" in (engine.getPublicRoundView(room) ?? {}), false);
 });
 
 test("customWords: startRound succeeds with only custom words, no category enabled", () => {

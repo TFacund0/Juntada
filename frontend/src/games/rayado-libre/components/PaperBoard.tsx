@@ -17,7 +17,7 @@ interface PaperBoardProps {
   idleText?: string | null;
   /** Mostrar el marcador que sigue el trazo remoto (solo quien mira, online). */
   remotePen?: boolean;
-  /** Cambia cuando la hoja se vacía por algo que no es borrar (pedir otra palabra). Ver useClearFx. */
+  /** Cambia cuando la hoja se vacía por algo que no es borrar (el cambio de turno). Ver useClearFx. */
   resetKey?: string;
   /** Contador de "¿Borrar?" confirmados en este dispositivo. Ver useClearFx. */
   clearRequest?: number;

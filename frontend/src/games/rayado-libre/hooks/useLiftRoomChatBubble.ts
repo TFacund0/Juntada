@@ -22,14 +22,14 @@ const SETTLE_MS = 350;
  * Acomoda la burbuja del chat de la sala solo mientras la pantalla de
  * dibujo online está montada; al salir vuelve a su lugar y tamaño de
  * siempre. `rootRef` es la pantalla, donde se busca la cabecera del chat
- * (`[data-rl-chat-head]`) y su contenedor `@container` (el ancho que decide
+ * (`[data-rl-chat-head]`) y su contenedor `[data-rl-stage]` (el ancho que decide
  * el layout).
  */
 export function useLiftRoomChatBubble(rootRef: RefObject<HTMLElement | null>): void {
   useEffect(() => {
     const doc = document.documentElement;
     const head = rootRef.current?.querySelector<HTMLElement>("[data-rl-chat-head]") ?? null;
-    const stage = head?.closest<HTMLElement>(".\\@container") ?? null;
+    const stage = head?.closest<HTMLElement>("[data-rl-stage]") ?? null;
 
     const place = () => {
       if (head && stage && stage.getBoundingClientRect().width < PHONE_MAX_WIDTH) {
