@@ -189,5 +189,28 @@ test("typing and 'close' over the wire: others see who's typing, but only the au
   for (const p of [author, other]) p.ws.send(JSON.stringify({ type: "guess", text: word }));
   await waitFor(host.queue, m => m.type === "state" && m.room.phase === "reveal");
 
+  // In-flight/stale draw actions that arrive right as the phase shifts to reveal
+  // must be ignored cleanly without returning an INVALID_ACTION error.
+  drawer.ws.send(
+    JSON.stringify({
+      type: "draw_stroke",
+      points: [
+        [10, 10],
+        [20, 20],
+      ],
+      color: "#000000",
+      size: 4,
+      strokeId: 999,
+    }),
+  );
+  drawer.ws.send(JSON.stringify({ type: "draw_fill", x: 10, y: 10, color: "#000000" }));
+  drawer.ws.send(JSON.stringify({ type: "draw_undo" }));
+  drawer.ws.send(JSON.stringify({ type: "draw_clear" }));
+
+  // Confirm ready so we can verify drawer receives no error throughout.
+  drawer.ws.send(JSON.stringify({ type: "player_ready" }));
+  await new Promise(r => setTimeout(r, 100));
+  assert.ok(!drawer.queue.some(m => m.type === "error"), "stale draw actions during reveal must not return an error");
+
   for (const p of players) p.ws.close();
 });

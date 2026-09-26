@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { T } from "../../../theme/styles/classes";
 import { DEFAULT_CATEGORIES, LETTERS } from "@juntada/tutifruti-data";
 import { Btn } from "../../../components/ui/Btn";
+import { TabRow } from "../../../components/setup/TabRow";
 import type { ConfigPanelProps } from "../../gameTypes";
 import { PageNumbers } from "./PageNumbers";
 import { CategoryChip } from "./CategoryChip";
@@ -79,13 +80,16 @@ export function ConfigPanel({ room, updateConfig }: ConfigPanelProps) {
   return (
     <div className={T.card}>
       <span className={T.label}>Configuración</span>
-      <div className="flex gap-2">
-        {(["cats", "letters", "rules"] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} className={clsx(T.btn(tab === t ? "primary" : "ghost"), T.tabBtnOverride)}>
-            {t === "cats" ? "Categorías" : t === "letters" ? "Letras" : "Reglas"}
-          </button>
-        ))}
-      </div>
+      <TabRow
+        tabs={[
+          { key: "cats", label: "Categorías" },
+          { key: "letters", label: "Letras" },
+          { key: "rules", label: "Reglas" },
+        ]}
+        active={tab}
+        onChange={setTab}
+        compact
+      />
 
       <div className={T.divider} />
 

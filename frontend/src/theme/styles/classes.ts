@@ -149,9 +149,9 @@ export const truncateLabel = "overflow-hidden text-ellipsis whitespace-nowrap";
 // tutifruti ConfigPanel — separador fino entre secciones del panel.
 export const divider = "border-t border-white/[0.08] my-4";
 
-export const tabBtnOverride = "flex-1 p-2 text-[13px]";
+export const tabBtnOverride = "flex-1 min-w-0 !px-1.5 py-2 text-[13px]";
 
-export const segmentedBtnOverride = "flex-1 py-2.5 px-2 text-[13px]";
+export const segmentedBtnOverride = "flex-1 min-w-0 !px-2 py-2.5 text-[13px]";
 
 export function rangeInput(disabled: boolean): string {
   return clsx("w-full", disabled ? "opacity-40" : "opacity-100");
