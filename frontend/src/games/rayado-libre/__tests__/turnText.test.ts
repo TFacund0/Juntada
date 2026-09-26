@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { clockJumpLabel, turnSubtitle, typingLabel } from "../utils/turnText";
+import { autoPickLabel, clockJumpLabel, turnSubtitle, typingLabel } from "../utils/turnText";
 
 describe("turnSubtitle", () => {
   test("guesser: who draws and how many letters", () => {
@@ -24,5 +24,11 @@ describe("typingLabel", () => {
     expect(typingLabel(["Tomi"])).toBe("Tomi está escribiendo…");
     expect(typingLabel(["Tomi", "Nacho"])).toBe("Tomi y Nacho están escribiendo…");
     expect(typingLabel(["Tomi", "Nacho", "Lucía"])).toBe("Tomi, Nacho y Lucía están escribiendo…");
+  });
+});
+
+describe("autoPickLabel", () => {
+  test("counts down the seconds left to choose", () => {
+    expect(autoPickLabel(12)).toBe("Se elige sola en 12s");
   });
 });

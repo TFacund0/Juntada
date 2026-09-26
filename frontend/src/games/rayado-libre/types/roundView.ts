@@ -20,6 +20,8 @@ export interface RayadoLibreRoundState {
   chatLog?: ChatEntry[];
   correctGuessers?: string[];
   roundPoints?: Record<string, number>;
+  /** Solo en "reveal": segundos que quedaban cuando acertó cada uno ("adivinó con 57s"). */
+  guessSeconds?: Record<string, number>;
   wordHint?: string;
   word?: string;
   /** Si quien dibuja ya usó su "pedir otra palabra" este turno (ver `reroll_word`) — una sola vez, y solo antes de que alguien acierte. */

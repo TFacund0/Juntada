@@ -18,3 +18,8 @@ export function typingLabel(names: readonly string[]): string {
   const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} y ${names[names.length - 1]}`;
   return `${who} ${names.length > 1 ? "están" : "está"} escribiendo…`;
 }
+
+/** Cuenta regresiva de la elección de palabra: "Se elige sola en Ns". */
+export function autoPickLabel(seconds: number): string {
+  return `Se elige sola en ${seconds}s`;
+}
