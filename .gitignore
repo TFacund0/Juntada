@@ -12,3 +12,5 @@ playwright-report/
 blob-report/
 playwright/.cache/
 frontend/*.timestamp-*.mjs
+# Índice local de CodeGraph (se regenera con `codegraph init`/sync)
+.codegraph/
