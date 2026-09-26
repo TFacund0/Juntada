@@ -36,6 +36,8 @@ export function LocalGuessersPanel({ players, drawerId, correctGuessers, lastTur
             <button
               key={p.id}
               type="button"
+              // Ancla de la mancha de tinta y de los puntos que vuelan al reloj (ver useGuessFx).
+              data-fx-anchor={`guess-${p.id}`}
               disabled={already}
               onClick={() => markCorrect(p.id)}
               className={clsx(

@@ -60,12 +60,19 @@ UI entre los dos modos:
   flood fill, pintado incremental optimista). No sabe nada de turnos ni
   puntaje.
 - **`Toolbar.tsx`** — paleta de colores, grosor de trazo, deshacer/limpiar.
-- **`WordChoiceFan.tsx`** — el abanico de 3 cartas para elegir palabra.
+- **`choose/`** — la pantalla de elegir palabra (`ChooseWordPanel`) y su
+  abanico de 3 cartas de papel (`WordCardFan`), online y local.
 - **`TurnHeader.tsx`**, **`CircularTimer.tsx`**, **`HintText.tsx`** —
   piezas chicas de header reusadas en varias fases.
-- **`RoundScoreboard.tsx`** / **`PodiumBoard.tsx`** — tabla de puntos entre
-  turnos y podio de cierre de partida, respectivamente.
-- **`RevealedWordCard.tsx`** — la palabra revelada en la fase "reveal".
+- **`reveal/`** — la revelación (`RevealView`: la palabra con su pincelada y
+  la tabla del turno animada, con la secuencia en
+  `hooks/useScoreTableSequence`), online y local.
+- **`podium/`** — el podio final propio del juego (`RayadoPodium`), online y
+  local; el `PodiumBoard` de game-kit lo siguen usando los demás juegos.
+- **`ScreenSwap.tsx`** — la transición entre pantallas (sale la anterior,
+  entra la nueva). Los efectos sueltos (manchas, puntos que vuelan,
+  "¡Adivinaste!", confeti) viven en `hooks/useFxLayer` y se disparan desde
+  `hooks/useGuessFx`.
 
 Los componentes específicos de un solo modo (`chat/` salvo `ChatHeader`,
 `WaitingForWordCard`, `EyeToggle` → online; `PassDeviceCard` → local) no

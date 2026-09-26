@@ -74,6 +74,7 @@ export function PaperBoard({
     <>
       <div
         ref={sheetRef}
+        data-rl-board
         onPointerDownCapture={() => setTouched(true)}
         className={clsx(
           // Torcido con `transform` (no `rotate`), para que la sacudida lo reemplace en vez de sumarse.

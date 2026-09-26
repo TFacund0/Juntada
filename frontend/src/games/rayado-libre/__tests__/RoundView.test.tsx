@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 import { RoundView } from "../RoundView";
@@ -64,6 +64,26 @@ describe("Rayado Libre RoundView — choosing phase", () => {
 
     await user.click(screen.getByRole("button", { name: "Gato" }));
     expect(send).toHaveBeenCalledWith({ type: "choose_word", word: "Gato" });
+  });
+
+  test("the cards show each word's category, and the auto-pick countdown uses the real choose timer", () => {
+    render(
+      <RoundView
+        room={makeRoom("choosing", { chooseTimerEnd: Date.now() + 12_000 })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, wordChoices: ["Perro", "Gato", "Chiste interno"] }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Te toca dibujar")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Perro" })).toHaveAccessibleDescription("Animales");
+    // Una palabra propia del anfitrión no viene de ninguna categoría.
+    expect(screen.getByRole("button", { name: "Chiste interno" })).toHaveAccessibleDescription("Palabra propia");
+    expect(screen.getByText(/^Se elige sola en 1[12]s$/)).toBeInTheDocument();
   });
 
   test("a non-drawer sees a waiting message instead of word choices", () => {
@@ -396,8 +416,47 @@ describe("Rayado Libre RoundView — reveal phase", () => {
     );
 
     expect(screen.getByText("Perro")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Listo para/ }));
+    await user.click(screen.getByRole("button", { name: "Siguiente turno" }));
     expect(send).toHaveBeenCalledWith({ type: "player_ready" });
+  });
+
+  test("on the last turn the button says 'Ver podio'", () => {
+    render(
+      <RoundView
+        room={makeRoom("reveal", { word: "Perro", turnNumber: 2 })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Ver podio" })).toBeInTheDocument();
+  });
+
+  test("the turn table explains each score and is sorted by the new totals", () => {
+    const room = makeRoom(
+      "reveal",
+      { word: "Perro", roundPoints: { p2: 57, p1: 10 }, guessSeconds: { p2: 57 }, correctGuessers: ["p2"] },
+      { score: { p1: 40, p2: 67 } },
+    );
+    room.players.push({ id: "p3", accountId: "p3", name: "Caro", ready: false, online: true, hasVoted: false });
+    render(
+      <RoundView
+        room={room}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={room.players[1]}
+        myRole={null}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />,
+    );
+
+    const rows = screen.getAllByRole("listitem").map(r => r.textContent);
+    // Avatar (inicial), nombre y motivo, "+N" y total.
+    expect(rows).toEqual(["BBeto (vos)adivinó con 57s+5767", "AAna ✏️+10 por cada acierto+1040", "CCarono adivinó+00"]);
   });
 
   test("already-ready players see a waiting count instead of the button", () => {
@@ -415,18 +474,14 @@ describe("Rayado Libre RoundView — reveal phase", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: /Listo para/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Siguiente turno" })).not.toBeInTheDocument();
     expect(screen.getByText(/Listo — esperando a los demás/)).toBeInTheDocument();
   });
 });
 
 describe("Rayado Libre RoundView — result phase", () => {
-  // useRevealCountdown starts at 3 regardless of resetKey (see
-  // RevealCountdown.tsx) — every "result" phase mount shows that countdown
-  // first, so tests need to advance past it before the scoreboard appears.
-  test("the host sees a 'Nueva partida' button that sends new_game", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  test("the winning host sees '¡Ganaste!' on the podium and a 'Jugar de nuevo' button that sends new_game", async () => {
+    const user = userEvent.setup();
     const send = vi.fn();
     render(
       <RoundView
@@ -439,16 +494,13 @@ describe("Rayado Libre RoundView — result phase", () => {
         send={send}
       />,
     );
-    await act(() => vi.advanceTimersByTimeAsync(3000));
 
-    expect(screen.getByText("Fin del juego")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Nueva partida" }));
+    expect(screen.getByRole("heading", { name: "¡Ganaste!" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Jugar de nuevo" }));
     expect(send).toHaveBeenCalledWith({ type: "new_game" });
-    vi.useRealTimers();
   });
 
-  test("a non-host sees a waiting message instead of the new-game button", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+  test("a non-host sees who won and a waiting message instead of the new-game button", () => {
     render(
       <RoundView
         room={makeRoom("result")}
@@ -460,10 +512,25 @@ describe("Rayado Libre RoundView — result phase", () => {
         send={vi.fn()}
       />,
     );
-    await act(() => vi.advanceTimersByTimeAsync(3000));
 
-    expect(screen.queryByRole("button", { name: "Nueva partida" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ganó Ana" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Jugar de nuevo" })).not.toBeInTheDocument();
     expect(screen.getByText("Esperando que el anfitrión inicie otra partida")).toBeInTheDocument();
-    vi.useRealTimers();
+  });
+
+  test("with 2 players the podium has only 2 places, the winner in the middle", () => {
+    render(
+      <RoundView
+        room={makeRoom("result", {}, { score: { p1: 10, p2: 60 } })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    const columns = within(screen.getByRole("list", { name: "Podio" })).getAllByRole("listitem");
+    expect(columns.map(c => c.textContent)).toEqual(["A2.º Ana (vos)10 pts2", "B👑1.º Beto60 pts1"]);
   });
 });

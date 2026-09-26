@@ -1,9 +1,9 @@
-import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
 import type { LocalPlayer } from "../types/localGame";
+import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { TurnHeader } from "./TurnHeader";
-import { WordChoiceFan } from "./WordChoiceFan";
 import { PassDeviceCard } from "./PassDeviceCard";
+import { ChooseWordPanel } from "./choose/ChooseWordPanel";
 
 interface WordRevealScreenProps {
   turnNumber: number;
@@ -13,9 +13,14 @@ interface WordRevealScreenProps {
   revealChoices: () => void;
   wordChoices: string[];
   chooseWord: (word: string) => void;
+  sfx: RayadoSfx;
 }
 
-/** Pantalla "wordReveal" del modo local: el dispositivo recién pasó de mano y quien dibuja elige palabra en privado. */
+/**
+ * Pantalla "wordReveal" del modo local: el dispositivo recién pasó de mano y
+ * quien dibuja elige palabra en privado, con el mismo abanico que online —
+ * sin "Se elige sola": en local no hay servidor que elija por nadie.
+ */
 export function WordRevealScreen({
   turnNumber,
   totalTurns,
@@ -24,19 +29,18 @@ export function WordRevealScreen({
   revealChoices,
   wordChoices,
   chooseWord,
+  sfx,
 }: WordRevealScreenProps) {
   return (
-    <PhaseTransition phaseKey="wordReveal">
-      <GameScreenLayout
-        top={<TurnHeader turnNumber={turnNumber} totalTurns={totalTurns} />}
-        center={
-          !choicesRevealed ? (
-            <PassDeviceCard drawerName={drawer?.name ?? "?"} onReady={revealChoices} />
-          ) : (
-            <WordChoiceFan words={wordChoices} onChoose={chooseWord} />
-          )
-        }
-      />
-    </PhaseTransition>
+    <GameScreenLayout
+      top={<TurnHeader turnNumber={turnNumber} totalTurns={totalTurns} />}
+      center={
+        !choicesRevealed ? (
+          <PassDeviceCard drawerName={drawer?.name ?? "?"} onReady={revealChoices} />
+        ) : (
+          <ChooseWordPanel words={wordChoices} onChoose={chooseWord} sfx={sfx} />
+        )
+      }
+    />
   );
 }

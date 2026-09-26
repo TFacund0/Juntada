@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from "react";
-import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
+import { useCallback, useMemo, useRef } from "react";
 import { TURN_SECONDS } from "@juntada/rayado-libre-scoring";
 import type { RoundViewProps } from "../../gameTypes";
 import type { PrivateChatView, RayadoLibreRoundState } from "../types/roundView";
@@ -7,6 +6,7 @@ import type { RayadoSfx } from "../hooks/useRayadoSfx";
 import { useTypingIds } from "../hooks/useTypingIds";
 import { useTypingSignal } from "../hooks/useTypingSignal";
 import { useLiftRoomChatBubble } from "../hooks/useLiftRoomChatBubble";
+import { useOnlineGuessFx } from "../hooks/useOnlineGuessFx";
 import { roomScore } from "../utils/roomScore";
 import { buildPlayerRows } from "../utils/playerRows";
 import { letterCount } from "../utils/hintCells";
@@ -14,7 +14,6 @@ import { turnSubtitle } from "../utils/turnText";
 import { type Tool } from "./Canvas";
 import { EyeToggle } from "./EyeToggle";
 import { OnlineAnswersPanel } from "./chat/OnlineAnswersPanel";
-import { CorrectGuessFlash } from "./CorrectGuessFlash";
 import { DrawingBoard } from "./DrawingBoard";
 import { HintText } from "./HintText";
 
@@ -31,7 +30,6 @@ interface DrawingPhaseScreenProps {
   setTool: (tool: Tool) => void;
   guessText: string;
   setGuessText: (text: string) => void;
-  pointsToast: number | null;
   wordVisible: boolean;
   setWordVisible: (visible: boolean | ((v: boolean) => boolean)) => void;
   sfx: RayadoSfx;
@@ -52,7 +50,6 @@ export function DrawingPhaseScreen({
   setTool,
   guessText,
   setGuessText,
-  pointsToast,
   wordVisible,
   setWordVisible,
   sfx,
@@ -67,7 +64,9 @@ export function DrawingPhaseScreen({
   const hint = round.wordHint ?? "";
   const drawerName = drawerPlayer?.name ?? "";
   const myId = me?.playerId;
-  useLiftRoomChatBubble();
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLiftRoomChatBubble(rootRef);
+  useOnlineGuessFx({ rootRef, chatLog, players: room.players, roundPoints, myId, isDrawer, sfx });
   const typingIds = useTypingIds(round.typingUntil, myId);
   const sendTyping = useCallback(() => send({ type: "typing" }), [send]);
   const typing = useTypingSignal(!isDrawer && !alreadyGuessed, sendTyping);
@@ -107,13 +106,15 @@ export function DrawingPhaseScreen({
         </div>
         <EyeToggle visible={wordVisible} onClick={() => setWordVisible(v => !v)} />
       </div>
+    ) : privateChat.guessedWord ? (
+      // Ya la adiviné: la pista se completa, con subrayado verde.
+      <HintText hint={privateChat.guessedWord} full />
     ) : (
       <HintText hint={hint} onReveal={() => sfx.play("card")} />
     );
 
   return (
-    <PhaseTransition phaseKey="drawing">
-      {pointsToast != null && <CorrectGuessFlash points={pointsToast} />}
+    <div ref={rootRef}>
       <DrawingBoard
         canvas={{
           strokes,
@@ -171,6 +172,6 @@ export function DrawingPhaseScreen({
           />
         }
       />
-    </PhaseTransition>
+    </div>
   );
 }

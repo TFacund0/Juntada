@@ -49,7 +49,7 @@ describe("Rayado Libre LocalGame", () => {
     await user.click(screen.getByText("Empezar a jugar"));
     await user.click(screen.getByText(/Ya tengo el dispositivo/));
 
-    const choicesCard = screen.getByText("Elegí qué vas a dibujar").parentElement as HTMLElement;
+    const choicesCard = screen.getByText("Elegí una palabra. Los demás no la ven.").parentElement as HTMLElement;
     const wordButtons = Array.from(choicesCard.querySelectorAll("button"));
     expect(wordButtons.length).toBe(3);
     await user.click(wordButtons[0]);
@@ -73,7 +73,7 @@ describe("Rayado Libre LocalGame", () => {
 
     await user.click(screen.getByText("Empezar a jugar"));
     await user.click(screen.getByText(/Ya tengo el dispositivo/));
-    const choicesCard = screen.getByText("Elegí qué vas a dibujar").parentElement as HTMLElement;
+    const choicesCard = screen.getByText("Elegí una palabra. Los demás no la ven.").parentElement as HTMLElement;
     await user.click(choicesCard.querySelectorAll("button")[0]);
     const guessCard = screen.getByText("¿Quién acertó?").closest("div") as HTMLElement;
     for (const btn of Array.from(guessCard.querySelectorAll("button"))) await user.click(btn);
@@ -89,7 +89,7 @@ describe("Rayado Libre LocalGame", () => {
 
     await user.click(screen.getByText("Empezar a jugar"));
     await user.click(screen.getByText(/Ya tengo el dispositivo/));
-    const choicesCard = screen.getByText("Elegí qué vas a dibujar").parentElement as HTMLElement;
+    const choicesCard = screen.getByText("Elegí una palabra. Los demás no la ven.").parentElement as HTMLElement;
     await user.click(choicesCard.querySelectorAll("button")[0]);
 
     const rerollButton = screen.getByText(/Pedir otra palabra/);

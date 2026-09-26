@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRevealCountdown } from "../../components/game-kit/RevealCountdown";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { BigTextFlash } from "../../components/game-kit/BigTextFlash";
 import { type Tool } from "./components/Canvas";
 import { DEFAULT_TOOL } from "./utils/palette";
@@ -7,19 +6,19 @@ import { ChoosingPhaseScreen } from "./components/ChoosingPhaseScreen";
 import { DrawingPhaseScreen } from "./components/DrawingPhaseScreen";
 import { RevealPhaseScreen } from "./components/RevealPhaseScreen";
 import { ResultPhaseScreen } from "./components/ResultPhaseScreen";
-import { InkSweepReveal } from "./components/InkSweepReveal";
-import { WordRevealSweep } from "./components/WordRevealSweep";
-import { usePointsToast, type LastGuess } from "./hooks/usePointsToast";
+import { ScreenSwap } from "./components/ScreenSwap";
 import { useRayadoSfx } from "./hooks/useRayadoSfx";
+import { useTurnEndSound } from "./hooks/useTurnEndSound";
+import { useMyGuessCelebration, type LastGuess } from "./hooks/useMyGuessCelebration";
 import type { RoundViewProps } from "../gameTypes";
 import type { PrivateChatView, RayadoLibreRoundState } from "./types/roundView";
 
 const NO_IDS: readonly number[] = [];
 
 // Owns the state and effects shared across phases (drawing tool, the guess
-// input, the "+N puntos" toast, whether my own word is hidden, the game's
-// sound — mounted here so any tap in any phase unlocks audio) and picks
-// which phase screen to render — the phase screens themselves (see
+// input, whether my own word is hidden, the game's sound — mounted here so
+// any tap in any phase unlocks audio) and picks which phase screen to
+// render, swapping them with ScreenSwap — the phase screens themselves (see
 // components/*PhaseScreen.tsx) are pure presentation, same split as
 // impostor's RoundView.
 export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEnteredRound }: RoundViewProps) {
@@ -32,7 +31,6 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
   const isDrawer = !!myRole?.isDrawer;
   const wordChoices = (myRole?.wordChoices as string[] | null) ?? null;
   const myWord = myRole?.word as string | undefined;
-  const pointsToast = usePointsToast(myRole?.lastGuess as LastGuess | undefined);
   const closeEntryIds = (myRole?.closeEntryIds as number[] | undefined) ?? NO_IDS;
   const guessedWord = myRole?.guessedWord as string | undefined;
   const privateChat = useMemo<PrivateChatView>(() => ({ closeEntryIds, guessedWord }), [closeEntryIds, guessedWord]);
@@ -65,27 +63,8 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
     prevDrawerId.current = round.drawerId;
   }, [room.phase, round?.drawerId, room.players]);
 
-  // A short color-sweep beat when entering "reveal" straight from "drawing",
-  // so the jump from the live board to the word+scoreboard doesn't feel
-  // instant — same ref+timeout pattern as turnFlashName above, but keyed off
-  // the phase transition itself rather than drawerId.
-  const prevPhase = useRef<string | null>(null);
-  const [wordSweepVisible, setWordSweepVisible] = useState(false);
-  useEffect(() => {
-    if (room.phase === "reveal" && prevPhase.current === "drawing") {
-      setWordSweepVisible(true);
-      const t = setTimeout(() => setWordSweepVisible(false), 700);
-      prevPhase.current = room.phase;
-      return () => clearTimeout(t);
-    }
-    prevPhase.current = room.phase;
-  }, [room.phase]);
-
-  // A brief "revelando..." beat before the final scoreboard, same pattern as
-  // Impostor/Sintonía's own result screens — this game only ever reaches
-  // "result" once per game (no repeated rounds), so a stable 0/1 key is
-  // enough to trigger it exactly once.
-  const revealCount = useRevealCountdown(room.phase === "result" ? 1 : 0);
+  useTurnEndSound(room.phase, sfx);
+  useMyGuessCelebration(myRole?.lastGuess as LastGuess | undefined, sfx);
 
   if (!round) return null;
   const drawerPlayer = room.players.find(p => p.id === round.drawerId);
@@ -95,55 +74,68 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
   // Surfacing this explicitly saves everyone else from wondering why.
   const drawerOffline = !isDrawer && !!drawerPlayer && !drawerPlayer.online;
 
-  if (room.phase === "choosing") {
-    if (turnFlashName) {
-      return <BigTextFlash eyebrow={`Turno ${round.turnNumber}`} text={`Le toca dibujar a ${turnFlashName}`} />;
+  const { key: screenKey, node: screen } = phaseScreen();
+  return <ScreenSwap screenKey={screenKey}>{screen}</ScreenSwap>;
+
+  function phaseScreen(): { key: string; node: ReactNode } {
+    if (!round) return { key: "none", node: null };
+    if (room.phase === "choosing") {
+      if (turnFlashName) {
+        return {
+          key: "turn-flash",
+          node: <BigTextFlash eyebrow={`Turno ${round.turnNumber}`} text={`Le toca dibujar a ${turnFlashName}`} />,
+        };
+      }
+      return {
+        key: "choosing",
+        node: (
+          <ChoosingPhaseScreen
+            round={round}
+            isDrawer={isDrawer}
+            wordChoices={wordChoices}
+            drawerPlayer={drawerPlayer}
+            drawerOffline={drawerOffline}
+            sfx={sfx}
+            send={send}
+          />
+        ),
+      };
     }
-    return (
-      <ChoosingPhaseScreen
-        round={round}
-        isDrawer={isDrawer}
-        wordChoices={wordChoices}
-        drawerPlayer={drawerPlayer}
-        drawerOffline={drawerOffline}
-        send={send}
-      />
-    );
+    if (room.phase === "drawing") {
+      return {
+        key: "drawing",
+        node: (
+          <DrawingPhaseScreen
+            room={room}
+            round={round}
+            me={me}
+            isDrawer={isDrawer}
+            myWord={myWord}
+            privateChat={privateChat}
+            drawerPlayer={drawerPlayer}
+            drawerOffline={drawerOffline}
+            tool={tool}
+            setTool={setTool}
+            guessText={guessText}
+            setGuessText={setGuessText}
+            wordVisible={wordVisible}
+            setWordVisible={setWordVisible}
+            sfx={sfx}
+            send={send}
+          />
+        ),
+      };
+    }
+    if (room.phase === "reveal") {
+      return {
+        key: "reveal",
+        node: (
+          <RevealPhaseScreen room={room} round={round} me={me} myPlayer={myPlayer} closeEntryIds={closeEntryIds} sfx={sfx} send={send} />
+        ),
+      };
+    }
+    if (room.phase === "result")
+      return { key: "result", node: <ResultPhaseScreen room={room} me={me} isHost={isHost} sfx={sfx} send={send} /> };
+    return { key: "none", node: null };
   }
-
-  if (room.phase === "drawing") {
-    return (
-      <DrawingPhaseScreen
-        room={room}
-        round={round}
-        me={me}
-        isDrawer={isDrawer}
-        myWord={myWord}
-        privateChat={privateChat}
-        drawerPlayer={drawerPlayer}
-        drawerOffline={drawerOffline}
-        tool={tool}
-        setTool={setTool}
-        guessText={guessText}
-        setGuessText={setGuessText}
-        pointsToast={pointsToast}
-        wordVisible={wordVisible}
-        setWordVisible={setWordVisible}
-        sfx={sfx}
-        send={send}
-      />
-    );
-  }
-
-  if (room.phase === "reveal") {
-    if (wordSweepVisible) return <WordRevealSweep word={round.word ?? ""} />;
-    return <RevealPhaseScreen room={room} round={round} me={me} myPlayer={myPlayer} closeEntryIds={closeEntryIds} send={send} />;
-  }
-
-  if (room.phase === "result") {
-    if (revealCount > 0) return <InkSweepReveal count={revealCount} label="Revelando la tabla final..." />;
-    return <ResultPhaseScreen room={room} me={me} isHost={isHost} send={send} />;
-  }
-
-  return null;
 }

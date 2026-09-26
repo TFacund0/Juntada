@@ -45,10 +45,12 @@ function formatTime(ts: number): string {
 // Dos variantes de acento según `accent`: "group" reusa el morado de
 // siempre (--jt-accent); "room" usa el verde ya usado para CTAs positivas
 // (--jt-cta-from/to) para que un vistazo alcance para saber en qué chat
-// estás sin leer el título.
+// estás sin leer el título. El tamaño sale de una variable CSS (56px por
+// defecto) por el mismo motivo que la posición (ver useFloatingChatDrag):
+// una pantalla puntual puede achicarla sin tocar los demás juegos.
 function bubbleClass(accent: "group" | "room"): string {
   return clsx(
-    "fixed z-[var(--jt-z-chat-bubble)] w-14 h-14 rounded-full border-none flex items-center justify-center cursor-grab touch-none text-white transition-[box-shadow,transform] duration-150",
+    "fixed z-[var(--jt-z-chat-bubble)] w-[var(--jt-chat-bubble-size,3.5rem)] h-[var(--jt-chat-bubble-size,3.5rem)] rounded-full border-none flex items-center justify-center cursor-grab touch-none text-white transition-[box-shadow,transform] duration-150",
     accent === "room"
       ? "bg-[linear-gradient(135deg,var(--jt-cta-from),var(--jt-cta-to))] shadow-[0_10px_24px_-8px_var(--jt-cta-shadow,rgba(29,158,117,0.4))]"
       : "bg-jt-accent shadow-[0_10px_24px_-8px_rgba(127,119,221,0.55)]",
@@ -149,7 +151,7 @@ export function FloatingChat({ channels, defaultChannelId }: FloatingChatProps) 
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="w-[22px] h-[22px] pointer-events-none"
+          className="w-[40%] h-[40%] pointer-events-none"
         >
           <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
         </svg>

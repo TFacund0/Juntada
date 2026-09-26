@@ -79,6 +79,7 @@ export function OnlineAnswersPanel({
         guessed={guessed}
         eligible={eligibleGuessers(players, drawerId, correctGuessers)}
         canAnimate={canAnimate}
+        bubbleSpace
       />
       <ChatFeed items={items} emptyText={isDrawer ? EMPTY_CHAT_DRAWER : EMPTY_CHAT_GUESSER} canAnimate={canAnimate} />
       <TypingIndicator names={typingNames} />

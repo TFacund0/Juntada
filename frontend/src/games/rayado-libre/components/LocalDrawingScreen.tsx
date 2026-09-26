@@ -1,11 +1,12 @@
-import { useMemo, type Dispatch, type SetStateAction } from "react";
-import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
+import { useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import { TURN_SECONDS, popLastDrawUnit } from "@juntada/rayado-libre-scoring";
 import type { LocalPlayer } from "../types/localGame";
 import type { RayadoSfx } from "../hooks/useRayadoSfx";
+import { useLocalGuessFx } from "../hooks/useLocalGuessFx";
 import { buildPlayerRows } from "../utils/playerRows";
 import { letterCount } from "../utils/hintCells";
 import { turnSubtitle } from "../utils/turnText";
+import { toStringKeys } from "../utils/localTurn";
 import { type DrawAction, type Tool } from "./Canvas";
 import { DrawingBoard } from "./DrawingBoard";
 import { HintText } from "./HintText";
@@ -31,10 +32,6 @@ interface LocalDrawingScreenProps {
   rerollAvailable: boolean;
   onReroll: () => void;
 }
-
-// Los ids locales son números; el panel de jugadores trabaja con strings como el online.
-const toStringKeys = (record: Record<number, number>): Record<string, number> =>
-  Object.fromEntries(Object.entries(record).map(([k, v]) => [String(k), v]));
 
 /**
  * Pantalla "drawing" del modo local: el mismo tablero y cabecera que el
@@ -64,6 +61,8 @@ export function LocalDrawingScreen({
 }: LocalDrawingScreenProps) {
   const drawerName = drawer?.name ?? "";
   const hint = wordHint ?? "";
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLocalGuessFx({ rootRef, players, correctGuessers, points: lastTurnPoints, sfx });
   const rows = useMemo(
     () =>
       buildPlayerRows({
@@ -77,7 +76,7 @@ export function LocalDrawingScreen({
   );
 
   return (
-    <PhaseTransition phaseKey="drawing">
+    <div ref={rootRef}>
       <DrawingBoard
         canvas={{
           strokes,
@@ -115,6 +114,6 @@ export function LocalDrawingScreen({
           />
         }
       />
-    </PhaseTransition>
+    </div>
   );
 }

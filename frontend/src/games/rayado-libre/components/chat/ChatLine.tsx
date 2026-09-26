@@ -27,6 +27,8 @@ export const ChatLine = memo(function ChatLine({ item, fresh = false }: ChatLine
   if (item.kind === "ok") {
     return (
       <p
+        // Ancla de la mancha de tinta y de los puntos que vuelan al reloj (ver useGuessFx).
+        data-fx-anchor={item.key}
         className={clsx(
           "m-0 flex items-center gap-1.5 self-center rounded-full border border-rl-ok-line bg-rl-ok-soft py-1 pl-1 pr-3 text-[13px] font-extrabold text-rl-ok-text",
           fresh && ENTER,

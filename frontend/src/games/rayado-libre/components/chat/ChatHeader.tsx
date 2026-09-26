@@ -15,6 +15,12 @@ interface ChatHeaderProps {
   /** Cuántos pueden adivinar este turno (ver eligibleGuessers). */
   eligible: number;
   canAnimate: () => boolean;
+  /**
+   * Deja lugar a la derecha para la burbuja del chat de la sala, que en
+   * celular se sienta en esta fila (ver useLiftRoomChatBubble) — solo
+   * online, en local no hay burbuja.
+   */
+  bubbleSpace?: boolean;
 }
 
 /**
@@ -23,13 +29,19 @@ interface ChatHeaderProps {
  * contador "2/3 ✓". Es un `<header>` y no un div: el panel local de "¿Quién
  * acertó?" depende de que el div más cercano al título sea el panel entero.
  */
-export function ChatHeader({ title, guessed, eligible, canAnimate }: ChatHeaderProps) {
+export function ChatHeader({ title, guessed, eligible, canAnimate, bubbleSpace = false }: ChatHeaderProps) {
   const isFresh = useFreshKeys(
     guessed.map(g => g.id),
     canAnimate,
   );
   return (
-    <header className="flex min-h-[46px] flex-none items-center gap-2 border-b border-rl-card-border px-3 pb-2 pt-2.5">
+    <header
+      data-rl-chat-head
+      className={clsx(
+        "flex min-h-[46px] flex-none items-center gap-2 border-b border-rl-card-border px-3 pb-2 pt-2.5",
+        bubbleSpace && "@max-[700px]:pr-[50px]",
+      )}
+    >
       <span className="text-xs font-extrabold uppercase tracking-[.06em] text-rl-muted">{title}</span>
       <span className="flex-1" />
       <span className="flex min-w-0 flex-wrap items-center justify-end gap-1">

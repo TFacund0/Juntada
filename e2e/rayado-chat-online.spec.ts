@@ -61,9 +61,9 @@ function closeVariant(word: string): string {
 // ese fantasma, ninguna de las dos páginas ve las cartas — se falla con un
 // mensaje claro en vez de colgarse esperando.
 async function findDrawer(a: Page, b: Page): Promise<{ drawer: Page; guesser: Page }> {
-  const choosing = (p: Page) => p.getByText("Elegí qué vas a dibujar");
-  await expect(a.getByText(/Elegí qué vas a dibujar|está eligiendo la palabra/)).toBeVisible({ timeout: 15_000 });
-  await expect(b.getByText(/Elegí qué vas a dibujar|está eligiendo la palabra/)).toBeVisible({ timeout: 15_000 });
+  const choosing = (p: Page) => p.getByText("Elegí una palabra. Los demás no la ven.");
+  await expect(a.getByText(/Elegí una palabra|está eligiendo la palabra/)).toBeVisible({ timeout: 15_000 });
+  await expect(b.getByText(/Elegí una palabra|está eligiendo la palabra/)).toBeVisible({ timeout: 15_000 });
   const [aDraws, bDraws] = [await choosing(a).isVisible(), await choosing(b).isVisible()];
   if (aDraws === bDraws) {
     throw new Error(

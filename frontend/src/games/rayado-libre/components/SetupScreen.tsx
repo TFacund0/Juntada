@@ -8,7 +8,6 @@ import { SetupTabs, type SetupTab } from "../../../components/setup/SetupTabs";
 import { StickyActionBar } from "../../../components/setup/StickyActionBar";
 import { MinPlayersHint } from "../../../components/game-kit/MinPlayersHint";
 import { StartButton } from "../../../components/setup/StartButton";
-import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import type { LocalPlayer } from "../types/localGame";
 import { CategoryPicker } from "./CategoryPicker";
 import { RoundsPicker } from "./RoundsPicker";
@@ -57,63 +56,62 @@ export function SetupScreen({
   startGame,
 }: SetupScreenProps) {
   const canStart = players.length >= MIN_PLAYERS && (activeCatKeys.length > 0 || customWords.length > 0);
+  // La entrada de la pantalla la pone ScreenSwap (LocalGame).
   return (
-    <PhaseTransition phaseKey="setup">
-      <div className="pb-[88px]">
-        <SetupTabs tab={setupTab} onChange={setSetupTab} />
+    <div className="pb-[88px]">
+      <SetupTabs tab={setupTab} onChange={setSetupTab} />
 
-        {setupTab === "players" && (
-          <div className={T.card}>
-            <span className={T.label}>Jugadores ({players.length})</span>
-            {players.map(p => (
-              <div key={p.id} className="mb-2 flex items-center gap-2">
-                <Avatar name={p.name} size={32} />
-                <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
-                <button onClick={() => removePlayer(p.id)} className={T.squareIconBtn("danger")}>
-                  ×
-                </button>
-              </div>
-            ))}
-            <div className="mt-2.5 flex gap-2">
-              <input
-                className={clsx(T.input, "flex-1")}
-                placeholder="Nombre"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") addPlayer();
-                }}
-              />
-              <Btn variant="ghost" onClick={addPlayer} className="w-auto px-[18px] py-[11px]">
-                Agregar
-              </Btn>
+      {setupTab === "players" && (
+        <div className={T.card}>
+          <span className={T.label}>Jugadores ({players.length})</span>
+          {players.map(p => (
+            <div key={p.id} className="mb-2 flex items-center gap-2">
+              <Avatar name={p.name} size={32} />
+              <input className={clsx(T.input, "flex-1 min-w-0")} value={p.name} onChange={e => renamePlayer(p.id, e.target.value)} />
+              <button onClick={() => removePlayer(p.id)} className={T.squareIconBtn("danger")}>
+                ×
+              </button>
             </div>
-            <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
+          ))}
+          <div className="mt-2.5 flex gap-2">
+            <input
+              className={clsx(T.input, "flex-1")}
+              placeholder="Nombre"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") addPlayer();
+              }}
+            />
+            <Btn variant="ghost" onClick={addPlayer} className="w-auto px-[18px] py-[11px]">
+              Agregar
+            </Btn>
           </div>
+          <ErrorBanner message={nameError} flashKey={nameErrorKey} variant="inline" />
+        </div>
+      )}
+
+      {setupTab === "config" && (
+        <>
+          <div className={T.card}>
+            <CategoryPicker enabled={enabledCategories} onChange={setEnabledCategories} />
+          </div>
+
+          <CustomWordsEditor words={customWords} onChange={setCustomWords} />
+
+          <RoundsPicker value={totalRounds} onChange={setTotalRounds} />
+        </>
+      )}
+
+      <StickyActionBar>
+        <StartButton disabled={!canStart} onClick={startGame}>
+          Empezar a jugar
+        </StartButton>
+        <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
+        {activeCatKeys.length === 0 && customWords.length === 0 && (
+          <p className={clsx(T.muted, "mt-2 text-center")}>Elegí al menos una categoría o agregá tus propias palabras</p>
         )}
-
-        {setupTab === "config" && (
-          <>
-            <div className={T.card}>
-              <CategoryPicker enabled={enabledCategories} onChange={setEnabledCategories} />
-            </div>
-
-            <CustomWordsEditor words={customWords} onChange={setCustomWords} />
-
-            <RoundsPicker value={totalRounds} onChange={setTotalRounds} />
-          </>
-        )}
-
-        <StickyActionBar>
-          <StartButton disabled={!canStart} onClick={startGame}>
-            Empezar a jugar
-          </StartButton>
-          <MinPlayersHint count={players.length} min={MIN_PLAYERS} />
-          {activeCatKeys.length === 0 && customWords.length === 0 && (
-            <p className={clsx(T.muted, "mt-2 text-center")}>Elegí al menos una categoría o agregá tus propias palabras</p>
-          )}
-        </StickyActionBar>
-      </div>
-    </PhaseTransition>
+      </StickyActionBar>
+    </div>
   );
 }

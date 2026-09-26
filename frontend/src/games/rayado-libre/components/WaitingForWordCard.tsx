@@ -1,82 +1,39 @@
+import clsx from "clsx";
 import { Avatar } from "../../../components/ui/Avatar";
-import { RAYADO_RAINBOW } from "../rainbow";
 import { CircularTimer } from "./CircularTimer";
 
-const GLOW_RING = [...RAYADO_RAINBOW, RAYADO_RAINBOW[0]].join(", ");
+const DOT = "inline-block animate-rl-dot motion-reduce:animate-none";
 
 /**
- * Pantalla de espera para quien no dibuja durante "choosing" — avatar grande
- * envuelto en el mismo `CircularTimer` que ya usa "drawing" (acá agrandado,
- * sin número, la cuenta regresiva se ve en el propio anillo) en vez de la
- * barra de `Timer` compartida, más un halo arcoíris de fondo para ambiente.
- * `min-height` (no `flex: 1 1 auto`) porque nada en la cadena de ancestros
- * hasta acá (`PhaseTransition`, `ScreenFade`, el wrap de la página) es un
- * contenedor flex — sin una caja con altura real no hay dentro de qué
- * centrar verticalmente.
+ * Pantalla de espera para quien no dibuja durante "choosing": avatar grande
+ * envuelto en el `CircularTimer` (sin número, la cuenta regresiva se ve en
+ * el propio anillo) sobre un halo arcoíris quieto — sin el giro borroso de
+ * antes (nada de `blur` animado, ver el plan de Rayado). `min-height` (no
+ * `flex-1`) porque nada en la cadena de ancestros hasta acá es un contenedor
+ * flex con altura real dentro del cual centrar.
  */
 export function WaitingForWordCard({ drawerName, timerEnd, total }: { drawerName: string; timerEnd?: number; total?: number }) {
   return (
-    <div
-      style={{
-        minHeight: "min(50vh, 420px)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 22,
-      }}
-    >
-      <style>{`
-        @keyframes rl-waiting-glow-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes rl-waiting-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
-        .rl-waiting-glow {
-          position: absolute;
-          inset: -18px;
-          border-radius: 50%;
-          background: conic-gradient(from 0deg, ${GLOW_RING});
-          opacity: 0.18;
-          filter: blur(6px);
-          animation: rl-waiting-glow-spin 6s linear infinite;
-        }
-        .rl-waiting-dot { animation: rl-waiting-dot 1.4s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .rl-waiting-glow { animation: none !important; }
-        }
-      `}</style>
-      <div style={{ position: "relative", width: 132, height: 132, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="rl-waiting-glow" />
+    <div className="flex min-h-[min(50vh,420px)] flex-col items-center justify-center gap-[22px] font-figtree">
+      <div className="relative flex h-[132px] w-[132px] items-center justify-center">
+        <div
+          aria-hidden="true"
+          className="absolute -inset-[18px] rounded-full opacity-[.18] bg-[conic-gradient(var(--color-rl-r1),var(--color-rl-r2),var(--color-rl-r3),var(--color-rl-r4),var(--color-rl-r5),var(--color-rl-r1))]"
+        />
         {timerEnd != null && total != null && (
-          <div style={{ position: "absolute", inset: 0 }}>
+          <div className="absolute inset-0">
             <CircularTimer timerEnd={timerEnd} total={total} size={132} strokeWidth={5} showNumber={false} />
           </div>
         )}
         <Avatar name={drawerName} size={92} />
       </div>
-      <div style={{ textAlign: "center" }}>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 24,
-            fontWeight: 800,
-            letterSpacing: "-0.01em",
-            background: "linear-gradient(90deg,#AFA9EC,#5DCAA5)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          {drawerName}
-        </p>
-        <p style={{ margin: "6px 0 0", fontSize: 15, color: "#9089c0" }}>
+      <div className="text-center">
+        <p className="m-0 font-marker text-[26px] text-rl-ink">{drawerName}</p>
+        <p className="mb-0 mt-1.5 text-[15px] text-rl-muted">
           está eligiendo la palabra
-          <span className="rl-waiting-dot" style={{ animationDelay: "0s" }}>
-            .
-          </span>
-          <span className="rl-waiting-dot" style={{ animationDelay: "0.2s" }}>
-            .
-          </span>
-          <span className="rl-waiting-dot" style={{ animationDelay: "0.4s" }}>
-            .
-          </span>
+          <span className={DOT}>.</span>
+          <span className={clsx(DOT, "[animation-delay:.15s]")}>.</span>
+          <span className={clsx(DOT, "[animation-delay:.3s]")}>.</span>
         </p>
       </div>
     </div>
