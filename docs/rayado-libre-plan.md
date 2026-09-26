@@ -86,11 +86,11 @@ Rama: `feat/rayado-layout` desde `staging`.
 - [ ] **Tamaño del tablero:** cuadrado, limitado por ancho y por alto con
       `--board-max`, con estos valores:
 
-      | Formato | Adivinando | Dibujando |
-          |---|---|---|
-          | Celular | `56dvh` | `100dvh - 330px` |
-          | 2 columnas | `100dvh - 150px` | `100dvh - 250px` |
-          | Compu | `100dvh - 180px` | `100dvh - 300px` |
+  | Formato    | Adivinando       | Dibujando        |
+  | ---------- | ---------------- | ---------------- |
+  | Celular    | `56dvh`          | `100dvh - 330px` |
+  | 2 columnas | `100dvh - 150px` | `100dvh - 250px` |
+  | Compu      | `100dvh - 180px` | `100dvh - 300px` |
 
 - [ ] **Celular horizontal dibujando:** el tablero ocupa `100dvh - 118px` con
       la paleta en columna al costado. La paleta en sí se implementa en la
