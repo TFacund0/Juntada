@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { RoomPublicState, PublicPlayer } from "@juntada/shared-types";
 import { RoundView } from "../RoundView";
@@ -66,6 +66,26 @@ describe("Rayado Libre RoundView — choosing phase", () => {
     expect(send).toHaveBeenCalledWith({ type: "choose_word", word: "Gato" });
   });
 
+  test("the cards show each word's category, and the auto-pick countdown uses the real choose timer", () => {
+    render(
+      <RoundView
+        room={makeRoom("choosing", { chooseTimerEnd: Date.now() + 12_000 })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, wordChoices: ["Perro", "Gato", "Chiste interno"] }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Te toca dibujar")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Perro" })).toHaveAccessibleDescription("Animales");
+    // Una palabra propia del anfitrión no viene de ninguna categoría.
+    expect(screen.getByRole("button", { name: "Chiste interno" })).toHaveAccessibleDescription("Palabra propia");
+    expect(screen.getByText(/^Se elige sola en 1[12]s$/)).toBeInTheDocument();
+  });
+
   test("a non-drawer sees a waiting message instead of word choices", () => {
     render(
       <RoundView
@@ -100,19 +120,88 @@ describe("Rayado Libre RoundView — drawing phase", () => {
       />,
     );
 
-    const input = screen.getByPlaceholderText("Tu respuesta...");
+    const input = screen.getByPlaceholderText("Escribí lo que ves…");
     await user.type(input, "Perro");
     await user.click(screen.getByRole("button", { name: "Enviar" }));
     expect(send).toHaveBeenCalledWith({ type: "guess", text: "Perro" });
     expect(input).toHaveValue("");
   });
 
-  test("a guesser who already solved this turn sees a message instead of the guess input", () => {
+  test("a guesser who already solved this turn gets a locked input with the word, and no Enviar button", () => {
     render(
       <RoundView
         room={makeRoom("drawing", { correctGuessers: ["p2"] })}
         me={{ playerId: "p2", roomCode: "TEST1" }}
         myPlayer={makePlayers()[1]}
+        myRole={{ isDrawer: false, guessedWord: "Perro" }}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText("¡Era PERRO! Esperá al resto…")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Enviar" })).not.toBeInTheDocument();
+  });
+
+  test("the drawer sees the answers chat but no input", () => {
+    render(
+      <RoundView
+        room={makeRoom("drawing", { chatLog: [{ id: 1, type: "chat", playerId: "p2", text: "¿un perro?" }] })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, word: "Gato" }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("¿un perro?")).toBeInTheDocument();
+    expect(screen.getByText("Dibujá sin letras ni números. Cuanto antes adivinen, más puntos.")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Tu respuesta" })).not.toBeInTheDocument();
+  });
+
+  test("typing sends a 'typing' ping at most once every 2s, and only with text", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const send = vi.fn();
+    render(
+      <RoundView
+        room={makeRoom("drawing", { wordHint: "_____" })}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[1]}
+        myRole={{ isDrawer: false }}
+        wordReveal={null}
+        isHost={false}
+        send={send}
+      />,
+    );
+    const typingPings = () => send.mock.calls.filter(([m]) => m.type === "typing").length;
+
+    const input = screen.getByRole("textbox", { name: "Tu respuesta" });
+    await user.type(input, "per");
+    expect(typingPings()).toBe(1);
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    await user.type(input, "r");
+    expect(typingPings()).toBe(2);
+    await user.clear(input);
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    await user.type(input, " ");
+    expect(typingPings()).toBe(2);
+    vi.useRealTimers();
+  });
+
+  test("others typing show under the chat and in the players panel, and switch off by themselves", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const players = [...makePlayers(), { id: "p3", accountId: "p3", name: "Caro", ready: false, online: true, hasVoted: false }];
+    const room = makeRoom("drawing", { wordHint: "_____", typingUntil: { p3: Date.now() + 4000 } });
+    room.players = players;
+    render(
+      <RoundView
+        room={room}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={players[1]}
         myRole={{ isDrawer: false }}
         wordReveal={null}
         isHost={false}
@@ -120,8 +209,61 @@ describe("Rayado Libre RoundView — drawing phase", () => {
       />,
     );
 
-    expect(screen.getByText(/Ya adivinaste esta ronda/)).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Tu respuesta...")).not.toBeInTheDocument();
+    expect(screen.getByText("Caro está escribiendo…")).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Jugadores" })).toHaveTextContent("escribiendo");
+    await act(() => vi.advanceTimersByTimeAsync(4100));
+    expect(screen.queryByText("Caro está escribiendo…")).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  test("my own 'close' guess shows the yellow hint only for me; others see it as a plain message", () => {
+    const chatLog = [{ id: 7, type: "chat", playerId: "p2", text: "perr" }];
+    const { rerender } = render(
+      <RoundView
+        room={makeRoom("drawing", { chatLog })}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[1]}
+        myRole={{ isDrawer: false, closeEntryIds: [7] }}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("¡Estás cerca! · solo lo ves vos")).toBeInTheDocument();
+
+    rerender(
+      <RoundView
+        room={makeRoom("drawing", { chatLog })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, word: "Perro", closeEntryIds: [] }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("perr")).toBeInTheDocument();
+    expect(screen.queryByText("¡Estás cerca! · solo lo ves vos")).not.toBeInTheDocument();
+  });
+
+  test("a correct guess shows as a green line with the points but never the word", () => {
+    render(
+      <RoundView
+        room={makeRoom("drawing", {
+          chatLog: [{ id: 3, type: "correct", playerId: "p2" }],
+          correctGuessers: ["p2"],
+          roundPoints: { p2: 60, p1: 10 },
+        })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={{ isDrawer: true, word: "Perro" }}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Beto adivinó · +60")).toBeInTheDocument();
+    expect(screen.getByText("1/1 ✓")).toBeInTheDocument();
   });
 
   test("the drawer sees their own word and can toggle hiding it", async () => {
@@ -139,14 +281,12 @@ describe("Rayado Libre RoundView — drawing phase", () => {
     );
 
     const word = screen.getByText("Perro");
-    expect(word).toHaveStyle({ visibility: "visible" });
+    expect(word).not.toHaveClass("invisible");
     await user.click(screen.getByRole("button", { name: "Ocultar palabra" }));
-    expect(word).toHaveStyle({ visibility: "hidden" });
+    expect(word).toHaveClass("invisible");
   });
 
-  test("the drawer can reroll the word before anyone has guessed", async () => {
-    const user = userEvent.setup();
-    const send = vi.fn();
+  test("the drawer gets no 'Pedir otra palabra' control (it was removed)", () => {
     render(
       <RoundView
         room={makeRoom("drawing")}
@@ -155,18 +295,41 @@ describe("Rayado Libre RoundView — drawing phase", () => {
         myRole={{ isDrawer: true, word: "Perro" }}
         wordReveal={null}
         isHost={true}
-        send={send}
+        send={vi.fn()}
       />,
     );
+    expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
+  });
+});
 
-    await user.click(screen.getByText(/Pedir otra palabra/));
-    expect(send).toHaveBeenCalledWith({ type: "reroll_word" });
+describe("Rayado Libre RoundView — drawing screen (turn header, players, clock)", () => {
+  function renderGuesser(roundOverrides: Record<string, unknown>) {
+    return (
+      <RoundView
+        room={makeRoom("drawing", roundOverrides, { score: { p1: 20, p2: 70 } })}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[1]}
+        myRole={{ isDrawer: false }}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />
+    );
+  }
+
+  test("a guesser sees who draws and how many letters, and the players panel sorted by score", () => {
+    render(renderGuesser({ wordHint: "_a__" }));
+    expect(screen.getByText("Dibuja Ana · adiviná la palabra (4 letras)")).toBeInTheDocument();
+    const panel = screen.getByRole("complementary", { name: "Jugadores" });
+    const names = Array.from(panel.querySelectorAll(".truncate")).map(el => el.textContent);
+    expect(names).toEqual(["Beto", "Ana"]);
+    expect(panel).toHaveTextContent("✏️ dibujando");
   });
 
-  test("the reroll button is hidden once it was already used, or once someone has guessed", () => {
-    const { rerender } = render(
+  test("the drawer sees the empty-board prompt with their word", () => {
+    render(
       <RoundView
-        room={makeRoom("drawing", { rerollUsed: true })}
+        room={makeRoom("drawing")}
         me={{ playerId: "p1", roomCode: "TEST1" }}
         myPlayer={makePlayers()[0]}
         myRole={{ isDrawer: true, word: "Perro" }}
@@ -175,20 +338,34 @@ describe("Rayado Libre RoundView — drawing phase", () => {
         send={vi.fn()}
       />,
     );
-    expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
+    expect(screen.getByText("Dibujás vos · los demás adivinan")).toBeInTheDocument();
+    expect(screen.getByText("Dibujá PERRO acá")).toBeInTheDocument();
+  });
 
-    rerender(
-      <RoundView
-        room={makeRoom("drawing", { correctGuessers: ["p2"] })}
-        me={{ playerId: "p1", roomCode: "TEST1" }}
-        myPlayer={makePlayers()[0]}
-        myRole={{ isDrawer: true, word: "Perro" }}
-        wordReveal={null}
-        isHost={true}
-        send={vi.fn()}
-      />,
-    );
-    expect(screen.queryByText(/Pedir otra palabra/)).not.toBeInTheDocument();
+  test("the mute button lives in the answers panel header and toggles its label", async () => {
+    const user = userEvent.setup();
+    localStorage.clear();
+    render(renderGuesser({ wordHint: "____" }));
+    const mute = screen.getByRole("button", { name: "Silenciar sonido" });
+    expect(screen.getByRole("complementary", { name: "Chat de respuestas" })).toContainElement(mute);
+    await user.click(mute);
+    expect(screen.getByRole("button", { name: "Activar sonido" })).toBeInTheDocument();
+    localStorage.clear();
+  });
+
+  test("a first correct guess that lowers the clock shows '¡El reloj saltó a N!'", () => {
+    const now = Date.now();
+    const { rerender } = render(renderGuesser({ wordHint: "____", timerEnd: now + 88_000 }));
+    expect(screen.getByRole("status")).toHaveTextContent("");
+    rerender(renderGuesser({ wordHint: "____", timerEnd: now + 60_000, correctGuessers: ["p2"] }));
+    expect(screen.getByRole("status")).toHaveTextContent("¡El reloj saltó a 60!");
+  });
+
+  test("the clock going down without a new guess is not a jump", () => {
+    const now = Date.now();
+    const { rerender } = render(renderGuesser({ wordHint: "____", timerEnd: now + 88_000 }));
+    rerender(renderGuesser({ wordHint: "____", timerEnd: now + 73_000 }));
+    expect(screen.getByRole("status")).toHaveTextContent("");
   });
 });
 
@@ -209,8 +386,47 @@ describe("Rayado Libre RoundView — reveal phase", () => {
     );
 
     expect(screen.getByText("Perro")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Listo para/ }));
+    await user.click(screen.getByRole("button", { name: "Siguiente turno" }));
     expect(send).toHaveBeenCalledWith({ type: "player_ready" });
+  });
+
+  test("on the last turn the button says 'Ver podio'", () => {
+    render(
+      <RoundView
+        room={makeRoom("reveal", { word: "Perro", turnNumber: 2 })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Ver podio" })).toBeInTheDocument();
+  });
+
+  test("the turn table explains each score and is sorted by the new totals", () => {
+    const room = makeRoom(
+      "reveal",
+      { word: "Perro", roundPoints: { p2: 57, p1: 10 }, guessSeconds: { p2: 57 }, correctGuessers: ["p2"] },
+      { score: { p1: 40, p2: 67 } },
+    );
+    room.players.push({ id: "p3", accountId: "p3", name: "Caro", ready: false, online: true, hasVoted: false });
+    render(
+      <RoundView
+        room={room}
+        me={{ playerId: "p2", roomCode: "TEST1" }}
+        myPlayer={room.players[1]}
+        myRole={null}
+        wordReveal={null}
+        isHost={false}
+        send={vi.fn()}
+      />,
+    );
+
+    const rows = screen.getAllByRole("listitem").map(r => r.textContent);
+    // Avatar (inicial), nombre y motivo, "+N" y total.
+    expect(rows).toEqual(["BBeto (vos)adivinó con 57s+5767", "AAna ✏️+10 por cada acierto+1040", "CCarono adivinó+00"]);
   });
 
   test("already-ready players see a waiting count instead of the button", () => {
@@ -228,18 +444,14 @@ describe("Rayado Libre RoundView — reveal phase", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: /Listo para/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Siguiente turno" })).not.toBeInTheDocument();
     expect(screen.getByText(/Listo — esperando a los demás/)).toBeInTheDocument();
   });
 });
 
 describe("Rayado Libre RoundView — result phase", () => {
-  // useRevealCountdown starts at 3 regardless of resetKey (see
-  // RevealCountdown.tsx) — every "result" phase mount shows that countdown
-  // first, so tests need to advance past it before the scoreboard appears.
-  test("the host sees a 'Nueva partida' button that sends new_game", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  test("the winning host sees '¡Ganaste!' on the podium and a 'Jugar de nuevo' button that sends new_game", async () => {
+    const user = userEvent.setup();
     const send = vi.fn();
     render(
       <RoundView
@@ -252,16 +464,13 @@ describe("Rayado Libre RoundView — result phase", () => {
         send={send}
       />,
     );
-    await act(() => vi.advanceTimersByTimeAsync(3000));
 
-    expect(screen.getByText("Fin del juego")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Nueva partida" }));
+    expect(screen.getByRole("heading", { name: "¡Ganaste!" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Jugar de nuevo" }));
     expect(send).toHaveBeenCalledWith({ type: "new_game" });
-    vi.useRealTimers();
   });
 
-  test("a non-host sees a waiting message instead of the new-game button", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+  test("a non-host sees who won and a waiting message instead of the new-game button", () => {
     render(
       <RoundView
         room={makeRoom("result")}
@@ -273,10 +482,25 @@ describe("Rayado Libre RoundView — result phase", () => {
         send={vi.fn()}
       />,
     );
-    await act(() => vi.advanceTimersByTimeAsync(3000));
 
-    expect(screen.queryByRole("button", { name: "Nueva partida" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ganó Ana" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Jugar de nuevo" })).not.toBeInTheDocument();
     expect(screen.getByText("Esperando que el anfitrión inicie otra partida")).toBeInTheDocument();
-    vi.useRealTimers();
+  });
+
+  test("with 2 players the podium has only 2 places, the winner in the middle", () => {
+    render(
+      <RoundView
+        room={makeRoom("result", {}, { score: { p1: 10, p2: 60 } })}
+        me={{ playerId: "p1", roomCode: "TEST1" }}
+        myPlayer={makePlayers()[0]}
+        myRole={null}
+        wordReveal={null}
+        isHost={true}
+        send={vi.fn()}
+      />,
+    );
+    const columns = within(screen.getByRole("list", { name: "Podio" })).getAllByRole("listitem");
+    expect(columns.map(c => c.textContent)).toEqual(["A2.º Ana (vos)10 pts2", "B👑1.º Beto60 pts1"]);
   });
 });

@@ -47,6 +47,168 @@
   --color-rec-brass: #c89a45;
 }
 
+/* Rayado Libre — paleta de docs/referencias/rayado-libre-referencia-v2.html
+   (la app es oscura; el tablero es papel siempre). Valores fijos, no
+   variables de tema: el rediseño toma los colores de la referencia, no del
+   acento runtime del juego. */
+@theme {
+  --color-rl-surface: #171329;
+  --color-rl-surface-2: #1e1936;
+  --color-rl-card: rgba(255, 255, 255, 0.045);
+  --color-rl-card-border: rgba(127, 119, 221, 0.2);
+  --color-rl-accent: #7f77dd;
+  --color-rl-accent-strong: #afa9ec;
+  /* Final del degradé de los botones principales (Enviar, Siguiente turno). */
+  --color-rl-accent-deep: #5b52c7;
+  --color-rl-muted: #8a82b4;
+  --color-rl-ink: #eeeaff;
+  --color-rl-ok: #33c07a;
+  --color-rl-ok-text: #9ff0c6;
+  /* Fondo y borde verde de "adivinó" (fichitas, línea de acierto, input resuelto). */
+  --color-rl-ok-soft: rgba(51, 192, 122, 0.14);
+  --color-rl-ok-line: rgba(51, 192, 122, 0.45);
+  /* Burbuja "¡Estás cerca!". */
+  --color-rl-warn-soft: rgba(226, 196, 74, 0.16);
+  --color-rl-warn-line: rgba(226, 196, 74, 0.55);
+  --color-rl-warn-text: #ffe9a3;
+  --color-rl-warn: #e2c44a;
+  --color-rl-danger: #e24b4a;
+  --color-rl-paper: #fbf7ee;
+  --color-rl-r1: #ff4d4d;
+  --color-rl-r2: #ffa53d;
+  --color-rl-r3: #33c07a;
+  --color-rl-r4: #2e8bff;
+  --color-rl-r5: #a855f7;
+  /* Verde menta del degradé "pasale el dispositivo" (ver PassDeviceCard). */
+  --color-rl-mint: #5dcaa5;
+
+  --font-marker: "Permanent Marker", "Comic Sans MS", cursive;
+  --font-figtree: "Figtree", system-ui, sans-serif;
+
+  --animate-rl-beat: rl-beat 1s ease-in-out infinite;
+  --animate-rl-dot: rl-dot 1s infinite;
+  --animate-rl-msg-in: rl-msg-in 220ms ease-out;
+  --animate-rl-chip-pop: rl-chip-pop 350ms ease-out;
+  --animate-rl-spin-slow: rl-spin 6s linear infinite;
+  --animate-rl-pulse: rl-pulse 2.2s ease-in-out infinite;
+
+  /* Latido del reloj en los últimos 10 segundos. */
+  @keyframes rl-beat {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    12% {
+      transform: scale(1.12);
+    }
+    24% {
+      transform: scale(1);
+    }
+  }
+
+  /* Mensaje nuevo del chat de respuestas. */
+  @keyframes rl-msg-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Fichita de "adivinó" que aparece con rebote. */
+  @keyframes rl-chip-pop {
+    0% {
+      transform: scale(0);
+    }
+    50% {
+      transform: scale(1.25);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  /* Halo arcoíris girando detrás del avatar de "pasale el dispositivo". */
+  @keyframes rl-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Latido suave del botón "Ya tengo el dispositivo". */
+  @keyframes rl-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.045);
+    }
+  }
+
+  /* Puntitos de "escribiendo". */
+  @keyframes rl-dot {
+    0%,
+    60%,
+    100% {
+      transform: none;
+      opacity: 0.5;
+    }
+    30% {
+      transform: translateY(-3px);
+      opacity: 1;
+    }
+  }
+}
+
+/* Celular horizontal (paleta al costado del tablero) y pantallas bajas — los
+   dos únicos cortes de Rayado que dependen del viewport y no del ancho del
+   contenedor del juego. Declarados después de los @container de Tailwind
+   para ganar la cascada igual que en la referencia, y landscape-short
+   último: todo celular horizontal es también pantalla baja, y en la
+   referencia sus reglas (`.game.drawing ...`) son más específicas. */
+@custom-variant short-screen (@media (max-height: 620px));
+@custom-variant landscape-short (@media (orientation: landscape) and (max-height: 520px));
+
+/* Cuánto del reloj queda (0..1): registrada para que el anillo pueda
+   transicionar el valor en vez de saltar. */
+@property --p {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+/* Textura de papel del tablero (ruido SVG, tal cual la referencia). */
+@utility rl-paper-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .5 0 0 0 0 .4 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Barra de scroll angosta con el acento de Rayado, para todas sus cajas con
+   scroll (chat en vivo, recap del turno, lista del modo local). Aparte de
+   .jt-thin-scrollbar (sharedChrome.css), que el resto de la app usa invisible. */
+@utility rl-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-rl-accent) 40%, transparent) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-rl-accent) 40%, transparent);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--color-rl-accent) 65%, transparent);
+  }
+}
+
 /* Usado por OfflineScreen.tsx (animate-[jt-offline-screen-fade-in_...]) —
    Tailwind's arbitrary `animate-[name_...]` utility only sets the
    animation-name/timing, no genera el @keyframes en sí. */

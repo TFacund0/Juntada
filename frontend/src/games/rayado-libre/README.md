@@ -53,20 +53,36 @@ UI entre los dos modos:
 - **`DrawingBoard.tsx`** — el tablero completo (temporizador circular +
   `Canvas` + `Toolbar`, con hoja deslizable en mobile / columna fija en
   desktop). Recibe `sideContent` como slot para lo que sí difiere entre
-  modos: el chat de adivinanzas (`GuessChatPanel`, online) vs. la lista de
-  "¿quién acertó?" (juez manual, local).
+  modos: el panel "Respuestas" (`chat/OnlineAnswersPanel`, online) vs. la
+  lista de "¿quién acertó?" (`LocalGuessersPanel`, juez manual, local), las
+  dos con la misma cabecera (`chat/ChatHeader`), que también lleva el
+  botón de silencio (`MuteButton`). La cabecera del turno (`TurnBar`)
+  queda solo con avatar, palabra/pista y reloj. Quien dibuja no puede
+  pedir otra palabra a mitad de turno (esa opción se sacó).
 - **`Canvas.tsx`** — el tablero de dibujo a nivel píxel (pointer events,
   flood fill, pintado incremental optimista). No sabe nada de turnos ni
   puntaje.
 - **`Toolbar.tsx`** — paleta de colores, grosor de trazo, deshacer/limpiar.
-- **`WordChoiceFan.tsx`** — el abanico de 3 cartas para elegir palabra.
-- **`TurnHeader.tsx`**, **`CircularTimer.tsx`**, **`HintText.tsx`** —
-  piezas chicas de header reusadas en varias fases.
-- **`RoundScoreboard.tsx`** / **`PodiumBoard.tsx`** — tabla de puntos entre
-  turnos y podio de cierre de partida, respectivamente.
-- **`RevealedWordCard.tsx`** — la palabra revelada en la fase "reveal".
+- **`choose/`** — la pantalla de elegir palabra (`ChooseWordPanel`) y su
+  abanico de 3 cartas de papel (`WordCardFan`), online y local.
+- **`TurnHeader.tsx`**, **`HintText.tsx`** — piezas chicas de header
+  reusadas en varias fases. **`CountdownRing.tsx`** es el anillo arcoíris
+  que se vacía: el reloj del turno (`TimerRing`) y el anillo alrededor del
+  avatar de quien elige palabra (`WaitingForWordCard`).
+- **`hooks/rayadoSfxContext.ts`** — el sonido (`useRayadoSfx`) se monta una
+  vez en `RoundView`/`LocalGame` y lo lee cada pieza que suena vía
+  `useRayadoSfxContext()`, sin pasarlo prop por prop.
+- **`reveal/`** — la revelación (`RevealView`: la palabra con su pincelada y
+  la tabla del turno animada, con la secuencia en
+  `hooks/useScoreTableSequence`), online y local.
+- **`podium/`** — el podio final propio del juego (`RayadoPodium`), online y
+  local; el `PodiumBoard` de game-kit lo siguen usando los demás juegos.
+- **`ScreenSwap.tsx`** — la transición entre pantallas (sale la anterior,
+  entra la nueva). Los efectos sueltos (manchas, puntos que vuelan,
+  "¡Adivinaste!", confeti) viven en `hooks/useFxLayer` y se disparan desde
+  `hooks/useGuessFx`.
 
-Los componentes específicos de un solo modo (`GuessChatPanel`,
+Los componentes específicos de un solo modo (`chat/` salvo `ChatHeader`,
 `WaitingForWordCard`, `EyeToggle` → online; `PassDeviceCard` → local) no
 intentan unificarse con su equivalente del otro modo cuando la lógica de
 fondo es genuinamente distinta — forzarlo sería exactamente el tipo de
@@ -81,9 +97,9 @@ abstracción prematura que este repo evita (ver CLAUDE.md, sección DRY/SoC).
   ciclo completo de fases.
 - **`packages/rayado-libre-scoring/`** — funciones puras compartidas entre
   el motor del backend y el modo local del frontend: `scoreForGuess`,
-  `isCorrectGuess`, `buildHintOrder`/`computeWordHint` (pista progresiva),
+  `isCorrectGuess`, `isCloseGuess` ("¡Estás cerca!"), `buildHintOrder`/`computeWordHint` (pista progresiva),
   `popLastDrawUnit` (deshacer), y constantes (`TURN_SECONDS`,
-  `MIN_PLAYERS`, `DRAWER_POINTS_PER_GUESS`). Ningún cálculo de puntaje se
+  `MIN_PLAYERS`, `DRAWER_POINTS_PER_GUESS`, `TYPING_TTL_MS`). Ningún cálculo de puntaje se
   reimplementa en el frontend — todo importa de acá.
 - **`packages/rayado-libre-data/`** — el pool de categorías/palabras y el
   algoritmo de selección de 3 palabras sin repetir (`pickThreeWords`),
@@ -98,7 +114,8 @@ archivo que testea, con imports relativos hacia afuera de la carpeta
 - `LocalGame.test.tsx` — flujo completo del modo local (elegir palabra,
   marcar aciertos, llegar a la tabla final).
 - `RoundView.test.tsx` — fases "choosing"/"drawing" del modo online.
-- `ConfigPanel.test.tsx`, `GuessChatPanel.test.tsx` — componentes puntuales.
+- `ConfigPanel.test.tsx`, `ChatFeed.test.tsx` — componentes puntuales; `chatFeed`,
+  `typing` y `useChatFeedback` cubren las reglas del chat de respuestas.
 
 Antes de dar un cambio por terminado: `pnpm --filter @juntada/frontend
 typecheck`, `pnpm --filter @juntada/backend typecheck`, y los tests de

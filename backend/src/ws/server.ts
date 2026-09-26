@@ -54,6 +54,11 @@ const RATE_LIMITS: Record<string, { limit: number; windowMs: number }> = {
   draw_fill: { limit: 50, windowMs: 10_000 },
   draw_clear: { limit: 10, windowMs: 10_000 },
   draw_undo: { limit: 20, windowMs: 10_000 },
+  // Rayado Libre's "escribiendo…" ping: one player sends at most one every
+  // 2s (TYPING_SEND_INTERVAL_MS), i.e. 5 per window — but the key is per IP,
+  // and a whole group on the same wifi shares it, so this leaves room for
+  // ~6 players typing at once without eating into GLOBAL_MESSAGE_LIMIT.
+  typing: { limit: 30, windowMs: 10_000 },
   // A config range input (e.g. Tutifrutti's category-count slider) fires one
   // update_config per pixel while being dragged, easily clearing the blanket
   // GLOBAL_MESSAGE_LIMIT below in well under a second of normal use — same

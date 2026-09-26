@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
-const DEFAULT_POS = { right: 18, bottom: 96 };
+// `bottom` sale de una variable CSS para que una pantalla puntual pueda
+// subir la burbuja sin cambiarla en todos los juegos (ver
+// useLiftRoomChatBubble de Rayado Libre, que la saca de encima de su input
+// de respuestas).
+const DEFAULT_POS = { right: 18, bottom: "var(--jt-chat-bubble-bottom, 96px)" };
 
 interface UseFloatingChatDragArgs {
   onTap: () => void;

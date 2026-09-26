@@ -1,19 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { useRevealCountdown } from "../../components/game-kit/RevealCountdown";
 import type { SetupTab } from "../../components/setup/SetupTabs";
 import { useFlashError } from "../../hooks/ui/useFlashError";
 import { shuffle } from "@juntada/core-utils";
 import { nextPlayerName } from "../../utils/nextPlayerName";
-import { CATEGORIES, activeWordPool, pickThreeWords as pickThreeWordsFromPool } from "@juntada/rayado-libre-data";
+import { CATEGORIES } from "@juntada/rayado-libre-data";
 import { scoreForGuess, DRAWER_POINTS_PER_GUESS, TURN_SECONDS, buildHintOrder, computeWordHint } from "@juntada/rayado-libre-scoring";
 import { type DrawAction, type Tool } from "./components/Canvas";
+import { DEFAULT_TOOL } from "./utils/palette";
 import type { LocalPlayer, LocalGamePhase } from "./types/localGame";
 import { SetupScreen } from "./components/SetupScreen";
 import { WordRevealScreen } from "./components/WordRevealScreen";
 import { LocalDrawingScreen } from "./components/LocalDrawingScreen";
 import { LocalRevealScreen } from "./components/LocalRevealScreen";
 import { LocalResultScreen } from "./components/LocalResultScreen";
-import { InkSweepReveal } from "./components/InkSweepReveal";
+import { ScreenSwap } from "./components/ScreenSwap";
+import { pickLocalWords as pickThreeWords } from "./utils/localWords";
+import { localRoundPoints } from "./utils/localTurn";
+import { useRayadoSfx } from "./hooks/useRayadoSfx";
+import { RayadoSfxContext } from "./hooks/rayadoSfxContext";
+import { useTurnEndSound } from "./hooks/useTurnEndSound";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RAYADO LIBRE — modo local: pantalla compartida + juez manual. Un solo
@@ -28,23 +33,6 @@ import { InkSweepReveal } from "./components/InkSweepReveal";
 // LocalResultScreen) — mismo criterio que el modo online (ver RoundView.tsx
 // y components/*PhaseScreen.tsx).
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// Same pool/pick algorithm the backend engine uses (see
-// @juntada/rayado-libre-data) — this just adapts it to LocalGame's plain
-// ref-array bookkeeping instead of room.usedWords, so the two can't drift.
-// `customWords` folds in the host's own words the same way the engine does
-// (see engine.ts's own pickThreeWords), on top of the active categories.
-function pickThreeWords(activeCatKeys: string[], usedWordsRef: { current: string[] }, customWords: string[]): string[] {
-  const pool = [...activeWordPool(CATEGORIES, activeCatKeys), ...customWords];
-  const { words, resetUsed } = pickThreeWordsFromPool(pool, usedWordsRef.current);
-  if (resetUsed) usedWordsRef.current = [];
-  return words;
-}
-
-// Costo en segundos de pedir otra palabra a mitad de turno — mismo valor y
-// misma razón que REROLL_TIME_PENALTY_SECONDS en el motor online (ver
-// engine.ts): se descuenta del timer en vez de arrancar uno nuevo.
-const REROLL_TIME_PENALTY_SECONDS = 15;
 
 export function LocalGame() {
   const [phase, setPhase] = useState<LocalGamePhase>("setup");
@@ -72,9 +60,10 @@ export function LocalGame() {
   const [timerEnd, setTimerEnd] = useState<number | null>(null);
   const [correctGuessers, setCorrectGuessers] = useState<number[]>([]);
   const [lastTurnPoints, setLastTurnPoints] = useState<Record<number, number>>({});
+  // Segundos que quedaban en cada acierto, para "adivinó con 57s" en la revelación.
+  const [guessSeconds, setGuessSeconds] = useState<Record<number, number>>({});
   const [strokes, setStrokes] = useState<DrawAction[]>([]);
-  const [rerollUsed, setRerollUsed] = useState(false);
-  const [tool, setTool] = useState<Tool>({ mode: "draw", color: "#1a1a1a", size: 10 });
+  const [tool, setTool] = useState<Tool>(DEFAULT_TOOL);
   const [drawingStartedAt, setDrawingStartedAt] = useState<number | null>(null);
   const hintOrderRef = useRef<number[]>([]);
   // Forces a re-render every 300ms while drawing so the progressive hint
@@ -84,6 +73,8 @@ export function LocalGame() {
   // bumping this.
   const [, forceTick] = useState(0);
   const usedWordsRef = useRef<string[]>([]);
+  // Montado acá (no solo en el tablero) para que cualquier toque desde el setup ya desbloquee el audio.
+  const sfx = useRayadoSfx();
 
   const isDuplicateName = (name: string, excludeId: number | null) => {
     const norm = name.trim().toLowerCase();
@@ -122,7 +113,7 @@ export function LocalGame() {
     setCorrectGuessers([]);
     setTimerEnd(null);
     setLastTurnPoints({});
-    setRerollUsed(false);
+    setGuessSeconds({});
     setPhase("wordReveal");
   };
 
@@ -149,22 +140,6 @@ export function LocalGame() {
 
   const finishTurn = () => {
     setPhase("reveal");
-  };
-
-  // Réplica a mano de "reroll_word" del motor online (ver su comentario en
-  // engine.ts): solo antes de que alguien acierte, solo una vez por turno,
-  // penalizando el timer en vez de arrancar uno nuevo.
-  const rerollWord = () => {
-    if (rerollUsed || correctGuessers.length > 0 || !word) return;
-    usedWordsRef.current = [...usedWordsRef.current, word];
-    const candidates = pickThreeWords(activeCatKeys, usedWordsRef, customWords);
-    const newWord = candidates.find(w => w !== word) ?? candidates[0];
-    setWord(newWord);
-    setStrokes([]);
-    setTimerEnd(t => (t == null ? t : Math.max(Date.now(), t - REROLL_TIME_PENALTY_SECONDS * 1000)));
-    setDrawingStartedAt(Date.now());
-    hintOrderRef.current = buildHintOrder(newWord);
-    setRerollUsed(true);
   };
 
   const goToNextTurn = () => {
@@ -201,6 +176,7 @@ export function LocalGame() {
       [drawerId as number]: (s[drawerId as number] || 0) + DRAWER_POINTS_PER_GUESS,
     }));
     setLastTurnPoints(p => ({ ...p, [playerId]: points }));
+    setGuessSeconds(g => ({ ...g, [playerId]: secondsRemaining }));
     const nextGuessers = [...correctGuessers, playerId];
     setCorrectGuessers(nextGuessers);
     if (jumpToSeconds != null) setTimerEnd(Date.now() + jumpToSeconds * 1000);
@@ -219,92 +195,92 @@ export function LocalGame() {
   const drawer = players.find(p => p.id === drawerId);
   const turnNumber = totalTurns - turnQueue.length + 1;
 
-  // Brief "revelando..." beat before the final scoreboard — same pattern as
-  // the online mode. This game only ever reaches "result" once per game (no
-  // repeated rounds), so a stable 0/1 key is enough to trigger it exactly once.
-  const revealCount = useRevealCountdown(phase === "result" ? 1 : 0);
+  useTurnEndSound(phase, sfx);
+  // Cada fase entra y sale como en la referencia (ver ScreenSwap).
+  return (
+    <RayadoSfxContext.Provider value={sfx}>
+      <ScreenSwap screenKey={phase}>{phaseScreen()}</ScreenSwap>
+    </RayadoSfxContext.Provider>
+  );
 
-  if (phase === "setup") {
-    return (
-      <SetupScreen
-        players={players}
-        renamePlayer={renamePlayer}
-        removePlayer={id => setPlayers(prev => prev.filter(x => x.id !== id))}
-        newName={newName}
-        setNewName={setNewName}
-        addPlayer={addPlayer}
-        nameError={nameError}
-        nameErrorKey={nameErrorKey}
-        setupTab={setupTab}
-        setSetupTab={setSetupTab}
-        enabledCategories={enabledCategories}
-        setEnabledCategories={setEnabledCategories}
-        totalRounds={totalRounds}
-        setTotalRounds={setTotalRounds}
-        customWords={customWords}
-        setCustomWords={setCustomWords}
-        activeCatKeys={activeCatKeys}
-        startGame={startGame}
-      />
-    );
-  }
-
-  if (phase === "wordReveal") {
-    return (
-      <WordRevealScreen
-        turnNumber={turnNumber}
-        totalTurns={totalTurns}
-        drawer={drawer}
-        choicesRevealed={choicesRevealed}
-        revealChoices={() => setChoicesRevealed(true)}
-        wordChoices={wordChoices}
-        chooseWord={chooseWord}
-      />
-    );
-  }
-
-  if (phase === "drawing") {
-    const wordHint = word && drawingStartedAt ? computeWordHint(word, hintOrderRef.current, (Date.now() - drawingStartedAt) / 1000) : null;
-    return (
-      <LocalDrawingScreen
-        turnNumber={turnNumber}
-        totalTurns={totalTurns}
-        drawer={drawer}
-        timerEnd={timerEnd}
-        wordHint={wordHint}
-        strokes={strokes}
-        setStrokes={setStrokes}
-        tool={tool}
-        setTool={setTool}
-        players={players}
-        drawerId={drawerId}
-        correctGuessers={correctGuessers}
-        lastTurnPoints={lastTurnPoints}
-        markCorrect={markCorrect}
-        rerollAvailable={!rerollUsed && correctGuessers.length === 0}
-        onReroll={rerollWord}
-      />
-    );
-  }
-
-  if (phase === "reveal") {
-    const roundPoints: Record<number, number> = { ...lastTurnPoints };
-    if (drawerId != null && Object.keys(lastTurnPoints).length > 0) {
-      roundPoints[drawerId] = Object.keys(lastTurnPoints).length * DRAWER_POINTS_PER_GUESS;
+  function phaseScreen() {
+    if (phase === "setup") {
+      return (
+        <SetupScreen
+          players={players}
+          renamePlayer={renamePlayer}
+          removePlayer={id => setPlayers(prev => prev.filter(x => x.id !== id))}
+          newName={newName}
+          setNewName={setNewName}
+          addPlayer={addPlayer}
+          nameError={nameError}
+          nameErrorKey={nameErrorKey}
+          setupTab={setupTab}
+          setSetupTab={setSetupTab}
+          enabledCategories={enabledCategories}
+          setEnabledCategories={setEnabledCategories}
+          totalRounds={totalRounds}
+          setTotalRounds={setTotalRounds}
+          customWords={customWords}
+          setCustomWords={setCustomWords}
+          activeCatKeys={activeCatKeys}
+          startGame={startGame}
+        />
+      );
     }
-    return (
-      <LocalRevealScreen
-        word={word}
-        players={players}
-        scores={scores}
-        roundPoints={roundPoints}
-        isLastTurn={turnNumber === totalTurns}
-        goToNextTurn={goToNextTurn}
-      />
-    );
-  }
 
-  // ── RESULT ──
-  if (revealCount > 0) return <InkSweepReveal count={revealCount} label="Revelando la tabla final..." />;
-  return <LocalResultScreen players={players} scores={scores} backToSetup={backToSetup} />;
+    if (phase === "wordReveal") {
+      return (
+        <WordRevealScreen
+          turnNumber={turnNumber}
+          totalTurns={totalTurns}
+          drawer={drawer}
+          choicesRevealed={choicesRevealed}
+          revealChoices={() => setChoicesRevealed(true)}
+          wordChoices={wordChoices}
+          chooseWord={chooseWord}
+        />
+      );
+    }
+
+    if (phase === "drawing") {
+      const wordHint =
+        word && drawingStartedAt ? computeWordHint(word, hintOrderRef.current, (Date.now() - drawingStartedAt) / 1000) : null;
+      return (
+        <LocalDrawingScreen
+          drawer={drawer}
+          timerEnd={timerEnd}
+          wordHint={wordHint}
+          scores={scores}
+          strokes={strokes}
+          setStrokes={setStrokes}
+          tool={tool}
+          setTool={setTool}
+          players={players}
+          drawerId={drawerId}
+          correctGuessers={correctGuessers}
+          lastTurnPoints={lastTurnPoints}
+          markCorrect={markCorrect}
+        />
+      );
+    }
+
+    if (phase === "reveal") {
+      return (
+        <LocalRevealScreen
+          word={word}
+          players={players}
+          drawerId={drawerId}
+          scores={scores}
+          roundPoints={localRoundPoints(lastTurnPoints, drawerId)}
+          guessSeconds={guessSeconds}
+          isLastTurn={turnNumber === totalTurns}
+          goToNextTurn={goToNextTurn}
+        />
+      );
+    }
+
+    // ── RESULT ──
+    return <LocalResultScreen players={players} scores={scores} backToSetup={backToSetup} />;
+  }
 }

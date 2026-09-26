@@ -25,7 +25,7 @@ const configPrimitive = z.union([z.string().max(300), z.number(), z.boolean()]);
 const configRecord = z.record(z.string(), configPrimitive);
 const configValue = z.union([configPrimitive, z.array(configPrimitive).max(50), configRecord, z.array(configRecord).max(50)]);
 
-// Rayado Libre's board is a fixed 800x600 (see Canvas.tsx's CANVAS_WIDTH/
+// Rayado Libre's board is a fixed 800x800 (see Canvas.tsx's CANVAS_WIDTH/
 // CANVAS_HEIGHT) — coupled to that constant on purpose, not imported from
 // it, since this schema has to stay a plain data description. The margin
 // beyond the edges tolerates a pointer briefly overshooting the canvas
@@ -249,9 +249,6 @@ export const SCHEMAS = {
     type: z.literal("choose_word"),
     word: z.string().trim().max(60),
   }),
-  reroll_word: z.object({
-    type: z.literal("reroll_word"),
-  }),
   draw_stroke: z.object({
     type: z.literal("draw_stroke"),
     points: z
@@ -279,6 +276,11 @@ export const SCHEMAS = {
   guess: z.object({
     type: z.literal("guess"),
     text: z.string().trim().min(1).max(60),
+  }),
+  // Rayado Libre's "está escribiendo…" ping — no payload: the server only
+  // needs who sent it (see the "typing" action in its engine).
+  typing: z.object({
+    type: z.literal("typing"),
   }),
   // ¿Quién Soy? — see backend/src/games/quien-soy/engine.ts. One word per
   // other player in the room, keyed by their player id — submitted together

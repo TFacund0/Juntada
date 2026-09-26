@@ -1,8 +1,18 @@
 import { memo } from "react";
+import clsx from "clsx";
+
+const AVATAR_COLORS = ["#534AB7", "#0F6E56", "#993C1D", "#185FA5", "#854F0B", "#993556", "#3B6D11", "#A32D2D"];
+
+/** El color de fondo del avatar de un jugador — exportado para que un nombre pueda ir "en su color" sin repetir la paleta. */
+export function avatarColor(name: string): string {
+  return AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+}
 
 interface AvatarProps {
   name: string;
   size?: number;
+  /** Clases extra (ej. un anillo o un peso de letra propio de un juego). */
+  className?: string;
 }
 
 /**
@@ -21,7 +31,7 @@ interface AvatarProps {
  * cualquier fila (avatar + texto), pero además respeta el `text-align`
  * heredado cuando es el único elemento centrado de un bloque.
  */
-export const Avatar = memo(function Avatar({ name, size = 40 }: AvatarProps) {
+export const Avatar = memo(function Avatar({ name, size = 40, className }: AvatarProps) {
   const initials =
     name
       .trim()
@@ -30,23 +40,12 @@ export const Avatar = memo(function Avatar({ name, size = 40 }: AvatarProps) {
       .slice(0, 2)
       .join("")
       .toUpperCase() || "?";
-  const colors = ["#534AB7", "#0F6E56", "#993C1D", "#185FA5", "#854F0B", "#993556", "#3B6D11", "#A32D2D"];
-  const bg = colors[(name.charCodeAt(0) || 0) % colors.length];
+  const bg = avatarColor(name);
   return (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: bg,
-        color: "#fff",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 700,
-        fontSize: size * 0.35,
-        flexShrink: 0,
-      }}
+      className={clsx("inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white", className)}
+      // Tamaño y color dependen de props (no son clases estáticas posibles).
+      style={{ width: size, height: size, background: bg, fontSize: size * 0.35 }}
     >
       {initials}
     </div>

@@ -1,35 +1,50 @@
-import { StartButton } from "../../../components/setup/StartButton";
-import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
-import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
+import { useMemo } from "react";
 import type { LocalPlayer } from "../types/localGame";
-import { RevealedWordCard } from "./RevealedWordCard";
-import { RoundScoreboard } from "./RoundScoreboard";
+import { buildTurnScoreRows } from "../utils/turnScores";
+import { toStringKeys } from "../utils/localTurn";
+import { RevealView } from "./reveal/RevealView";
+import { PrimaryButton } from "./PrimaryButton";
 
 interface LocalRevealScreenProps {
   word: string | null;
   players: LocalPlayer[];
+  drawerId: number | null;
   scores: Record<number, number>;
   roundPoints: Record<number, number>;
+  /** Segundos que quedaban cuando acertó cada uno. */
+  guessSeconds: Record<number, number>;
   isLastTurn: boolean;
   goToNextTurn: () => void;
 }
 
-/** Pantalla "reveal" del modo local: la palabra, la tabla de la ronda, y el pase al siguiente turno — con el botón de avance fijo abajo, igual que la fase equivalente online (`RevealPhaseScreen`). */
-export function LocalRevealScreen({ word, players, scores, roundPoints, isLastTurn, goToNextTurn }: LocalRevealScreenProps) {
+/** Pantalla "reveal" del modo local: la misma revelación y tabla que online, con un solo botón para toda la mesa (no hay "listo" por jugador). */
+export function LocalRevealScreen({
+  word,
+  players,
+  drawerId,
+  scores,
+  roundPoints,
+  guessSeconds,
+  isLastTurn,
+  goToNextTurn,
+}: LocalRevealScreenProps) {
+  const rows = useMemo(
+    () =>
+      buildTurnScoreRows({
+        players: players.map(p => ({ id: String(p.id), name: p.name })),
+        drawerId: drawerId == null ? null : String(drawerId),
+        roundPoints: toStringKeys(roundPoints),
+        guessSeconds: toStringKeys(guessSeconds),
+        totals: toStringKeys(scores),
+      }),
+    [players, drawerId, roundPoints, guessSeconds, scores],
+  );
+
   return (
-    <PhaseTransition phaseKey="reveal">
-      <GameScreenLayout
-        center={
-          <>
-            <RevealedWordCard word={word ?? ""} />
-            <RoundScoreboard
-              entries={players.map(p => ({ id: p.id, name: p.name, score: scores[p.id] || 0, roundPoints: roundPoints[p.id] }))}
-              title={isLastTurn ? "Tabla final" : "Tabla de puntos"}
-            />
-          </>
-        }
-        stickyBottom={<StartButton onClick={goToNextTurn}>{isLastTurn ? "Ver la tabla final" : "Siguiente turno"}</StartButton>}
-      />
-    </PhaseTransition>
+    <RevealView
+      word={word ?? ""}
+      rows={rows}
+      foot={<PrimaryButton onClick={goToNextTurn}>{isLastTurn ? "Ver podio" : "Siguiente turno"}</PrimaryButton>}
+    />
   );
 }

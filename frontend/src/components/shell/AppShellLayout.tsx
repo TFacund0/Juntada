@@ -81,10 +81,16 @@ export function AppShellLayout({ stepKey, game, inGameView, header, rest }: AppS
   // `maxWidth: 480` fijo de S.wrap solo mientras el RoundView de un
   // juego con `wideRoundView` (GameDef) está en pantalla — el lobby/
   // ConfigPanel de ese mismo juego se queda a 480px como cualquier
-  // otro, ya que no está pensado para ese ancho.
-  const wide = inGameView && Boolean(game?.wideRoundView);
+  // otro, ya que no está pensado para ese ancho. `"full"` (rayado-libre)
+  // usa `jt-round-wrap-full`: hasta 1440px a cualquier ancho de pantalla.
+  const wide = inGameView ? game?.wideRoundView : undefined;
   return (
-    <div className={clsx("jt-content-pad-top relative z-[1] mx-auto px-4 pb-[60px]", wide ? "jt-round-wrap-wide" : "max-w-[480px]")}>
+    <div
+      className={clsx(
+        "jt-content-pad-top relative z-[1] mx-auto px-4 pb-[60px]",
+        wide === "full" ? "jt-round-wrap-full" : wide ? "jt-round-wrap-wide" : "max-w-[480px]",
+      )}
+    >
       {header}
       {rest}
     </div>

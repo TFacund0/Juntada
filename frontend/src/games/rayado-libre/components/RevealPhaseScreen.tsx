@@ -1,81 +1,70 @@
-import clsx from "clsx";
-import { T } from "../../../theme/styles/classes";
-import { Btn } from "../../../components/ui/Btn";
-import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
-import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout";
+import { useMemo } from "react";
 import type { RoundViewProps } from "../../gameTypes";
 import type { RayadoLibreRoundState } from "../types/roundView";
-import { RevealedWordCard } from "./RevealedWordCard";
-import { GuessChatPanel } from "./GuessChatPanel";
-import { RoundScoreboard } from "./RoundScoreboard";
-import { TurnHeader } from "./TurnHeader";
 import { roomScore } from "../utils/roomScore";
+import { buildTurnScoreRows } from "../utils/turnScores";
+import { ChatRecap } from "./chat/ChatRecap";
+import { RevealView } from "./reveal/RevealView";
+import { PrimaryButton, PrimaryNote } from "./PrimaryButton";
 
 interface RevealPhaseScreenProps {
   room: RoundViewProps["room"];
   round: RayadoLibreRoundState;
   me: RoundViewProps["me"];
   myPlayer: RoundViewProps["myPlayer"];
+  /** Mis intentos "cerca" (vista privada) — el recap los sigue marcando solo para mí. */
+  closeEntryIds: readonly number[];
   send: RoundViewProps["send"];
 }
 
+const NO_POINTS: Record<string, number> = {};
+
 /**
- * Fase "reveal": palabra + tabla de puntos (con un círculo de "listo" por
- * jugador en la propia fila), el chat completo de la ronda abajo, y el botón
- * de "listo" fijo al fondo — el chat scrollea por debajo suyo (mismo patrón
- * de `StickyActionBar` que discussion/impostor).
+ * Fase "reveal" online: la palabra, la tabla del turno y el chat completo
+ * del turno debajo. El botón de la referencia ("Siguiente turno" / "Ver
+ * podio") acá marca "listo": el turno avanza cuando todos los conectados lo
+ * tocaron, y mientras tanto dice cuántos faltan.
  */
-export function RevealPhaseScreen({ room, round, me, myPlayer, send }: RevealPhaseScreenProps) {
-  const chatLog = round.chatLog ?? [];
-  const roundPoints = round.roundPoints ?? {};
+export function RevealPhaseScreen({ room, round, me, myPlayer, closeEntryIds, send }: RevealPhaseScreenProps) {
+  const roundPoints = round.roundPoints ?? NO_POINTS;
   const onlinePlayers = room.players.filter(p => p.online);
   const readyCount = onlinePlayers.filter(p => p.ready).length;
-  const iAmReady = !!myPlayer?.ready;
   const isLastTurn = round.turnNumber === round.totalTurns;
+  const myId = me?.playerId;
+  const rows = useMemo(
+    () =>
+      buildTurnScoreRows({
+        players: room.players,
+        drawerId: round.drawerId,
+        roundPoints,
+        guessSeconds: round.guessSeconds,
+        totals: roomScore(room),
+        myId,
+      }),
+    [room, round.drawerId, roundPoints, round.guessSeconds, myId],
+  );
 
   return (
-    <PhaseTransition phaseKey="reveal">
-      <GameScreenLayout
-        top={<TurnHeader turnNumber={round.turnNumber} totalTurns={round.totalTurns} />}
-        center={
-          <>
-            <RevealedWordCard word={round.word ?? ""} />
-            <RoundScoreboard
-              entries={room.players.map(p => ({
-                id: p.id,
-                name: p.name,
-                score: roomScore(room)[p.id] || 0,
-                roundPoints: roundPoints[p.id],
-                isMe: p.id === me?.playerId,
-                ready: p.ready,
-              }))}
-              title={isLastTurn ? "Tabla final" : "Tabla de puntos"}
-            />
-          </>
-        }
-        bottom={
-          <GuessChatPanel
-            chatLog={chatLog}
-            players={room.players}
-            correctGuessers={round.correctGuessers ?? []}
-            roundPoints={roundPoints}
-            variant="recap"
-          />
-        }
-        stickyBottom={
-          !iAmReady ? (
-            <Btn variant="success" onClick={() => send({ type: "player_ready" })}>
-              {isLastTurn ? "Listo para ver los resultados" : "Listo para el siguiente turno"}
-            </Btn>
-          ) : (
-            <div className={clsx(T.card, "text-center mb-0")}>
-              <p className="text-[#5DCAA5]">
-                Listo — esperando a los demás ({readyCount}/{onlinePlayers.length})
-              </p>
-            </div>
-          )
-        }
+    <RevealView
+      word={round.word ?? ""}
+      rows={rows}
+      foot={
+        myPlayer?.ready ? (
+          <PrimaryNote>{`Listo — esperando a los demás (${readyCount}/${onlinePlayers.length})`}</PrimaryNote>
+        ) : (
+          <PrimaryButton onClick={() => send({ type: "player_ready" })}>{isLastTurn ? "Ver podio" : "Siguiente turno"}</PrimaryButton>
+        )
+      }
+    >
+      <ChatRecap
+        players={room.players}
+        myId={myId}
+        drawerId={round.drawerId}
+        chatLog={round.chatLog ?? []}
+        correctGuessers={round.correctGuessers ?? []}
+        roundPoints={roundPoints}
+        closeEntryIds={closeEntryIds}
       />
-    </PhaseTransition>
+    </RevealView>
   );
 }

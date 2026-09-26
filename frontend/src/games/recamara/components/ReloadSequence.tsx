@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { ShellKind } from "@juntada/recamara-engine";
 import type { RecamaraSfx } from "../hooks/recamaraSfx";
-import { usePrefersReducedMotion } from "../hooks/reducedMotion";
+import { usePrefersReducedMotion } from "../../../components/game-kit/hooks/usePrefersReducedMotion";
 import { RELOAD_FLIP_MS, RELOAD_HOLD_MS, RELOAD_SHELL_IN_MS, RELOAD_SHELL_LOAD_MS, RELOAD_SHUFFLE_MS } from "../utils/timing";
 import { ShellIcon } from "./ShellIcon";
 

@@ -64,8 +64,8 @@ base("dos jugadores en Rayado Libre online recuperan la sesión tras desconexió
     await ana.getByRole("button", { name: "Iniciar ronda" }).click();
 
     // 4. Confirmar que ambos ven la partida activa
-    await expect(ana.getByText(/Elegí qué vas a dibujar|está eligiendo la palabra/)).toBeVisible({ timeout: 20_000 });
-    await expect(beto.getByText(/Elegí qué vas a dibujar|está eligiendo la palabra/)).toBeVisible({ timeout: 20_000 });
+    await expect(ana.getByText(/Elegí una palabra|está eligiendo la palabra/)).toBeVisible({ timeout: 20_000 });
+    await expect(beto.getByText(/Elegí una palabra|está eligiendo la palabra/)).toBeVisible({ timeout: 20_000 });
 
     // 5. Simular caída de red temporal en Beto vía su BrowserContext
     await beto.context().setOffline(true);
@@ -75,7 +75,7 @@ base("dos jugadores en Rayado Libre online recuperan la sesión tras desconexió
     await beto.context().setOffline(false);
 
     // 7. Verificar que Beto auto-recupera la sesión y vuelve a estar sincronizado
-    await expect(beto.getByText(/Elegí qué vas a dibujar|está eligiendo la palabra/)).toBeVisible({ timeout: 25_000 });
+    await expect(beto.getByText(/Elegí una palabra|está eligiendo la palabra/)).toBeVisible({ timeout: 25_000 });
     await expect(ana.getByText("Beto")).toBeVisible();
     await expect(beto.getByText("Ana")).toBeVisible();
   } finally {

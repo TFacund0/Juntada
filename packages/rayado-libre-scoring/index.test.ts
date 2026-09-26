@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildHintOrder, computeWordHint, isCorrectGuess, maxHintsFor, popLastDrawUnit, scoreForGuess, type DrawAction } from "./index";
+import {
+  buildHintOrder,
+  computeWordHint,
+  isCloseGuess,
+  isCorrectGuess,
+  isOneEditAway,
+  maxHintsFor,
+  popLastDrawUnit,
+  scoreForGuess,
+  type DrawAction,
+} from "./index";
 
 describe("scoreForGuess", () => {
   it("scores a flat 60 and jumps to 60s in zone 1", () => {
@@ -30,6 +40,45 @@ describe("isCorrectGuess", () => {
 
   it("rejects an empty guess", () => {
     expect(isCorrectGuess("", "Camión")).toBe(false);
+  });
+});
+
+describe("isOneEditAway", () => {
+  it("accepts exactly one substitution, insertion or deletion", () => {
+    expect(isOneEditAway("gato", "pato")).toBe(true);
+    expect(isOneEditAway("gato", "gatos")).toBe(true);
+    expect(isOneEditAway("gatos", "gato")).toBe(true);
+    expect(isOneEditAway("gato", "ato")).toBe(true);
+  });
+
+  it("rejects identical strings and anything two or more edits away", () => {
+    expect(isOneEditAway("gato", "gato")).toBe(false);
+    expect(isOneEditAway("gato", "pata")).toBe(false);
+    expect(isOneEditAway("gato", "ga")).toBe(false);
+    expect(isOneEditAway("gato", "agto")).toBe(false);
+  });
+});
+
+describe("isCloseGuess", () => {
+  it("flags a one-letter typo, ignoring case and accents like isCorrectGuess", () => {
+    expect(isCloseGuess("CAMIOM", "Camión")).toBe(true);
+    expect(isCloseGuess("camin", "Camión")).toBe(true);
+  });
+
+  it("flags a prefix of 4+ letters, but not a shorter one", () => {
+    expect(isCloseGuess("maripo", "Mariposa")).toBe(true);
+    expect(isCloseGuess("mari", "Mariposa")).toBe(true);
+    expect(isCloseGuess("mar", "Mariposa")).toBe(false);
+  });
+
+  it("never flags the exact word, an empty guess, or an unrelated one", () => {
+    expect(isCloseGuess("camión", "Camión")).toBe(false);
+    expect(isCloseGuess("   ", "Camión")).toBe(false);
+    expect(isCloseGuess("perro", "Camión")).toBe(false);
+  });
+
+  it("keeps ñ distinct from n, so 'montana' is one edit from 'Montaña'", () => {
+    expect(isCloseGuess("montana", "Montaña")).toBe(true);
   });
 });
 

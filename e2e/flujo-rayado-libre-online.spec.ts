@@ -30,7 +30,9 @@ base("dos jugadores completan una ronda de Rayado Libre online: elegir palabra, 
     await ana.getByRole("button", { name: "Crear partida" }).click();
     await ana.waitForURL(/\/room\/rayado-libre\/\w+$/);
 
-    const code = await ana.getByTestId("code-display").first().textContent();
+    // El cartel del código se muestra enmascarado ("•••••") hasta tocar el
+    // ojo; la URL de la sala siempre lo tiene en claro.
+    const code = new URL(ana.url()).pathname.split("/").pop();
     expect(code).toMatch(/^[A-Z0-9]{4,8}$/);
 
     // Sin esto "Iniciar ronda" falla del lado del servidor (ver
@@ -61,8 +63,8 @@ base("dos jugadores completan una ronda de Rayado Libre online: elegir palabra, 
     // El primer turno es aleatorio — se detecta dinámicamente quién quedó
     // como dibujante mirando cuál de las dos páginas ve el abanico de
     // palabras en vez de la tarjeta de espera.
-    await expect(ana.getByText(/Elegí qué vas a dibujar|está eligiendo la palabra/)).toBeVisible({ timeout: 10_000 });
-    const anaIsDrawer = await ana.getByText("Elegí qué vas a dibujar").isVisible();
+    await expect(ana.getByText(/Elegí una palabra|está eligiendo la palabra/)).toBeVisible({ timeout: 10_000 });
+    const anaIsDrawer = await ana.getByText("Elegí una palabra. Los demás no la ven.").isVisible();
     const [drawer, guesser] = anaIsDrawer ? [ana, beto] : [beto, ana];
 
     await drawer.locator(".rl-word-card").first().click();
@@ -73,7 +75,7 @@ base("dos jugadores completan una ronda de Rayado Libre online: elegir palabra, 
     const word = (await drawer.locator(".rl-board-word p").first().textContent())?.trim();
     expect(word).toBeTruthy();
 
-    await guesser.getByPlaceholder("Tu respuesta...").fill(word!);
+    await guesser.getByPlaceholder("Escribí lo que ves…").fill(word!);
     await guesser.getByRole("button", { name: "Enviar" }).click();
 
     // Con un solo adivinador en la sala, un acierto correcto termina el

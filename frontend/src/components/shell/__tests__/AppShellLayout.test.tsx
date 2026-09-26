@@ -39,4 +39,15 @@ describe("AppShellLayout", () => {
     expect(wrap).not.toBeNull();
     expect(wrap.classList.contains("max-w-[480px]")).toBe(false);
   });
+
+  test('default/game branch with wideRoundView "full" renders jt-round-wrap-full instead of the wide or fixed wrappers', () => {
+    const game = { wideRoundView: "full" } as unknown as GameDef;
+    const { container } = render(
+      <AppShellLayout stepKey="local-round" game={game} inGameView={true} header={<div>header</div>} rest={<div>rest</div>} />,
+    );
+    const wrap = container.querySelector(".jt-content-pad-top.jt-round-wrap-full") as HTMLElement;
+    expect(wrap).not.toBeNull();
+    expect(wrap.classList.contains("jt-round-wrap-wide")).toBe(false);
+    expect(wrap.classList.contains("max-w-[480px]")).toBe(false);
+  });
 });

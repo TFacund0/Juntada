@@ -12,6 +12,16 @@
 import type { Room } from "@juntada/shared-types";
 import type { GameEngine } from "../engineTypes";
 
+// Fases de sala de este juego, en un solo lugar: `phase` es `string` suelto
+// en shared-types, así que un typo en un literal no fallaría al compilar.
+const PHASE = {
+  LOBBY: "lobby",
+  CHOOSING: "choosing",
+  DRAWING: "drawing",
+  REVEAL: "reveal",
+  RESULT: "result",
+} as const;
+
 interface Category {
   label: string;
   icon: string;
@@ -36,6 +46,8 @@ const {
   computeWordHint,
   popLastDrawUnit,
   MIN_PLAYERS,
+  isCloseGuess,
+  TYPING_TTL_MS,
 } = require("@juntada/rayado-libre-scoring") as {
   scoreForGuess: (secondsRemaining: number) => { points: number; jumpToSeconds: number | null };
   isCorrectGuess: (guess: string, word: string) => boolean;
@@ -45,13 +57,11 @@ const {
   computeWordHint: (word: string, hintOrder: readonly number[], elapsedSeconds: number) => string;
   popLastDrawUnit: (strokes: readonly DrawAction[]) => DrawAction[];
   MIN_PLAYERS: number;
+  isCloseGuess: (guess: string, word: string) => boolean;
+  TYPING_TTL_MS: number;
 };
 const { shuffle } = require("@juntada/core-utils");
 const CHOOSE_SECONDS = 15;
-// Costo en segundos de pedir otra palabra a mitad de turno (ver "reroll_word"
-// más abajo) — se resta del timer en vez de arrancar uno nuevo, así no es
-// gratis alargar el turno pidiendo palabra tras palabra.
-const REROLL_TIME_PENALTY_SECONDS = 15;
 // Bounds how much canvas history a single turn can accumulate — a legitimate
 // drawing never gets close to this; it only guards against one very long
 // turn (or a misbehaving client) growing the broadcast payload unbounded.
@@ -78,13 +88,10 @@ function parseStrokePoints(raw: unknown): [number, number][] | null {
   }
   return points;
 }
-// Kept generous enough that the reveal-phase recap ("cómo veníamos
-// escribiendo") still shows a real conversation instead of just the last 5
-// messages of the whole turn — the live "drawing" chat view is what trims
-// that down to a short recent window, purely on the frontend side (see
-// RoundView.tsx), so this same stored log serves both without needing two
-// copies.
-const CHAT_LOG_LIMIT = 30;
+// The whole turn's chat is shown (live, scrollable, and again as the reveal
+// recap), so this is sized for a real 99s conversation — still bounded,
+// since the full log goes out on every state broadcast.
+const CHAT_LOG_LIMIT = 100;
 
 type DrawAction =
   | import("@juntada/rayado-libre-scoring").StrokeAction
@@ -92,6 +99,9 @@ type DrawAction =
   | import("@juntada/rayado-libre-scoring").ClearAction;
 
 interface ChatEntry {
+  // Monotonic per game (see RayadoLibreRound.chatSeq) — what closeEntryIds
+  // points at, and a stable React key on the client.
+  id: number;
   type: "chat" | "correct";
   playerId: string;
   text?: string;
@@ -127,19 +137,31 @@ interface RayadoLibreRound {
   strokes: DrawAction[];
   chatLog: ChatEntry[];
   correctGuessers: string[];
-  // Si ya se usó el "pedir otra palabra" (ver "reroll_word") este turno —
-  // solo se permite una vez, y solo antes de que alguien acierte.
-  rerollUsed: boolean;
   // Points gained this specific turn only (guessers' scores plus the
   // drawer's per-guess bonus) — separate from the cumulative cfg(room).score
   // so the reveal screen can show "+N this turn" next to each player's
   // running total without the two ever needing to be reconciled by hand.
   roundPoints: Record<string, number>;
+  // playerId -> whole seconds left on the clock when they guessed it this
+  // turn (the same value scoreForGuess got). Only shown on the reveal screen
+  // ("adivinó con 57s"), so it never needs to go out while drawing.
+  guessSeconds: Record<string, number>;
   // Bumped on every correct guess so the guesser's own client can diff it
   // (same pattern as impostor's rerollCount) to show a one-time "+N puntos"
   // toast instead of it reappearing on every unrelated private_role refresh.
   guessId: number;
   lastGuess: { playerId: string; points: number; guessId: number } | null;
+  // Last ChatEntry.id handed out — never reset between turns, so an id is
+  // never reused while a client might still hold the previous turn's log.
+  chatSeq: number;
+  // "Está escribiendo…": playerId -> timestamp the indicator expires at
+  // (last "typing" ping + TYPING_TTL_MS). Expired entries are simply
+  // filtered out of the public view — nothing needs a server timer.
+  typingUntil: Record<string, number>;
+  // playerId -> ids of their own wrong guesses that were "close" (see
+  // isCloseGuess). Private: only ever sent to that same player (see
+  // getPrivateView), so nobody else learns how near they were.
+  closeEntryIds: Record<string, number[]>;
 }
 
 function cfg(room: Room): RayadoLibreConfig {
@@ -160,14 +182,24 @@ function migrateRound(room: Room): void {
   if (!room.round) return;
   const r = round(room);
   if (r.hintOrder == null) r.hintOrder = r.word ? buildHintOrder(r.word) : [];
-  if (r.drawingStartedAt == null && room.phase === "drawing") r.drawingStartedAt = Date.now();
+  if (r.drawingStartedAt == null && room.phase === PHASE.DRAWING) r.drawingStartedAt = Date.now();
   if (r.roundPoints == null) r.roundPoints = {};
+  if (r.guessSeconds == null) r.guessSeconds = {};
   if (r.guessId == null) r.guessId = 0;
   if (r.lastGuess === undefined) r.lastGuess = null;
   if (r.chatLog == null) r.chatLog = [];
   if (r.correctGuessers == null) r.correctGuessers = [];
   if (r.strokes == null) r.strokes = [];
-  if (r.rerollUsed == null) r.rerollUsed = false;
+  // "Pedir otra palabra" was removed — drop its leftover flag from rounds
+  // persisted by an older server so it never leaks back into a view.
+  delete (r as Partial<RayadoLibreRound> & { rerollUsed?: unknown }).rerollUsed;
+  if (r.typingUntil == null) r.typingUntil = {};
+  if (r.closeEntryIds == null) r.closeEntryIds = {};
+  if (r.chatSeq == null) r.chatSeq = 0;
+  // Entries logged before chat ids existed get one now, in log order.
+  for (const entry of r.chatLog) {
+    if (typeof entry.id !== "number") entry.id = ++r.chatSeq;
+  }
 }
 
 function createConfig(): RayadoLibreConfig {
@@ -207,15 +239,6 @@ function pickThreeWords(room: Room): string[] {
   return words;
 }
 
-// Used by "reroll_word" — a single replacement word, different from the one
-// being abandoned when the pool allows it (a 1-word pool just returns that
-// same word back, an acceptable degenerate case rather than something worth
-// extra handling for).
-function pickReplacementWord(room: Room, currentWord: string): string {
-  const candidates = pickThreeWords(room);
-  return candidates.find(w => w !== currentWord) ?? candidates[0];
-}
-
 function startTurnChoosing(room: Room, drawerId: string): void {
   const r = round(room);
   r.drawerId = drawerId;
@@ -229,9 +252,11 @@ function startTurnChoosing(room: Room, drawerId: string): void {
   r.chatLog = [];
   r.correctGuessers = [];
   r.roundPoints = {};
+  r.guessSeconds = {};
   r.lastGuess = null;
-  r.rerollUsed = false;
-  room.phase = "choosing";
+  r.typingUntil = {};
+  r.closeEntryIds = {};
+  room.phase = PHASE.CHOOSING;
 }
 
 // Locks in the chosen word and starts the drawing timer + hint schedule —
@@ -245,7 +270,7 @@ function beginDrawing(room: Room, word: string): void {
   r.timerEnd = Date.now() + TURN_SECONDS * 1000;
   r.drawingStartedAt = Date.now();
   r.hintOrder = buildHintOrder(word);
-  room.phase = "drawing";
+  room.phase = PHASE.DRAWING;
 }
 
 // Drawer's turn is over (timer ran out, or everyone online already guessed
@@ -259,7 +284,7 @@ function finishDrawingPhase(room: Room): void {
   room.usedWords.words = [...((room.usedWords.words as string[] | undefined) ?? []), r.word as string];
   r.timerEnd = null;
   r.chooseTimerEnd = null;
-  room.phase = "reveal";
+  room.phase = PHASE.REVEAL;
   room.players.forEach(p => {
     p.ready = false;
   });
@@ -275,7 +300,7 @@ function advanceToNextTurn(room: Room): void {
   // happened and stay counted).
   r.turnQueue = r.turnQueue.filter(id => room.players.some(p => p.id === id));
   if (r.turnQueue.length === 0) {
-    room.phase = "result";
+    room.phase = PHASE.RESULT;
     return;
   }
   startTurnChoosing(room, r.turnQueue[0]);
@@ -315,11 +340,14 @@ function startRound(room: Room): { success?: true; error?: string } {
     chatLog: [],
     correctGuessers: [],
     roundPoints: {},
+    guessSeconds: {},
     guessId: 0,
     lastGuess: null,
-    rerollUsed: false,
+    chatSeq: 0,
+    typingUntil: {},
+    closeEntryIds: {},
   } satisfies RayadoLibreRound;
-  room.phase = "lobby"; // overwritten by startTurnChoosing below
+  room.phase = PHASE.LOBBY; // overwritten by startTurnChoosing below
   startTurnChoosing(room, turnQueue[0]);
 
   return { success: true };
@@ -331,19 +359,48 @@ function pushDrawAction(room: Room, action: DrawAction): void {
   if (r.strokes.length > MAX_STROKES) r.strokes.shift();
 }
 
+// Appends to the chat log with the next id, keeping it to CHAT_LOG_LIMIT —
+// and drops "close" marks pointing at entries that just fell off, so
+// closeEntryIds can never outgrow the log itself.
+function pushChatEntry(room: Room, entry: Omit<ChatEntry, "id">): ChatEntry {
+  const r = round(room);
+  const logged: ChatEntry = { ...entry, id: ++r.chatSeq };
+  r.chatLog = [...r.chatLog, logged].slice(-CHAT_LOG_LIMIT);
+  const oldestId = r.chatLog[0].id;
+  for (const [playerId, ids] of Object.entries(r.closeEntryIds)) {
+    if (ids.length > 0 && ids[0] < oldestId) r.closeEntryIds[playerId] = ids.filter(id => id >= oldestId);
+  }
+  return logged;
+}
+
+// Who can still guess right now: only mid-drawing, never the drawer, and
+// never someone who already got it. Shared by "guess" and "typing".
+function canGuess(room: Room, playerId: string): boolean {
+  const r = round(room);
+  return room.phase === PHASE.DRAWING && playerId !== r.drawerId && !r.correctGuessers.includes(playerId);
+}
+
+// Typing indicators still running, for the public view — the drawer and
+// anyone who already guessed never show as typing, even with a ping in flight.
+function activeTyping(room: Room): Record<string, number> {
+  const r = round(room);
+  const now = Date.now();
+  return Object.fromEntries(Object.entries(r.typingUntil).filter(([playerId, until]) => until > now && canGuess(room, playerId)));
+}
+
 function maybeAdvance(room: Room): void {
   if (!room?.round) return;
   migrateRound(room);
   if (skipTurnIfDrawerGone(room)) return;
   const r = round(room);
-  if (room.phase === "drawing") {
+  if (room.phase === PHASE.DRAWING) {
     const onlineGuessers = room.players.filter(p => p.online && p.id !== r.drawerId);
     if (onlineGuessers.length > 0 && onlineGuessers.every(p => r.correctGuessers.includes(p.id))) {
       finishDrawingPhase(room);
     }
     return;
   }
-  if (room.phase === "reveal") {
+  if (room.phase === PHASE.REVEAL) {
     const online = room.players.filter(p => p.online);
     if (online.length > 0 && online.every(p => p.ready)) advanceToNextTurn(room);
   }
@@ -363,12 +420,12 @@ function onPlayerOffline(room: Room, playerId: string): void {
   migrateRound(room);
   const r = round(room);
   if (playerId !== r.drawerId) return;
-  if (room.phase === "choosing" || room.phase === "drawing") forceReadyAndAdvance(room);
+  if (room.phase === PHASE.CHOOSING || room.phase === PHASE.DRAWING) forceReadyAndAdvance(room);
 }
 
 function forceReadyAndAdvance(room: Room): void {
   const r = round(room);
-  if (room.phase === "choosing") {
+  if (room.phase === PHASE.CHOOSING) {
     const word = r.wordChoices && r.wordChoices.length > 0 ? r.wordChoices[Math.floor(Math.random() * r.wordChoices.length)] : null;
     if (!word) {
       advanceToNextTurn(room);
@@ -377,7 +434,7 @@ function forceReadyAndAdvance(room: Room): void {
     beginDrawing(room, word);
     return;
   }
-  if (room.phase === "drawing") {
+  if (room.phase === PHASE.DRAWING) {
     finishDrawingPhase(room);
   }
   // No case for "reveal" — it has no timer of its own (see finishDrawingPhase),
@@ -387,8 +444,8 @@ function forceReadyAndAdvance(room: Room): void {
 function getPhaseTimerEnd(room: Room): number | null {
   if (!room.round) return null;
   const r = round(room);
-  if (room.phase === "choosing") return r.chooseTimerEnd;
-  if (room.phase === "drawing") return r.timerEnd;
+  if (room.phase === PHASE.CHOOSING) return r.chooseTimerEnd;
+  if (room.phase === PHASE.DRAWING) return r.timerEnd;
   return null;
 }
 
@@ -401,7 +458,7 @@ function handleAction(
   playerId: string,
   action: string,
   payload: Record<string, unknown>,
-): { handled: boolean; rerolled?: boolean } {
+): { handled: boolean; rerolled?: boolean; unchanged?: boolean } {
   if (!room.round) return { handled: false };
   migrateRound(room);
   const r = round(room);
@@ -417,7 +474,7 @@ function handleAction(
       if (playerId !== room.hostId) return { handled: false };
       resetProgress(room);
       room.round = null;
-      room.phase = "lobby";
+      room.phase = PHASE.LOBBY;
       room.players.forEach(p => {
         p.ready = false;
       });
@@ -425,34 +482,15 @@ function handleAction(
     }
 
     case "choose_word": {
-      if (room.phase !== "choosing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.CHOOSING || playerId !== r.drawerId) return { handled: false };
       const word = String(payload.word ?? "");
       if (!r.wordChoices?.includes(word)) return { handled: false };
       beginDrawing(room, word);
       return { handled: true, rerolled: true };
     }
 
-    // Quien dibuja pide otra palabra a mitad de turno — solo antes de que
-    // alguien acierte (evita tener que revertir puntaje ya otorgado) y solo
-    // una vez, con una penalización de tiempo en vez de un timer nuevo (ver
-    // REROLL_TIME_PENALTY_SECONDS) para que no sea gratis pedir varias.
-    case "reroll_word": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
-      if (r.rerollUsed || r.correctGuessers.length > 0) return { handled: false };
-      const oldWord = r.word as string;
-      room.usedWords.words = [...((room.usedWords.words as string[] | undefined) ?? []), oldWord];
-      const newWord = pickReplacementWord(room, oldWord);
-      r.word = newWord;
-      r.strokes = [];
-      r.hintOrder = buildHintOrder(newWord);
-      r.drawingStartedAt = Date.now();
-      r.rerollUsed = true;
-      r.timerEnd = Math.max(Date.now(), (r.timerEnd as number) - REROLL_TIME_PENALTY_SECONDS * 1000);
-      return { handled: true, rerolled: true };
-    }
-
     case "draw_stroke": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       const points = parseStrokePoints(payload.points);
       if (!points) return { handled: false };
       pushDrawAction(room, {
@@ -466,7 +504,7 @@ function handleAction(
     }
 
     case "draw_fill": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       const x = Number(payload.x);
       const y = Number(payload.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return { handled: false };
@@ -475,19 +513,19 @@ function handleAction(
     }
 
     case "draw_clear": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       r.strokes = [];
       return { handled: true };
     }
 
     case "draw_undo": {
-      if (room.phase !== "drawing" || playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
       r.strokes = popLastDrawUnit(r.strokes);
       return { handled: true };
     }
 
     case "player_ready": {
-      if (room.phase !== "reveal") return { handled: false };
+      if (room.phase !== PHASE.REVEAL) return { handled: false };
       const p = room.players.find(p => p.id === playerId);
       if (!p) return { handled: false };
       p.ready = true;
@@ -503,11 +541,21 @@ function handleAction(
       return { handled: true, rerolled: true };
     }
 
+    // "Está escribiendo…" — a guesser's client pings this at most every
+    // TYPING_SEND_INTERVAL_MS while typing. A ping that can't apply (the
+    // turn just ended, they just guessed it) is a normal race, not an error.
+    case "typing": {
+      if (!canGuess(room, playerId)) return { handled: true, unchanged: true };
+      r.typingUntil[playerId] = Date.now() + TYPING_TTL_MS;
+      return { handled: true };
+    }
+
     case "guess": {
-      if (room.phase !== "drawing" || playerId === r.drawerId) return { handled: false };
-      if (r.correctGuessers.includes(playerId)) return { handled: false };
+      if (!canGuess(room, playerId)) return { handled: false };
       const text = String(payload.text ?? "");
       if (!text || !r.word) return { handled: false };
+      // Sending the guess ends that bout of typing.
+      delete r.typingUntil[playerId];
 
       if (isCorrectGuess(text, r.word)) {
         // Math.floor, not ceil — rounding up would systematically nudge a
@@ -521,10 +569,11 @@ function handleAction(
         cfg(room).score[r.drawerId] = (cfg(room).score[r.drawerId] || 0) + DRAWER_POINTS_PER_GUESS;
         r.roundPoints[playerId] = (r.roundPoints[playerId] || 0) + points;
         r.roundPoints[r.drawerId] = (r.roundPoints[r.drawerId] || 0) + DRAWER_POINTS_PER_GUESS;
+        r.guessSeconds[playerId] = secondsRemaining;
         r.correctGuessers.push(playerId);
         r.guessId += 1;
         r.lastGuess = { playerId, points, guessId: r.guessId };
-        r.chatLog = [...r.chatLog, { type: "correct" as const, playerId }].slice(-CHAT_LOG_LIMIT);
+        pushChatEntry(room, { type: "correct", playerId });
         if (jumpToSeconds != null) r.timerEnd = Date.now() + jumpToSeconds * 1000;
 
         const onlineGuessers = room.players.filter(p => p.online && p.id !== r.drawerId);
@@ -534,7 +583,13 @@ function handleAction(
         return { handled: true, rerolled: true };
       }
 
-      r.chatLog = [...r.chatLog, { type: "chat" as const, playerId, text }].slice(-CHAT_LOG_LIMIT);
+      const entry = pushChatEntry(room, { type: "chat", playerId, text });
+      if (isCloseGuess(text, r.word)) {
+        (r.closeEntryIds[playerId] ??= []).push(entry.id);
+        // Their private view changed (a new close mark) — `rerolled` is what
+        // makes gameAction re-send private_role, not just the public state.
+        return { handled: true, rerolled: true };
+      }
       return { handled: true };
     }
 
@@ -550,8 +605,8 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
   const turnNumber = r.totalTurns - r.turnQueue.length + 1;
   const base = { turnNumber, totalTurns: r.totalTurns, drawerId: r.drawerId };
 
-  if (room.phase === "choosing") return { ...base, chooseTimerEnd: r.chooseTimerEnd };
-  if (room.phase === "drawing") {
+  if (room.phase === PHASE.CHOOSING) return { ...base, chooseTimerEnd: r.chooseTimerEnd };
+  if (room.phase === PHASE.DRAWING) {
     const elapsedSeconds = r.drawingStartedAt ? (Date.now() - r.drawingStartedAt) / 1000 : 0;
     const wordHint = r.word ? computeWordHint(r.word, r.hintOrder, elapsedSeconds) : "";
     return {
@@ -562,13 +617,20 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
       correctGuessers: r.correctGuessers,
       roundPoints: r.roundPoints,
       wordHint,
-      rerollUsed: r.rerollUsed,
+      typingUntil: activeTyping(room),
     };
   }
-  if (room.phase === "reveal") {
-    return { ...base, word: r.word, correctGuessers: r.correctGuessers, chatLog: r.chatLog, roundPoints: r.roundPoints };
+  if (room.phase === PHASE.REVEAL) {
+    return {
+      ...base,
+      word: r.word,
+      correctGuessers: r.correctGuessers,
+      chatLog: r.chatLog,
+      roundPoints: r.roundPoints,
+      guessSeconds: r.guessSeconds,
+    };
   }
-  if (room.phase === "result") return { ...base, word: r.word };
+  if (room.phase === PHASE.RESULT) return { ...base, word: r.word };
   return base;
 }
 
@@ -578,12 +640,17 @@ function getPrivateView(room: Room, playerId: string): Record<string, unknown> |
   const r = round(room);
   const isDrawer = playerId === r.drawerId;
   const view: Record<string, unknown> = { isDrawer };
-  if (isDrawer && room.phase === "choosing") view.wordChoices = r.wordChoices;
+  if (isDrawer && room.phase === PHASE.CHOOSING) view.wordChoices = r.wordChoices;
   // The drawer needs their own word available at all times while drawing —
   // the public view only ever exposes the blanked-out wordHint (see
   // getPublicRoundView), so without this the drawer would have no way to
   // check what they're supposed to be drawing after picking it.
-  if (isDrawer && room.phase === "drawing") view.word = r.word;
+  if (isDrawer && room.phase === PHASE.DRAWING) view.word = r.word;
+  // Someone who already guessed it knows the word anyway — their locked
+  // input says "¡Era PALABRA!". Kept apart from `word` (the drawer's) so no
+  // drawer-only UI can ever pick it up for a guesser.
+  if (room.phase === PHASE.DRAWING && r.correctGuessers.includes(playerId)) view.guessedWord = r.word;
+  if (room.phase === PHASE.DRAWING || room.phase === PHASE.REVEAL) view.closeEntryIds = r.closeEntryIds[playerId] ?? [];
   if (r.lastGuess && r.lastGuess.playerId === playerId) view.lastGuess = r.lastGuess;
   return view;
 }

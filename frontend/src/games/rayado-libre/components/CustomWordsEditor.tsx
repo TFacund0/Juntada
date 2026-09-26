@@ -40,7 +40,8 @@ export function CustomWordsEditor({ words, onChange }: CustomWordsEditorProps) {
       <p className={clsx(T.muted, "mt-1 mb-3")}>Sumá las tuyas además de (o en vez de) las categorías predefinidas.</p>
       {/* flex-wrap + min-w: mismo motivo que el resto de los inputs+botón de
           esta app — sin esto, el botón "Agregar" le come el ancho al input
-          en un contenedor angosto. */}
+          en un contenedor angosto. El `!` del botón le gana al `w-full`/`px-7`
+          base de Btn (ver T.btn). */}
       <div className={clsx("flex flex-wrap gap-2", words.length > 0 ? "mb-3" : "mb-0")}>
         <input
           className={clsx(T.input, "min-w-[140px] flex-1")}
@@ -52,7 +53,7 @@ export function CustomWordsEditor({ words, onChange }: CustomWordsEditorProps) {
             if (e.key === "Enter") addWord();
           }}
         />
-        <Btn variant="ghost" onClick={addWord} style={{ width: "auto", padding: "11px 18px" }}>
+        <Btn variant="ghost" onClick={addWord} className="w-auto! flex-none px-[18px]! py-[11px]!">
           Agregar
         </Btn>
       </div>
