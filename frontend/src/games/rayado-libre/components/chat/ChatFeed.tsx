@@ -90,7 +90,7 @@ export function ChatFeed({ items, emptyText, canAnimate }: ChatFeedProps) {
         ref={scrollRef}
         onScroll={onScroll}
         aria-live="polite"
-        className="absolute inset-0 flex flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-2 pt-2.5"
+        className="rl-scrollbar absolute inset-0 flex flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-2 pt-2.5"
       >
         {items.map(item => (
           <ChatLine key={item.key} item={item} fresh={isFresh(item.key)} />

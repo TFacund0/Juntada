@@ -37,7 +37,7 @@ export function LocalGuessersPanel({ players, drawerId, correctGuessers, lastTur
         canAnimate={canAnimate}
         action={<MuteButton muted={sfx.muted} onToggle={sfx.toggleMuted} />}
       />
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-3 pt-2.5">
+      <div className="rl-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-3 pt-2.5">
         <p className="m-0 mb-1 self-center text-center text-xs italic text-rl-muted">Tocá el nombre de quien haya adivinado en voz alta.</p>
         {guessers.map(p => {
           const already = correctGuessers.includes(p.id);

@@ -31,10 +31,10 @@ export function ChatRecap({ players, myId, drawerId, chatLog, correctGuessers, r
   return (
     <section
       aria-label="Respuestas del turno"
-      className="overflow-hidden rounded-[18px] border border-rl-card-border bg-rl-surface font-figtree text-rl-ink"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] border border-rl-card-border bg-rl-surface font-figtree text-rl-ink"
     >
       <ChatHeader title="Respuestas" guessed={guessed} eligible={eligibleGuessers(players, drawerId, correctGuessers)} canAnimate={NEVER} />
-      <div className="flex max-h-[50dvh] flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-2 pt-2.5">
+      <div className="rl-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 pb-2 pt-2.5">
         {items.length === 0 ? (
           <p className="m-0 py-2 text-center text-[13px] text-rl-muted">Nadie escribió nada en este turno.</p>
         ) : (
