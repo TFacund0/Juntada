@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { DrawAction } from "@juntada/rayado-libre-scoring";
-import { inkAmount, latestPenTip, penChange } from "../utils/remotePen";
+import { inkAmount, latestPenTip, ownPenColor, penChange, penPosition } from "../utils/remotePen";
 
 const stroke = (points: [number, number][], color = "#e2432a", strokeId = 1): DrawAction => ({
   type: "stroke",
@@ -72,5 +72,21 @@ describe("penChange", () => {
 
   test("a fill hides the pen (nothing to follow)", () => {
     expect(penChange(2, [...drawing, fill])).toEqual({ kind: "hide" });
+  });
+});
+
+describe("penPosition", () => {
+  test("board coordinates become % of the sheet, whatever size it is shown at", () => {
+    expect(penPosition(400, 200, 800, 800)).toEqual({ left: "50%", top: "25%" });
+    expect(penPosition(0, 800, 800, 800)).toEqual({ left: "0%", top: "100%" });
+  });
+});
+
+describe("ownPenColor", () => {
+  test("only the pencil gets the drawer's own marker, in its color", () => {
+    expect(ownPenColor({ mode: "draw", color: "#e2432a" })).toBe("#e2432a");
+    expect(ownPenColor({ mode: "erase", color: "#e2432a" })).toBeNull();
+    expect(ownPenColor({ mode: "fill", color: "#e2432a" })).toBeNull();
+    expect(ownPenColor(undefined)).toBeNull();
   });
 });

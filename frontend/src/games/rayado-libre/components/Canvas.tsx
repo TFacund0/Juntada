@@ -50,6 +50,8 @@ interface CanvasProps {
   clearFx?: number;
   /** Garabato de marcador mientras se dibuja (solo quien dibuja). */
   scribble?: ScribbleSound;
+  /** Punta del lápiz mientras se dibuja con él (no con goma ni balde), o `null` al levantarlo — para el marcador propio (ver OwnPen). */
+  onPenMove?: (point: [number, number] | null) => void;
 }
 
 const FLUSH_INTERVAL_MS = 60;
@@ -106,7 +108,7 @@ function useRenderedWidth(canvasRef: React.RefObject<HTMLCanvasElement | null>, 
  * terminado (ver {@link CanvasProps}). El pintado del historial vive en
  * useCanvasPainter.
  */
-export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt, clearFx = 0, scribble }: CanvasProps) {
+export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt, clearFx = 0, scribble, onPenMove }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const getCtx = useCanvasPainter(canvasRef, strokes, clearFx);
   const canDraw = interactive && !!tool;
@@ -163,6 +165,7 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt, cl
     flushTimerRef.current = setInterval(flush, FLUSH_INTERVAL_MS);
     speedRef.current = { point: [x, y], t: performance.now() };
     scribble?.start();
+    if (tool.mode === "draw") onPenMove?.([x, y]);
   };
 
   // Pintado local optimista: quien dibuja ve cada segmento en el instante en
@@ -181,6 +184,7 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt, cl
     const prev = pendingPointsRef.current[pendingPointsRef.current.length - 1];
     if (prev) drawLiveSegment(ctx, prev, coords, tool.mode === "erase" ? PAPER_COLOR : tool.color, strokeWidth(tool));
     pendingPointsRef.current.push(coords);
+    if (tool.mode === "draw") onPenMove?.(coords);
 
     // Velocidad para el garabato, con el mismo umbral de 2 px que la referencia.
     const last = speedRef.current;
@@ -205,10 +209,13 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt, cl
     pendingPointsRef.current = [];
     speedRef.current = null;
     scribble?.stop();
+    onPenMove?.(null);
   };
 
   return (
     <canvas
+      role="img"
+      aria-label="Tablero de dibujo"
       ref={canvasRef}
       width={CANVAS_WIDTH}
       height={CANVAS_HEIGHT}

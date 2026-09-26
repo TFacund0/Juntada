@@ -40,3 +40,13 @@ export function penChange(prevInk: number, strokes: readonly DrawAction[]): PenC
   const tip = ink > prevInk ? latestPenTip(strokes) : null;
   return tip ? { kind: "move", tip } : { kind: "hide" };
 }
+
+/** Dónde va el marcador sobre la hoja, en % (el tablero es 800x800 pero se ve de cualquier tamaño). */
+export function penPosition(x: number, y: number, width: number, height: number): { left: string; top: string } {
+  return { left: `${(x / width) * 100}%`, top: `${(y / height) * 100}%` };
+}
+
+/** Color del marcador propio de quien dibuja: solo con el lápiz (con la goma o el balde no hay marcador). */
+export function ownPenColor(tool: { mode: string; color: string } | undefined): string | null {
+  return tool?.mode === "draw" ? tool.color : null;
+}

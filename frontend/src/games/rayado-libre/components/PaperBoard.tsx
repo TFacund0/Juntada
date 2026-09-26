@@ -4,6 +4,8 @@ import { usePrefersReducedMotion } from "../../../components/game-kit/hooks/useP
 import { useAnimationGate } from "../../../components/game-kit/hooks/useAnimationGate";
 import { Canvas, type DrawAction, type Tool } from "./Canvas";
 import { RemotePen } from "./RemotePen";
+import { OwnPen, type OwnPenHandle } from "./OwnPen";
+import { ownPenColor } from "../utils/remotePen";
 import { useClearFx } from "../hooks/useClearFx";
 import type { ScribbleSound } from "../hooks/useScribbleSound";
 
@@ -38,7 +40,7 @@ const SHAKE_MS = 380;
 /**
  * Hoja de papel del tablero: papel con textura de ruido, levemente torcida,
  * con sombra y dos tiras de cinta en las esquinas — el canvas, el texto
- * inicial de quien dibuja y el marcador remoto van encima. Va dentro del
+ * inicial de quien dibuja y el marcador (remoto o el propio) van encima. Va dentro del
  * contenedor que la dimensiona (ver DrawingStage), que es también el
  * ancla de las cintas.
  */
@@ -60,6 +62,9 @@ export function PaperBoard({
   const idleVisible = !touched && strokes.length === 0;
 
   const clearFx = useClearFx(strokes, resetKey, clearRequest);
+  // Marcador propio: solo quien dibuja, con el lápiz.
+  const ownPen = useRef<OwnPenHandle>(null);
+  const ownColor = interactive ? ownPenColor(tool) : null;
   const sheetRef = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
   const canAnimate = useAnimationGate();
@@ -91,6 +96,7 @@ export function PaperBoard({
           onFillAt={onFillAt}
           clearFx={clearFx}
           scribble={scribble}
+          onPenMove={point => ownPen.current?.move(point)}
         />
         {idleText && (
           <div
@@ -105,6 +111,7 @@ export function PaperBoard({
           </div>
         )}
         {remotePen && <RemotePen strokes={strokes} />}
+        {ownColor && <OwnPen ref={ownPen} color={ownColor} />}
       </div>
       <div aria-hidden="true" className={clsx(TAPE, "-left-[14px] -rotate-[34deg]")} />
       <div aria-hidden="true" className={clsx(TAPE, "-right-[14px] rotate-[36deg]")} />
