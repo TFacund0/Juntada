@@ -16,7 +16,7 @@ export interface PlayerRowsInput {
   drawerId: string | null;
   correctGuessers: readonly string[];
   roundPoints: Record<string, number>;
-  /** Quiénes están escribiendo ahora (llega en la fase 3; vacío hasta entonces). */
+  /** Quiénes están escribiendo ahora (ver useTypingIds; el modo local no tiene chat, así que ahí nunca hay). */
   typingIds?: readonly string[];
 }
 

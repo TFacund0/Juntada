@@ -1,6 +1,13 @@
 import { memo } from "react";
 import clsx from "clsx";
 
+const AVATAR_COLORS = ["#534AB7", "#0F6E56", "#993C1D", "#185FA5", "#854F0B", "#993556", "#3B6D11", "#A32D2D"];
+
+/** El color de fondo del avatar de un jugador — exportado para que un nombre pueda ir "en su color" sin repetir la paleta. */
+export function avatarColor(name: string): string {
+  return AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+}
+
 interface AvatarProps {
   name: string;
   size?: number;
@@ -33,8 +40,7 @@ export const Avatar = memo(function Avatar({ name, size = 40, className }: Avata
       .slice(0, 2)
       .join("")
       .toUpperCase() || "?";
-  const colors = ["#534AB7", "#0F6E56", "#993C1D", "#185FA5", "#854F0B", "#993556", "#3B6D11", "#A32D2D"];
-  const bg = colors[(name.charCodeAt(0) || 0) % colors.length];
+  const bg = avatarColor(name);
   return (
     <div
       className={clsx("inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white", className)}

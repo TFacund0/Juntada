@@ -8,6 +8,12 @@ import { defineConfig } from "@playwright/test";
 // runs need).
 const BACKEND_PORT = 3011;
 
+// E2E_EXTERNAL=1: run against servers that are already up (e.g. a `pnpm dev`
+// with a real database, for specs that log in with real accounts — see
+// rayado-chat-online.spec.ts) instead of starting this config's own pair.
+// E2E_BASE_URL points at that frontend (default: Vite's usual 5173).
+const EXTERNAL_SERVERS = !!process.env.E2E_EXTERNAL;
+
 export default defineConfig({
   testDir: "./e2e",
   // Specs share one backend/frontend pair started by webServer below, with
@@ -35,21 +41,23 @@ export default defineConfig({
   // local run.
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5173",
     trace: "on-first-retry",
   },
-  webServer: [
-    {
-      command: "pnpm --filter @juntada/backend start",
-      url: `http://localhost:${BACKEND_PORT}/health`,
-      env: { PORT: String(BACKEND_PORT) },
-      reuseExistingServer: !process.env.CI,
-    },
-    {
-      command: "pnpm --filter @juntada/frontend dev",
-      url: "http://localhost:5173",
-      env: { VITE_BACKEND_PORT: String(BACKEND_PORT) },
-      reuseExistingServer: !process.env.CI,
-    },
-  ],
+  webServer: EXTERNAL_SERVERS
+    ? undefined
+    : [
+        {
+          command: "pnpm --filter @juntada/backend start",
+          url: `http://localhost:${BACKEND_PORT}/health`,
+          env: { PORT: String(BACKEND_PORT) },
+          reuseExistingServer: !process.env.CI,
+        },
+        {
+          command: "pnpm --filter @juntada/frontend dev",
+          url: "http://localhost:5173",
+          env: { VITE_BACKEND_PORT: String(BACKEND_PORT) },
+          reuseExistingServer: !process.env.CI,
+        },
+      ],
 });

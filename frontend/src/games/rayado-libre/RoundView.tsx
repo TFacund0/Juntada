@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRevealCountdown } from "../../components/game-kit/RevealCountdown";
 import { BigTextFlash } from "../../components/game-kit/BigTextFlash";
 import { type Tool } from "./components/Canvas";
@@ -12,7 +12,9 @@ import { WordRevealSweep } from "./components/WordRevealSweep";
 import { usePointsToast, type LastGuess } from "./hooks/usePointsToast";
 import { useRayadoSfx } from "./hooks/useRayadoSfx";
 import type { RoundViewProps } from "../gameTypes";
-import type { RayadoLibreRoundState } from "./types/roundView";
+import type { PrivateChatView, RayadoLibreRoundState } from "./types/roundView";
+
+const NO_IDS: readonly number[] = [];
 
 // Owns the state and effects shared across phases (drawing tool, the guess
 // input, the "+N puntos" toast, whether my own word is hidden, the game's
@@ -31,6 +33,9 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
   const wordChoices = (myRole?.wordChoices as string[] | null) ?? null;
   const myWord = myRole?.word as string | undefined;
   const pointsToast = usePointsToast(myRole?.lastGuess as LastGuess | undefined);
+  const closeEntryIds = (myRole?.closeEntryIds as number[] | undefined) ?? NO_IDS;
+  const guessedWord = myRole?.guessedWord as string | undefined;
+  const privateChat = useMemo<PrivateChatView>(() => ({ closeEntryIds, guessedWord }), [closeEntryIds, guessedWord]);
 
   useEffect(() => {
     setGuessText("");
@@ -114,6 +119,7 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
         me={me}
         isDrawer={isDrawer}
         myWord={myWord}
+        privateChat={privateChat}
         drawerPlayer={drawerPlayer}
         drawerOffline={drawerOffline}
         tool={tool}
@@ -131,7 +137,7 @@ export function RoundView({ room, me, myPlayer, myRole, isHost, send, justEntere
 
   if (room.phase === "reveal") {
     if (wordSweepVisible) return <WordRevealSweep word={round.word ?? ""} />;
-    return <RevealPhaseScreen room={room} round={round} me={me} myPlayer={myPlayer} send={send} />;
+    return <RevealPhaseScreen room={room} round={round} me={me} myPlayer={myPlayer} closeEntryIds={closeEntryIds} send={send} />;
   }
 
   if (room.phase === "result") {

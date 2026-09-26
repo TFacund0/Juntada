@@ -2,16 +2,7 @@ import { memo } from "react";
 import clsx from "clsx";
 import { Avatar } from "../../../components/ui/Avatar";
 import type { PlayerRow } from "../utils/playerRows";
-
-function TypingDots() {
-  return (
-    <span aria-hidden="true" className="inline-flex gap-[3px] align-middle">
-      {["", "[animation-delay:.15s]", "[animation-delay:.3s]"].map((delay, i) => (
-        <i key={i} className={clsx("h-[5px] w-[5px] rounded-full bg-rl-muted animate-rl-dot motion-reduce:animate-none", delay)} />
-      ))}
-    </span>
-  );
-}
+import { TypingDots } from "./TypingDots";
 
 function StatusLine({ row }: { row: PlayerRow }) {
   if (row.status === "drawing") return <>✏️ dibujando</>;

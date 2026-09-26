@@ -6,7 +6,7 @@ import { GameScreenLayout } from "../../../components/game-kit/GameScreenLayout"
 import type { RoundViewProps } from "../../gameTypes";
 import type { RayadoLibreRoundState } from "../types/roundView";
 import { RevealedWordCard } from "./RevealedWordCard";
-import { GuessChatPanel } from "./GuessChatPanel";
+import { ChatRecap } from "./chat/ChatRecap";
 import { RoundScoreboard } from "./RoundScoreboard";
 import { TurnHeader } from "./TurnHeader";
 import { roomScore } from "../utils/roomScore";
@@ -16,6 +16,8 @@ interface RevealPhaseScreenProps {
   round: RayadoLibreRoundState;
   me: RoundViewProps["me"];
   myPlayer: RoundViewProps["myPlayer"];
+  /** Mis intentos "cerca" (vista privada) — el recap los sigue marcando solo para mí. */
+  closeEntryIds: readonly number[];
   send: RoundViewProps["send"];
 }
 
@@ -25,7 +27,7 @@ interface RevealPhaseScreenProps {
  * de "listo" fijo al fondo — el chat scrollea por debajo suyo (mismo patrón
  * de `StickyActionBar` que discussion/impostor).
  */
-export function RevealPhaseScreen({ room, round, me, myPlayer, send }: RevealPhaseScreenProps) {
+export function RevealPhaseScreen({ room, round, me, myPlayer, closeEntryIds, send }: RevealPhaseScreenProps) {
   const chatLog = round.chatLog ?? [];
   const roundPoints = round.roundPoints ?? {};
   const onlinePlayers = room.players.filter(p => p.online);
@@ -54,12 +56,14 @@ export function RevealPhaseScreen({ room, round, me, myPlayer, send }: RevealPha
           </>
         }
         bottom={
-          <GuessChatPanel
-            chatLog={chatLog}
+          <ChatRecap
             players={room.players}
+            myId={me?.playerId}
+            drawerId={round.drawerId}
+            chatLog={chatLog}
             correctGuessers={round.correctGuessers ?? []}
             roundPoints={roundPoints}
-            variant="recap"
+            closeEntryIds={closeEntryIds}
           />
         }
         stickyBottom={

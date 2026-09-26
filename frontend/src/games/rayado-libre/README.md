@@ -53,8 +53,9 @@ UI entre los dos modos:
 - **`DrawingBoard.tsx`** — el tablero completo (temporizador circular +
   `Canvas` + `Toolbar`, con hoja deslizable en mobile / columna fija en
   desktop). Recibe `sideContent` como slot para lo que sí difiere entre
-  modos: el chat de adivinanzas (`GuessChatPanel`, online) vs. la lista de
-  "¿quién acertó?" (juez manual, local).
+  modos: el panel "Respuestas" (`chat/OnlineAnswersPanel`, online) vs. la
+  lista de "¿quién acertó?" (`LocalGuessersPanel`, juez manual, local), las
+  dos con la misma cabecera (`chat/ChatHeader`).
 - **`Canvas.tsx`** — el tablero de dibujo a nivel píxel (pointer events,
   flood fill, pintado incremental optimista). No sabe nada de turnos ni
   puntaje.
@@ -66,7 +67,7 @@ UI entre los dos modos:
   turnos y podio de cierre de partida, respectivamente.
 - **`RevealedWordCard.tsx`** — la palabra revelada en la fase "reveal".
 
-Los componentes específicos de un solo modo (`GuessChatPanel`,
+Los componentes específicos de un solo modo (`chat/` salvo `ChatHeader`,
 `WaitingForWordCard`, `EyeToggle` → online; `PassDeviceCard` → local) no
 intentan unificarse con su equivalente del otro modo cuando la lógica de
 fondo es genuinamente distinta — forzarlo sería exactamente el tipo de
@@ -81,9 +82,9 @@ abstracción prematura que este repo evita (ver CLAUDE.md, sección DRY/SoC).
   ciclo completo de fases.
 - **`packages/rayado-libre-scoring/`** — funciones puras compartidas entre
   el motor del backend y el modo local del frontend: `scoreForGuess`,
-  `isCorrectGuess`, `buildHintOrder`/`computeWordHint` (pista progresiva),
+  `isCorrectGuess`, `isCloseGuess` ("¡Estás cerca!"), `buildHintOrder`/`computeWordHint` (pista progresiva),
   `popLastDrawUnit` (deshacer), y constantes (`TURN_SECONDS`,
-  `MIN_PLAYERS`, `DRAWER_POINTS_PER_GUESS`). Ningún cálculo de puntaje se
+  `MIN_PLAYERS`, `DRAWER_POINTS_PER_GUESS`, `TYPING_TTL_MS`). Ningún cálculo de puntaje se
   reimplementa en el frontend — todo importa de acá.
 - **`packages/rayado-libre-data/`** — el pool de categorías/palabras y el
   algoritmo de selección de 3 palabras sin repetir (`pickThreeWords`),
@@ -98,7 +99,8 @@ archivo que testea, con imports relativos hacia afuera de la carpeta
 - `LocalGame.test.tsx` — flujo completo del modo local (elegir palabra,
   marcar aciertos, llegar a la tabla final).
 - `RoundView.test.tsx` — fases "choosing"/"drawing" del modo online.
-- `ConfigPanel.test.tsx`, `GuessChatPanel.test.tsx` — componentes puntuales.
+- `ConfigPanel.test.tsx`, `ChatFeed.test.tsx` — componentes puntuales; `chatFeed`,
+  `typing` y `useChatFeedback` cubren las reglas del chat de respuestas.
 
 Antes de dar un cambio por terminado: `pnpm --filter @juntada/frontend
 typecheck`, `pnpm --filter @juntada/backend typecheck`, y los tests de

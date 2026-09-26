@@ -62,6 +62,13 @@
   --color-rl-ink: #eeeaff;
   --color-rl-ok: #33c07a;
   --color-rl-ok-text: #9ff0c6;
+  /* Fondo y borde verde de "adivinó" (fichitas, línea de acierto, input resuelto). */
+  --color-rl-ok-soft: rgba(51, 192, 122, 0.14);
+  --color-rl-ok-line: rgba(51, 192, 122, 0.45);
+  /* Burbuja "¡Estás cerca!". */
+  --color-rl-warn-soft: rgba(226, 196, 74, 0.16);
+  --color-rl-warn-line: rgba(226, 196, 74, 0.55);
+  --color-rl-warn-text: #ffe9a3;
   --color-rl-warn: #e2c44a;
   --color-rl-danger: #e24b4a;
   --color-rl-paper: #fbf7ee;
@@ -76,6 +83,8 @@
 
   --animate-rl-beat: rl-beat 1s ease-in-out infinite;
   --animate-rl-dot: rl-dot 1s infinite;
+  --animate-rl-msg-in: rl-msg-in 220ms ease-out;
+  --animate-rl-chip-pop: rl-chip-pop 350ms ease-out;
 
   /* Latido del reloj en los últimos 10 segundos. */
   @keyframes rl-beat {
@@ -88,6 +97,31 @@
     }
     24% {
       transform: scale(1);
+    }
+  }
+
+  /* Mensaje nuevo del chat de respuestas. */
+  @keyframes rl-msg-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Fichita de "adivinó" que aparece con rebote. */
+  @keyframes rl-chip-pop {
+    0% {
+      transform: scale(0);
+    }
+    50% {
+      transform: scale(1.25);
+    }
+    100% {
+      transform: none;
     }
   }
 

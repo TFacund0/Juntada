@@ -46,7 +46,7 @@ describe("useFloatingChatDrag", () => {
     const { getByTestId } = render(createElement(TestComponent, { onTap: vi.fn() }));
     const bubble = getByTestId("bubble");
     expect(bubble.style.right).toBe("18px");
-    expect(bubble.style.bottom).toBe("96px");
+    expect(bubble.style.bottom).toBe("var(--jt-chat-bubble-bottom, 96px)");
     expect(bubble.style.left).toBe("");
   });
 
@@ -210,7 +210,7 @@ describe("useFloatingChatDrag", () => {
     });
 
     expect(bubble.style.right).toBe("18px");
-    expect(bubble.style.bottom).toBe("96px");
+    expect(bubble.style.bottom).toBe("var(--jt-chat-bubble-bottom, 96px)");
     expect(bubble.style.left).toBe("");
   });
 

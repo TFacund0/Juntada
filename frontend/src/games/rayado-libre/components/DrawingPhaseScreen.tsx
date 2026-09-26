@@ -1,16 +1,19 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { PhaseTransition } from "../../../components/game-kit/PhaseTransition";
 import { TURN_SECONDS } from "@juntada/rayado-libre-scoring";
 import type { RoundViewProps } from "../../gameTypes";
-import type { RayadoLibreRoundState } from "../types/roundView";
+import type { PrivateChatView, RayadoLibreRoundState } from "../types/roundView";
 import type { RayadoSfx } from "../hooks/useRayadoSfx";
+import { useTypingIds } from "../hooks/useTypingIds";
+import { useTypingSignal } from "../hooks/useTypingSignal";
+import { useLiftRoomChatBubble } from "../hooks/useLiftRoomChatBubble";
 import { roomScore } from "../utils/roomScore";
 import { buildPlayerRows } from "../utils/playerRows";
 import { letterCount } from "../utils/hintCells";
 import { turnSubtitle } from "../utils/turnText";
 import { type Tool } from "./Canvas";
 import { EyeToggle } from "./EyeToggle";
-import { GuessChatPanel } from "./GuessChatPanel";
+import { OnlineAnswersPanel } from "./chat/OnlineAnswersPanel";
 import { CorrectGuessFlash } from "./CorrectGuessFlash";
 import { DrawingBoard } from "./DrawingBoard";
 import { HintText } from "./HintText";
@@ -21,6 +24,7 @@ interface DrawingPhaseScreenProps {
   me: RoundViewProps["me"];
   isDrawer: boolean;
   myWord: string | undefined;
+  privateChat: PrivateChatView;
   drawerPlayer: RoundViewProps["room"]["players"][number] | undefined;
   drawerOffline: boolean;
   tool: Tool;
@@ -41,6 +45,7 @@ export function DrawingPhaseScreen({
   me,
   isDrawer,
   myWord,
+  privateChat,
   drawerPlayer,
   drawerOffline,
   tool,
@@ -61,6 +66,11 @@ export function DrawingPhaseScreen({
   const canReroll = isDrawer && !round.rerollUsed && correctGuessers.length === 0;
   const hint = round.wordHint ?? "";
   const drawerName = drawerPlayer?.name ?? "";
+  const myId = me?.playerId;
+  useLiftRoomChatBubble();
+  const typingIds = useTypingIds(round.typingUntil, myId);
+  const sendTyping = useCallback(() => send({ type: "typing" }), [send]);
+  const typing = useTypingSignal(!isDrawer && !alreadyGuessed, sendTyping);
   // Memoizado: escribir en el chat re-renderiza esta pantalla en cada tecla.
   const players = useMemo(
     () =>
@@ -70,14 +80,16 @@ export function DrawingPhaseScreen({
         drawerId: round.drawerId,
         correctGuessers: round.correctGuessers ?? [],
         roundPoints: round.roundPoints ?? {},
+        typingIds,
       }),
-    [room, round],
+    [room, round, typingIds],
   );
 
   const submitGuess = () => {
-    if (!guessText.trim()) return;
+    if (!guessText.trim() || alreadyGuessed) return;
     send({ type: "guess", text: guessText.trim() });
     setGuessText("");
+    typing.reset();
   };
 
   // Quien dibuja ve su palabra entera (subrayado verde) y puede taparla con
@@ -136,28 +148,27 @@ export function DrawingPhaseScreen({
         onReroll={canReroll ? () => send({ type: "reroll_word" }) : undefined}
         sideLabel="Chat de respuestas"
         sideContent={
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <GuessChatPanel
-              bare
-              chatLog={chatLog}
-              players={room.players}
-              correctGuessers={correctGuessers}
-              roundPoints={roundPoints}
-              variant="live"
-              input={
-                isDrawer
-                  ? undefined
-                  : alreadyGuessed
-                    ? {
-                        value: guessText,
-                        onChange: setGuessText,
-                        onSubmit: submitGuess,
-                        disabledReason: "Ya adivinaste esta ronda — esperá a que termine el turno.",
-                      }
-                    : { value: guessText, onChange: setGuessText, onSubmit: submitGuess }
-              }
-            />
-          </div>
+          <OnlineAnswersPanel
+            players={room.players}
+            myId={myId}
+            drawerId={round.drawerId}
+            drawerName={drawerName}
+            isDrawer={isDrawer}
+            chatLog={chatLog}
+            correctGuessers={correctGuessers}
+            roundPoints={roundPoints}
+            privateChat={privateChat}
+            typingIds={typingIds}
+            guess={{
+              value: guessText,
+              onChange: text => {
+                setGuessText(text);
+                typing.onInput(text);
+              },
+              onSubmit: submitGuess,
+            }}
+            sfx={sfx}
+          />
         }
       />
     </PhaseTransition>
