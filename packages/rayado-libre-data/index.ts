@@ -31,6 +31,15 @@ export function pickThreeWords(pool: readonly string[], usedWords: readonly stri
   return { words: shuffle(resetUsed ? pool : available).slice(0, 3), resetUsed };
 }
 
+// The label of the category a word comes from, for the word-choice cards
+// ("Gato" · Animales). `null` for a word outside every category (the host's
+// own custom words). Words don't repeat across categories, so the first
+// match is the only one.
+export function categoryLabelOf(categories: Record<string, Category>, word: string): string | null {
+  for (const category of Object.values(categories)) if (category.words.includes(word)) return category.label;
+  return null;
+}
+
 export const CATEGORIES: Record<string, Category> = {
   animales: {
     label: "Animales",

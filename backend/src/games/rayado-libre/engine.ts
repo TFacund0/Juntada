@@ -139,6 +139,10 @@ interface RayadoLibreRound {
   // so the reveal screen can show "+N this turn" next to each player's
   // running total without the two ever needing to be reconciled by hand.
   roundPoints: Record<string, number>;
+  // playerId -> whole seconds left on the clock when they guessed it this
+  // turn (the same value scoreForGuess got). Only shown on the reveal screen
+  // ("adivinó con 57s"), so it never needs to go out while drawing.
+  guessSeconds: Record<string, number>;
   // Bumped on every correct guess so the guesser's own client can diff it
   // (same pattern as impostor's rerollCount) to show a one-time "+N puntos"
   // toast instead of it reappearing on every unrelated private_role refresh.
@@ -177,6 +181,7 @@ function migrateRound(room: Room): void {
   if (r.hintOrder == null) r.hintOrder = r.word ? buildHintOrder(r.word) : [];
   if (r.drawingStartedAt == null && room.phase === "drawing") r.drawingStartedAt = Date.now();
   if (r.roundPoints == null) r.roundPoints = {};
+  if (r.guessSeconds == null) r.guessSeconds = {};
   if (r.guessId == null) r.guessId = 0;
   if (r.lastGuess === undefined) r.lastGuess = null;
   if (r.chatLog == null) r.chatLog = [];
@@ -251,6 +256,7 @@ function startTurnChoosing(room: Room, drawerId: string): void {
   r.chatLog = [];
   r.correctGuessers = [];
   r.roundPoints = {};
+  r.guessSeconds = {};
   r.lastGuess = null;
   r.rerollUsed = false;
   r.typingUntil = {};
@@ -339,6 +345,7 @@ function startRound(room: Room): { success?: true; error?: string } {
     chatLog: [],
     correctGuessers: [],
     roundPoints: {},
+    guessSeconds: {},
     guessId: 0,
     lastGuess: null,
     rerollUsed: false,
@@ -587,6 +594,7 @@ function handleAction(
         cfg(room).score[r.drawerId] = (cfg(room).score[r.drawerId] || 0) + DRAWER_POINTS_PER_GUESS;
         r.roundPoints[playerId] = (r.roundPoints[playerId] || 0) + points;
         r.roundPoints[r.drawerId] = (r.roundPoints[r.drawerId] || 0) + DRAWER_POINTS_PER_GUESS;
+        r.guessSeconds[playerId] = secondsRemaining;
         r.correctGuessers.push(playerId);
         r.guessId += 1;
         r.lastGuess = { playerId, points, guessId: r.guessId };
@@ -639,7 +647,14 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
     };
   }
   if (room.phase === "reveal") {
-    return { ...base, word: r.word, correctGuessers: r.correctGuessers, chatLog: r.chatLog, roundPoints: r.roundPoints };
+    return {
+      ...base,
+      word: r.word,
+      correctGuessers: r.correctGuessers,
+      chatLog: r.chatLog,
+      roundPoints: r.roundPoints,
+      guessSeconds: r.guessSeconds,
+    };
   }
   if (room.phase === "result") return { ...base, word: r.word };
   return base;
