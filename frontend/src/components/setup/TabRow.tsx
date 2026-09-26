@@ -32,8 +32,8 @@ export function TabRow<T extends string>({ tabs, active, onChange, className, co
           className={clsx(
             "jt-btn-anim",
             T.btn(active === t.key ? "primary" : "ghost"),
-            "flex-1 text-[13px]",
-            compact ? "p-2" : "py-2.5 px-1",
+            "flex-1 min-w-0 text-[13px]",
+            compact ? "!px-1.5 py-2" : "!px-2 py-2.5",
           )}
           onClick={() => onChange(t.key)}
         >

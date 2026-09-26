@@ -490,7 +490,8 @@ function handleAction(
     }
 
     case "draw_stroke": {
-      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
+      if (playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING) return { handled: true, unchanged: true };
       const points = parseStrokePoints(payload.points);
       if (!points) return { handled: false };
       pushDrawAction(room, {
@@ -504,7 +505,8 @@ function handleAction(
     }
 
     case "draw_fill": {
-      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
+      if (playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING) return { handled: true, unchanged: true };
       const x = Number(payload.x);
       const y = Number(payload.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return { handled: false };
@@ -513,13 +515,15 @@ function handleAction(
     }
 
     case "draw_clear": {
-      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
+      if (playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING) return { handled: true, unchanged: true };
       r.strokes = [];
       return { handled: true };
     }
 
     case "draw_undo": {
-      if (room.phase !== PHASE.DRAWING || playerId !== r.drawerId) return { handled: false };
+      if (playerId !== r.drawerId) return { handled: false };
+      if (room.phase !== PHASE.DRAWING) return { handled: true, unchanged: true };
       r.strokes = popLastDrawUnit(r.strokes);
       return { handled: true };
     }

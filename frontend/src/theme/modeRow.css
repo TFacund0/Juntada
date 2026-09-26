@@ -14,7 +14,6 @@
   padding-left: 16px;
   padding-right: 16px;
   padding-bottom: 60px;
-  transition: max-width 200ms ease;
 }
 
 @media (min-width: 720px) {

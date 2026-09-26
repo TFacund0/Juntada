@@ -98,7 +98,6 @@
    igual que el diseño de referencia (max-w-6xl + grid-cols crecientes). */
 .jt-home-wrap {
   max-width: 480px;
-  transition: max-width 200ms ease;
 }
 
 .jt-hero-section {

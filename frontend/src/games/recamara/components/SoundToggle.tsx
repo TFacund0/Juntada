@@ -1,3 +1,5 @@
+import { SoundOffIcon, SoundOnIcon } from "../../../components/ui/icons";
+
 interface SoundToggleProps {
   muted: boolean;
   onToggle: () => void;
@@ -15,7 +17,9 @@ export function SoundToggle({ muted, onToggle }: SoundToggleProps) {
       aria-label={muted ? "Activar sonido" : "Silenciar sonido"}
       title={muted ? "Activar sonido" : "Silenciar sonido"}
     >
-      <span aria-hidden="true">{muted ? "🔇" : "🔊"}</span>
+      <span aria-hidden="true" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        {muted ? <SoundOffIcon size={18} /> : <SoundOnIcon size={18} />}
+      </span>
     </button>
   );
 }

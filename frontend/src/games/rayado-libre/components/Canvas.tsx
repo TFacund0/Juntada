@@ -133,6 +133,24 @@ export function Canvas({ strokes, interactive, tool, onStrokeChunk, onFillAt, cl
     [],
   );
 
+  // Si deja de ser interactivo (por ejemplo, cambia la fase a reveal mientras
+  // se dibujaba), se corta de inmediato cualquier trazo en progreso.
+  useEffect(() => {
+    if (!interactive || !tool) {
+      if (drawingRef.current) {
+        drawingRef.current = false;
+        if (flushTimerRef.current) {
+          clearInterval(flushTimerRef.current);
+          flushTimerRef.current = null;
+        }
+        pendingPointsRef.current = [];
+        speedRef.current = null;
+        scribbleRef.current?.stop();
+        onPenMove?.(null);
+      }
+    }
+  }, [interactive, tool, onPenMove]);
+
   const flush = () => {
     if (pendingPointsRef.current.length === 0 || !tool) return;
     const color = tool.mode === "erase" ? PAPER_COLOR : tool.color;

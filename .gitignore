@@ -14,3 +14,5 @@ playwright/.cache/
 frontend/*.timestamp-*.mjs
 # Índice local de CodeGraph (se regenera con `codegraph init`/sync)
 .codegraph/
+# Cache local del registro de skills (se regenera solo)
+.atl/
