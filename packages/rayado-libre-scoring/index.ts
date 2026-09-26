@@ -66,6 +66,42 @@ export function isCorrectGuess(guess: string, word: string): boolean {
   return g.length > 0 && g === normalizeGuess(word);
 }
 
+// True when `a` becomes `b` with exactly one insertion, deletion or
+// substitution (Levenshtein distance 1). A linear walk instead of the full
+// distance matrix: "close" only ever asks about distance 1.
+export function isOneEditAway(a: string, b: string): boolean {
+  if (a === b || Math.abs(a.length - b.length) > 1) return false;
+  const [shorter, longer] = a.length <= b.length ? [a, b] : [b, a];
+  let i = 0;
+  while (i < shorter.length && shorter[i] === longer[i]) i++;
+  // Same length: skip the one substituted char in both; otherwise skip the
+  // extra char in the longer one. Either way the rest must match exactly.
+  return shorter.length === longer.length ? shorter.slice(i + 1) === longer.slice(i + 1) : shorter.slice(i) === longer.slice(i + 1);
+}
+
+// Shorter than this, a prefix match ("gat" for "gato") gives too much away
+// to count as merely "close" — same threshold as the reference (`n.length > 3`).
+export const CLOSE_PREFIX_MIN_LENGTH = 4;
+
+// A wrong guess that's almost there: one typo away from the word, or a
+// long-enough start of it. Only ever shown to whoever wrote it (see the
+// engine's closeEntryIds), so it nudges without spoiling it for the rest.
+export function isCloseGuess(guess: string, word: string): boolean {
+  const g = normalizeGuess(guess);
+  const w = normalizeGuess(word);
+  if (g.length === 0 || g === w) return false;
+  return isOneEditAway(g, w) || (g.length >= CLOSE_PREFIX_MIN_LENGTH && w.startsWith(g));
+}
+
+// ─── "Escribiendo…" ──────────────────────────────────────────────────────────
+// Each guesser's client pings at most once every TYPING_SEND_INTERVAL_MS
+// while typing; the server marks them as typing until TYPING_TTL_MS after
+// the last ping, so the indicator turns itself off with no extra "stopped"
+// message (and no server timer). TTL = 2× interval so one delayed ping
+// doesn't make the dots flicker off and back on.
+export const TYPING_SEND_INTERVAL_MS = 2000;
+export const TYPING_TTL_MS = 4000;
+
 // ─── Progressive letter hints ────────────────────────────────────────────────
 // The word's length is visible from the moment drawing starts (as blanks),
 // and one extra letter — picked at random, not left-to-right — gets revealed

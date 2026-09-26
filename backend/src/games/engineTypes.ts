@@ -18,7 +18,11 @@ export interface GameEngine {
     playerId: string,
     action: string,
     payload: Record<string, unknown>,
-  ): { handled: boolean; [key: string]: unknown };
+    // `rerolled`: private views changed too (re-send private_role to
+    // everyone); `unchanged`: a valid action the engine chose to ignore —
+    // no error for the sender and nothing to broadcast (see
+    // ws/roomHandlers.ts's gameAction).
+  ): { handled: boolean; rerolled?: boolean; unchanged?: boolean; [key: string]: unknown };
   getPublicRoundView(room: Room): unknown;
   getPrivateView(room: Room, playerId: string): Record<string, unknown> | null;
   getPhaseTimerEnd?(room: Room): number | null;
@@ -51,8 +55,10 @@ export interface GameEngine {
   // round shape has stayed simple enough to never have needed this.
   migrateRound?(room: Room): void;
   // Overrides ws/roomHandlers.ts's default 1-minute auto-kick grace period
-  // for a disconnected player, per-room/per-player — e.g. Impostor shortens
-  // this while a vote is stuck waiting on them, since everyone else is
-  // blocked in the meantime. Return undefined to fall back to the default.
+  // for a disconnected player, per-room/per-player. No engine implements it
+  // today (Impostor used to shorten it during voting; that was removed when
+  // the default grace period itself dropped to 1 minute) — kept as the hook
+  // for a game where a single stuck player would block everyone else.
+  // Return undefined to fall back to the default.
   offlineKickTimeoutMs?(room: Room, playerId: string): number | undefined;
 }

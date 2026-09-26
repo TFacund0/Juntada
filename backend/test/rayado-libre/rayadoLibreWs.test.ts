@@ -141,3 +141,53 @@ test("the second drawer actually receives their word choices over the wire", asy
 
   for (const p of players) p.ws.close();
 });
+
+test("typing and 'close' over the wire: others see who's typing, but only the author ever gets the close mark", async () => {
+  const host = await createRoom("Ana");
+  const p2 = await joinRoom("Beto", host.roomCode);
+  const p3 = await joinRoom("Caro", host.roomCode);
+  const players = [host, p2, p3];
+
+  const allCats = Object.keys(CATEGORIES).reduce((a: Record<string, boolean>, k: string) => ({ ...a, [k]: true }), {});
+  host.ws.send(JSON.stringify({ type: "update_config", config: { enabledCategories: allCats } }));
+  await waitFor(host.queue, m => m.type === "state" && m.room.config.enabledCategories[Object.keys(CATEGORIES)[0]] === true);
+  host.ws.send(JSON.stringify({ type: "start_round" }));
+  const choosing = await waitFor(host.queue, m => m.type === "state" && m.room.phase === "choosing");
+  const drawer = players.find(p => p.playerId === choosing.room.round.drawerId)!;
+  const [author, other] = players.filter(p => p !== drawer);
+  const { wordChoices } = await waitFor(drawer.queue, m => m.type === "private_role" && Array.isArray(m.wordChoices));
+  const word: string = wordChoices[0];
+  drawer.ws.send(JSON.stringify({ type: "choose_word", word }));
+  await waitFor(other.queue, m => m.type === "state" && m.room.phase === "drawing");
+
+  author.ws.send(JSON.stringify({ type: "typing" }));
+  const typingState = await waitFor(other.queue, m => m.type === "state" && m.room.round?.typingUntil?.[author.playerId] > Date.now());
+  assert.deepEqual(Object.keys(typingState.room.round.typingUntil), [author.playerId]);
+
+  // A ping from the drawer is silently ignored — no error back.
+  drawer.ws.send(JSON.stringify({ type: "typing" }));
+
+  // One extra letter is always exactly one edit away from the word.
+  author.ws.send(JSON.stringify({ type: "guess", text: `${word}x` }));
+  const authorRole = await waitFor(author.queue, m => m.type === "private_role" && m.closeEntryIds?.length === 1);
+  const otherState = await waitFor(other.queue, m => m.type === "state" && m.room.round?.chatLog?.some((e: any) => e.text === `${word}x`));
+  const entry = otherState.room.round.chatLog.find((e: any) => e.text === `${word}x`);
+  assert.deepEqual(authorRole.closeEntryIds, [entry.id]);
+  assert.deepEqual(entry, { id: entry.id, type: "chat", playerId: author.playerId, text: `${word}x` });
+  assert.deepEqual(otherState.room.round.typingUntil, {}, "sending the guess clears the author's typing mark");
+
+  await waitFor(drawer.queue, m => m.type === "private_role" && Array.isArray(m.closeEntryIds));
+  for (const p of [other, drawer]) {
+    for (const m of p.queue) {
+      if (m.type === "private_role") assert.deepEqual(m.closeEntryIds ?? [], [], "a close mark reached another player");
+      if (m.type === "state") assert.ok(!JSON.stringify(m).includes("closeEntryIds"), "a close mark leaked into the public state");
+    }
+  }
+  assert.ok(!drawer.queue.some(m => m.type === "error"), "the drawer's ignored typing ping must not come back as an error");
+
+  // End the turn so its 99s phase timer doesn't keep the test process alive.
+  for (const p of [author, other]) p.ws.send(JSON.stringify({ type: "guess", text: word }));
+  await waitFor(host.queue, m => m.type === "state" && m.room.phase === "reveal");
+
+  for (const p of players) p.ws.close();
+});

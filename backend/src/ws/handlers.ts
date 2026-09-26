@@ -169,6 +169,7 @@ const HANDLERS: Record<ClientMessageType, Handler> = {
   draw_clear: roomHandlers.gameAction("draw_clear"),
   draw_undo: roomHandlers.gameAction("draw_undo"),
   guess: roomHandlers.gameAction("guess"),
+  typing: roomHandlers.gameAction("typing"),
   submit_suggestion: roomHandlers.gameAction("submit_suggestion"),
   vote_suggestion: roomHandlers.gameAction("vote_suggestion"),
   confirm_words_ready: roomHandlers.gameAction("confirm_words_ready"),

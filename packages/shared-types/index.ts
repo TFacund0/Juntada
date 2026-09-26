@@ -280,6 +280,11 @@ export const SCHEMAS = {
     type: z.literal("guess"),
     text: z.string().trim().min(1).max(60),
   }),
+  // Rayado Libre's "está escribiendo…" ping — no payload: the server only
+  // needs who sent it (see the "typing" action in its engine).
+  typing: z.object({
+    type: z.literal("typing"),
+  }),
   // ¿Quién Soy? — see backend/src/games/quien-soy/engine.ts. One word per
   // other player in the room, keyed by their player id — submitted together
   // as a single batch rather than one at a time.

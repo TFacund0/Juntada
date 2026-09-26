@@ -36,6 +36,8 @@ const {
   computeWordHint,
   popLastDrawUnit,
   MIN_PLAYERS,
+  isCloseGuess,
+  TYPING_TTL_MS,
 } = require("@juntada/rayado-libre-scoring") as {
   scoreForGuess: (secondsRemaining: number) => { points: number; jumpToSeconds: number | null };
   isCorrectGuess: (guess: string, word: string) => boolean;
@@ -45,6 +47,8 @@ const {
   computeWordHint: (word: string, hintOrder: readonly number[], elapsedSeconds: number) => string;
   popLastDrawUnit: (strokes: readonly DrawAction[]) => DrawAction[];
   MIN_PLAYERS: number;
+  isCloseGuess: (guess: string, word: string) => boolean;
+  TYPING_TTL_MS: number;
 };
 const { shuffle } = require("@juntada/core-utils");
 const CHOOSE_SECONDS = 15;
@@ -78,13 +82,10 @@ function parseStrokePoints(raw: unknown): [number, number][] | null {
   }
   return points;
 }
-// Kept generous enough that the reveal-phase recap ("cómo veníamos
-// escribiendo") still shows a real conversation instead of just the last 5
-// messages of the whole turn — the live "drawing" chat view is what trims
-// that down to a short recent window, purely on the frontend side (see
-// RoundView.tsx), so this same stored log serves both without needing two
-// copies.
-const CHAT_LOG_LIMIT = 30;
+// The whole turn's chat is shown (live, scrollable, and again as the reveal
+// recap), so this is sized for a real 99s conversation — still bounded,
+// since the full log goes out on every state broadcast.
+const CHAT_LOG_LIMIT = 100;
 
 type DrawAction =
   | import("@juntada/rayado-libre-scoring").StrokeAction
@@ -92,6 +93,9 @@ type DrawAction =
   | import("@juntada/rayado-libre-scoring").ClearAction;
 
 interface ChatEntry {
+  // Monotonic per game (see RayadoLibreRound.chatSeq) — what closeEntryIds
+  // points at, and a stable React key on the client.
+  id: number;
   type: "chat" | "correct";
   playerId: string;
   text?: string;
@@ -140,6 +144,17 @@ interface RayadoLibreRound {
   // toast instead of it reappearing on every unrelated private_role refresh.
   guessId: number;
   lastGuess: { playerId: string; points: number; guessId: number } | null;
+  // Last ChatEntry.id handed out — never reset between turns, so an id is
+  // never reused while a client might still hold the previous turn's log.
+  chatSeq: number;
+  // "Está escribiendo…": playerId -> timestamp the indicator expires at
+  // (last "typing" ping + TYPING_TTL_MS). Expired entries are simply
+  // filtered out of the public view — nothing needs a server timer.
+  typingUntil: Record<string, number>;
+  // playerId -> ids of their own wrong guesses that were "close" (see
+  // isCloseGuess). Private: only ever sent to that same player (see
+  // getPrivateView), so nobody else learns how near they were.
+  closeEntryIds: Record<string, number[]>;
 }
 
 function cfg(room: Room): RayadoLibreConfig {
@@ -168,6 +183,13 @@ function migrateRound(room: Room): void {
   if (r.correctGuessers == null) r.correctGuessers = [];
   if (r.strokes == null) r.strokes = [];
   if (r.rerollUsed == null) r.rerollUsed = false;
+  if (r.typingUntil == null) r.typingUntil = {};
+  if (r.closeEntryIds == null) r.closeEntryIds = {};
+  if (r.chatSeq == null) r.chatSeq = 0;
+  // Entries logged before chat ids existed get one now, in log order.
+  for (const entry of r.chatLog) {
+    if (typeof entry.id !== "number") entry.id = ++r.chatSeq;
+  }
 }
 
 function createConfig(): RayadoLibreConfig {
@@ -231,6 +253,8 @@ function startTurnChoosing(room: Room, drawerId: string): void {
   r.roundPoints = {};
   r.lastGuess = null;
   r.rerollUsed = false;
+  r.typingUntil = {};
+  r.closeEntryIds = {};
   room.phase = "choosing";
 }
 
@@ -318,6 +342,9 @@ function startRound(room: Room): { success?: true; error?: string } {
     guessId: 0,
     lastGuess: null,
     rerollUsed: false,
+    chatSeq: 0,
+    typingUntil: {},
+    closeEntryIds: {},
   } satisfies RayadoLibreRound;
   room.phase = "lobby"; // overwritten by startTurnChoosing below
   startTurnChoosing(room, turnQueue[0]);
@@ -329,6 +356,35 @@ function pushDrawAction(room: Room, action: DrawAction): void {
   const r = round(room);
   r.strokes.push(action);
   if (r.strokes.length > MAX_STROKES) r.strokes.shift();
+}
+
+// Appends to the chat log with the next id, keeping it to CHAT_LOG_LIMIT —
+// and drops "close" marks pointing at entries that just fell off, so
+// closeEntryIds can never outgrow the log itself.
+function pushChatEntry(room: Room, entry: Omit<ChatEntry, "id">): ChatEntry {
+  const r = round(room);
+  const logged: ChatEntry = { ...entry, id: ++r.chatSeq };
+  r.chatLog = [...r.chatLog, logged].slice(-CHAT_LOG_LIMIT);
+  const oldestId = r.chatLog[0].id;
+  for (const [playerId, ids] of Object.entries(r.closeEntryIds)) {
+    if (ids.length > 0 && ids[0] < oldestId) r.closeEntryIds[playerId] = ids.filter(id => id >= oldestId);
+  }
+  return logged;
+}
+
+// Who can still guess right now: only mid-drawing, never the drawer, and
+// never someone who already got it. Shared by "guess" and "typing".
+function canGuess(room: Room, playerId: string): boolean {
+  const r = round(room);
+  return room.phase === "drawing" && playerId !== r.drawerId && !r.correctGuessers.includes(playerId);
+}
+
+// Typing indicators still running, for the public view — the drawer and
+// anyone who already guessed never show as typing, even with a ping in flight.
+function activeTyping(room: Room): Record<string, number> {
+  const r = round(room);
+  const now = Date.now();
+  return Object.fromEntries(Object.entries(r.typingUntil).filter(([playerId, until]) => until > now && canGuess(room, playerId)));
 }
 
 function maybeAdvance(room: Room): void {
@@ -401,7 +457,7 @@ function handleAction(
   playerId: string,
   action: string,
   payload: Record<string, unknown>,
-): { handled: boolean; rerolled?: boolean } {
+): { handled: boolean; rerolled?: boolean; unchanged?: boolean } {
   if (!room.round) return { handled: false };
   migrateRound(room);
   const r = round(room);
@@ -503,11 +559,21 @@ function handleAction(
       return { handled: true, rerolled: true };
     }
 
+    // "Está escribiendo…" — a guesser's client pings this at most every
+    // TYPING_SEND_INTERVAL_MS while typing. A ping that can't apply (the
+    // turn just ended, they just guessed it) is a normal race, not an error.
+    case "typing": {
+      if (!canGuess(room, playerId)) return { handled: true, unchanged: true };
+      r.typingUntil[playerId] = Date.now() + TYPING_TTL_MS;
+      return { handled: true };
+    }
+
     case "guess": {
-      if (room.phase !== "drawing" || playerId === r.drawerId) return { handled: false };
-      if (r.correctGuessers.includes(playerId)) return { handled: false };
+      if (!canGuess(room, playerId)) return { handled: false };
       const text = String(payload.text ?? "");
       if (!text || !r.word) return { handled: false };
+      // Sending the guess ends that bout of typing.
+      delete r.typingUntil[playerId];
 
       if (isCorrectGuess(text, r.word)) {
         // Math.floor, not ceil — rounding up would systematically nudge a
@@ -524,7 +590,7 @@ function handleAction(
         r.correctGuessers.push(playerId);
         r.guessId += 1;
         r.lastGuess = { playerId, points, guessId: r.guessId };
-        r.chatLog = [...r.chatLog, { type: "correct" as const, playerId }].slice(-CHAT_LOG_LIMIT);
+        pushChatEntry(room, { type: "correct", playerId });
         if (jumpToSeconds != null) r.timerEnd = Date.now() + jumpToSeconds * 1000;
 
         const onlineGuessers = room.players.filter(p => p.online && p.id !== r.drawerId);
@@ -534,7 +600,13 @@ function handleAction(
         return { handled: true, rerolled: true };
       }
 
-      r.chatLog = [...r.chatLog, { type: "chat" as const, playerId, text }].slice(-CHAT_LOG_LIMIT);
+      const entry = pushChatEntry(room, { type: "chat", playerId, text });
+      if (isCloseGuess(text, r.word)) {
+        (r.closeEntryIds[playerId] ??= []).push(entry.id);
+        // Their private view changed (a new close mark) — `rerolled` is what
+        // makes gameAction re-send private_role, not just the public state.
+        return { handled: true, rerolled: true };
+      }
       return { handled: true };
     }
 
@@ -563,6 +635,7 @@ function getPublicRoundView(room: Room): Record<string, unknown> | null {
       roundPoints: r.roundPoints,
       wordHint,
       rerollUsed: r.rerollUsed,
+      typingUntil: activeTyping(room),
     };
   }
   if (room.phase === "reveal") {
@@ -584,6 +657,11 @@ function getPrivateView(room: Room, playerId: string): Record<string, unknown> |
   // getPublicRoundView), so without this the drawer would have no way to
   // check what they're supposed to be drawing after picking it.
   if (isDrawer && room.phase === "drawing") view.word = r.word;
+  // Someone who already guessed it knows the word anyway — their locked
+  // input says "¡Era PALABRA!". Kept apart from `word` (the drawer's) so no
+  // drawer-only UI can ever pick it up for a guesser.
+  if (room.phase === "drawing" && r.correctGuessers.includes(playerId)) view.guessedWord = r.word;
+  if (room.phase === "drawing" || room.phase === "reveal") view.closeEntryIds = r.closeEntryIds[playerId] ?? [];
   if (r.lastGuess && r.lastGuess.playerId === playerId) view.lastGuess = r.lastGuess;
   return view;
 }

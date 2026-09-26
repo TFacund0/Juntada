@@ -170,6 +170,9 @@ function startRoundHandler(ws: WS, msg: ClientMessage, info: ClientInfo): void {
 // by the game engine — this stays game-agnostic. A "rerolled" result means
 // the engine changed the round's private info (e.g. a new secret word), so
 // every player needs a fresh private_role message, not just the public state.
+// An "unchanged" result is a valid action the engine deliberately ignored
+// (e.g. a stale "typing" ping that raced the end of a turn): no error for
+// the sender, and nothing to broadcast.
 function gameAction(actionType: string) {
   return (ws: WS, msg: ClientMessage, info: ClientInfo): void => {
     const room = rooms.get(info.roomCode ?? "");
@@ -180,6 +183,7 @@ function gameAction(actionType: string) {
       sendError(ws, "INVALID_ACTION", "Esa acción no es válida ahora");
       return;
     }
+    if (result.unchanged) return;
 
     if (result.rerolled) {
       broadcastStateAndPrivateInfo(room);
@@ -293,9 +297,8 @@ function kickPlayer(ws: WS, msg: Extract<ClientMessage, { type: "kick_player" }>
 }
 
 // A game can override how long its own disconnected players get before
-// getting auto-kicked (see GameEngine's offlineKickTimeoutMs — e.g. Impostor
-// shortens this during voting, where a stuck vote blocks everyone else).
-// Falls back to the generic 1-minute grace period otherwise.
+// getting auto-kicked (see GameEngine's offlineKickTimeoutMs — no engine
+// uses it today). Falls back to the generic 1-minute grace period otherwise.
 function schedulePlayerKick(roomCode: string, playerId: string): void {
   const room = rooms.get(roomCode);
   const timeoutMs = getEngine(room?.gameType)?.offlineKickTimeoutMs?.(room!, playerId) ?? PLAYER_OFFLINE_TIMEOUT_MS;
